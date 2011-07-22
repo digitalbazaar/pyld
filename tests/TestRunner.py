@@ -21,15 +21,15 @@ class TestRunner:
         ##
         # The program options.
         self.options = {}
-        
+
         ##
         # The parser for program options.
         self.parser = OptionParser()
-        
+
         ##
         # The test directory.
         self.testdir = None
-        
+
         ##
         # The list of test files to run.
         self.testfiles = []
@@ -39,7 +39,7 @@ class TestRunner:
     def main(self):
         print "PyLD TestRunner"
         print "Use -h or --help to view options."
-        
+
         # add program options
         self.parser.add_option("-f", "--file", dest="file",
             help="The single test file to run", metavar="FILE")
@@ -47,15 +47,15 @@ class TestRunner:
             help="The directory full of test files", metavar="DIR")
         self.parser.add_option("-v", "--verbose", dest="verbose",
          action="store_true", default=False, help="Prints verbose test data")
-        
+
         # parse options
         (self.options, args) = self.parser.parse_args()
-        
+
         # check if file or directory were specified
         if self.options.file == None and self.options.directory == None:
             print "No test file or directory specified."
             return
-        
+
         # check if file was specified, exists and is file
         if self.options.file != None:
             if (os.path.exists(self.options.file) and
@@ -66,7 +66,7 @@ class TestRunner:
             else:
                 print "Invalid test file."
                 return
-        
+
         # check if directory was specified, exists and is dir
         if self.options.directory != None:
             if (os.path.exists(self.options.directory) and
@@ -80,29 +80,32 @@ class TestRunner:
             else:
                 print "Invalid test directory."
                 return
-        
+
         # see if any tests have been specified
         if len(self.testfiles) == 0:
             print "No tests found."
             return
-        
+
         # FIXME: 
         #self.testFiles.sort()
-        
+
         # run the tests from each test file
         for testfile in self.testfiles:
             # test group in test file
             testgroup = json.load(open(testfile, 'r'))
-            
+            count = 1
+
             for test in testgroup['tests']:
-                print 'Test: ', testgroup['group'], ' / ', test['name'], '...'
-                
+                print 'Test: %s %04d/%s...' % (
+                    testgroup['group'], count, test['name']),
+                count += 1
+
                 # open the input and expected result json files
                 inputFd = open(join(self.testdir, test['input']))
                 expectFd = open(join(self.testdir, test['expect']))
                 inputJson = json.load(inputFd)
                 expectJson = json.load(expectFd)
-                
+
                 resultJson = None
 
                 testType = test['type']
@@ -120,7 +123,7 @@ class TestRunner:
                     resultJson = jsonld.frame(inputJson, frameJson)
                 else:
                     print "Unknown test type."
-                
+
                 # check the expected value against the test result
                 if expectJson == resultJson:
                     print 'PASS'

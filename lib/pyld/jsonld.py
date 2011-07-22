@@ -72,11 +72,10 @@ def _createDefaultContext():
 # @return the compacted IRI as a term or CURIE or the original IRI.
 def _compactIri(ctx, iri, usedCtx):
     rval = None
-    
+
     # check the context for a term that could shorten the IRI
     # (give preference to terms over CURIEs)
     for key in ctx:
-        # FIXME: javascript has '@' - js 103
         # skip special context keys (start with '@')
         if len(key) > 0 and not key.startswith('@'):
             # compact to a term
@@ -85,7 +84,7 @@ def _compactIri(ctx, iri, usedCtx):
                 if usedCtx is not None:
                     usedCtx[key] = ctx[key]
                 break
-    
+
     # term not found, if term is rdf type, use built-in keyword
     if rval is None and iri == ns['rdf'] + 'type':
         rval = _t
@@ -93,13 +92,12 @@ def _compactIri(ctx, iri, usedCtx):
     # term not found, check the context for a CURIE prefix
     if rval is None:
         for key in ctx:
-            # FIXME: javascript has '@' - js 130
             # skip special context keys (start with '@')
             if len(key) > 0 and not key.startswith('@'):
                 # see if IRI begins with the next IRI from the context
                 ctxIri = ctx[key]
                 idx = iri.find(ctxIri)
-                
+
                 # compact to a CURIE
                 if idx == 0 and len(iri) > len(ctxIri):
                     rval = key + ':' + iri[len(ctxIri):]
@@ -125,13 +123,13 @@ def _compactIri(ctx, iri, usedCtx):
 # @return the expanded term as an absolute IRI.
 def _expandTerm(ctx, term, usedCtx):
     rval = None
-    
+
     # 1. If the property has a colon, then it is a CURIE or an absolute IRI:
     idx = term.find(':')
     if idx != -1:
         # get the potential CURIE prefix
         prefix = term[0:idx]
-        
+
         # 1.1 See if the prefix is in the context
         if prefix in ctx:
             # prefix found, expand property to absolute IRI
@@ -157,7 +155,7 @@ def _expandTerm(ctx, term, usedCtx):
         rval = ctx['@vocab'] + term
         if usedCtx is not None:
             usedCtx['@vocab'] = ctx['@vocab']
-    
+
     return rval
 
 ##
@@ -174,9 +172,7 @@ def _setProperty(s, p, o):
         else:
             s[p] = [s[p], o]
     else:
-        s[p] = o;
-
-# FIXME: is implementation of _cloneContext (js line 302) needed?
+        s[p] = o
 
 ##
 # Gets the coerce type for the given property.
@@ -188,35 +184,34 @@ def _setProperty(s, p, o):
 # @return the coerce type, None for none.
 def _getCoerceType(ctx, property, usedCtx):
     rval = None
-    
+
     # get expanded property
     p = _expandTerm(ctx, property, None)
-    
+
     # built-in type coercion JSON-LD-isms
     if p == _s or p == ns['rdf'] + 'type':
         rval = xsd['anyURI']
-    
+
     # check type coercion for property
     else:
         # force compacted property
         p = _compactIri(ctx, p, None)
-        
+
         for type in ctx['@coerce']:
             # get coerced properties (normalize to an array)
             props = ctx['@coerce'][type]
             if not isinstance(props, list):
                 props = [props]
-            
+
             # look for the property in the array
             for i in props:
-                # FIXME: print i == p to check comparison
                 # property found
                 if i == p:
                     rval = _expandTerm(ctx, type, usedCtx)
                     if usedCtx is not None:
                         if '@coerce' not in usedCtx:
                             usedCtx['@coerce'] = {}
-                        
+
                         if type not in usedCtx['@coerce']:
                             usedCtx['@coerce'][type] = p
                         else:
@@ -225,7 +220,7 @@ def _getCoerceType(ctx, property, usedCtx):
                                 (isinstance(c, (str, unicode)) and c != p)):
                                 _setProperty(usedCtx['@coerce'], type, p)
                     break
-    
+
     return rval
 
 ##
@@ -240,7 +235,7 @@ def _getCoerceType(ctx, property, usedCtx):
 # @return the compacted value.
 def _compact(ctx, property, value, usedCtx):
     rval = None
-    
+
     if value is None:
         rval = None
     elif isinstance(value, list):
@@ -310,7 +305,7 @@ def _compact(ctx, property, value, usedCtx):
                         rval = value['@literal']
                 else:
                     rval = value
-                
+
                 # do basic JSON types conversion
                 if coerce == xsd['boolean']:
                     rval = (rval == 'true' or rval != 0)
@@ -318,18 +313,18 @@ def _compact(ctx, property, value, usedCtx):
                     rval = float(rval)
                 elif coerce == xsd['integer']:
                     rval = int(rval)
-        
+
         # no type-coercion, just copy value
         else:
             rval = copy.copy(value)
-        
+
         # compact IRI
         if type == xsd['anyURI']:
             if isinstance(rval, dict):
                 rval['@iri'] = _compactIri(ctx, rval['@iri'], usedCtx)
             else:
                 rval = _compactIri(ctx, rval, usedCtx)
-    
+
     return rval
 
 ##
@@ -344,9 +339,9 @@ def _compact(ctx, property, value, usedCtx):
 # @return the expanded value.
 def _expand(ctx, property, value, expandSubjects):
     rval = None
-    
+
     # TODO: add data format error detection?
-    
+
     # if no property is specified and the value is a string (this means the
     # value is a property itself), expand to an IRI
     if property is None and isinstance(value, (str, unicode)):
@@ -379,7 +374,7 @@ def _expand(ctx, property, value, expandSubjects):
     else:
         # do type coercion
         coerce = _getCoerceType(ctx, property, None)
-        
+
         # automatic coercion for basic JSON types
         if coerce is None and isinstance(value, (int, long, float, bool)):
             if isinstance(value, bool):
@@ -392,7 +387,7 @@ def _expand(ctx, property, value, expandSubjects):
         # coerce to appropriate datatype, only expand subjects if requested
         if coerce is not None and (property != _s or expandSubjects):
             rval = {}
-            
+
             # expand IRI
             if coerce == xsd['anyURI']:
                 rval['@iri'] = _expandTerm(ctx, value, None)
@@ -410,7 +405,7 @@ def _expand(ctx, property, value, expandSubjects):
         # nothing to coerce
         else:
             rval = '' + value
-    
+
     return rval
 
 ##
@@ -441,7 +436,7 @@ def _isBlankNode(v):
 # @return -1 if v1 < v2, 0 if v1 == v2, 1 if v1 > v2.
 def _compare(v1, v2):
     rval = 0
-    
+
     if isinstance(v1, list) and isinstance(v2, list):
         for i in range(0, len(v1)):
             rval = _compare(v1[i], v2[i])
@@ -449,7 +444,7 @@ def _compare(v1, v2):
                 break
     else:
         rval = -1 if v1 < v2 else (1 if v1 > v2 else 0)
-    
+
     return rval
 
 ##
@@ -482,7 +477,7 @@ def _compareObjectKeys(o1, o2, key):
 # @return -1 if o1 < o2, 0 if o1 == o2, 1 if o1 > o2.
 def _compareObjects(o1, o2):
     rval = 0
-    
+
     if isinstance(o1, (str, unicode)):
         if isinstance(o2, (str, unicode)):
             rval = -1
@@ -500,7 +495,7 @@ def _compareObjects(o1, o2):
             # both are '@iri' objects
             else:
                 rval = _compare(o1['@iri'], o2['@iri'])
-    
+
     return rval
 
 ##
@@ -531,7 +526,7 @@ def _compareBlankNodeObjects(a, b):
         lenA = len(a[p]) if isinstance(a[p], list) else 1
         lenB = len(b[p]) if isinstance(b[p], list) else 1
         rval = _compare(lenA, lenB)
-        
+
         # step #3.2.1
         if rval == 0:
             # normalize objects to an array
@@ -540,16 +535,16 @@ def _compareBlankNodeObjects(a, b):
             if not isinstance(objsA, list):
                 objsA = [objsA]
                 objsB = [objsB]
-            
+
             def bnodeFilter(e):
                 return (isinstance(e, (str, unicode)) or
                     not ('@iri' in e and _isBlankNodeIri(e['@iri'])))
-            
+
             # filter non-bnodes (remove bnodes from comparison)
             objsA = filter(bnodeFilter, objsA)
             objsB = filter(bnodeFilter, objsB)
             rval = _compare(len(objsA), len(objsB))
-        
+
         # steps #3.2.2-3.2.9
         if rval == 0:
             objsA.sort(_compareObjects)
@@ -558,10 +553,10 @@ def _compareBlankNodeObjects(a, b):
                 rval = _compareObjects(objsA[i], objsB[i])
                 if rval != 0:
                     break
-        
+
         if rval != 0:
             break
-    
+
     return rval
 
 ##
@@ -575,14 +570,14 @@ class NameGenerator:
     def __init__(self, prefix):
         self.count = -1
         self.prefix = prefix
-    
+
     def next(self):
         self.count += 1
         return self.current()
-    
+
     def current(self):
         return '_:%s%s' % (self.prefix, self.count)
-    
+
     def inNamespace(self, iri):
         return iri.startswith('_:' + self.prefix)
 
@@ -608,7 +603,7 @@ def _collectSubjects(input, subjects, bnodes):
         # unnamed blank node
         elif _isBlankNode(input):
             bnodes.append(input)
-        
+
         # recurse through subject properties
         for key in input:
             _collectSubjects(input[key], subjects, bnodes)
@@ -624,12 +619,12 @@ def _collectSubjects(input, subjects, bnodes):
 # @param subjects the map of subjects to write to.
 def _flatten(parent, parentProperty, value, subjects):
     flattened = None
-    
+
     if isinstance(value, list):
         # list of objects or a disjoint graph
         for i in value:
             _flatten(parent, parentProperty, i, subjects)
-        
+
         # if value is a list of objects, sort them
         if (len(value) > 0 and
             (isinstance(value[0], (str, unicode)) or
@@ -644,7 +639,7 @@ def _flatten(parent, parentProperty, value, subjects):
             # cannot flatten embedded graph literals
             if parent is not None:
                 raise Exception('Embedded graph literals cannot be flattened.')
-            
+
             # top-level graph literal
             for key in value[_s]:
                 _flatten(parent, parentProperty, key, subjects)
@@ -695,7 +690,7 @@ def _flatten(parent, parentProperty, value, subjects):
                 def parentFilter(e):
                     return (isinstance(e, dict) and '@iri' in e and
                         e['@iri'] == flattened['@iri'])
-                
+
                 duplicate = len(filter(parentFilter, parent)) > 0
             if not duplicate:
                 parent.append(flattened)
@@ -714,7 +709,7 @@ class MappingBuilder:
         self.mapped = {}
         self.mapping = {}
         self.output = {}
-    
+
     ##
     # Copies this MappingBuilder.
     #
@@ -726,7 +721,7 @@ class MappingBuilder:
         rval.mapping = copy.copy(self.mapping)
         rval.output = copy.copy(self.output)
         return rval
-    
+
     ##
     # Maps the next name to the given bnode IRI if the bnode IRI isn't already in
     # the mapping. If the given bnode IRI is canonical, then it will be given
@@ -767,21 +762,19 @@ class Processor:
         if input is not None:
             # get default context
             ctx = _createDefaultContext()
-            
+
             # expand input
             expanded = _expand(ctx, None, input, True)
-            
+
             # assign names to unnamed bnodes
             self.nameBlankNodes(expanded)
-            
+
             # flatten
             subjects = {}
             _flatten(None, None, expanded, subjects)
 
             # append subjects with sorted properties to array
-            for key in subjects:
-                # FIXME: python for has different data for array vs dict
-                s = subjects[key]
+            for s in subjects.values():
                 sorted = {}
                 keys = s.keys()
                 keys.sort()
@@ -791,13 +784,13 @@ class Processor:
 
             # canonicalize blank nodes
             self.canonicalizeBlankNodes(rval)
-            
+
             def normalizeSort(a, b):
                 return _compare(a[_s]['@iri'], b[_s]['@iri'])
 
             # sort output
             rval.sort(cmp=normalizeSort)
-        
+
         return rval
 
     ##
@@ -807,12 +800,12 @@ class Processor:
     def nameBlankNodes(self, input):
         # create temporary blank node name generator
         ng = self.tmp = NameGenerator('tmp')
-        
+
         # collect subjects and unnamed bnodes
         subjects = {}
         bnodes = []
         _collectSubjects(input, subjects, bnodes)
-        
+
         # uniquely name all unnamed bnodes
         for bnode in bnodes:
             if not (_s in bnode):
@@ -830,21 +823,21 @@ class Processor:
     # @param id the new name to use.
     def renameBlankNode(self, b, id):
         old = b[_s]['@iri']
-        
+
         # update bnode IRI
         b[_s]['@iri'] = id
-        
+
         # update subjects map
         subjects = self.subjects
         subjects[id] = subjects[old]
         del subjects[old]
-        
+
         # update reference and property lists
         self.edges['refs'][id] = self.edges['refs'][old]
         self.edges['props'][id] = self.edges['props'][old]
         del self.edges['refs'][old]
         del self.edges['props'][old]
-        
+
         # update references to this bnode
         refs = self.edges['refs'][id]['all']
         for i in refs:
@@ -856,7 +849,7 @@ class Processor:
             for i2 in props:
                 if i2['s'] == old:
                     i2['s'] = id
-                    
+
                     # normalize property to array for single code-path
                     p = i2['p']
                     tmp = ([ref[p]] if isinstance(ref[p], dict) else
@@ -865,7 +858,7 @@ class Processor:
                         if (isinstance(n, dict) and '@iri' in n and
                             n['@iri'] == old):
                             n['@iri'] = id
-        
+
         # update references from this bnode
         props = self.edges['props'][id]['all']
         for i in props:
@@ -884,7 +877,7 @@ class Processor:
         self.renamed = {}
         self.mappings = {}
         self.serializations = {}
-        
+
         # collect subject and bnodes from flat input graph
         edges = self.edges = {
             'refs': {},
@@ -892,7 +885,7 @@ class Processor:
         }
         subjects = self.subjects = {}
         bnodes = []
-        for s in input:            
+        for s in input:
             iri = s[_s]['@iri']
             subjects[iri] = s
             edges['refs'][iri] = {
@@ -905,14 +898,14 @@ class Processor:
             }
             if _isBlankNodeIri(iri):
                 bnodes.append(s)
-        
+
         # collect edges in the graph
         self.collectEdges()
-        
+
         # create canonical blank node name generator
         c14n = self.c14n = NameGenerator('c14n')
         ngTmp = self.tmp
-        
+
         # rename all bnodes that happen to be in the c14n namespace
         # and initialize serializations
         for bnode in bnodes:
@@ -926,15 +919,15 @@ class Processor:
                 'props': None,
                 'refs': None
             }
-        
+
         # keep sorting and naming blank nodes until they are all named
         while len(bnodes) > 0:
             # define bnode sorting function
             def bnodeSort(a, b):
                 return self.deepCompareBlankNodes(a, b)
-            
+
             bnodes.sort(cmp=bnodeSort)
-            
+
             # name all bnodes accoring to the first bnodes relation mappings
             bnode = bnodes.pop(0)
             iri = bnode[_s]['@iri']
@@ -947,22 +940,22 @@ class Processor:
                     mapping[iri] = 's1'
                 else:
                     mapping = self.serializations[iri][dir]['m']
-                
+
                 # define key sorting function
                 def sortKeys(a, b):
                     return _compare(mapping[a], mapping[b])
-                
+
                 # sort keys by value to name them in order
                 keys = mapping.keys()
                 keys.sort(sortKeys)
-                
+
                 # name bnodes in mapping
                 renamed = []
                 for iriK in keys:
                     if not c14n.inNamespace(iri) and iriK in subjects:
                         self.renameBlankNode(subjects[iriK], c14n.next())
                         renamed.append(iriK)
-                
+
                 # only keep non-canonically named bnodes
                 tmp = bnodes
                 bnodes = []
@@ -972,16 +965,15 @@ class Processor:
                         for i2 in renamed:
                             self.markSerializationDirty(iriB, i2, dir)
                         bnodes.append(b)
-        
+
         # sort property lists that now have canonically named bnodes
         for key in edges['props']:
             if len(edges['props'][key]['bnodes']) > 0:
                 bnode = subjects[key]
                 for p in bnode:
-                    # FIXME: javascript has '@' - js 1434
                     if p.find('@') != 0 and isinstance(bnode[p], list):
                         bnode[p].sort(_compareObjects)
-    
+
     ##
     # Marks a relation serialization as dirty if necessary.
     #
@@ -992,9 +984,9 @@ class Processor:
         s = self.serializations[iri]
         if s[dir] is not None and changed in s[dir]['m']:
             s[dir] = None
-    
+
     ##
-    #Recursively creates a relation serialization (partial or full).
+    # Recursively creates a relation serialization (partial or full).
     # 
     # @param keys the keys to serialize in the current output.
     # @param output the current mapping builder output.
@@ -1012,33 +1004,31 @@ class Processor:
             else:
                 done[k] = True
                 tmp = output[k]
-                for t in tmp[k]:
-                    # FIXME: javascript-ism?
-                    s = tmp[k][t]
+                for s in tmp['k']:
                     rval += s
-                    iri = tmp.m[s]
+                    iri = tmp['m'][s]
                     if iri in self.subjects:
                         b = self.subjects[iri]
-                        
+
                         # serialize properties
                         rval += '<'
                         rval += _serializeProperties(b)
                         rval += '>'
-                        
+
                         # serialize references
                         rval += '<'
                         first = True
-                        refs = self.edges['refs']['iri']['all']
+                        refs = self.edges['refs'][iri]['all']
                         for r in refs:
                             if first:
                                 first = False
                             else:
                                 rval += '|'
-                            rval += '_:' if _isBlankNodeIri(refs[r]['s']) else refs[r]['s']
+                            rval += '_:' if _isBlankNodeIri(r['s']) else r['s']
                         rval += '>'
-                rval += self.recursiveSerializeMapping(tmp[k], output, done)
+                rval += self.recursiveSerializeMapping(tmp['k'], output, done)
         return rval
-    
+
     ##
     # Creates a relation serialization (partial or full).
     # 
@@ -1047,7 +1037,7 @@ class Processor:
     # @return the relation serialization.
     def serializeMapping(self, output):
         return self.recursiveSerializeMapping(['s1'], output, {})
-    
+
     ##
     # Recursively serializes adjacent bnode combinations.
     # 
@@ -1060,51 +1050,47 @@ class Processor:
     def serializeCombos(self, s, top, mb, dir, mapped, notMapped):
         # copy mapped nodes
         mapped = copy.copy(mapped)
-        # FIXME: do we need to use deep copy here? - js 1690
-        
+
         # handle recursion
         if len(notMapped) > 0:
             # map first bnode in list
             mapped[mb.mapNode(notMapped[0]['s'])] = notMapped[0]['s']
-            
+
             # recurse into remaining possible combinations
-            # FIXME: check javascript - js 1699
             original = mb.copy()
             notMapped = notMapped[1:]
             rotations = max(1, len(notMapped))
-            # FIXME: check range length - js 1702
             for r in range(0, rotations):
-                # FIXME: check javascript copy - js 1704
-                m = mb if r == 0 else copy.copy(original)
+                m = mb if r == 0 else original.copy()
                 self.serializeCombos(s, top, m, dir, mapped, notMapped)
-                
+
                 # rotate not-mapped for next combination
                 _rotate(notMapped)
         # handle final adjacent node in current combination
         else:
             keys = mapped.keys()
             keys.sort()
-            mb.output['top'] = { 'k': keys, 'm': mapped }
-            
+            mb.output[top] = { 'k': keys, 'm': mapped }
+
             # optimize away mappings that are already too large
             _s = self.serializeMapping(mb.output)
             if s[dir] is None or _compareSerializations(_s, s[dir]['s']) <= 0:
                 oldCount = mb.count
-                
+
                 # recurse into adjacent alues
                 for k in keys:
                     self.serializeBlankNode(s, mapped[k], mb, dir)
-                
+
                 # reserialize if more nodes were mapped
                 if mb.count > oldCount:
                     _s = self.serializeMapping(mb.output)
-                
+
                 # update least serialization if new one has been found
                 if (s[dir] is None or
                     (_compareSerializations(_s, s[dir]['s']) <= 0 and
                     len(_s) >= len(s[dir]['s']))):
                     s[dir] = { 's': _s, 'm': mb.mapping }
-    
+
     ##
     # Computes the relation serialization for the given blank node IRI.
     # 
@@ -1118,11 +1104,10 @@ class Processor:
             # iri now mapped
             mb.mapped[iri] = True
             top = mb.mapNode(iri)
-            
+
             # copy original mapping builder
-            # FIXME: check javascript copy - js 1765
-            original = copy.copy(mb)
-            
+            original = mb.copy();
+
             # split adjacent bnodes on mapped and not-mapped
             adj = self.edges[dir][iri]['bnodes']
             mapped = {}
@@ -1132,9 +1117,9 @@ class Processor:
                     mapped[mb.mapping[i['s']]] = i['s']
                 else:
                     notMapped.append(i)
-            
+
             # TODO: ensure this optimization does not alter canonical order
-            
+
             # if the current bnode already has a serialization, reuse it
             #hint = self.serializations[iri][dir] if iri in self.serializations else None
             #if hint is not None:
@@ -1147,15 +1132,13 @@ class Processor:
             #    for i in notMapped:
             #        mapped[mb.mapNode(notMapped[i]['s'])] = notMapped[i]['s']
             #    notMapped = []
-            
+
             # loop over possible combinations
             combos = max(1, len(notMapped))
-            # FIXME: check range - js 1804
             for i in range(0, combos):
-                # FIXME: check javascript copy - js 1806
-                m = mb if i == 0 else copy.copy(original)
+                m = mb if i == 0 else original.copy()
                 self.serializeCombos(s, top, mb, dir, mapped, notMapped)
-    
+
     ##
     # Compares two blank nodes for equivalence.
     # 
@@ -1165,7 +1148,7 @@ class Processor:
     # @return -1 if a < b, 0 if a == b, 1 if a > b.
     def deepCompareBlankNodes(self, a, b):
         rval = 0
-        
+
         # compare IRIs
         iriA = a[_s]['@iri']
         iriB = b[_s]['@iri']
@@ -1174,7 +1157,7 @@ class Processor:
         else:
             # do shallow compare first
             rval = self.shallowCompareBlankNodes(a, b)
-            
+
             # deep comparison is necessary
             if rval == 0:
                 # compare property edges then reference edges
@@ -1198,10 +1181,10 @@ class Processor:
                             mb.mapping = copy.copy(sB['props']['m'])
                             mb.count = len(mb.mapping.keys()) + 1
                         self.serializeBlankNode(sB, iriB, mb, dir)
-                        
+
                     # compare serializations
                     rval = _compare(sA[dir]['s'], sB[dir]['s'])
-                    
+
                     if rval != 0:
                         break
         return rval
@@ -1215,7 +1198,7 @@ class Processor:
     # @return -1 if a < b, 0 if a == b, 1 if a > b.
     def shallowCompareBlankNodes(self, a, b):
         rval = 0
-        
+
         # ShallowSort Algorithm (when comparing two bnodes):
         # 1.   Compare the number of properties.
         # 1.1. The bnode with fewer properties is first.
@@ -1228,37 +1211,36 @@ class Processor:
         # 5.1. The bnode with the reference iri (vs. bnode) is first.
         # 5.2. The bnode with the alphabetically-first reference iri is first.
         # 5.3. The bnode with the alphabetically-first reference property is first.
-        
+
         pA = a.keys()
         pB = b.keys()
-        
+
         # step #1
         rval = _compare(len(pA), len(pB))
-        
+
         # step #2
         if rval == 0:
             pA.sort()
             pB.sort()
             rval = _compare(pA, pB)
-        
+
         # step #3
         if rval == 0:
             rval = _compareBlankNodeObjects(a, b)
-        
+
         # step #4
         if rval == 0:
             edgesA = self.edges['refs'][a[_s]['@iri']]['all']
             edgesB = self.edges['refs'][b[_s]['@iri']]['all']
             rval = _compare(len(edgesA), len(edgesB))
-        
+
         # step #5
         if rval == 0:
-            # FIXME: for loop
             for i in range(0, len(edgesA)):
                 rval = self.compareEdges(edgesA[i], edgesB[i])
                 if rval != 0:
                     break
-        
+
         return rval
 
     ##
@@ -1274,30 +1256,29 @@ class Processor:
     # @return -1 if a < b, 0 if a == b, 1 if a > b.
     def compareEdges(self, a, b):
         rval = 0
-        
+
         bnodeA = _isBlankNodeIri(a['s'])
         bnodeB = _isBlankNodeIri(b['s'])
         c14n = self.c14n
-        
+
         # if not both bnodes, one that is a bnode is greater
         if bnodeA != bnodeB:
-            rval = 1 if bnodeA else -1
+            rval = 1 if bnodeA else - 1
         else:
             if not bnodeA:
                 rval = _compare(a['s'], b['s'])
             if rval == 0:
                 rval = _compare(a['p'], b['p'])
-            
+
             # do bnode IRI comparison if canonical naming has begun
             if rval == 0 and c14n is not None:
                 c14nA = c14n.inNamespace(a['s'])
                 c14nB = c14n.inNamespace(b['s'])
                 if c14nA != c14nB:
-                    rval = 1 if c14nA else -1
+                    rval = 1 if c14nA else - 1
                 elif c14nA:
                     rval = _compare(a['s'], b['s'])
-                # FIXME: javascript has no else clause - js 1987
-        
+
         return rval
 
     ##
@@ -1309,7 +1290,7 @@ class Processor:
     def collectEdges(self):
         refs = self.edges['refs']
         props = self.edges['props']
-        
+
         # collect all references and properties
         for iri in self.subjects:
             subject = self.subjects[iri]
@@ -1322,17 +1303,17 @@ class Processor:
                         if (isinstance(o, dict) and '@iri' in o and
                             o['@iri'] in self.subjects):
                             objIri = o['@iri']
-                            
+
                             # map object to this subject
                             refs[objIri]['all'].append({ 's': iri, 'p': key })
-                            
+
                             # map this subject to object
                             props[iri]['all'].append({ 's': objIri, 'p': key })
-        
+
         # create node filter function
         def filterNodes(edge):
             return _isBlankNodeIri(edge['s'])
-        
+
         # create sorted categories
         for iri in refs:
             refs[iri]['all'].sort(cmp=self.compareEdges)
@@ -1351,18 +1332,18 @@ class Processor:
     # @return the framed output.
     def frame(self, input, frame, options=None):
         rval = None
-        
+
         # normalize input
         input = self.normalize(input)
-        
+
         # save frame context
         ctx = None
         if '@context' in frame:
             ctx = mergeContexts(_createDefaultContext(), frame['@context'])
-        
+
         # remove context from frame
         frame = removeContext(frame)
-        
+
         # create framing options
         # TODO: merge in options from function parameter
         options = {
@@ -1372,19 +1353,19 @@ class Processor:
                 'explicitOn': False
             }
         }
-        
+
         # build map of all subjects
         subjects = {}
         for i in input:
             subjects[i[_s]['@iri']] = i
-        
+
         # frame input
         rval = _frame(subjects, input, frame, {}, options)
-        
+
         # apply context
         if ctx is not None and rval is not None:
             rval = addContext(ctx, rval)
-        
+
         return rval
 
 
@@ -1398,14 +1379,14 @@ class Processor:
 # @return True if the src has one of the given types.
 def _isType(src, frame):
     rval = False
-    
+
     # check if type(s) are specified in frame and src
     rType = ns['rdf'] + 'type'
     if (rType in frame and isinstance(src, dict) and _s in src and
         rType in src):
         tmp = src[rType] if isinstance(src[rType], list) else [src[rType]]
         types = frame[rType] if isinstance(frame[rType], list) else [frame[rType]]
-        
+
         for t in range(0, len(types)):
             rType = types[t]['@iri']
             for i in tmp:
@@ -1414,7 +1395,7 @@ def _isType(src, frame):
                     break
             if rval:
                 break
-    
+
     return rval
 
 ##
@@ -1426,7 +1407,7 @@ def _isType(src, frame):
 # @return True if the src matches the frame.
 def _isDuckType(src, frame):
     rval = False
-    
+
     # frame must not have a specific type
     rType = ns['rdf'] + 'type'
     if rType not in frame:
@@ -1442,7 +1423,7 @@ def _isDuckType(src, frame):
                 if i not in src:
                     rval = False
                     break
-    
+
     return rval
 
 ##
@@ -1457,7 +1438,7 @@ def _isDuckType(src, frame):
 # @return the framed input.
 def _frame(subjects, input, frame, embeds, options):
     rval = None
-    
+
     # prepare output, set limit, get array of frames
     limit = -1
     frames = None
@@ -1467,7 +1448,7 @@ def _frame(subjects, input, frame, embeds, options):
     else:
         frames = [frame]
         limit = 1
-    
+
     # iterate over frames adding input matches to list
     values = []
     for i in range(0, len(frames)):
@@ -1475,7 +1456,7 @@ def _frame(subjects, input, frame, embeds, options):
         frame = frames[i]
         if not isinstance(frame, (list, dict)):
             raise Exception('Invalid JSON-LD frame. Frame type is not a map or array.')
-        
+
         # create array of values for each frame
         values.append([])
         for n in input:
@@ -1487,17 +1468,13 @@ def _frame(subjects, input, frame, embeds, options):
                 break
         if limit == 0:
             break
-    
-    # FIXME: refactor to use python zip()
+
     # for each matching value, add it to the output
-    for i1 in range(0, len(values)):
-        for i2 in range(0, len(values[i1])):
-            frame = frames[i1]
-            value = values[i1][i2]
-            
+    for vals in values:
+        for frame, value in zip(frames, vals):
             # determine if value should be embedded or referenced
             embedOn = frame['@embed'] if '@embed' in frame else options['defaults']['embedOn']
-            
+
             if not embedOn:
                 # if value is a subject, only use subject IRI as reference 
                 if isinstance(value, dict) and _s in value:
@@ -1514,7 +1491,7 @@ def _frame(subjects, input, frame, embeds, options):
             # if value is a subject, do embedding and subframing
             elif isinstance(value, dict) and _s in value:
                 embeds[value[_s]['@iri']] = True
-                
+
                 # if explicit is on, remove keys from value that aren't in frame
                 explicitOn = frame['@explicit'] if '@explicit' in frame else options['defaults']['explicitOn']
                 if explicitOn:
@@ -1523,10 +1500,9 @@ def _frame(subjects, input, frame, embeds, options):
                         # always include subject
                         if key != _s and key not in frame:
                             del value[key]
-                
+
                 # iterate over frame keys to do subframing
                 for key in frame:
-                    # FIXME: javascript has '@' - js 2246
                     # skip keywords and type query
                     if key.find('@') != 0 and key != ns['rdf'] + 'type':
                         if key in value:
@@ -1543,13 +1519,13 @@ def _frame(subjects, input, frame, embeds, options):
                         else:
                             # add None property to value
                             value[key] = None
-            
+
             # add value to output
             if rval is None:
                 rval = value
             else:
                 rval.append(value)
-    
+
     return rval
 
 ##
@@ -1568,20 +1544,20 @@ def _rotate(a):
 # @return the serialized properties.
 def _serializeProperties(b):
     rval = ''
-    for p in b:
+    for p in b.keys():
         if p != '@subject':
             first = True
             objs = b[p] if isinstance(b[p], list) else [b[p]]
-            for oi in objs:
+            for o in objs:
                 if first:
                     first = False
                 else:
                     rval += '|'
-                if (isinstance(objs[oi], dict) and '@iri' in objs[oi] and
-                    _isBlankNodeIri(objs[oi]['@iri'])):
+                if (isinstance(o, dict) and '@iri' in o and
+                    _isBlankNodeIri(o['@iri'])):
                     rval += '_:'
                 else:
-                    rval += json.dumps(objs[oi])
+                    rval += json.dumps(o)
     return rval
 
 ##
@@ -1653,7 +1629,7 @@ def addContext(ctx, input):
 
     # setup output context
     ctxOut = {}
-    
+
     # compact
     rval = _compact(ctx, None, input, ctxOut)
 
@@ -1705,7 +1681,6 @@ def mergeContexts(ctx1, ctx2):
     # if the new context contains any IRIs that are in the merged context,
     # remove them from the merged context, they will be overwritten
     for key in cCopy:
-        # FIXME: javascript has '@', should be _s? - js 2454
         # ignore special keys starting with '@'
         if key.find('@') != 0:
             for mkey in cMerged:
@@ -1722,7 +1697,7 @@ def mergeContexts(ctx1, ctx2):
             del cMerged['@coerce']
         else:
             c1 = {}
-        
+
         if copyCoerce:
             c2 = cCopy['@coerce']
             del cCopy['@coerce']
@@ -1732,7 +1707,7 @@ def mergeContexts(ctx1, ctx2):
     # merge contexts
     for key in cCopy:
         cMerged[key] = cCopy[key]
-    
+
     # special-merge @coerce
     if mergeCoerce or copyCoerce:
         for cType in c1:
@@ -1740,11 +1715,11 @@ def mergeContexts(ctx1, ctx2):
             if cType in c2:
                 p1 = c1[cType]
                 p2 = c2[cType]
-                
+
                 # normalize props in c2 to array for single-code-path iterating
                 if not isinstance(p2, list):
                     p2 = [p2]
-                
+
                 # add unique properties from p2 to p1
                 for p in p2:
                     if ((not isinstance(p1, list) and p1 != p) or
@@ -1753,12 +1728,12 @@ def mergeContexts(ctx1, ctx2):
                             p1.append(p)
                         else:
                             p1 = c1[cType] = [p1, p]
-        
+
         # add new types from new @coerce
         for cType in c2:
             if not (cType in c1):
                 c1[cType] = c2[cType]
-        
+
         # ensure there are no property duplicates in @coerce
         unique = {}
         dups = []
@@ -1790,7 +1765,6 @@ def mergeContexts(ctx1, ctx2):
 # @param term the term to expand.
 # 
 # @return the expanded term as an absolute IRI.
-# FIXME: should this actually just redefine the function? - js 2577
 expandTerm = _expandTerm
 
 ##
@@ -1820,5 +1794,4 @@ def frame(input, frame, options=None):
 # Creates the JSON-LD default context.
 #
 # @return the JSON-LD default context.
-# FIXME: should this actually just redefine the function? - js 2613
 createDefaultContext = _createDefaultContext
