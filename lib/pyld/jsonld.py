@@ -625,14 +625,6 @@ def _flatten(parent, parentProperty, value, subjects):
         for i in value:
             _flatten(parent, parentProperty, i, subjects)
 
-        # if value is a list of objects, sort them
-        if (len(value) > 0 and
-            (isinstance(value[0], (str, unicode)) or
-            (isinstance(value[0], dict) and
-            ('@literal' in value[0] or '@iri' in value[0])))):
-            # sort values
-            value.sort(_compareObjects)
-
     elif isinstance(value, dict):
         # graph literal/disjoint graph
         if _s in value and isinstance(value[_s], list):
@@ -666,7 +658,8 @@ def _flatten(parent, parentProperty, value, subjects):
                     subject[key] = []
                     _flatten(subject[key], None, value[key], subjects)
                     if len(subject[key]) == 1:
-                        # convert subject[key] to object if only 1 value was added
+                        # convert subject[key] to object if only 1 value was
+                        # added
                         subject[key] = subject[key][0]
                 else:
                     _flatten(subject, key, value[key], subjects)
@@ -723,9 +716,9 @@ class MappingBuilder:
         return rval
 
     ##
-    # Maps the next name to the given bnode IRI if the bnode IRI isn't already in
-    # the mapping. If the given bnode IRI is canonical, then it will be given
-    # a shortened form of the same name.
+    # Maps the next name to the given bnode IRI if the bnode IRI isn't already
+    # in the mapping. If the given bnode IRI is canonical, then it will be
+    # given a shortened form of the same name.
     # 
     # @param iri the blank node IRI to map the next name to.
     #
@@ -1106,7 +1099,7 @@ class Processor:
             top = mb.mapNode(iri)
 
             # copy original mapping builder
-            original = mb.copy();
+            original = mb.copy()
 
             # split adjacent bnodes on mapped and not-mapped
             adj = self.edges[dir][iri]['bnodes']
@@ -1121,7 +1114,8 @@ class Processor:
             # TODO: ensure this optimization does not alter canonical order
 
             # if the current bnode already has a serialization, reuse it
-            #hint = self.serializations[iri][dir] if iri in self.serializations else None
+            #hint = (self.serializations[iri][dir] if iri in
+            #   self.serializations else None)
             #if hint is not None:
             #    hm = hint['m']
             #    
@@ -1170,14 +1164,16 @@ class Processor:
                     if sA[dir] is None:
                         mb = MappingBuilder()
                         if dir == 'refs':
-                            # keep same mapping and count from 'props' serialization
+                            # keep same mapping and count from 'props'
+                            # serialization
                             mb.mapping = copy.copy(sA['props']['m'])
                             mb.count = len(mb.mapping.keys()) + 1
                         self.serializeBlankNode(sA, iriA, mb, dir)
                     if sB[dir] is None:
                         mb = MappingBuilder()
                         if dir == 'refs':
-                            # keep same mapping and count from 'props' serialization
+                            # keep same mapping and count from 'props'
+                            # serialization
                             mb.mapping = copy.copy(sB['props']['m'])
                             mb.count = len(mb.mapping.keys()) + 1
                         self.serializeBlankNode(sB, iriB, mb, dir)
@@ -1210,7 +1206,8 @@ class Processor:
         # 5.   Compare sorted references.
         # 5.1. The bnode with the reference iri (vs. bnode) is first.
         # 5.2. The bnode with the alphabetically-first reference iri is first.
-        # 5.3. The bnode with the alphabetically-first reference property is first.
+        # 5.3. The bnode with the alphabetically-first reference property is
+        #      first.
 
         pA = a.keys()
         pB = b.keys()
@@ -1245,10 +1242,10 @@ class Processor:
 
     ##
     # Compares two edges. Edges with an IRI (vs. a bnode ID) come first, then
-    # alphabetically-first IRIs, then alphabetically-first properties. If a blank
-    # node has been canonically named, then blank nodes will be compared after
-    # properties (with a preference for canonically named over non-canonically
-    # named), otherwise they won't be.
+    # alphabetically-first IRIs, then alphabetically-first properties. If a
+    # blank node has been canonically named, then blank nodes will be compared
+    # after properties (with a preference for canonically named over
+    # non-canonically named), otherwise they won't be.
     # 
     # @param a the first edge.
     # @param b the second edge.
@@ -1284,9 +1281,9 @@ class Processor:
     ##
     # Populates the given reference map with all of the subject edges in the
     # graph. The references will be categorized by the direction of the edges,
-    # where 'props' is for properties and 'refs' is for references to a subject as
-    # an object. The edge direction categories for each IRI will be sorted into
-    # groups 'all' and 'bnodes'.
+    # where 'props' is for properties and 'refs' is for references to a subject
+    # as an object. The edge direction categories for each IRI will be sorted
+    # into groups 'all' and 'bnodes'.
     def collectEdges(self):
         refs = self.edges['refs']
         props = self.edges['props']
@@ -1385,7 +1382,8 @@ def _isType(src, frame):
     if (rType in frame and isinstance(src, dict) and _s in src and
         rType in src):
         tmp = src[rType] if isinstance(src[rType], list) else [src[rType]]
-        types = frame[rType] if isinstance(frame[rType], list) else [frame[rType]]
+        types = (frame[rType] if isinstance(frame[rType], list)
+            else [frame[rType]])
 
         for t in range(0, len(types)):
             rType = types[t]['@iri']
@@ -1397,6 +1395,15 @@ def _isType(src, frame):
                 break
 
     return rval
+
+##
+# Returns True if the given element is not a keyword.
+#
+# @param e the element.
+#
+# @return True if the given element is not a keyword.
+def _filterNonKeywords(e):
+    return e.find('@') != 0
 
 ##
 # Returns True if the given src matches the given frame via duck-typing.
@@ -1413,7 +1420,8 @@ def _isDuckType(src, frame):
     if rType not in frame:
         # get frame properties that must exist on src
         props = frame.keys()
-        if len(props) == 0:
+        props = filter(_filterNonKeywords, props)
+        if not props:
             # src always matches if there are no properties
             rval = True
         # src must be a subject with all the given properties
@@ -1445,6 +1453,8 @@ def _frame(subjects, input, frame, embeds, options):
     if isinstance(frame, list):
         rval = []
         frames = frame
+        if not frames:
+            frames.append({})
     else:
         frames = [frame]
         limit = 1
@@ -1455,11 +1465,17 @@ def _frame(subjects, input, frame, embeds, options):
         # get next frame
         frame = frames[i]
         if not isinstance(frame, (list, dict)):
-            raise Exception('Invalid JSON-LD frame. Frame type is not a map or array.')
+            raise Exception('Invalid JSON-LD frame. Frame type is not a map' +
+               'or array.')
 
         # create array of values for each frame
         values.append([])
         for n in input:
+            # dereference input if it refers to a subject
+            if (isinstance(n, dict) and '@iri' in n and
+               n['@iri'] in subjects):
+               n = subjects[n['@iri']]
+
             # add input to list if it matches frame specific type or duck-type
             if _isType(n, frame) or _isDuckType(n, frame):
                 values[i].append(n)
@@ -1470,10 +1486,11 @@ def _frame(subjects, input, frame, embeds, options):
             break
 
     # for each matching value, add it to the output
-    for vals in values:
-        for frame, value in zip(frames, vals):
+    for frame, vals in zip(frames, values):
+        for value in vals:
             # determine if value should be embedded or referenced
-            embedOn = frame['@embed'] if '@embed' in frame else options['defaults']['embedOn']
+            embedOn = (frame['@embed'] if '@embed' in frame
+                else options['defaults']['embedOn'])
 
             if not embedOn:
                 # if value is a subject, only use subject IRI as reference 
@@ -1485,15 +1502,16 @@ def _frame(subjects, input, frame, embeds, options):
                 # TODO: possibly support multiple embeds in the future ... and
                 # instead only prevent cycles?
                 raise Exception(
-                    'Multiple embeds of the same subject is not supported.',
+                    'More than one embed of the same subject is not supported.',
                     value[_s]['@iri'])
 
             # if value is a subject, do embedding and subframing
             elif isinstance(value, dict) and _s in value:
                 embeds[value[_s]['@iri']] = True
 
-                # if explicit is on, remove keys from value that aren't in frame
-                explicitOn = frame['@explicit'] if '@explicit' in frame else options['defaults']['explicitOn']
+                # if explicit on, remove keys from value that aren't in frame
+                explicitOn = (frame['@explicit'] if '@explicit' in frame
+                    else options['defaults']['explicitOn'])
                 if explicitOn:
                     # python - iterate over copy of list to remove key
                     for key in list(value):
@@ -1507,7 +1525,8 @@ def _frame(subjects, input, frame, embeds, options):
                     if key.find('@') != 0 and key != ns['rdf'] + 'type':
                         if key in value:
                             # build input and do recursion
-                            input = value[key] if isinstance(value[key], list) else [value[key]]
+                            input = (value[key] if isinstance(value[key], list)
+                                else [value[key]])
                             for n in range(0, len(input)):
                                 # replace reference to subject w/subject
                                 if (isinstance(input[n], dict) and
