@@ -237,7 +237,9 @@ def _compact(ctx, property, value, usedCtx):
     rval = None
 
     if value is None:
+        # return None, but check coerce type to add to usedCtx
         rval = None
+        _getCoerceType(ctx, property, usedCtx)
     elif isinstance(value, list):
         # recursively add compacted values to array
         rval = []
@@ -255,9 +257,11 @@ def _compact(ctx, property, value, usedCtx):
         rval = {}
         for key in value:
             if value[key] != '@context':
-                # set object to compacted property
-                _setProperty(rval, _compactIri(ctx, key, usedCtx),
-                    _compact(ctx, key, value[key], usedCtx))
+                # set object to compacted property, only overwrite existing
+                # properties if the property actually compacted
+                p = _compactIri(ctx, key, usedCtx)
+                if p != key or p not in rval:
+                   rval[p] = _compact(ctx, key, value[key], usedCtx)
     else:
         # get coerce type
         coerce = _getCoerceType(ctx, property, usedCtx)
