@@ -365,7 +365,8 @@ def _expand(ctx, property, value, expandSubjects):
             rval = {}
             for key in value:
                 # preserve frame keywords
-                if key == '@embed' or key == '@explicit':
+                if (key == '@embed' or key == '@explicit' or
+                    key == '@default' or key == '@omitDefault'):
                     _setProperty(rval, key, copy.copy(value[key]))
                 elif key != '@context':
                     # set object to expanded property
@@ -1354,7 +1355,8 @@ class Processor:
             'defaults':
             {
                 'embedOn': True,
-                'explicitOn': False
+                'explicitOn': False,
+                'omitDefaultOn': False
             }
         }
 
@@ -1520,14 +1522,15 @@ def _frame(subjects, input, frame, embeds, options):
                 explicitOn = (frame['@explicit'] if '@explicit' in frame
                     else options['defaults']['explicitOn'])
                 if explicitOn:
+                    # FIXME: check this
                     # python - iterate over copy of list to remove key
                     for key in list(value):
-                        # always include subject
+                        # do not remove subject or any key in the frame
                         if key != _s and key not in frame:
                             del value[key]
 
                 # iterate over frame keys to do subframing
-                for key in frame:
+                for key, f in frame.items():
                     # skip keywords and type query
                     if key.find('@') != 0 and key != ns['rdf'] + 'type':
                         if key in value:
@@ -1540,11 +1543,48 @@ def _frame(subjects, input, frame, embeds, options):
                                     '@iri' in input[n] and
                                     input[n]['@iri'] in subjects):
                                     input[n] = subjects[input[n]['@iri']]
-                            value[key] = _frame(
-                                subjects, input, frame[key], embeds, options)
+                            result = _frame(subjects, input, f, embeds, options)
+                            if result is not None:
+                                value[key] = result
+                            elif omitOn:
+                                # omit is on, remove key
+                                del value[key]
+                            else:
+                                # use specified default from frame if available
+                                if isinstance(f, list):
+                                    f = f[0] if len(f) > 0 else {}
+                                    value[key] = (f['@default'] if
+                                        '@default' in f else None)
                         else:
                             # add None property to value
                             value[key] = None
+                        
+                        # handle setting default value(s)
+                        if key in value:
+                            # use first subframe if frame is an array
+                            if isinstance(f, list):
+                                f = f[0] if len(f) > 0 else {}
+                            
+                            # determine if omit default is on
+                            omitOn = (f['@omitDefault'] if
+                                '@omitDefault' in f
+                                else options['defaults']['omitDefaultOn']);
+                            
+                            if value[key] is None:
+                                if omitOn:
+                                    del value[key]
+                                elif '@default' in f:
+                                    value[key] = f['@default']
+                            elif isinstance(value[key], list):
+                                tmp = []
+                                for v in value[key]:
+                                    if v is None:
+                                        if omitOn:
+                                            tmp.append((f['@default'] if
+                                                '@default' in f else None))
+                                    else:
+                                        tmp.append(v)
+                                value[key] = tmp
 
             # add value to output
             if rval is None:
