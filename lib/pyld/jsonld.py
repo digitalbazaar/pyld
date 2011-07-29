@@ -630,12 +630,14 @@ def _collectSubjects(input, subjects, bnodes):
 # @param subjects the map of subjects to write to.
 def _flatten(parent, parentProperty, value, subjects):
     flattened = None
-
-    if isinstance(value, list):
+    
+    if value is None:
+        # drop null values
+        pass
+    elif isinstance(value, list):
         # list of objects or a disjoint graph
         for i in value:
             _flatten(parent, parentProperty, i, subjects)
-
     elif isinstance(value, dict):
         # graph literal/disjoint graph
         if _s in value and isinstance(value[_s], list):
