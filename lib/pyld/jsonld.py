@@ -1522,9 +1522,7 @@ def _frame(subjects, input, frame, embeds, options):
                 explicitOn = (frame['@explicit'] if '@explicit' in frame
                     else options['defaults']['explicitOn'])
                 if explicitOn:
-                    # FIXME: check this
-                    # python - iterate over copy of list to remove key
-                    for key in list(value):
+                    for key in value.keys():
                         # do not remove subject or any key in the frame
                         if key != _s and key not in frame:
                             del value[key]
@@ -1556,11 +1554,11 @@ def _frame(subjects, input, frame, embeds, options):
                                     value[key] = (f['@default'] if
                                         '@default' in f else None)
                         else:
-                            # add None property to value
-                            value[key] = None
+                            # add empty array/null property to value
+                            value[key] = [] if isinstance(f, list) else None
                         
-                        # handle setting default value(s)
-                        if key in value:
+                        # handle setting default value
+                        if value[key] is None:
                             # use first subframe if frame is an array
                             if isinstance(f, list):
                                 f = f[0] if len(f) > 0 else {}
@@ -1569,22 +1567,10 @@ def _frame(subjects, input, frame, embeds, options):
                             omitOn = (f['@omitDefault'] if
                                 '@omitDefault' in f
                                 else options['defaults']['omitDefaultOn']);
-                            
-                            if value[key] is None:
-                                if omitOn:
-                                    del value[key]
-                                elif '@default' in f:
-                                    value[key] = f['@default']
-                            elif isinstance(value[key], list):
-                                tmp = []
-                                for v in value[key]:
-                                    if v is None:
-                                        # do not auto-include null in arrays
-                                        if not omitOn and '@default' in f:
-                                            tmp.append(f['@default'])
-                                    else:
-                                        tmp.append(v)
-                                value[key] = tmp
+                            if omitOn:
+                                del value[key]
+                            elif '@default' in f:
+                                value[key] = f['@default']
 
             # add value to output
             if rval is None:
