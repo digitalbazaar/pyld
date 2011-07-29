@@ -342,9 +342,12 @@ def _expand(ctx, property, value, expandSubjects):
 
     # TODO: add data format error detection?
 
+    # value is null, nothing to expand
+    if value is None:
+        rval = None
     # if no property is specified and the value is a string (this means the
     # value is a property itself), expand to an IRI
-    if property is None and isinstance(value, (str, unicode)):
+    elif property is None and isinstance(value, (str, unicode)):
         rval = _expandTerm(ctx, value, None)
     elif isinstance(value, list):
         # recursively add expanded values to array
@@ -589,7 +592,10 @@ class NameGenerator:
 # @param subjects the subjects map to populate.
 # @param bnodes the bnodes array to populate.
 def _collectSubjects(input, subjects, bnodes):
-    if isinstance(input, list):
+    if input is None:
+        # nothing to collect
+        pass
+    elif isinstance(input, list):
         for i in input:
             _collectSubjects(i, subjects, bnodes)
     elif isinstance(input, dict):
@@ -653,16 +659,17 @@ def _flatten(parent, parentProperty, value, subjects):
             flattened = subject
 
             # flatten embeds
-            for key in value:
-                if isinstance(value[key], list):
-                    subject[key] = []
-                    _flatten(subject[key], None, value[key], subjects)
-                    if len(subject[key]) == 1:
-                        # convert subject[key] to object if only 1 value was
-                        # added
-                        subject[key] = subject[key][0]
-                else:
-                    _flatten(subject, key, value[key], subjects)
+            for key,v in value.items():
+                # drop null values
+                if v is not None:
+                    if isinstance(v, list):
+                        subject[key] = []
+                        _flatten(subject[key], None, v, subjects)
+                        if len(subject[key]) == 1:
+                            # convert subject[key] to object if it has only 1
+                            subject[key] = subject[key][0]
+                    else:
+                        _flatten(subject, key, v, subjects)
     # string value
     else:
         flattened = value
