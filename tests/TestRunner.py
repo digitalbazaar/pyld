@@ -88,6 +88,10 @@ class TestRunner:
 
         # FIXME: 
         #self.testFiles.sort()
+        
+        run = 0
+        passed = 0
+        failed = 0
 
         # run the tests from each test file
         for testfile in self.testfiles:
@@ -98,6 +102,7 @@ class TestRunner:
             for test in testgroup['tests']:
                 print 'Test: %s %04d/%s...' % (
                     testgroup['group'], count, test['name']),
+                run += 1
                 count += 1
 
                 # open the input and expected result json files
@@ -126,14 +131,18 @@ class TestRunner:
 
                 # check the expected value against the test result
                 if expectJson == resultJson:
+                    passed += 1
                     print 'PASS'
                     if self.options.verbose:
                         print 'Expect:', json.dumps(expectJson, indent=4)
                         print 'Result:', json.dumps(resultJson, indent=4)
                 else:
+                    failed += 1
                     print 'FAIL'
                     print 'Expect:', json.dumps(expectJson, indent=4)
                     print 'Result:', json.dumps(resultJson, indent=4)
+        
+        print "Tests run: %d, Tests passed: %d, Tests Failed: %d" % (run, passed, failed)
 
 if __name__ == "__main__":
    tr = TestRunner()
