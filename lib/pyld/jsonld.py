@@ -1579,9 +1579,9 @@ def _frame(subjects, input, frame, embeds, options):
                                 tmp = []
                                 for v in value[key]:
                                     if v is None:
-                                        if omitOn:
-                                            tmp.append((f['@default'] if
-                                                '@default' in f else None))
+                                        # do not auto-include null in arrays
+                                        if not omitOn and '@default' in f:
+                                            tmp.append(f['@default'])
                                     else:
                                         tmp.append(v)
                                 value[key] = tmp
