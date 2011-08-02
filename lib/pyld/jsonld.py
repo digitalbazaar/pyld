@@ -630,7 +630,7 @@ def _collectSubjects(input, subjects, bnodes):
 # @param subjects the map of subjects to write to.
 def _flatten(parent, parentProperty, value, subjects):
     flattened = None
-    
+
     if value is None:
         # drop null values
         pass
@@ -666,7 +666,7 @@ def _flatten(parent, parentProperty, value, subjects):
             flattened = subject
 
             # flatten embeds
-            for key,v in value.items():
+            for key, v in value.items():
                 # drop null values
                 if v is not None:
                     if isinstance(v, list):
@@ -713,9 +713,12 @@ class MappingBuilder:
     # Initialize the MappingBuilder.
     def __init__(self):
         self.count = 1
-        self.mapped = {}
+        self.processed = {}
         self.mapping = {}
-        self.output = {}
+        self.adj = {}
+        self.keyStack = [{ 'keys': ['s1'], 'idx': 0 }]
+        self.done = {}
+        self.s = ''
 
     ##
     # Copies this MappingBuilder.
@@ -724,9 +727,12 @@ class MappingBuilder:
     def copy(self):
         rval = MappingBuilder()
         rval.count = self.count
-        rval.mapped = copy.copy(self.mapped)
+        rval.processed = copy.copy(self.processed)
         rval.mapping = copy.copy(self.mapping)
-        rval.output = copy.copy(self.output)
+        rval.adj = copy.copy(self.adj)
+        rval.keyStack = copy.copy(self.keyStack)
+        rval.done = copy.copy(self.done)
+        rval.s = self.s
         return rval
 
     ##
@@ -993,73 +999,71 @@ class Processor:
             s[dir] = None
 
     ##
-    # Recursively creates a relation serialization (partial or full).
+    # Recursively increments the relation serialization for a mapping.
     # 
-    # @param keys the keys to serialize in the current output.
-    # @param output the current mapping builder output.
-    # @param done the already serialized keys.
-    # 
-    # @return the relation serialization.
-    def recursiveSerializeMapping(self, keys, output, done):
-        rval = ''
-        for k in keys:
-            if k not in output:
-                break
-            if k in done:
-                # mark cycle
-                rval += '_' + k
-            else:
-                done[k] = True
-                tmp = output[k]
-                for s in tmp['k']:
-                    rval += s
-                    iri = tmp['m'][s]
+    # @param mb the mapping builder to update.
+    def serializeMapping(self, mb):
+        if len(mb.keyStack) > 0:
+            # continue from top of key stack
+            next = mb.keyStack.pop()
+            while next['idx'] < len(next['keys']):
+                k = next['keys'][next['idx']]
+                if k not in mb.adj:
+                    mb.keyStack.append(next)
+                    break
+                next['idx'] += 1
+
+                if k in mb.done:
+                    # mark cycle
+                    mb.s += '_' + k
+                else:
+                    # mark key as serialized
+                    mb.done[k] = True
+
+                    # serialize top-level key and its details
+                    s = k
+                    adj = mb.adj[k]
+                    iri = adj['i']
                     if iri in self.subjects:
                         b = self.subjects[iri]
 
                         # serialize properties
-                        rval += '<'
-                        rval += _serializeProperties(b)
-                        rval += '>'
+                        s += '<' + _serializeProperties(b) + '>'
 
                         # serialize references
-                        rval += '<'
+                        s += '<'
                         first = True
                         refs = self.edges['refs'][iri]['all']
                         for r in refs:
                             if first:
                                 first = False
                             else:
-                                rval += '|'
-                            rval += '_:' if _isBlankNodeIri(r['s']) else r['s']
-                        rval += '>'
-                rval += self.recursiveSerializeMapping(tmp['k'], output, done)
-        return rval
+                                s += '|'
+                            s += '_:' if _isBlankNodeIri(r['s']) else r['s']
+                        s += '>'
 
-    ##
-    # Creates a relation serialization (partial or full).
-    # 
-    # @param output the current mapping builder output.
-    # 
-    # @return the relation serialization.
-    def serializeMapping(self, output):
-        return self.recursiveSerializeMapping(['s1'], output, {})
+                    # serialize adjacent node keys
+                    s += ''.join(adj['k'])
+                    mb.s += s
+                    mb.keyStack.append({ 'keys': adj['k'], 'idx': 0 })
+                    self.serializeMapping(mb)
 
     ##
     # Recursively serializes adjacent bnode combinations.
     # 
     # @param s the serialization to update.
-    # @param top the top of the serialization.
+    # @param iri the IRI of the bnode being serialized.
+    # @param siri the serialization name for the bnode IRI.
     # @param mb the MappingBuilder to use.
     # @param dir the edge direction to use ('props' or 'refs').
     # @param mapped all of the already-mapped adjacent bnodes.
     # @param notMapped all of the not-yet mapped adjacent bnodes.
-    def serializeCombos(self, s, top, mb, dir, mapped, notMapped):
-        # copy mapped nodes
-        mapped = copy.copy(mapped)
-
+    def serializeCombos(self, s, iri, siri, mb, dir, mapped, notMapped):
         # handle recursion
         if len(notMapped) > 0:
+            # copy mapped nodes
+            mapped = copy.copy(mapped)
+
             # map first bnode in list
             mapped[mb.mapNode(notMapped[0]['s'])] = notMapped[0]['s']
 
@@ -1069,34 +1073,30 @@ class Processor:
             rotations = max(1, len(notMapped))
             for r in range(0, rotations):
                 m = mb if r == 0 else original.copy()
-                self.serializeCombos(s, top, m, dir, mapped, notMapped)
+                self.serializeCombos(s, iri, siri, m, dir, mapped, notMapped)
 
                 # rotate not-mapped for next combination
                 _rotate(notMapped)
-        # handle final adjacent node in current combination
+        # no more adjacent bnodes to map, update serialization
         else:
             keys = mapped.keys()
             keys.sort()
-            mb.output[top] = { 'k': keys, 'm': mapped }
+            mb.adj[siri] = { 'i': iri, 'k': keys, 'm': mapped }
+            self.serializeMapping(mb)
 
             # optimize away mappings that are already too large
-            _s = self.serializeMapping(mb.output)
-            if s[dir] is None or _compareSerializations(_s, s[dir]['s']) <= 0:
-                oldCount = mb.count
-
+            if (s[dir] is None or
+                _compareSerializations(mb.s, s[dir]['s']) <= 0):
                 # recurse into adjacent alues
                 for k in keys:
                     self.serializeBlankNode(s, mapped[k], mb, dir)
 
-                # reserialize if more nodes were mapped
-                if mb.count > oldCount:
-                    _s = self.serializeMapping(mb.output)
-
                 # update least serialization if new one has been found
+                self.serializeMapping(mb)
                 if (s[dir] is None or
-                    (_compareSerializations(_s, s[dir]['s']) <= 0 and
-                    len(_s) >= len(s[dir]['s']))):
-                    s[dir] = { 's': _s, 'm': mb.mapping }
+                    (_compareSerializations(mb.s, s[dir]['s']) <= 0 and
+                    len(mb.s) >= len(s[dir]['s']))):
+                    s[dir] = { 's': mb.s, 'm': mb.mapping }
 
     ##
     # Computes the relation serialization for the given blank node IRI.
@@ -1106,11 +1106,11 @@ class Processor:
     # @param mb the MappingBuilder to use.
     # @param dir the edge direction to use ('props' or 'refs').
     def serializeBlankNode(self, s, iri, mb, dir):
-        # only do mapping if iri not already mapped
-        if iri not in mb.mapped:
-            # iri now mapped
-            mb.mapped[iri] = True
-            top = mb.mapNode(iri)
+        # only do mapping if iri not already processed
+        if iri not in mb.processed:
+            # iri now processed
+            mb.processed[iri] = True
+            siri = mb.mapNode(iri)
 
             # copy original mapping builder
             original = mb.copy()
@@ -1145,7 +1145,7 @@ class Processor:
             combos = max(1, len(notMapped))
             for i in range(0, combos):
                 m = mb if i == 0 else original.copy()
-                self.serializeCombos(s, top, mb, dir, mapped, notMapped)
+                self.serializeCombos(s, iri, siri, mb, dir, mapped, notMapped)
 
     ##
     # Compares two blank nodes for equivalence.
@@ -1562,17 +1562,17 @@ def _frame(subjects, input, frame, embeds, options):
                         else:
                             # add empty array/null property to value
                             value[key] = [] if isinstance(f, list) else None
-                        
+
                         # handle setting default value
                         if value[key] is None:
                             # use first subframe if frame is an array
                             if isinstance(f, list):
                                 f = f[0] if len(f) > 0 else {}
-                            
+
                             # determine if omit default is on
                             omitOn = (f['@omitDefault'] if
                                 '@omitDefault' in f
-                                else options['defaults']['omitDefaultOn']);
+                                else options['defaults']['omitDefaultOn'])
                             if omitOn:
                                 del value[key]
                             elif '@default' in f:
