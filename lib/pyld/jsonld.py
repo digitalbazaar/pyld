@@ -1028,10 +1028,10 @@ class Processor:
                         b = self.subjects[iri]
 
                         # serialize properties
-                        s += '<' + _serializeProperties(b) + '>'
+                        s += '[' + _serializeProperties(b) + ']'
 
                         # serialize references
-                        s += '<'
+                        s += '['
                         first = True
                         refs = self.edges['refs'][iri]['all']
                         for r in refs:
@@ -1039,8 +1039,10 @@ class Processor:
                                 first = False
                             else:
                                 s += '|'
-                            s += '_:' if _isBlankNodeIri(r['s']) else r['s']
-                        s += '>'
+                            s += '<' + r['p'] + '>'
+                            s += ('_:' if _isBlankNodeIri(r['s']) else
+                               ('<' + r['s'] + '>'))
+                        s += ']'
 
                     # serialize adjacent node keys
                     s += ''.join(adj['k'])
@@ -1602,20 +1604,36 @@ def _rotate(a):
 # @return the serialized properties.
 def _serializeProperties(b):
     rval = ''
+    first = True
     for p in b.keys():
         if p != '@subject':
-            first = True
+            if first:
+                first = False
+            else:
+                rval += '|'
+            rval += '<' + p + '>'
             objs = b[p] if isinstance(b[p], list) else [b[p]]
             for o in objs:
-                if first:
-                    first = False
+                if isinstance(o, dict):
+                    # iri
+                    if '@iri' in o:
+                        if _isBlankNodeIri(o['@iri']):
+                            rval += '_:'
+                        else:
+                            rval += '<' + o['@iri'] + '>'
+                    # literal
+                    else:
+                        rval += '"' + o['@literal'] + '"'
+
+                        # datatype literal
+                        if '@datatype' in o:
+                            rval += '^^<' + o['@datatype'] + '>'
+                        # language literal
+                        elif '@language' in o:
+                            rval += '@' + o['@language']
+                # plain literal
                 else:
-                    rval += '|'
-                if (isinstance(o, dict) and '@iri' in o and
-                    _isBlankNodeIri(o['@iri'])):
-                    rval += '_:'
-                else:
-                    rval += json.dumps(o)
+                    rval += '"' + o + '"'
     return rval
 
 ##
