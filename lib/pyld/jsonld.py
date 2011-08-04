@@ -30,37 +30,6 @@ xsd = {
 }
 
 ##
-# Creates the JSON-LD default context.
-#
-# @return the JSON-LD default context.
-def _createDefaultContext():
-    return {
-        'rdf': ns['rdf'],
-        'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
-        'owl': 'http://www.w3.org/2002/07/owl#',
-        'xsd': 'http://www.w3.org/2001/XMLSchema#',
-        'dc': 'http://purl.org/dc/terms/',
-        'foaf': 'http://xmlns.com/foaf/0.1/',
-        'cal': 'http://www.w3.org/2002/12/cal/ical#',
-        'vcard': 'http://www.w3.org/2006/vcard/ns#',
-        'geo': 'http://www.w3.org/2003/01/geo/wgs84_pos#',
-        'cc': 'http://creativecommons.org/ns#',
-        'sioc': 'http://rdfs.org/sioc/ns#',
-        'doap': 'http://usefulinc.com/ns/doap#',
-        'com': 'http://purl.org/commerce#',
-        'ps': 'http://purl.org/payswarm#',
-        'gr': 'http://purl.org/goodrelations/v1#',
-        'sig': 'http://purl.org/signature#',
-        'ccard': 'http://purl.org/commerce/creditcard#',
-        '@coerce':
-        {
-            'xsd:anyURI': ['foaf:homepage', 'foaf:member'],
-            'xsd:integer': 'foaf:age'
-        },
-        '@vocab': ''
-    }
-
-##
 # Compacts an IRI into a term or CURIE if it can be. IRIs will not be
 # compacted to relative IRIs if they match the given context's default
 # vocabulary.
@@ -152,9 +121,11 @@ def _expandTerm(ctx, term, usedCtx):
         rval = ns['rdf'] + 'type'
     # 5. The property is a relative IRI, prepend the default vocab.
     else:
-        rval = ctx['@vocab'] + term
-        if usedCtx is not None:
-            usedCtx['@vocab'] = ctx['@vocab']
+        rval = term;
+        if '@vocab' in ctx:
+            rval = ctx['@vocab'] + rval
+            if usedCtx is not None:
+                usedCtx['@vocab'] = ctx['@vocab']
 
     return rval
 
@@ -193,7 +164,7 @@ def _getCoerceType(ctx, property, usedCtx):
         rval = xsd['anyURI']
 
     # check type coercion for property
-    else:
+    elif '@coerce' in ctx:
         # force compacted property
         p = _compactIri(ctx, p, None)
 
@@ -773,11 +744,8 @@ class Processor:
         # TODO: validate context
 
         if input is not None:
-            # get default context
-            ctx = _createDefaultContext()
-
             # expand input
-            expanded = _expand(ctx, None, input, True)
+            expanded = _expand({}, None, input, True)
 
             # assign names to unnamed bnodes
             self.nameBlankNodes(expanded)
@@ -1352,10 +1320,10 @@ class Processor:
         # save frame context
         ctx = None
         if '@context' in frame:
-            ctx = mergeContexts(_createDefaultContext(), frame['@context'])
+            ctx = copy.copy(frame['@context'])
 
         # remove context from frame
-        frame = removeContext(frame)
+        frame = expand(frame)
 
         # create framing options
         # TODO: merge in options from function parameter
@@ -1378,7 +1346,7 @@ class Processor:
 
         # apply context
         if ctx is not None and rval is not None:
-            rval = addContext(ctx, rval)
+            rval = compact(ctx, rval)
 
         return rval
 
@@ -1665,82 +1633,60 @@ def normalize(input):
     return  Processor().normalize(input)
 
 ##
-# Removes the context from a JSON-LD object.
+# Removes the context from a JSON-LD object, expanding it to full-form.
 # 
 # @param input the JSON-LD object to remove the context from.
 # 
 # @return the context-neutral JSON-LD object.
-def removeContext(input):
+def expand(input):
     rval = None
 
     if input is not None:
-        ctx = _createDefaultContext()
-        rval = _expand(ctx, None, input, False)
+        rval = _expand({}, None, input, False)
 
     return rval
 
 ##
-# Expands the JSON-LD object.
+# Expands the given JSON-LD object and then compacts it using the
+# given context.
 #
-# @param input the JSON-LD object to expand.
-#
-# @return the expanded JSON-LD object.
-def expand(input):
-    return removeContext(input)
-
-##
-# Adds the given context to the given context-neutral JSON-LD object.
-# 
 # @param ctx the new context to use.
-# @param input the context-neutral JSON-LD object to add the context to.
+# @param input the input JSON-LD object.
 # 
-# @return the JSON-LD object with the new context.
-def addContext(ctx, input):
+# @return the output JSON-LD object.
+def compact(ctx, input):
     rval = None
 
     # TODO: should context simplification be optional? (ie: remove context
     # entries that are not used in the output)
 
-    ctx = mergeContexts(_createDefaultContext(), ctx)
+    if input is not None:
+        # fully expand input
+        input = expand(input)
 
-    # setup output context
-    ctxOut = {}
-
-    # compact
-    rval = _compact(ctx, None, input, ctxOut)
-
-    # add context if used
-    if len(ctxOut.keys()) > 0:
-        # add copy of context to every entry in output array
-        if isinstance(rval, list):
-            for i in rval:
-                rval[i]['@context'] = copy.deepcopy(ctxOut)
+        if isinstance(input, list):
+            rval = []
+            tmp = input
         else:
-            rval['@context'] = ctxOut
+            tmp = [input]
+
+        for value in tmp:
+            # setup output context
+            ctxOut = {}
+
+            # compact
+            output = _compact(copy.copy(ctx), None, value, ctxOut)
+
+            # add context if used
+            if len(ctxOut.keys()) > 0:
+                output["@context"] = ctxOut
+
+            if rval is None:
+                rval = output
+            else:
+                rval.append(output)
 
     return rval
-
-##
-# Changes the context of JSON-LD object "input" to "context", returning the
-# output.
-# 
-# @param ctx the new context to use.
-# @param input the input JSON-LD object.
-# 
-# @return the output JSON-LD object.
-def changeContext(ctx, input):
-    # remove context and then add new one
-    return jsonld.addContext(ctx, jsonld.removeContext(input))
-
-##
-# Compacts the JSON-LD obejct.
-#
-# @param ctx the new context to use.
-# @param input the input JSON-LD object.
-#
-# @return the output JSON-LD object.
-def compact(ctx, input):
-    return changeContext(ctx, input)
 
 ##
 # Merges one context with another.
@@ -1865,9 +1811,3 @@ def compactIri(ctx, iri):
 # @return the framed output.
 def frame(input, frame, options=None):
     return Processor().frame(input, frame, options)
-
-##
-# Creates the JSON-LD default context.
-#
-# @return the JSON-LD default context.
-createDefaultContext = _createDefaultContext

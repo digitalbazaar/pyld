@@ -88,7 +88,7 @@ class TestRunner:
 
         # FIXME: 
         #self.testFiles.sort()
-        
+
         run = 0
         passed = 0
         failed = 0
@@ -117,11 +117,11 @@ class TestRunner:
                 if testType == 'normalize':
                     resultJson = jsonld.normalize(inputJson)
                 elif testType == 'expand':
-                    resultJson = jsonld.removeContext(inputJson)
+                    resultJson = jsonld.expand(inputJson)
                 elif testType == 'compact':
                     contextFd = open(join(self.testdir, test['context']))
                     contextJson = json.load(contextFd)
-                    resultJson = jsonld.addContext(contextJson, inputJson)
+                    resultJson = jsonld.compact(contextJson, inputJson)
                 elif testType == 'frame':
                     frameFd = open(join(self.testdir, test['frame']))
                     frameJson = json.load(frameFd)
@@ -141,7 +141,7 @@ class TestRunner:
                     print 'FAIL'
                     print 'Expect:', json.dumps(expectJson, indent=4)
                     print 'Result:', json.dumps(resultJson, indent=4)
-        
+
         print "Tests run: %d, Tests passed: %d, Tests Failed: %d" % (run, passed, failed)
 
 if __name__ == "__main__":
