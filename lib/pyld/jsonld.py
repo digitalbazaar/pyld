@@ -640,14 +640,16 @@ def _flatten(parent, parentProperty, value, subjects):
             for key, v in value.items():
                 # drop null values
                 if v is not None:
-                    if isinstance(v, list):
-                        subject[key] = []
-                        _flatten(subject[key], None, v, subjects)
-                        if len(subject[key]) == 1:
-                            # convert subject[key] to object if it has only 1
-                            subject[key] = subject[key][0]
+                    if key in subject:
+                        if not isinstance(subject[key], list):
+                            subject[key] = [subject[key]]
                     else:
-                        _flatten(subject, key, v, subjects)
+                        subject[key] = []
+
+                    _flatten(subject[key], None, v, subjects)
+                    if len(subject[key]) == 1:
+                        # convert subject[key] to object if it has only 1
+                        subject[key] = subject[key][0]
     # string value
     else:
         flattened = value
