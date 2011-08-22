@@ -10,12 +10,6 @@
 # Copyright (c) 2011 Digital Bazaar, Inc. All rights reserved.
 import copy
 
-# DEBUG:
-import json
-
-_s = '@subject'
-_t = '@type'
-
 ns = {
     'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     'xsd': 'http://www.w3.org/2001/XMLSchema#'
@@ -28,6 +22,54 @@ xsd = {
     'integer': ns['xsd'] + 'integer',
     'anyURI': ns['xsd'] + 'anyURI'
 }
+
+##
+# Sets a subject's property to the given object value. If a value already
+# exists, it will be appended to an array.
+#
+# @param s the subject.
+# @param p the property.
+# @param o the object.
+def _setProperty(s, p, o):
+    if p in s:
+        if isinstance(s[p], list):
+            s[p].append(o)
+        else:
+            s[p] = [s[p], o]
+    else:
+        s[p] = o
+
+##
+# Gets the keywords from a context.
+# 
+# @param ctx the context.
+# 
+# @return the keywords.
+def _getKeywords(ctx):
+    # TODO: reduce calls to this function by caching keywords in processor
+    # state
+
+    rval = {
+       '@datatype': '@datatype',
+       '@iri': '@iri',
+       '@language': '@language',
+       '@literal': '@literal',
+       '@subject': '@subject',
+       '@type': '@type'
+    }
+
+    if ctx:
+       # gather keyword aliases from context
+       keywords = {}
+       for key, value in ctx.items():
+          if isinstance(value, (str, unicode)) and value in rval:
+             keywords[value] = key
+
+       # overwrite keywords
+       for key in keywords:
+          rval[key] = keywords[key]
+
+    return rval
 
 ##
 # Compacts an IRI into a term or CURIE if it can be. IRIs will not be
@@ -56,7 +98,7 @@ def _compactIri(ctx, iri, usedCtx):
 
     # term not found, if term is rdf type, use built-in keyword
     if rval is None and iri == ns['rdf'] + 'type':
-        rval = _t
+        rval = _getKeywords(ctx)['@type']
 
     # term not found, check the context for a CURIE prefix
     if rval is None:
@@ -93,6 +135,9 @@ def _compactIri(ctx, iri, usedCtx):
 def _expandTerm(ctx, term, usedCtx):
     rval = None
 
+    # get JSON-LD keywords
+    keywords = _getKeywords(ctx)
+
     # 1. If the property has a colon, then it is a CURIE or an absolute IRI:
     idx = term.find(':')
     if idx != -1:
@@ -114,276 +159,18 @@ def _expandTerm(ctx, term, usedCtx):
         if usedCtx is not None:
             usedCtx[term] = rval
     # 3. The property is the special-case subject.
-    elif term == _s:
-        rval = _s
+    elif term == keywords['@subject']:
+        rval = keywords['@subject']
     # 4. The property is the special-case rdf type.
-    elif term == _t:
+    elif term == keywords['@type']:
         rval = ns['rdf'] + 'type'
     # 5. The property is a relative IRI, prepend the default vocab.
     else:
-        rval = term;
+        rval = term
         if '@vocab' in ctx:
             rval = ctx['@vocab'] + rval
             if usedCtx is not None:
                 usedCtx['@vocab'] = ctx['@vocab']
-
-    return rval
-
-##
-# Sets a subject's property to the given object value. If a value already
-# exists, it will be appended to an array.
-#
-# @param s the subject.
-# @param p the property.
-# @param o the object.
-def _setProperty(s, p, o):
-    if p in s:
-        if isinstance(s[p], list):
-            s[p].append(o)
-        else:
-            s[p] = [s[p], o]
-    else:
-        s[p] = o
-
-##
-# Gets the coerce type for the given property.
-#
-# @param ctx the context to use.
-# @param property the property to get the coerced type for.
-# @param usedCtx a context to update if a value was used from "ctx".
-#
-# @return the coerce type, None for none.
-def _getCoerceType(ctx, property, usedCtx):
-    rval = None
-
-    # get expanded property
-    p = _expandTerm(ctx, property, None)
-
-    # built-in type coercion JSON-LD-isms
-    if p == _s or p == ns['rdf'] + 'type':
-        rval = xsd['anyURI']
-
-    # check type coercion for property
-    elif '@coerce' in ctx:
-        # force compacted property
-        p = _compactIri(ctx, p, None)
-
-        for type in ctx['@coerce']:
-            # get coerced properties (normalize to an array)
-            props = ctx['@coerce'][type]
-            if not isinstance(props, list):
-                props = [props]
-
-            # look for the property in the array
-            for i in props:
-                # property found
-                if i == p:
-                    rval = _expandTerm(ctx, type, usedCtx)
-                    if usedCtx is not None:
-                        if '@coerce' not in usedCtx:
-                            usedCtx['@coerce'] = {}
-
-                        if type not in usedCtx['@coerce']:
-                            usedCtx['@coerce'][type] = p
-                        else:
-                            c = usedCtx['@coerce'][type]
-                            if ((isinstance(c, list) and c.find(p) == -1) or
-                                (isinstance(c, (str, unicode)) and c != p)):
-                                _setProperty(usedCtx['@coerce'], type, p)
-                    break
-
-    return rval
-
-##
-# Recursively compacts a value. This method will compact IRIs to CURIEs or
-# terms and do reverse type coercion to compact a value.
-# 
-# @param ctx the context to use.
-# @param property the property that points to the value, NULL for none.
-# @param value the value to compact.
-# @param usedCtx a context to update if a value was used from "ctx".
-# 
-# @return the compacted value.
-def _compact(ctx, property, value, usedCtx):
-    rval = None
-
-    if value is None:
-        # return None, but check coerce type to add to usedCtx
-        rval = None
-        _getCoerceType(ctx, property, usedCtx)
-    elif isinstance(value, list):
-        # recursively add compacted values to array
-        rval = []
-        for i in value:
-            rval.append(_compact(ctx, property, i, usedCtx))
-    # graph literal/disjoint graph
-    elif (isinstance(value, dict) and _s in value and
-        isinstance(value[_s], list)):
-        rval = {}
-        rval[_s] = _compact(ctx, property, value[_s], usedCtx)
-    # value has sub-properties if it doesn't define a literal or IRI value
-    elif (isinstance(value, dict) and '@literal' not in value and
-        '@iri' not in value):
-        # recursively handle sub-properties that aren't a sub-context
-        rval = {}
-        for key in value:
-            if value[key] != '@context':
-                # set object to compacted property, only overwrite existing
-                # properties if the property actually compacted
-                p = _compactIri(ctx, key, usedCtx)
-                if p != key or p not in rval:
-                   rval[p] = _compact(ctx, key, value[key], usedCtx)
-    else:
-        # get coerce type
-        coerce = _getCoerceType(ctx, property, usedCtx)
-
-        # get type from value, to ensure coercion is valid
-        type = None
-        if isinstance(value, dict):
-            # type coercion can only occur if language is not specified
-            if '@language' not in value:
-                # datatype must match coerce type if specified
-                if '@datatype' in value:
-                    type = value['@datatype']
-                # datatype is IRI
-                elif '@iri' in value:
-                    type = xsd['anyURI']
-                # can be coerced to any type
-                else:
-                    type = coerce
-        # type can be coerced to anything
-        elif isinstance(value, (str, unicode)):
-            type = coerce
-
-        # types that can be auto-coerced from a JSON-builtin
-        if coerce is None and (type == xsd['boolean'] or
-            type == xsd['integer'] or type == xsd['double']):
-            coerce = type
-
-        # do reverse type-coercion
-        if coerce is not None:
-            # type is only None if a language was specified, which is an error
-            # if type coercion is specified
-            if type is None:
-                raise Exception('Cannot coerce type when a language is ' +
-                    'specified. The language information would be lost.')
-            # if the value type does not match the coerce type, it is an error
-            elif type != coerce:
-                raise Exception('Cannot coerce type because the datatype ' +
-                    'does not match.')
-            # do reverse type-coercion
-            else:
-                if isinstance(value, dict):
-                    if '@iri' in value:
-                        rval = value['@iri']
-                    elif '@literal' in value:
-                        rval = value['@literal']
-                else:
-                    rval = value
-
-                # do basic JSON types conversion
-                if coerce == xsd['boolean']:
-                    rval = (rval == 'true' or rval != 0)
-                elif coerce == xsd['double']:
-                    rval = float(rval)
-                elif coerce == xsd['integer']:
-                    rval = int(rval)
-
-        # no type-coercion, just copy value
-        else:
-            rval = copy.copy(value)
-
-        # compact IRI
-        if type == xsd['anyURI']:
-            if isinstance(rval, dict):
-                rval['@iri'] = _compactIri(ctx, rval['@iri'], usedCtx)
-            else:
-                rval = _compactIri(ctx, rval, usedCtx)
-
-    return rval
-
-##
-# Recursively expands a value using the given context. Any context in
-# the value will be removed.
-# 
-# @param ctx the context.
-# @param property the property that points to the value, NULL for none.
-# @param value the value to expand.
-# @param expandSubjects True to expand subjects (normalize), False not to.
-# 
-# @return the expanded value.
-def _expand(ctx, property, value, expandSubjects):
-    rval = None
-
-    # TODO: add data format error detection?
-
-    # value is null, nothing to expand
-    if value is None:
-        rval = None
-    # if no property is specified and the value is a string (this means the
-    # value is a property itself), expand to an IRI
-    elif property is None and isinstance(value, (str, unicode)):
-        rval = _expandTerm(ctx, value, None)
-    elif isinstance(value, list):
-        # recursively add expanded values to array
-        rval = []
-        for i in value:
-            rval.append(_expand(ctx, property, i, expandSubjects))
-    elif isinstance(value, dict):
-        # value has sub-properties if it doesn't define a literal or IRI value
-        if not ('@literal' in value or '@iri' in value):
-            # if value has a context, use it
-            if '@context' in value:
-                ctx = mergeContexts(ctx, value['@context'])
-
-            # recursively handle sub-properties that aren't a sub-context
-            rval = {}
-            for key in value:
-                # preserve frame keywords
-                if (key == '@embed' or key == '@explicit' or
-                    key == '@default' or key == '@omitDefault'):
-                    _setProperty(rval, key, copy.copy(value[key]))
-                elif key != '@context':
-                    # set object to expanded property
-                    _setProperty(rval, _expandTerm(ctx, key, None),
-                        _expand(ctx, key, value[key], expandSubjects))
-        # value is already expanded
-        else:
-            rval = copy.copy(value)
-    else:
-        # do type coercion
-        coerce = _getCoerceType(ctx, property, None)
-
-        # automatic coercion for basic JSON types
-        if coerce is None and isinstance(value, (int, long, float, bool)):
-            if isinstance(value, bool):
-                coerce = xsd['boolean']
-            elif isinstance(value, float):
-                coerce = xsd['double']
-            else:
-                coerce = xsd['integer']
-
-        # coerce to appropriate datatype, only expand subjects if requested
-        if coerce is not None and (property != _s or expandSubjects):
-            rval = {}
-
-            # expand IRI
-            if coerce == xsd['anyURI']:
-                rval['@iri'] = _expandTerm(ctx, value, None)
-            # other datatype
-            else:
-                rval['@datatype'] = coerce
-                if coerce == xsd['double']:
-                    # do special JSON-LD double format
-                    value = '%1.6e' % value
-                elif coerce == xsd['boolean']:
-                    value = 'true' if value else 'false'
-                else:
-                    value = '%s' % value
-                rval['@literal'] = value
-        # nothing to coerce
-        else:
-            rval = '' + value
 
     return rval
 
@@ -396,15 +183,15 @@ def _isBlankNodeIri(v):
 # Checks if is named blank node.
 def _isNamedBlankNode(v):
     # look for "_:" at the beginning of the subject
-    return (isinstance(v, dict) and _s in v and
-        '@iri' in v[_s] and _isBlankNodeIri(v[_s]['@iri']))
+    return (isinstance(v, dict) and '@subject' in v and
+        '@iri' in v['@subject'] and _isBlankNodeIri(v['@subject']['@iri']))
 
 ##
 # Checks if is blank node.
 def _isBlankNode(v):
     # look for no subject or named blank node
     return (isinstance(v, dict) and not ('@iri' in v or '@literal' in v) and
-        (_s not in v or _isNamedBlankNode(v)))
+        ('@subject' not in v or _isNamedBlankNode(v)))
 
 ##
 # Compares two values.
@@ -575,13 +362,13 @@ def _collectSubjects(input, subjects, bnodes):
         for i in input:
             _collectSubjects(i, subjects, bnodes)
     elif isinstance(input, dict):
-        if _s in input:
+        if '@subject' in input:
             # graph literal
-            if isinstance(input[_s], list):
-                _collectSubjects(input[_s], subjects, bnodes)
+            if isinstance(input['@subject'], list):
+                _collectSubjects(input['@subject'], subjects, bnodes)
             # named subject
             else:
-                subjects[input[_s]['@iri']] = input
+                subjects[input['@subject']['@iri']] = input
         # unnamed blank node
         elif _isBlankNode(input):
             bnodes.append(input)
@@ -611,13 +398,13 @@ def _flatten(parent, parentProperty, value, subjects):
             _flatten(parent, parentProperty, i, subjects)
     elif isinstance(value, dict):
         # graph literal/disjoint graph
-        if _s in value and isinstance(value[_s], list):
+        if '@subject' in value and isinstance(value['@subject'], list):
             # cannot flatten embedded graph literals
             if parent is not None:
                 raise Exception('Embedded graph literals cannot be flattened.')
 
             # top-level graph literal
-            for key in value[_s]:
+            for key in value['@subject']:
                 _flatten(parent, parentProperty, key, subjects)
         # already-expanded value
         elif '@literal' in value or '@iri' in value:
@@ -626,14 +413,14 @@ def _flatten(parent, parentProperty, value, subjects):
         else:
             # create or fetch existing subject
             subject = None
-            if value[_s]['@iri'] in subjects:
-                # FIXME: _s might be a graph literal (as {})
-                subject = subjects[value[_s]['@iri']]
+            if value['@subject']['@iri'] in subjects:
+                # FIXME: '@subject' might be a graph literal (as {})
+                subject = subjects[value['@subject']['@iri']]
             else:
                 subject = {}
-                if _s in value:
-                    # FIXME: _s might be a graph literal (as {})
-                    subjects[value[_s]['@iri']] = subject
+                if '@subject' in value:
+                    # FIXME: '@subject' might be a graph literal (as {})
+                    subjects[value['@subject']['@iri']] = subject
             flattened = subject
 
             # flatten embeds
@@ -656,12 +443,12 @@ def _flatten(parent, parentProperty, value, subjects):
 
     # add flattened value to parent
     if flattened is not None and parent is not None:
-        # remove top-level _s for subjects
+        # remove top-level '@subject' for subjects
         # 'http://mypredicate': {'@subject': {'@iri': 'http://mysubject'}}
         # becomes
         # 'http://mypredicate': {'@iri': 'http://mysubject'}
-        if isinstance(flattened, dict) and _s in flattened:
-            flattened = flattened[_s]
+        if isinstance(flattened, dict) and '@subject' in flattened:
+            flattened = flattened['@subject']
 
         if isinstance(parent, list):
             # do not add duplicate IRIs for the same property
@@ -731,8 +518,226 @@ class Processor:
     ##
     # Initialize the JSON-LD processor.
     def __init__(self):
-        self.tmp = None
-        self.c14n = None
+        pass
+
+    ##
+    # Recursively compacts a value. This method will compact IRIs to CURIEs or
+    # terms and do reverse type coercion to compact a value.
+    # 
+    # @param ctx the context to use.
+    # @param property the property that points to the value, NULL for none.
+    # @param value the value to compact.
+    # @param usedCtx a context to update if a value was used from "ctx".
+    # 
+    # @return the compacted value.
+    def compact(self, ctx, property, value, usedCtx):
+        rval = None
+
+        # get JSON-LD keywords
+        keywords = _getKeywords(ctx)
+
+        if value is None:
+            # return None, but check coerce type to add to usedCtx
+            rval = None
+            self.getCoerceType(ctx, property, usedCtx)
+        elif isinstance(value, list):
+            # recursively add compacted values to array
+            rval = []
+            for i in value:
+                rval.append(self.compact(ctx, property, i, usedCtx))
+        # graph literal/disjoint graph
+        elif (isinstance(value, dict) and '@subject' in value and
+            isinstance(value['@subject'], list)):
+            rval = {}
+            rval[keywords['@subject']] = self.compact(
+                ctx, property, value['@subject'], usedCtx)
+        # value has sub-properties if it doesn't define a literal or IRI value
+        elif (isinstance(value, dict) and '@literal' not in value and
+            '@iri' not in value):
+            # recursively handle sub-properties that aren't a sub-context
+            rval = {}
+            for key in value:
+                if value[key] != '@context':
+                    # set object to compacted property, only overwrite existing
+                    # properties if the property actually compacted
+                    p = _compactIri(ctx, key, usedCtx)
+                    if p != key or p not in rval:
+                       rval[p] = self.compact(ctx, key, value[key], usedCtx)
+        else:
+            # get coerce type
+            coerce = self.getCoerceType(ctx, property, usedCtx)
+
+            # get type from value, to ensure coercion is valid
+            type = None
+            if isinstance(value, dict):
+                # type coercion can only occur if language is not specified
+                if '@language' not in value:
+                    # datatype must match coerce type if specified
+                    if '@datatype' in value:
+                        type = value['@datatype']
+                    # datatype is IRI
+                    elif '@iri' in value:
+                        type = xsd['anyURI']
+                    # can be coerced to any type
+                    else:
+                        type = coerce
+            # type can be coerced to anything
+            elif isinstance(value, (str, unicode)):
+                type = coerce
+
+            # types that can be auto-coerced from a JSON-builtin
+            if coerce is None and (type == xsd['boolean'] or
+                type == xsd['integer'] or type == xsd['double']):
+                coerce = type
+
+            # do reverse type-coercion
+            if coerce is not None:
+                # type is only None if a language was specified, which is an
+                # error if type coercion is specified
+                if type is None:
+                    raise Exception('Cannot coerce type when a language is ' +
+                        'specified. The language information would be lost.')
+                # if the value type does not match the coerce type, it is an
+                # error
+                elif type != coerce:
+                    raise Exception('Cannot coerce type because the ' +
+                        'datatype does not match.')
+                # do reverse type-coercion
+                else:
+                    if isinstance(value, dict):
+                        if '@iri' in value:
+                            rval = value['@iri']
+                        elif '@literal' in value:
+                            rval = value['@literal']
+                    else:
+                        rval = value
+
+                    # do basic JSON types conversion
+                    if coerce == xsd['boolean']:
+                        rval = (rval == 'true' or rval != 0)
+                    elif coerce == xsd['double']:
+                        rval = float(rval)
+                    elif coerce == xsd['integer']:
+                        rval = int(rval)
+
+            # no type-coercion, just change keywords/copy value
+            elif isinstance(value, dict):
+                rval = {}
+                for key, v in value.items():
+                    rval[keywords[key]] = v
+            else:
+                rval = copy.copy(value)
+
+            # compact IRI
+            if type == xsd['anyURI']:
+                if isinstance(rval, dict):
+                    rval[keywords['@iri']] = _compactIri(
+                        ctx, rval[keywords['@iri']], usedCtx)
+                else:
+                    rval = _compactIri(ctx, rval, usedCtx)
+
+        return rval
+
+    ##
+    # Recursively expands a value using the given context. Any context in
+    # the value will be removed.
+    # 
+    # @param ctx the context.
+    # @param property the property that points to the value, NULL for none.
+    # @param value the value to expand.
+    # @param expandSubjects True to expand subjects (normalize), False not to.
+    # 
+    # @return the expanded value.
+    def expand(self, ctx, property, value, expandSubjects):
+        rval = None
+
+        # TODO: add data format error detection?
+
+        # value is null, nothing to expand
+        if value is None:
+            rval = None
+        # if no property is specified and the value is a string (this means the
+        # value is a property itself), expand to an IRI
+        elif property is None and isinstance(value, (str, unicode)):
+            rval = _expandTerm(ctx, value, None)
+        elif isinstance(value, list):
+            # recursively add expanded values to array
+            rval = []
+            for i in value:
+                rval.append(self.expand(ctx, property, i, expandSubjects))
+        elif isinstance(value, dict):
+            # if value has a context, use it
+            if '@context' in value:
+                ctx = mergeContexts(ctx, value['@context'])
+
+            # get JSON-LD keywords
+            keywords = _getKeywords(ctx)
+
+            # value has sub-properties if it doesn't define a literal or IRI
+            # value
+            if not (keywords['@literal'] in value or keywords['@iri'] in value):
+                # recursively handle sub-properties that aren't a sub-context
+                rval = {}
+                for key in value:
+                    # preserve frame keywords
+                    if (key == '@embed' or key == '@explicit' or
+                        key == '@default' or key == '@omitDefault'):
+                        _setProperty(rval, key, copy.copy(value[key]))
+                    elif key != '@context':
+                        # set object to expanded property
+                        _setProperty(rval, _expandTerm(ctx, key, None),
+                            self.expand(ctx, key, value[key], expandSubjects))
+            # only need to expand keywords
+            else:
+                rval = {}
+                if keywords['@iri'] in value:
+                    rval['@iri'] = value[keywords['@iri']]
+                else:
+                    rval['@literal'] = value[keywords['@literal']]
+                    if keywords['@language'] in value:
+                        rval['@language'] = value[keywords['@language']]
+                    elif keywords['@datatype'] in value:
+                        rval['@datatype'] = value[keywords['@datatype']]
+        else:
+            # do type coercion
+            coerce = self.getCoerceType(ctx, property, None)
+
+            # get JSON-LD keywords
+            keywords = _getKeywords(ctx)
+
+            # automatic coercion for basic JSON types
+            if coerce is None and isinstance(value, (int, long, float, bool)):
+                if isinstance(value, bool):
+                    coerce = xsd['boolean']
+                elif isinstance(value, float):
+                    coerce = xsd['double']
+                else:
+                    coerce = xsd['integer']
+
+            # coerce to appropriate datatype, only expand subjects if requested
+            if coerce is not None and (
+                property != keywords['@subject'] or expandSubjects):
+                rval = {}
+
+                # expand IRI
+                if coerce == xsd['anyURI']:
+                    rval['@iri'] = _expandTerm(ctx, value, None)
+                # other datatype
+                else:
+                    rval['@datatype'] = coerce
+                    if coerce == xsd['double']:
+                        # do special JSON-LD double format
+                        value = '%1.6e' % value
+                    elif coerce == xsd['boolean']:
+                        value = 'true' if value else 'false'
+                    else:
+                        value = '%s' % value
+                    rval['@literal'] = value
+            # nothing to coerce
+            else:
+                rval = '' + value
+
+        return rval
 
     ##
     # Normalizes a JSON-LD object.
@@ -746,8 +751,12 @@ class Processor:
         # TODO: validate context
 
         if input is not None:
+            # create name generator state
+            self.tmp = None
+            self.c14n = None
+
             # expand input
-            expanded = _expand({}, None, input, True)
+            expanded = self.expand({}, None, input, True)
 
             # assign names to unnamed bnodes
             self.nameBlankNodes(expanded)
@@ -769,10 +778,64 @@ class Processor:
             self.canonicalizeBlankNodes(rval)
 
             def normalizeSort(a, b):
-                return _compare(a[_s]['@iri'], b[_s]['@iri'])
+                return _compare(a['@subject']['@iri'], b['@subject']['@iri'])
 
             # sort output
             rval.sort(cmp=normalizeSort)
+
+        return rval
+
+    ##
+    # Gets the coerce type for the given property.
+    #
+    # @param ctx the context to use.
+    # @param property the property to get the coerced type for.
+    # @param usedCtx a context to update if a value was used from "ctx".
+    #
+    # @return the coerce type, None for none.
+    def getCoerceType(self, ctx, property, usedCtx):
+        rval = None
+
+        # get expanded property
+        p = _expandTerm(ctx, property, None)
+
+        # built-in type coercion JSON-LD-isms
+        if p == '@subject' or p == ns['rdf'] + 'type':
+            rval = xsd['anyURI']
+
+        # check type coercion for property
+        elif '@coerce' in ctx:
+            # force compacted property
+            p = _compactIri(ctx, p, None)
+
+            for type in ctx['@coerce']:
+                # get coerced properties (normalize to an array)
+                props = ctx['@coerce'][type]
+                if not isinstance(props, list):
+                    props = [props]
+
+                # look for the property in the array
+                for i in props:
+                    # property found
+                    if i == p:
+                        rval = _expandTerm(ctx, type, usedCtx)
+
+                        # '@iri' is shortcut for xsd['anyURI']
+                        if rval == '@iri':
+                           rval = xsd['anyURI']
+
+                        if usedCtx is not None:
+                            if '@coerce' not in usedCtx:
+                                usedCtx['@coerce'] = {}
+
+                            if type not in usedCtx['@coerce']:
+                                usedCtx['@coerce'][type] = p
+                            else:
+                                c = usedCtx['@coerce'][type]
+                                if ((isinstance(c, list) and c.find(p) == -1) or
+                                    (isinstance(c, (str, unicode)) and c != p)):
+                                    _setProperty(usedCtx['@coerce'], type, p)
+                        break
 
         return rval
 
@@ -791,11 +854,11 @@ class Processor:
 
         # uniquely name all unnamed bnodes
         for bnode in bnodes:
-            if not (_s in bnode):
+            if not ('@subject' in bnode):
                 # generate names until one is unique
                 while(ng.next() in subjects):
                     pass
-                bnode[_s] = { '@iri': ng.current() }
+                bnode['@subject'] = { '@iri': ng.current() }
                 subjects[ng.current()] = bnode
 
     ##
@@ -805,10 +868,10 @@ class Processor:
     # @param b the blank node to rename.
     # @param id the new name to use.
     def renameBlankNode(self, b, id):
-        old = b[_s]['@iri']
+        old = b['@subject']['@iri']
 
         # update bnode IRI
-        b[_s]['@iri'] = id
+        b['@subject']['@iri'] = id
 
         # update subjects map
         subjects = self.subjects
@@ -869,7 +932,7 @@ class Processor:
         subjects = self.subjects = {}
         bnodes = []
         for s in input:
-            iri = s[_s]['@iri']
+            iri = s['@subject']['@iri']
             subjects[iri] = s
             edges['refs'][iri] = {
                 'all': [],
@@ -892,12 +955,12 @@ class Processor:
         # rename all bnodes that happen to be in the c14n namespace
         # and initialize serializations
         for bnode in bnodes:
-            iri = bnode[_s]['@iri']
+            iri = bnode['@subject']['@iri']
             if c14n.inNamespace(iri):
                 while ngTmp.next() in subjects:
                     pass
                 self.renameBlankNode(bnode, ngTmp.current())
-                iri = bnode[_s]['@iri']
+                iri = bnode['@subject']['@iri']
             self.serializations[iri] = {
                 'props': None,
                 'refs': None
@@ -913,7 +976,7 @@ class Processor:
 
             # name all bnodes accoring to the first bnodes relation mappings
             bnode = bnodes.pop(0)
-            iri = bnode[_s]['@iri']
+            iri = bnode['@subject']['@iri']
             dirs = ['props', 'refs']
             for dir in dirs:
                 # if no serialization has been computed,
@@ -943,7 +1006,7 @@ class Processor:
                 tmp = bnodes
                 bnodes = []
                 for b in tmp:
-                    iriB = b[_s]['@iri']
+                    iriB = b['@subject']['@iri']
                     if not c14n.inNamespace(iriB):
                         for i2 in renamed:
                             self.markSerializationDirty(iriB, i2, dir)
@@ -1130,8 +1193,8 @@ class Processor:
         rval = 0
 
         # compare IRIs
-        iriA = a[_s]['@iri']
-        iriB = b[_s]['@iri']
+        iriA = a['@subject']['@iri']
+        iriB = b['@subject']['@iri']
         if iriA == iriB:
             rval = 0
         else:
@@ -1213,8 +1276,8 @@ class Processor:
 
         # step #4
         if rval == 0:
-            edgesA = self.edges['refs'][a[_s]['@iri']]['all']
-            edgesB = self.edges['refs'][b[_s]['@iri']]['all']
+            edgesA = self.edges['refs'][a['@subject']['@iri']]['all']
+            edgesB = self.edges['refs'][b['@subject']['@iri']]['all']
             rval = _compare(len(edgesA), len(edgesB))
 
         # step #5
@@ -1278,7 +1341,7 @@ class Processor:
         for iri in self.subjects:
             subject = self.subjects[iri]
             for key in subject:
-                if key != _s:
+                if key != '@subject':
                     # normalize to array for single codepath
                     object = subject[key]
                     tmp = [object] if not isinstance(object, list) else object
@@ -1341,7 +1404,7 @@ class Processor:
         # build map of all subjects
         subjects = {}
         for i in input:
-            subjects[i[_s]['@iri']] = i
+            subjects[i['@subject']['@iri']] = i
 
         # frame input
         rval = _frame(subjects, input, frame, {}, options)
@@ -1366,7 +1429,7 @@ def _isType(src, frame):
 
     # check if type(s) are specified in frame and src
     rType = ns['rdf'] + 'type'
-    if (rType in frame and isinstance(src, dict) and _s in src and
+    if (rType in frame and isinstance(src, dict) and '@subject' in src and
         rType in src):
         tmp = src[rType] if isinstance(src[rType], list) else [src[rType]]
         types = (frame[rType] if isinstance(frame[rType], list)
@@ -1412,7 +1475,7 @@ def _isDuckType(src, frame):
             # src always matches if there are no properties
             rval = True
         # src must be a subject with all the given properties
-        elif isinstance(src, dict) and _s in src:
+        elif isinstance(src, dict) and '@subject' in src:
             rval = True
             for i in props:
                 if i not in src:
@@ -1481,20 +1544,20 @@ def _frame(subjects, input, frame, embeds, options):
 
             if not embedOn:
                 # if value is a subject, only use subject IRI as reference 
-                if isinstance(value, dict) and _s in value:
-                    value = value[_s]
-            elif (isinstance(value, dict) and _s in value and
-                value[_s]['@iri'] in embeds):
+                if isinstance(value, dict) and '@subject' in value:
+                    value = value['@subject']
+            elif (isinstance(value, dict) and '@subject' in value and
+                value['@subject']['@iri'] in embeds):
 
                 # TODO: possibly support multiple embeds in the future ... and
                 # instead only prevent cycles?
                 raise Exception(
                     'More than one embed of the same subject is not supported.',
-                    value[_s]['@iri'])
+                    value['@subject']['@iri'])
 
             # if value is a subject, do embedding and subframing
-            elif isinstance(value, dict) and _s in value:
-                embeds[value[_s]['@iri']] = True
+            elif isinstance(value, dict) and '@subject' in value:
+                embeds[value['@subject']['@iri']] = True
 
                 # if explicit on, remove keys from value that aren't in frame
                 explicitOn = (frame['@explicit'] if '@explicit' in frame
@@ -1502,7 +1565,7 @@ def _frame(subjects, input, frame, embeds, options):
                 if explicitOn:
                     for key in value.keys():
                         # do not remove subject or any key in the frame
-                        if key != _s and key not in frame:
+                        if key != '@subject' and key not in frame:
                             del value[key]
 
                 # iterate over frame keys to do subframing
@@ -1632,7 +1695,7 @@ def _compareSerializations(s1, s2):
 # 
 # @return the normalized JSON-LD object.
 def normalize(input):
-    return  Processor().normalize(input)
+    return Processor().normalize(input)
 
 ##
 # Removes the context from a JSON-LD object, expanding it to full-form.
@@ -1641,12 +1704,7 @@ def normalize(input):
 # 
 # @return the context-neutral JSON-LD object.
 def expand(input):
-    rval = None
-
-    if input is not None:
-        rval = _expand({}, None, input, False)
-
-    return rval
+    return Processor().expand({}, None, input, False)
 
 ##
 # Expands the given JSON-LD object and then compacts it using the
@@ -1677,7 +1735,7 @@ def compact(ctx, input):
             ctxOut = {}
 
             # compact
-            output = _compact(copy.copy(ctx), None, value, ctxOut)
+            output = Processor().compact(copy.copy(ctx), None, value, ctxOut)
 
             # add context if used
             if len(ctxOut.keys()) > 0:
