@@ -16,11 +16,9 @@ ns = {
 }
 
 xsd = {
-    'anyType': ns['xsd'] + 'anyType',
     'boolean': ns['xsd'] + 'boolean',
     'double': ns['xsd'] + 'double',
-    'integer': ns['xsd'] + 'integer',
-    'anyURI': ns['xsd'] + 'anyURI'
+    'integer': ns['xsd'] + 'integer'
 }
 
 ##
@@ -577,7 +575,7 @@ class Processor:
                         type = value['@datatype']
                     # datatype is IRI
                     elif '@iri' in value:
-                        type = xsd['anyURI']
+                        type = '@iri'
                     # can be coerced to any type
                     else:
                         type = coerce
@@ -629,7 +627,7 @@ class Processor:
                 rval = copy.copy(value)
 
             # compact IRI
-            if type == xsd['anyURI']:
+            if type == '@iri':
                 if isinstance(rval, dict):
                     rval[keywords['@iri']] = _compactIri(
                         ctx, rval[keywords['@iri']], usedCtx)
@@ -720,7 +718,7 @@ class Processor:
                 rval = {}
 
                 # expand IRI
-                if coerce == xsd['anyURI']:
+                if coerce == '@iri':
                     rval['@iri'] = _expandTerm(ctx, value, None)
                 # other datatype
                 else:
@@ -801,7 +799,7 @@ class Processor:
 
         # built-in type coercion JSON-LD-isms
         if p == '@subject' or p == ns['rdf'] + 'type':
-            rval = xsd['anyURI']
+            rval = '@iri'
 
         # check type coercion for property
         elif '@coerce' in ctx:
@@ -819,11 +817,6 @@ class Processor:
                     # property found
                     if i == p:
                         rval = _expandTerm(ctx, type, usedCtx)
-
-                        # '@iri' is shortcut for xsd['anyURI']
-                        if rval == '@iri':
-                           rval = xsd['anyURI']
-
                         if usedCtx is not None:
                             if '@coerce' not in usedCtx:
                                 usedCtx['@coerce'] = {}
