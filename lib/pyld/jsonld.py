@@ -1,13 +1,20 @@
-##
-# Python implementation of JSON-LD processor
-# 
-# This implementation is ported from the Javascript implementation of
-# JSON-LD, authored by Dave Longley.
-#
-# @author Dave Longley 
-# @author Mike Johnson
-#
-# Copyright (c) 2011 Digital Bazaar, Inc. All rights reserved.
+"""
+Python implementation of JSON-LD processor
+
+This implementation is ported from the Javascript implementation of
+JSON-LD.
+
+.. module:: pyld
+  :synopsis: Python implementation of JSON-LD
+
+.. moduleauthor:: Dave Longley 
+.. moduleauthor:: Mike Johnson
+.. moduleauthor:: Tim McNamara <tim.mcnamara@okfn.org>
+"""
+
+__copyright__ = "Copyright (c) 2011 Digital Bazaar, Inc."
+__license__ = "New BSD licence"
+
 import copy
 
 ns = {
@@ -21,14 +28,15 @@ xsd = {
     'integer': ns['xsd'] + 'integer'
 }
 
-##
-# Sets a subject's property to the given object value. If a value already
-# exists, it will be appended to an array.
-#
-# @param s the subject.
-# @param p the property.
-# @param o the object.
 def _setProperty(s, p, o):
+    """
+    Sets a subject's property to the given object value. If a value already
+    exists, it will be appended to an array.
+
+    :param s: the subjet.
+    :param p: the property.
+    :param o: the object.
+    """
     if p in s:
         if isinstance(s[p], list):
             s[p].append(o)
@@ -37,13 +45,14 @@ def _setProperty(s, p, o):
     else:
         s[p] = o
 
-##
-# Gets the keywords from a context.
-# 
-# @param ctx the context.
-# 
-# @return the keywords.
 def _getKeywords(ctx):
+    """
+    Gets the keywords from a context.
+
+    :param ctx: the context.
+
+    :return: the keywords.
+    """
     # TODO: reduce calls to this function by caching keywords in processor
     # state
 
@@ -69,17 +78,18 @@ def _getKeywords(ctx):
 
     return rval
 
-##
-# Compacts an IRI into a term or CURIE if it can be. IRIs will not be
-# compacted to relative IRIs if they match the given context's default
-# vocabulary.
-# 
-# @param ctx the context to use.
-# @param iri the IRI to compact.
-# @param usedCtx a context to update if a value was used from "ctx".
-# 
-# @return the compacted IRI as a term or CURIE or the original IRI.
 def _compactIri(ctx, iri, usedCtx):
+    """
+    Compacts an IRI into a term or CURIE if it can be. IRIs will not be
+    compacted to relative IRIs if they match the given context's default
+    vocabulary.
+
+    :param ctx: the context to use.
+    :param iri: the IRI to compact.
+    :param usedCtx: a context to update if a value was used from "ctx".
+
+    :return: the compacted IRI as a term or CURIE or the original IRI.
+    """
     rval = None
 
     # check the context for a term that could shorten the IRI
@@ -120,17 +130,19 @@ def _compactIri(ctx, iri, usedCtx):
 
     return rval
 
-##
-# Expands a term into an absolute IRI. The term may be a regular term, a
-# CURIE, a relative IRI, or an absolute IRI. In any case, the associated
-# absolute IRI will be returned.
-#
-# @param ctx the context to use.
-# @param term the term to expand.
-# @param usedCtx a context to update if a value was used from "ctx".
-#
-# @return the expanded term as an absolute IRI.
+
 def _expandTerm(ctx, term, usedCtx):
+    """
+    Expands a term into an absolute IRI. The term may be a regular term, a
+    CURIE, a relative IRI, or an absolute IRI. In any case, the associated
+    absolute IRI will be returned.
+
+    :param ctx: the context to use.
+    :param term: the term to expand.
+    :param usedCtx: a context to update if a value was used from "ctx".
+
+    :return: the expanded term as an absolute IRI.
+    """
     rval = None
 
     # get JSON-LD keywords
@@ -172,33 +184,37 @@ def _expandTerm(ctx, term, usedCtx):
 
     return rval
 
-##
-# Checks if is blank node IRI.
 def _isBlankNodeIri(v):
+    """
+    Checks if an IRI is a blank node.
+    """
     return v.find('_:') == 0
 
-##
-# Checks if is named blank node.
 def _isNamedBlankNode(v):
+    """
+    Checks if a named node is blank.
+    """
     # look for "_:" at the beginning of the subject
     return (isinstance(v, dict) and '@subject' in v and
         '@iri' in v['@subject'] and _isBlankNodeIri(v['@subject']['@iri']))
 
-##
-# Checks if is blank node.
 def _isBlankNode(v):
+    """
+    Checks if the node is blank.
+    """
     # look for no subject or named blank node
     return (isinstance(v, dict) and not ('@iri' in v or '@literal' in v) and
         ('@subject' not in v or _isNamedBlankNode(v)))
 
-##
-# Compares two values.
-# 
-# @param v1 the first value.
-# @param v2 the second value.
-# 
-# @return -1 if v1 < v2, 0 if v1 == v2, 1 if v1 > v2.
 def _compare(v1, v2):
+    """
+    Compares two values.
+
+    :param v1: the first value.
+    :param v2: the second value.
+
+    :return: -1 if v1 < v2, 0 if v1 == v2, 1 if v1 > v2.
+    """
     rval = 0
 
     if isinstance(v1, list) and isinstance(v2, list):
@@ -211,17 +227,18 @@ def _compare(v1, v2):
 
     return rval
 
-##
-# Compares two keys in an object. If the key exists in one object
-# and not the other, that object is less. If the key exists in both objects,
-# then the one with the lesser value is less.
-# 
-# @param o1 the first object.
-# @param o2 the second object.
-# @param key the key.
-# 
-# @return -1 if o1 < o2, 0 if o1 == o2, 1 if o1 > o2.
 def _compareObjectKeys(o1, o2, key):
+    """
+    Compares two keys in an object. If the key exists in one object
+    and not the other, that object is less. If the key exists in both objects,
+    then the one with the lesser value is less.
+    
+    :param o1: the first object.
+    :param o2: the second object.
+    :param key: the key.
+
+    :return: -1 if o1 < o2, 0 if o1 == o2, 1 if o1 > o2.
+    """
     rval = 0
     if key in o1:
         if key in o2:
@@ -232,14 +249,15 @@ def _compareObjectKeys(o1, o2, key):
         rval = 1
     return rval
 
-##
-# Compares two object values.
-# 
-# @param o1 the first object.
-# @param o2 the second object.
-# 
-# @return -1 if o1 < o2, 0 if o1 == o2, 1 if o1 > o2.
 def _compareObjects(o1, o2):
+    """
+    Compares two object values.
+
+    :param o1: the first object.
+    :param o2: the second object.
+
+    :return: -#1 if o1 < o2, 0 if o1 == o2, 1 if o1 > o2.
+    """
     rval = 0
 
     if isinstance(o1, (str, unicode)):
@@ -262,14 +280,15 @@ def _compareObjects(o1, o2):
 
     return rval
 
-##
-# Compares the object values between two bnodes.
-# 
-# @param a the first bnode.
-# @param b the second bnode.
-# 
-# @return -1 if a < b, 0 if a == b, 1 if a > b.
 def _compareBlankNodeObjects(a, b):
+    """
+    Compares the object values between two bnodes.
+
+    :param a: the first bnode.
+    :param b: the second bnode.
+    
+    :return: -1 if a < b, 0 if a == b, 1 if a > b.
+    """
     rval = 0
 
     # 3.     For each property, compare sorted object values.
@@ -323,14 +342,15 @@ def _compareBlankNodeObjects(a, b):
 
     return rval
 
-##
-# Creates a blank node name generator using the given prefix for the
-# blank nodes. 
-# 
-# @param prefix the prefix to use.
-# 
-# @return the blank node name generator.
 class NameGenerator:
+    """
+    Creates a blank node name generator using the given prefix for the
+    blank nodes.
+
+    :param prefix: the prefix to use.
+
+    :return: the blank node name generator.
+    """
     def __init__(self, prefix):
         self.count = -1
         self.prefix = prefix
@@ -345,14 +365,15 @@ class NameGenerator:
     def inNamespace(self, iri):
         return iri.startswith('_:' + self.prefix)
 
-##
-# Populates a map of all named subjects from the given input and an array
-# of all unnamed bnodes (includes embedded ones).
-# 
-# @param input the input (must be expanded, no context).
-# @param subjects the subjects map to populate.
-# @param bnodes the bnodes array to populate.
 def _collectSubjects(input, subjects, bnodes):
+    """
+    Populates a map of all named subjects from the given input and an array
+    of all unnamed bnodes (includes embedded ones).
+
+    :param input: the input (must be expanded, no context).
+    :param subjects: the subjects map to populate.
+    :param bnodes: the bnodes array to populate.
+    """
     if input is None:
         # nothing to collect
         pass
@@ -375,16 +396,17 @@ def _collectSubjects(input, subjects, bnodes):
         for key in input:
             _collectSubjects(input[key], subjects, bnodes)
 
-##
-# Flattens the given value into a map of unique subjects. It is assumed that
-# all blank nodes have been uniquely named before this call. Array values for
-# properties will be sorted.
-# 
-# @param parent the value's parent, NULL for none.
-# @param parentProperty the property relating the value to the parent.
-# @param value the value to flatten.
-# @param subjects the map of subjects to write to.
 def _flatten(parent, parentProperty, value, subjects):
+    """
+    Flattens the given value into a map of unique subjects. It is assumed that
+    all blank nodes have been uniquely named before this call. Array values for
+    properties will be sorted.
+
+    :param parent: the value's parent, NULL for none.
+    :param parentProperty: the property relating the value to the parent.
+    :param value: the value to flatten.
+    :param subjects: the map of subjects to write to.
+    """
     flattened = None
 
     if value is None:
@@ -462,14 +484,16 @@ def _flatten(parent, parentProperty, value, subjects):
         else:
             parent[parentProperty] = flattened
 
-##
-# A MappingBuilder is used to build a mapping of existing blank node names
-# to a form for serialization. The serialization is used to compare blank
-# nodes against one another to determine a sort order.
 class MappingBuilder:
-    ##
-    # Initialize the MappingBuilder.
+    """
+    A MappingBuilder is used to build a mapping of existing blank node names
+    to a form for serialization. The serialization is used to compare blank
+    nodes against one another to determine a sort order.
+    """
     def __init__(self):
+        """
+        Initialize the MappingBuilder.
+        """
         self.count = 1
         self.processed = {}
         self.mapping = {}
@@ -478,11 +502,12 @@ class MappingBuilder:
         self.done = {}
         self.s = ''
 
-    ##
-    # Copies this MappingBuilder.
-    #
-    # @return the MappingBuilder copy.
     def copy(self):
+        """
+        Copies this MappingBuilder.
+
+        :return: the MappingBuilder copy.
+        """
         rval = MappingBuilder()
         rval.count = self.count
         rval.processed = copy.copy(self.processed)
@@ -493,15 +518,16 @@ class MappingBuilder:
         rval.s = self.s
         return rval
 
-    ##
-    # Maps the next name to the given bnode IRI if the bnode IRI isn't already
-    # in the mapping. If the given bnode IRI is canonical, then it will be
-    # given a shortened form of the same name.
-    # 
-    # @param iri the blank node IRI to map the next name to.
-    #
-    # @return the mapped name.
     def mapNode(self, iri):
+        """
+        Maps the next name to the given bnode IRI if the bnode IRI isn't already
+        in the mapping. If the given bnode IRI is canonical, then it will be
+        given a shortened form of the same name.
+
+        :param iri: the blank node IRI to map the next name to.
+
+        :return: the mapped name.
+        """
         if iri not in self.mapping:
             if iri.startswith('_:c14n'):
                 self.mapping[iri] = 'c%s' % iri[0:6]
@@ -510,25 +536,28 @@ class MappingBuilder:
                 self.count += 1
         return self.mapping[iri]
 
-##
-# A JSON-LD processor.
 class Processor:
-    ##
-    # Initialize the JSON-LD processor.
+    """
+    A JSON-LD processor.
+    """
     def __init__(self):
+        """
+        Initialize the JSON-LD processor.
+        """
         pass
 
-    ##
-    # Recursively compacts a value. This method will compact IRIs to CURIEs or
-    # terms and do reverse type coercion to compact a value.
-    # 
-    # @param ctx the context to use.
-    # @param property the property that points to the value, NULL for none.
-    # @param value the value to compact.
-    # @param usedCtx a context to update if a value was used from "ctx".
-    # 
-    # @return the compacted value.
     def compact(self, ctx, property, value, usedCtx):
+        """
+        Recursively compacts a value. This method will compact IRIs to CURIEs or
+        terms and do reverse type coercion to compact a value.
+
+        :param ctx: the context to use.
+        :param property: the property that points to the value, NULL for none.
+        :param value: the value to compact.
+        :param usedCtx: a context to update if a value was used from "ctx".
+
+        :return: the compacted value.
+        """
         rval = None
 
         # get JSON-LD keywords
@@ -636,17 +665,18 @@ class Processor:
 
         return rval
 
-    ##
-    # Recursively expands a value using the given context. Any context in
-    # the value will be removed.
-    # 
-    # @param ctx the context.
-    # @param property the property that points to the value, NULL for none.
-    # @param value the value to expand.
-    # @param expandSubjects True to expand subjects (normalize), False not to.
-    # 
-    # @return the expanded value.
     def expand(self, ctx, property, value, expandSubjects):
+        """
+        Recursively expands a value using the given context. Any context in
+        the value will be removed.
+
+        :param ctx: the context.
+        :param property: the property that points to the value, NULL for none.
+        :param value: the value to expand.
+        :param expandSubjects: True to expand subjects (normalize), False not to.
+
+        :return: the expanded value.
+        """
         rval = None
 
         # TODO: add data format error detection?
@@ -738,12 +768,14 @@ class Processor:
         return rval
 
     ##
-    # Normalizes a JSON-LD object.
-    # 
-    # @param input the JSON-LD object to normalize.
-    # 
-    # @return the normalized JSON-LD object.
     def normalize(self, input):
+        """
+        Normalizes a JSON-LD object.
+
+        :param input: the JSON-LD object to normalize.
+
+        :return: the normalized JSON-LD object.
+        """
         rval = []
 
         # TODO: validate context
@@ -783,15 +815,16 @@ class Processor:
 
         return rval
 
-    ##
-    # Gets the coerce type for the given property.
-    #
-    # @param ctx the context to use.
-    # @param property the property to get the coerced type for.
-    # @param usedCtx a context to update if a value was used from "ctx".
-    #
-    # @return the coerce type, None for none.
     def getCoerceType(self, ctx, property, usedCtx):
+        """
+        Gets the coerce type for the given property.
+
+        :param ctx: the context to use.
+        :param property: the property to get the coerced type for.
+        :param usedCtx: a context to update if a value was used from "ctx".
+
+        :return: the coerce type, None for none.
+        """
         rval = None
 
         # get expanded property
@@ -832,11 +865,12 @@ class Processor:
 
         return rval
 
-    ##
-    # Assigns unique names to blank nodes that are unnamed in the given input.
-    # 
-    # @param input the input to assign names to.
     def nameBlankNodes(self, input):
+        """
+        Assigns unique names to blank nodes that are unnamed in the given input.
+
+        :param input: the input to assign names to.
+        """
         # create temporary blank node name generator
         ng = self.tmp = NameGenerator('tmp')
 
@@ -854,13 +888,14 @@ class Processor:
                 bnode['@subject'] = { '@iri': ng.current() }
                 subjects[ng.current()] = bnode
 
-    ##
-    # Renames a blank node, changing its references, etc. The method assumes
-    # that the given name is unique.
-    # 
-    # @param b the blank node to rename.
-    # @param id the new name to use.
     def renameBlankNode(self, b, id):
+        """
+        Renames a blank node, changing its references, etc. The method assumes
+        that the given name is unique.
+
+        :param b: the blank node to rename.
+        :param id: the new name to use.
+        """
         old = b['@subject']['@iri']
 
         # update bnode IRI
@@ -907,11 +942,12 @@ class Processor:
                 if r['s'] == old:
                     r['s'] = id
 
-    ##
-    # Canonically names blank nodes in the given input.
-    # 
-    # @param input the flat input graph to assign names to.
     def canonicalizeBlankNodes(self, input):
+        """
+        Canonically names blank nodes in the given input.
+
+        :param input: the flat input graph to assign names to.
+        """
         # create serialization state
         self.renamed = {}
         self.mappings = {}
@@ -1013,22 +1049,24 @@ class Processor:
                     if p.find('@') != 0 and isinstance(bnode[p], list):
                         bnode[p].sort(_compareObjects)
 
-    ##
-    # Marks a relation serialization as dirty if necessary.
-    #
-    # @param iri the IRI of the bnode to check.
-    # @param changed the old IRI of the bnode that changed.
-    # @param dir the direction to check ('props' or 'refs').
     def markSerializationDirty(self, iri, changed, dir):
+        """
+        Marks a relation serialization as dirty if necessary.
+
+        :param iri: the IRI of the bnode to check.
+        :param changed: the old IRI of the bnode that changed.
+        :param dir: the direction to check ('props' or 'refs').
+        """
         s = self.serializations[iri]
         if s[dir] is not None and changed in s[dir]['m']:
             s[dir] = None
 
-    ##
-    # Recursively increments the relation serialization for a mapping.
-    # 
-    # @param mb the mapping builder to update.
     def serializeMapping(self, mb):
+        """
+        Recursively increments the relation serialization for a mapping.
+
+        :param mb: the mapping builder to update.
+        """
         if len(mb.keyStack) > 0:
             # continue from top of key stack
             next = mb.keyStack.pop()
@@ -1076,17 +1114,18 @@ class Processor:
                     mb.keyStack.append({ 'keys': adj['k'], 'idx': 0 })
                     self.serializeMapping(mb)
 
-    ##
-    # Recursively serializes adjacent bnode combinations.
-    # 
-    # @param s the serialization to update.
-    # @param iri the IRI of the bnode being serialized.
-    # @param siri the serialization name for the bnode IRI.
-    # @param mb the MappingBuilder to use.
-    # @param dir the edge direction to use ('props' or 'refs').
-    # @param mapped all of the already-mapped adjacent bnodes.
-    # @param notMapped all of the not-yet mapped adjacent bnodes.
     def serializeCombos(self, s, iri, siri, mb, dir, mapped, notMapped):
+        """
+        Recursively serializes adjacent bnode combinations.
+
+        :param s: the serialization to update.
+        :param iri: the IRI of the bnode being serialized.
+        :param siri: the serialization name for the bnode IRI.
+        :param mb: the MappingBuilder to use.
+        :param dir: the edge direction to use ('props' or 'refs').
+        :param mapped: all of the already-mapped adjacent bnodes.
+        :param notMapped: all of the not-yet mapped adjacent bnodes.
+        """
         # handle recursion
         if len(notMapped) > 0:
             # copy mapped nodes
@@ -1126,14 +1165,15 @@ class Processor:
                     len(mb.s) >= len(s[dir]['s']))):
                     s[dir] = { 's': mb.s, 'm': mb.mapping }
 
-    ##
-    # Computes the relation serialization for the given blank node IRI.
-    # 
-    # @param s the serialization to update.
-    # @param iri the current bnode IRI to be mapped.
-    # @param mb the MappingBuilder to use.
-    # @param dir the edge direction to use ('props' or 'refs').
     def serializeBlankNode(self, s, iri, mb, dir):
+        """
+        Computes the relation serialization for the given blank node IRI.
+
+        :param s: the serialization to update.
+        :param iri: the current bnode IRI to be mapped.
+        :param mb: the MappingBuilder to use.
+        :param dir: the edge direction to use ('props' or 'refs').
+        """
         # only do mapping if iri not already processed
         if iri not in mb.processed:
             # iri now processed
@@ -1175,14 +1215,15 @@ class Processor:
                 m = mb if i == 0 else original.copy()
                 self.serializeCombos(s, iri, siri, mb, dir, mapped, notMapped)
 
-    ##
-    # Compares two blank nodes for equivalence.
-    # 
-    # @param a the first blank node.
-    # @param b the second blank node.
-    # 
-    # @return -1 if a < b, 0 if a == b, 1 if a > b.
     def deepCompareBlankNodes(self, a, b):
+        """
+        Compares two blank nodes for equivalence.
+
+        :param a: the first blank node.
+        :param b: the second blank node.
+
+        :return: -1 if a < b, 0 if a == b, 1 if a > b.
+        """
         rval = 0
 
         # compare IRIs
@@ -1227,14 +1268,15 @@ class Processor:
                         break
         return rval
 
-    ##
-    # Performs a shallow sort comparison on the given bnodes.
-    # 
-    # @param a the first bnode.
-    # @param b the second bnode.
-    # 
-    # @return -1 if a < b, 0 if a == b, 1 if a > b.
     def shallowCompareBlankNodes(self, a, b):
+        """
+        Performs a shallow sort comparison on the given bnodes.
+
+        :param a: the first bnode.
+        :param b: the second bnode.
+
+        :return: -1 if a < b, 0 if a == b, 1 if a > b.
+        """
         rval = 0
 
         # ShallowSort Algorithm (when comparing two bnodes):
@@ -1283,17 +1325,19 @@ class Processor:
         return rval
 
     ##
-    # Compares two edges. Edges with an IRI (vs. a bnode ID) come first, then
-    # alphabetically-first IRIs, then alphabetically-first properties. If a
-    # blank node has been canonically named, then blank nodes will be compared
-    # after properties (with a preference for canonically named over
-    # non-canonically named), otherwise they won't be.
-    # 
-    # @param a the first edge.
-    # @param b the second edge.
-    # 
-    # @return -1 if a < b, 0 if a == b, 1 if a > b.
     def compareEdges(self, a, b):
+        """
+        Compares two edges. Edges with an IRI (vs. a bnode ID) come first, then
+        alphabetically-first IRIs, then alphabetically-first properties. If a
+        blank node has been canonically named, then blank nodes will be compared
+        after properties (with a preference for canonically named over
+        non-canonically named), otherwise they won't be.
+
+        :param a: the first edge.
+        :param b: the second edge.
+
+        :return: -1 if a < b, 0 if a == b, 1 if a > b.
+        """
         rval = 0
 
         bnodeA = _isBlankNodeIri(a['s'])
@@ -1320,13 +1364,14 @@ class Processor:
 
         return rval
 
-    ##
-    # Populates the given reference map with all of the subject edges in the
-    # graph. The references will be categorized by the direction of the edges,
-    # where 'props' is for properties and 'refs' is for references to a subject
-    # as an object. The edge direction categories for each IRI will be sorted
-    # into groups 'all' and 'bnodes'.
     def collectEdges(self):
+        """
+        Populates the given reference map with all of the subject edges in the
+        graph. The references will be categorized by the direction of the edges,
+        where 'props' is for properties and 'refs' is for references to a subject
+        as an object. The edge direction categories for each IRI will be sorted
+        into groups 'all' and 'bnodes'.
+        """
         refs = self.edges['refs']
         props = self.edges['props']
 
@@ -1361,15 +1406,16 @@ class Processor:
             props[iri]['all'].sort(cmp=self.compareEdges)
             props[iri]['bnodes'] = filter(filterNodes, props[iri]['all'])
 
-    ##
-    # Frames JSON-LD input.
-    # 
-    # @param input the JSON-LD input.
-    # @param frame the frame to use.
-    # @param options framing options to use.
-    # 
-    # @return the framed output.
     def frame(self, input, frame, options=None):
+        """
+        Frames JSON-LD input.
+
+        :param input: the JSON-LD input.
+        :param frame: the frame to use.
+        :param options: framing options to use.
+
+        :return: the framed output.
+        """
         rval = None
 
         # normalize input
@@ -1409,15 +1455,16 @@ class Processor:
         return rval
 
 
-##
-# Returns True if the given source is a subject and has one of the given
-# types in the given frame.
-# 
-# @param src the input.
-# @param frame the frame with types to look for.
-# 
-# @return True if the src has one of the given types.
 def _isType(src, frame):
+    """
+    Returns True if the given source is a subject and has one of the given
+    types in the given frame.
+
+    :param src: the input.
+    :param frame: the frame with types to look for.
+
+    :return: True if the src has one of the given types.
+    """
     rval = False
 
     # check if type(s) are specified in frame and src
@@ -1439,23 +1486,26 @@ def _isType(src, frame):
 
     return rval
 
-##
-# Returns True if the given element is not a keyword.
-#
-# @param e the element.
-#
-# @return True if the given element is not a keyword.
 def _filterNonKeywords(e):
+    """
+    Returns True if the given element is not a keyword.
+
+    :param e: the element.
+
+    :return True: if the given element is not a keyword.
+    """
     return e.find('@') != 0
 
-##
-# Returns True if the given src matches the given frame via duck-typing.
-# 
-# @param src the input.
-# @param frame the frame to check against.
-# 
-# @return True if the src matches the frame.
+
 def _isDuckType(src, frame):
+    """
+    Returns True if the given src matches the given frame via duck-typing.
+
+    :param src: the input.
+    :param frame: the frame to check against.
+
+    :return: True if the src matches the frame.
+    """
     rval = False
 
     # frame must not have a specific type
@@ -1477,17 +1527,18 @@ def _isDuckType(src, frame):
 
     return rval
 
-##
-# Recursively frames the given input according to the given frame.
-# 
-# @param subjects a map of subjects in the graph.
-# @param input the input to frame.
-# @param frame the frame to use.
-# @param embeds a map of previously embedded subjects, used to prevent cycles.
-# @param options the framing options.
-# 
-# @return the framed input.
 def _frame(subjects, input, frame, embeds, options):
+    """
+    Recursively frames the given input according to the given frame.
+
+    :param subjects: a map of subjects in the graph.
+    :param input: the input to frame.
+    :param frame: the frame to use.
+    :param embeds: a map of previously embedded subjects, used to prevent cycles.
+    :param options: the framing options.
+
+    :return: the framed input.
+    """
     rval = None
 
     # prepare output, set limit, get array of frames
@@ -1614,21 +1665,23 @@ def _frame(subjects, input, frame, embeds, options):
 
     return rval
 
-##
-# Rotates the elements in an array one position.
-#
-# @param a the array.
 def _rotate(a):
+    """
+    Rotates the elements in an array one position.
+
+    :param a: the array.
+    """
     if len(a) > 0:
         a.append(a.pop(0))
 
-##
-# Serializes the properties of the given bnode for its relation serialization.
-# 
-# @param b the blank node.
-# 
-# @return the serialized properties.
 def _serializeProperties(b):
+    """
+    Serializes the properties of the given bnode for its relation serialization.
+
+    :param b: the blank node.
+
+    :return: the serialized properties.
+    """
     rval = ''
     first = True
     for p in b.keys():
@@ -1662,16 +1715,17 @@ def _serializeProperties(b):
                     rval += '"' + o + '"'
     return rval
 
-##
-# Compares two serializations for the same blank node. If the two
-# serializations aren't complete enough to determine if they are equal (or if
-# they are actually equal), 0 is returned.
-# 
-# @param s1 the first serialization.
-# @param s2 the second serialization.
-# 
-# @return -1 if s1 < s2, 0 if s1 == s2 (or indeterminate), 1 if s1 > v2.
 def _compareSerializations(s1, s2):
+    """
+    Compares two serializations for the same blank node. If the two
+    serializations aren't complete enough to determine if they are equal (or if
+    they are actually equal), 0 is returned.
+
+    :param s1: the first serialization.
+    :param s2: the second serialization.
+
+    :return: -1 if s1 < s2, 0 if s1 == s2 (or indeterminate), 1 if s1 > v2.
+    """
     rval = 0
     if len(s1) == len(s2):
         rval = _compare(s1, s2)
@@ -1681,33 +1735,36 @@ def _compareSerializations(s1, s2):
         rval = _compare(s1, s2[0:len(s1)])
     return rval
 
-##
-# Normalizes a JSON-LD object.
-# 
-# @param input the JSON-LD object to normalize.
-# 
-# @return the normalized JSON-LD object.
 def normalize(input):
+    """
+    Normalizes a JSON-LD object.
+
+    :param input: the JSON-LD object to normalize.
+
+    :return: the normalized JSON-LD object.
+    """
     return Processor().normalize(input)
 
-##
-# Removes the context from a JSON-LD object, expanding it to full-form.
-# 
-# @param input the JSON-LD object to remove the context from.
-# 
-# @return the context-neutral JSON-LD object.
 def expand(input):
+    """
+    Removes the context from a JSON-LD object, expanding it to full-form.
+
+    :param input: the JSON-LD object to remove the context from.
+
+    :return: the context-neutral JSON-LD object.
+    """
     return Processor().expand({}, None, input, False)
 
-##
-# Expands the given JSON-LD object and then compacts it using the
-# given context.
-#
-# @param ctx the new context to use.
-# @param input the input JSON-LD object.
-# 
-# @return the output JSON-LD object.
 def compact(ctx, input):
+    """
+    Expands the given JSON-LD object and then compacts it using the
+    given context.
+
+    :param ctx: the new context to use.
+    :param input: the input JSON-LD object.
+
+    :return: the output JSON-LD object.
+    """
     rval = None
 
     # TODO: should context simplification be optional? (ie: remove context
@@ -1741,14 +1798,15 @@ def compact(ctx, input):
 
     return rval
 
-##
-# Merges one context with another.
-# 
-# @param ctx1 the context to overwrite/append to.
-# @param ctx2 the new context to merge onto ctx1.
-# 
-# @return the merged context.
 def mergeContexts(ctx1, ctx2):
+    """
+    Merges one context with another.
+
+    :param ctx1: the context to overwrite/append to.
+    :param ctx2: the new context to merge onto ctx1.
+
+    :return: the merged context.
+    """
     # copy contexts
     cMerged = copy.deepcopy(ctx1)
     cCopy = copy.deepcopy(ctx2)
@@ -1842,25 +1900,27 @@ def mergeContexts(ctx1, ctx2):
 # @return the expanded term as an absolute IRI.
 expandTerm = _expandTerm
 
-##
-# Compacts an IRI into a term or CURIE it can be. IRIs will not be
-# compacted to relative IRIs if they match the given context's default
-# vocabulary.
-# 
-# @param ctx the context to use.
-# @param iri the IRI to compact.
-# 
-# @return the compacted IRI as a term or CURIE or the original IRI.
 def compactIri(ctx, iri):
+    """
+    Compacts an IRI into a term or CURIE it can be. IRIs will not be
+    compacted to relative IRIs if they match the given context's default
+    vocabulary.
+
+    :param ctx: the context to use.
+    :param iri: the IRI to compact.
+
+    :return: the compacted IRI as a term or CURIE or the original IRI.
+    """
     return _compactIri(ctx, iri, None)
 
-##
-# Frames JSON-LD input.
-# 
-# @param input the JSON-LD input.
-# @param frame the frame to use.
-# @param options framing options to use.
-# 
-# @return the framed output.
 def frame(input, frame, options=None):
+    """
+    Frames JSON-LD input.
+
+    :param input: the JSON-LD input.
+    :param frame: the frame to use.
+    :param options: framing options to use.
+
+    :return: the framed output.
+    """
     return Processor().frame(input, frame, options)
