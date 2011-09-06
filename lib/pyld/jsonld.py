@@ -15,6 +15,8 @@ JSON-LD.
 __copyright__ = "Copyright (c) 2011 Digital Bazaar, Inc."
 __license__ = "New BSD licence"
 
+__all__ = ["compact", "expand", "frame", "normalize"]
+
 import copy
 
 ns = {
