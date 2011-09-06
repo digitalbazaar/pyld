@@ -71,7 +71,7 @@ def _getKeywords(ctx):
        # gather keyword aliases from context
        keywords = {}
        for key, value in ctx.items():
-          if isinstance(value, (str, unicode)) and value in rval:
+          if isinstance(value, basestring) and value in rval:
              keywords[value] = key
 
        # overwrite keywords
@@ -262,12 +262,12 @@ def _compareObjects(o1, o2):
     """
     rval = 0
 
-    if isinstance(o1, (str, unicode)):
-        if isinstance(o2, (str, unicode)):
+    if isinstance(o1, basestring):
+        if isinstance(o2, basestring):
             rval = -1
         else:
             rval = _compare(o1, o2)
-    elif isinstance(o2, (str, unicode)):
+    elif isinstance(o2, basestring):
         rval = 1
     else:
         rval = _compareObjectKeys(o1, o2, '@literal')
@@ -322,7 +322,7 @@ def _compareBlankNodeObjects(a, b):
                 objsB = [objsB]
 
             def bnodeFilter(e):
-                return (isinstance(e, (str, unicode)) or
+                return (isinstance(e, basestring) or
                     not ('@iri' in e and _isBlankNodeIri(e['@iri'])))
 
             # filter non-bnodes (remove bnodes from comparison)
@@ -611,7 +611,7 @@ class Processor:
                     else:
                         type = coerce
             # type can be coerced to anything
-            elif isinstance(value, (str, unicode)):
+            elif isinstance(value, basestring):
                 type = coerce
 
             # types that can be auto-coerced from a JSON-builtin
@@ -688,7 +688,7 @@ class Processor:
             rval = None
         # if no property is specified and the value is a string (this means the
         # value is a property itself), expand to an IRI
-        elif property is None and isinstance(value, (str, unicode)):
+        elif property is None and isinstance(value, basestring):
             rval = _expandTerm(ctx, value, None)
         elif isinstance(value, list):
             # recursively add expanded values to array
@@ -861,7 +861,7 @@ class Processor:
                             else:
                                 c = usedCtx['@coerce'][type]
                                 if ((isinstance(c, list) and c.find(p) == -1) or
-                                    (isinstance(c, (str, unicode)) and c != p)):
+                                    (isinstance(c, basestring) and c != p)):
                                     _setProperty(usedCtx['@coerce'], type, p)
                         break
 
@@ -1874,7 +1874,7 @@ def mergeContexts(ctx1, ctx2):
         dups = []
         for cType in c1:
             p = c1[cType]
-            if isinstance(p, (str, unicode)):
+            if isinstance(p, basestring):
                 p = [p]
             for i in p:
                 if not (i in unique):
