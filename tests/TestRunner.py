@@ -10,7 +10,7 @@ import os, sys, json
 from os.path import join
 from optparse import OptionParser
 
-sys.path += ('../lib',)
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from pyld import jsonld
 
 ##
