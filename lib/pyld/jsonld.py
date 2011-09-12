@@ -817,6 +817,7 @@ class Processor:
 
         return rval
 
+
     def getCoerceType(self, ctx, property, usedCtx):
         """
         Gets the coerce type for the given property.
@@ -1735,6 +1736,33 @@ def _compareSerializations(s1, s2):
         rval = _compare(s1[0:len(s2)], s2)
     else:
         rval = _compare(s1, s2[0:len(s1)])
+    return rval
+
+
+def triples(input, callback=None):
+    normalized = normalize(input)
+    rval = None
+
+    # normalize input
+    if (callback == None):
+        rval = []
+        def callback(s,p,o):
+            rval.append({'s':s, 'p':p, 'o':o })
+            return True
+
+    quit = False
+    for e in normalized:
+        s = e['@subject']['@iri']
+        for p, obj in e.iteritems():
+            if p == '@subject': continue
+            if not isinstance(obj, list):
+                obj = [obj]
+            for o2 in obj:
+                quit = callback(s, p, o2)==False
+                if quit: break
+            if quit: break
+        if quit: break
+    
     return rval
 
 def normalize(input):
