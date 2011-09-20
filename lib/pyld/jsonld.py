@@ -15,7 +15,7 @@ JSON-LD.
 __copyright__ = "Copyright (c) 2011 Digital Bazaar, Inc."
 __license__ = "New BSD licence"
 
-__all__ = ["compact", "expand", "frame", "normalize"]
+__all__ = ["compact", "expand", "frame", "normalize", "triples"]
 
 import copy
 
@@ -1738,33 +1738,6 @@ def _compareSerializations(s1, s2):
         rval = _compare(s1, s2[0:len(s1)])
     return rval
 
-
-def triples(input, callback=None):
-    normalized = normalize(input)
-    rval = None
-
-    # normalize input
-    if (callback == None):
-        rval = []
-        def callback(s,p,o):
-            rval.append({'s':s, 'p':p, 'o':o })
-            return True
-
-    quit = False
-    for e in normalized:
-        s = e['@subject']['@iri']
-        for p, obj in e.iteritems():
-            if p == '@subject': continue
-            if not isinstance(obj, list):
-                obj = [obj]
-            for o2 in obj:
-                quit = callback(s, p, o2)==False
-                if quit: break
-            if quit: break
-        if quit: break
-    
-    return rval
-
 def normalize(input):
     """
     Normalizes a JSON-LD object.
@@ -1954,3 +1927,42 @@ def frame(input, frame, options=None):
     :return: the framed output.
     """
     return Processor().frame(input, frame, options)
+
+def _defaultTriplesCallback(s, p, o):
+    return {'s':s, 'p':p, 'o':o}
+
+def triples(input, callback=_defaultTriplesCallback):
+    """
+    Generates triples given a JSON-LD input. Each triple that is generated
+    results in a call to the given callback. The callback takes 3 parameters:
+    subject, property, and object. If the callback returns False then this
+    method will stop generating triples and return. If the callback is null,
+    then triple objects containing "s", "p", "o" properties will be generated.
+
+    The object or "o" property will be a JSON-LD formatted object.
+
+    :param input: the JSON-LD input.
+    :param callback: the triple callback.
+    :param options: framing options to use.
+
+    :return: an iterator of triples.
+    """
+    normalized = normalize(input)
+
+    quit = False
+    for e in normalized:
+        s = e['@subject']['@iri']
+        for p, obj in e.iteritems():
+            if p == '@subject': continue
+            if not isinstance(obj, list):
+                obj = [obj]
+            for o2 in obj:
+                triple = callback(s, p, o2)
+                quit = (triple == False)
+                if quit:
+                    break
+                else:
+                    yield triple
+            if quit: break
+        if quit: break
+

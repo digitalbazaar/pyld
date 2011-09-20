@@ -14,6 +14,20 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from pyld import jsonld
 
 ##
+# jsonld.triples callback to create ntriples lines
+def _ntriple(s, p, o):
+    if isinstance(o, basestring):
+        # simple literal
+        return "<%s> <%s> \"%s\" ." % (s, p, o)
+    elif "@iri" in o:
+        # object is an IRI
+        return "<%s> <%s> <%s> ." % (s, p, o["@iri"])
+    else:
+        # object is a literal
+        return "<%s> <%s> \"%s\"^^<%s> ." % \
+            (s, p, o["@literal"], o["@datatype"])
+
+##
 # TestRunner unit testing class.
 # Loads test files and runs groups of tests.
 class TestRunner:
@@ -106,41 +120,66 @@ class TestRunner:
                 count += 1
 
                 # open the input and expected result json files
-                inputFd = open(join(self.testdir, test['input']))
-                expectFd = open(join(self.testdir, test['expect']))
-                inputJson = json.load(inputFd)
-                expectJson = json.load(expectFd)
+                inputFile = open(join(self.testdir, test['input']))
+                expectFile = open(join(self.testdir, test['expect']))
+                inputJson = json.load(inputFile)
+                expectType = os.path.splitext(test['expect'])[1][1:]
+                if expectType == 'json':
+                    expect = json.load(expectFile)
+                elif expectType == 'nt':
+                    # read, strip non-data lines, stripe front/back whitespace, and sort
+                    # FIXME: only handling strict nt format here
+                    expectLines = []
+                    for line in expectFile.readlines():
+                        line = line.strip()
+                        if len(line) == 0 or line[0] == '#':
+                            continue
+                        expectLines.append(line)
+                    expect = '\n'.join(sorted(expectLines))
 
-                resultJson = None
+                result = None
 
                 testType = test['type']
                 if testType == 'normalize':
-                    resultJson = jsonld.normalize(inputJson)
+                    result = jsonld.normalize(inputJson)
                 elif testType == 'expand':
-                    resultJson = jsonld.expand(inputJson)
+                    result = jsonld.expand(inputJson)
                 elif testType == 'compact':
-                    contextFd = open(join(self.testdir, test['context']))
-                    contextJson = json.load(contextFd)
-                    resultJson = jsonld.compact(contextJson, inputJson)
+                    contextFile = open(join(self.testdir, test['context']))
+                    contextJson = json.load(contextFile)
+                    result = jsonld.compact(contextJson, inputJson)
                 elif testType == 'frame':
-                    frameFd = open(join(self.testdir, test['frame']))
-                    frameJson = json.load(frameFd)
-                    resultJson = jsonld.frame(inputJson, frameJson)
+                    frameFile = open(join(self.testdir, test['frame']))
+                    frameJson = json.load(frameFile)
+                    result = jsonld.frame(inputJson, frameJson)
+                elif testType == 'triples':
+                    result = '\n'.join(
+                        sorted(jsonld.triples(inputJson, callback=_ntriple)))
                 else:
                     print "Unknown test type."
 
                 # check the expected value against the test result
-                if expectJson == resultJson:
+                if expect == result:
                     passed += 1
                     print 'PASS'
                     if self.options.verbose:
-                        print 'Expect:', json.dumps(expectJson, indent=4)
-                        print 'Result:', json.dumps(resultJson, indent=4)
+                        print 'Expect:', json.dumps(expect, indent=4)
+                        print 'Result:',
+                        if expectType == 'json':
+                            print json.dumps(result, indent=4)
+                        else:
+                            print
+                            print result
                 else:
                     failed += 1
                     print 'FAIL'
-                    print 'Expect:', json.dumps(expectJson, indent=4)
-                    print 'Result:', json.dumps(resultJson, indent=4)
+                    print 'Expect:', json.dumps(expect, indent=4)
+                    print 'Result:',
+                    if expectType == 'json':
+                        print json.dumps(result, indent=4)
+                    else:
+                        print
+                        print result
 
         print "Tests run: %d, Tests passed: %d, Tests Failed: %d" % (run, passed, failed)
 

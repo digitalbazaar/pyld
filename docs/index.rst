@@ -20,6 +20,7 @@ API Reference
 .. autofunction:: expand
 .. autofunction:: frame
 .. autofunction:: normalize
+.. autofunction:: triples
 
 Indices and tables
 ------------------
