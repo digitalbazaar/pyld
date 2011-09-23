@@ -1556,8 +1556,8 @@ def _frame(subjects, input, frame, embeds, options):
         limit = 1
 
     omitOn = False
-    if hasattr(options, 'default') and hasattr(options['defualts'], 'omitDefaultOn'):
-        omitOn = options['defualts']['omitDefaultOn']
+    if hasattr(options, 'default') and hasattr(options['defaults'], 'omitDefaultOn'):
+        omitOn = options['defaults']['omitDefaultOn']
 
     # iterate over frames adding input matches to list
     values = []
