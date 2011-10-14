@@ -404,7 +404,7 @@ def _flatten(parent, parentProperty, value, subjects):
     all blank nodes have been uniquely named before this call. Array values for
     properties will be sorted.
 
-    :param parent: the value's parent, NULL for none.
+    :param parent: the value's parent, None for none.
     :param parentProperty: the property relating the value to the parent.
     :param value: the value to flatten.
     :param subjects: the map of subjects to write to.
@@ -412,7 +412,7 @@ def _flatten(parent, parentProperty, value, subjects):
     flattened = None
 
     if value is None:
-        # drop null values
+        # drop None values
         pass
     elif isinstance(value, list):
         # list of objects or a disjoint graph
@@ -447,7 +447,7 @@ def _flatten(parent, parentProperty, value, subjects):
 
             # flatten embeds
             for key, v in value.items():
-                # drop null values
+                # drop None values
                 if v is not None:
                     if key in subject:
                         if not isinstance(subject[key], list):
@@ -554,7 +554,7 @@ class Processor:
         terms and do reverse type coercion to compact a value.
 
         :param ctx: the context to use.
-        :param property: the property that points to the value, NULL for none.
+        :param property: the property that points to the value, None for none.
         :param value: the value to compact.
         :param usedCtx: a context to update if a value was used from "ctx".
 
@@ -673,7 +673,7 @@ class Processor:
         the value will be removed.
 
         :param ctx: the context.
-        :param property: the property that points to the value, NULL for none.
+        :param property: the property that points to the value, None for none.
         :param value: the value to expand.
         :param expandSubjects: True to expand subjects (normalize), False not to.
 
@@ -683,7 +683,7 @@ class Processor:
 
         # TODO: add data format error detection?
 
-        # value is null, nothing to expand
+        # value is None, nothing to expand
         if value is None:
             rval = None
         # if no property is specified and the value is a string (this means the
@@ -1371,9 +1371,9 @@ class Processor:
         """
         Populates the given reference map with all of the subject edges in the
         graph. The references will be categorized by the direction of the edges,
-        where 'props' is for properties and 'refs' is for references to a subject
-        as an object. The edge direction categories for each IRI will be sorted
-        into groups 'all' and 'bnodes'.
+        where 'props' is for properties and 'refs' is for references to a
+        subject as an object. The edge direction categories for each IRI will
+        be sorted into groups 'all' and 'bnodes'.
         """
         refs = self.edges['refs']
         props = self.edges['props']
@@ -1449,7 +1449,7 @@ class Processor:
             subjects[i['@subject']['@iri']] = i
 
         # frame input
-        rval = _frame(subjects, input, frame, {}, options)
+        rval = _frame(subjects, input, frame, {}, False, None, None, options)
 
         # apply context
         if ctx is not None and rval is not None:
@@ -1530,14 +1530,132 @@ def _isDuckType(src, frame):
 
     return rval
 
-def _frame(subjects, input, frame, embeds, options):
+def _subframe(
+   subjects, value, frame, embeds, autoembed, parent, parentKey, options):
+    """
+    Subframes a value.
+    
+    :param subjects: a map of subjects in the graph.
+    :param value: the value to subframe.
+    :param frame: the frame to use.
+    :param embeds: a map of previously embedded subjects, used to prevent
+       cycles.
+    :param autoembed: true if auto-embed is on, false if not.
+    :param parent: the parent object.
+    :param parentKey: the parent key.
+    :param options: the framing options.
+    
+    :return: the framed input.
+    """
+
+    # get existing embed entry
+    iri = value['@subject']['@iri']
+    embed = embeds[iri] if iri in embeds else None
+
+    # determine if value should be embedded or referenced,
+    # embed is ON if:
+    # 1. The frame OR default option specifies @embed as ON, AND
+    # 2. There is no existing embed OR it is an autoembed, AND
+    #    autoembed mode is off.
+    embedOn = (
+        (('@embed' in frame and frame['@embed'] == True) or
+        options['defaults']['embedOn']) and
+        (embed == None or (embed['autoembed'] and not autoembed)))
+
+    if not embedOn:
+        # not embedding, so only use subject IRI as reference
+        value = value['@subject']
+    else:
+        # create new embed entry
+        if embed is None:
+            embed = {}
+            embeds[iri] = embed
+        # replace the existing embed with a reference
+        elif embed['parent'] is not None:
+            embed['parent'][embed['key']] = value['@subject']
+
+        # update embed entry
+        embed['autoembed'] = autoembed
+        embed['parent'] = parent
+        embed['key'] = parentKey
+
+        # check explicit flag
+        explicitOn = (frame['@explicit'] if '@explicit' in frame
+            else options['defaults']['explicitOn'])
+        if explicitOn:
+            # remove keys from the value that aren't in the frame
+            for key in value.keys():
+                # do not remove @subject or any frame key
+                if key != '@subject' and key not in frame:
+                    del value[key]
+
+        # iterate over keys in value
+        for key, v in value.items():
+            # skip keywords and type
+            if key.find('@') != 0 and key != ns['rdf'] + 'type':
+                # get the subframe if available
+                if key in frame:
+                    f = frame[key]
+                    _autoembed = False
+                # use a catch-all subframe to preserve data from graph
+                else:
+                    f = [] if isinstance(value[key], list) else {}
+                    _autoembed = True
+
+                # build input and do recursion
+                input = (value[key] if isinstance(value[key], list)
+                    else [value[key]])
+                for n in range(0, len(input)):
+                    # replace reference to subject w/subject
+                    if (isinstance(input[n], dict) and
+                        '@iri' in input[n] and
+                        input[n]['@iri'] in subjects):
+                        input[n] = subjects[input[n]['@iri']]
+                value[key] = _frame(
+                    subjects, input, f, embeds, _autoembed,
+                    value, key, options)
+
+        # iterate over frame keys to add any missing values
+        for key, f in frame.items():
+            # skip keywords, type query, and non-None keys in value
+            if (key.find('@') != 0 and key != (ns['rdf'] + 'type') and
+                (key not in value or value[key] is None)):
+                # add empty array to value
+                if isinstance(f, list):
+                    value[key] = []
+                # add default value to value
+                else:
+                    # use first subframe if frame is an array
+                    if isinstance(f, list):
+                        f = f[0] if len(f) > 0 else {}
+
+                    # determine if omit default is on
+                    omitOn = (f['@omitDefault'] if
+                        '@omitDefault' in f
+                        else options['defaults']['omitDefaultOn'])
+                    if not omitOn:
+                        if '@default' in f:
+                            # use specified default value
+                            value[key] = f['@default']
+                        else:
+                            # built-in default value is: None
+                            value[key] = None
+
+    return value
+
+def _frame(
+    subjects, input, frame, embeds, autoembed, parent, parentKey, options):
     """
     Recursively frames the given input according to the given frame.
 
     :param subjects: a map of subjects in the graph.
     :param input: the input to frame.
     :param frame: the frame to use.
-    :param embeds: a map of previously embedded subjects, used to prevent cycles.
+    :param embeds: a map of previously embedded subjects, used to prevent
+       cycles.
+    :param autoembed: true if auto-embed is on, false if not.
+    :param parent: the parent object (for subframing).
+    :param parentKey: the parent key (for subframing).
     :param options: the framing options.
 
     :return: the framed input.
@@ -1566,7 +1684,7 @@ def _frame(subjects, input, frame, embeds, options):
         # get next frame
         frame = frames[i]
         if not isinstance(frame, (list, dict)):
-            raise Exception('Invalid JSON-LD frame. Frame type is not a map' +
+            raise Exception('Invalid JSON - LD frame. Frame type is not a map' +
                'or array.')
 
         # create array of values for each frame
@@ -1589,80 +1707,11 @@ def _frame(subjects, input, frame, embeds, options):
     # for each matching value, add it to the output
     for frame, vals in zip(frames, values):
         for value in vals:
-            # determine if value should be embedded or referenced
-            embedOn = (frame['@embed'] if '@embed' in frame
-                else options['defaults']['embedOn'])
-
-            if not embedOn:
-                # if value is a subject, only use subject IRI as reference 
-                if isinstance(value, dict) and '@subject' in value:
-                    value = value['@subject']
-            elif (isinstance(value, dict) and '@subject' in value and
-                value['@subject']['@iri'] in embeds):
-
-                # TODO: possibly support multiple embeds in the future ... and
-                # instead only prevent cycles?
-                raise Exception(
-                    'More than one embed of the same subject is not supported.',
-                    value['@subject']['@iri'])
-
-            # if value is a subject, do embedding and subframing
-            elif isinstance(value, dict) and '@subject' in value:
-                embeds[value['@subject']['@iri']] = True
-
-                # if explicit on, remove keys from value that aren't in frame
-                explicitOn = (frame['@explicit'] if '@explicit' in frame
-                    else options['defaults']['explicitOn'])
-                if explicitOn:
-                    for key in value.keys():
-                        # do not remove subject or any key in the frame
-                        if key != '@subject' and key not in frame:
-                            del value[key]
-
-                # iterate over frame keys to do subframing
-                for key, f in frame.items():
-                    # skip keywords and type query
-                    if key.find('@') != 0 and key != ns['rdf'] + 'type':
-                        if key in value:
-                            # build input and do recursion
-                            input = (value[key] if isinstance(value[key], list)
-                                else [value[key]])
-                            for n in range(0, len(input)):
-                                # replace reference to subject w/subject
-                                if (isinstance(input[n], dict) and
-                                    '@iri' in input[n] and
-                                    input[n]['@iri'] in subjects):
-                                    input[n] = subjects[input[n]['@iri']]
-                            result = _frame(subjects, input, f, embeds, options)
-                            if result is not None:
-                                value[key] = result
-                            elif omitOn:
-                                # omit is on, remove key
-                                del value[key]
-                            else:
-                                # use specified default from frame if available
-                                if isinstance(f, list):
-                                    f = f[0] if len(f) > 0 else {}
-                                    value[key] = (f['@default'] if
-                                        '@default' in f else None)
-                        else:
-                            # add empty array/null property to value
-                            value[key] = [] if isinstance(f, list) else None
-
-                        # handle setting default value
-                        if value[key] is None:
-                            # use first subframe if frame is an array
-                            if isinstance(f, list):
-                                f = f[0] if len(f) > 0 else {}
-
-                            # determine if omit default is on
-                            omitOn = (f['@omitDefault'] if
-                                '@omitDefault' in f
-                                else options['defaults']['omitDefaultOn'])
-                            if omitOn:
-                                del value[key]
-                            elif '@default' in f:
-                                value[key] = f['@default']
+            # if value is a subject, do subframing
+            if isinstance(value, dict) and '@subject' in value:
+                value = _subframe(
+                    subjects, value, frame, embeds, autoembed,
+                    parent, parentKey, options)
 
             # add value to output
             if rval is None:
@@ -1940,7 +1989,7 @@ def triples(input, callback=_defaultTriplesCallback):
     Generates triples given a JSON-LD input. Each triple that is generated
     results in a call to the given callback. The callback takes 3 parameters:
     subject, property, and object. If the callback returns False then this
-    method will stop generating triples and return. If the callback is null,
+    method will stop generating triples and return. If the callback is None,
     then triple objects containing "s", "p", "o" properties will be generated.
 
     The object or "o" property will be a JSON-LD formatted object.
