@@ -82,20 +82,19 @@ def _getKeywords(ctx):
 
 def _compactIri(ctx, iri, usedCtx):
     """
-    Compacts an IRI into a term or CURIE if it can be. IRIs will not be
-    compacted to relative IRIs if they match the given context's default
-    vocabulary.
+    Compacts an IRI into a term if it can be. IRIs will not be compacted to
+    relative IRIs if they match the given context's default vocabulary.
 
     :param ctx: the context to use.
     :param iri: the IRI to compact.
     :param usedCtx: a context to update if a value was used from "ctx".
 
-    :return: the compacted IRI as a term or CURIE or the original IRI.
+    :return: the compacted IRI as a term or the original IRI.
     """
     rval = None
 
     # check the context for a term that could shorten the IRI
-    # (give preference to terms over CURIEs)
+    # (give preference to regular terms over prefixed terms)
     for key in ctx:
         # skip special context keys (start with '@')
         if len(key) > 0 and not key.startswith('@'):
@@ -110,7 +109,7 @@ def _compactIri(ctx, iri, usedCtx):
     if rval is None and iri == ns['rdf'] + 'type':
         rval = _getKeywords(ctx)['@type']
 
-    # term not found, check the context for a CURIE prefix
+    # term not found, check the context for a term prefix
     if rval is None:
         for key in ctx:
             # skip special context keys (start with '@')
@@ -119,7 +118,7 @@ def _compactIri(ctx, iri, usedCtx):
                 ctxIri = ctx[key]
                 idx = iri.find(ctxIri)
 
-                # compact to a CURIE
+                # compact to a prefixed term
                 if idx == 0 and len(iri) > len(ctxIri):
                     rval = key + ':' + iri[len(ctxIri):]
                     if usedCtx is not None:
@@ -135,9 +134,9 @@ def _compactIri(ctx, iri, usedCtx):
 
 def _expandTerm(ctx, term, usedCtx):
     """
-    Expands a term into an absolute IRI. The term may be a regular term, a
-    CURIE, a relative IRI, or an absolute IRI. In any case, the associated
-    absolute IRI will be returned.
+    Expands a term into an absolute IRI. The term may be a term, a relative
+    IRI, or an absolute IRI. In any case, the associated absolute IRI will be
+    returned.
 
     :param ctx: the context to use.
     :param term: the term to expand.
@@ -150,10 +149,10 @@ def _expandTerm(ctx, term, usedCtx):
     # get JSON-LD keywords
     keywords = _getKeywords(ctx)
 
-    # 1. If the property has a colon, then it is a CURIE or an absolute IRI:
+    # 1. If the property has a colon, then it has a prefix or an absolute IRI:
     idx = term.find(':')
     if idx != -1:
-        # get the potential CURIE prefix
+        # get the potential prefix
         prefix = term[0:idx]
 
         # 1.1 See if the prefix is in the context
@@ -550,7 +549,7 @@ class Processor:
 
     def compact(self, ctx, property, value, usedCtx):
         """
-        Recursively compacts a value. This method will compact IRIs to CURIEs or
+        Recursively compacts a value. This method will compact IRIs to
         terms and do reverse type coercion to compact a value.
 
         :param ctx: the context to use.
@@ -839,32 +838,15 @@ class Processor:
 
         # check type coercion for property
         elif '@coerce' in ctx:
-            # force compacted property
+            # property found, return expanded type
             p = _compactIri(ctx, p, None)
-
-            for type in ctx['@coerce']:
-                # get coerced properties (normalize to an array)
-                props = ctx['@coerce'][type]
-                if not isinstance(props, list):
-                    props = [props]
-
-                # look for the property in the array
-                for i in props:
-                    # property found
-                    if i == p:
-                        rval = _expandTerm(ctx, type, usedCtx)
-                        if usedCtx is not None:
-                            if '@coerce' not in usedCtx:
-                                usedCtx['@coerce'] = {}
-
-                            if type not in usedCtx['@coerce']:
-                                usedCtx['@coerce'][type] = p
-                            else:
-                                c = usedCtx['@coerce'][type]
-                                if ((isinstance(c, list) and c.find(p) == -1) or
-                                    (isinstance(c, basestring) and c != p)):
-                                    _setProperty(usedCtx['@coerce'], type, p)
-                        break
+            if p in ctx['@coerce']:
+                type = ctx['@coerce'][p]
+                rval = _expandTerm(ctx, type, usedCtx)
+                if usedCtx is not None:
+                    if '@coerce' not in usedCtx:
+                        usedCtx['@coerce'] = {}
+                    usedCtx['@coerce'][p] = type
 
         return rval
 
@@ -1863,92 +1845,39 @@ def mergeContexts(ctx1, ctx2):
 
     :return: the merged context.
     """
-    # copy contexts
-    cMerged = copy.deepcopy(ctx1)
-    cCopy = copy.deepcopy(ctx2)
+    # copy context to merged output
+    merged = copy.deepcopy(ctx1)
 
     # if the new context contains any IRIs that are in the merged context,
     # remove them from the merged context, they will be overwritten
-    for key in cCopy:
+    for key in ctx2:
         # ignore special keys starting with '@'
         if key.find('@') != 0:
-            for mkey in cMerged:
-                if cMerged[mkey] == cCopy[key]:
-                    del cMerged[mkey]
+            for mkey in merged:
+                if merged[mkey] == ctx2[key]:
+                    # FIXME: update related @coerce rules
+                    del merged[mkey]
                     break
 
-    # @coerce must be specially-merged, remove from context
-    mergeCoerce = '@coerce' in cMerged
-    copyCoerce = '@coerce' in cCopy
-    if mergeCoerce or copyCoerce:
-        if mergeCoerce:
-            c1 = cMerged['@coerce']
-            del cMerged['@coerce']
-        else:
-            c1 = {}
-
-        if copyCoerce:
-            c2 = cCopy['@coerce']
-            del cCopy['@coerce']
-        else:
-            c2 = {}
-
     # merge contexts
-    for key in cCopy:
-        cMerged[key] = cCopy[key]
+    for key in ctx2:
+        # skip @coerce, to be merged below
+        if key != '@coerce':
+            merged[key] = ctx2[key]
 
-    # special-merge @coerce
-    if mergeCoerce or copyCoerce:
-        for cType in c1:
-            # append existing-type properties that don't already exist
-            if cType in c2:
-                p1 = c1[cType]
-                p2 = c2[cType]
+    # merge @coerce
+    if '@coerce' in ctx2:
+        if '@coerce' not in merged:
+            merged['@coerce'] = copy.deepcopy(ctx2['@coerce'])
+        else:
+            for key, value in ctx2['@coerce'].items():
+                merged['@coerce'][key] = value
 
-                # normalize props in c2 to array for single-code-path iterating
-                if not isinstance(p2, list):
-                    p2 = [p2]
-
-                # add unique properties from p2 to p1
-                for p in p2:
-                    if ((not isinstance(p1, list) and p1 != p) or
-                        (isinstance(p1, list) and p not in p1)):
-                        if isinstance(p1, list):
-                            p1.append(p)
-                        else:
-                            p1 = c1[cType] = [p1, p]
-
-        # add new types from new @coerce
-        for cType in c2:
-            if not (cType in c1):
-                c1[cType] = c2[cType]
-
-        # ensure there are no property duplicates in @coerce
-        unique = {}
-        dups = []
-        for cType in c1:
-            p = c1[cType]
-            if isinstance(p, basestring):
-                p = [p]
-            for i in p:
-                if not (i in unique):
-                    unique[i] = True
-                elif i not in dups:
-                    dups.append(i)
-
-        if len(dups) > 0:
-            raise Exception(
-                'Invalid type coercion specification. More than one type' +
-                'specified for at least one property.', dups)
-
-        cMerged['@coerce'] = c1
-
-    return cMerged
+    return merged
 
 ##
-# Expands a term into an absolute IRI. The term may be a regular term, a
-# CURIE, a relative IRI, or an absolute IRI. In any case, the associated
-# absolute IRI will be returned.
+# Expands a term into an absolute IRI. The term may be a term, a relative IRI,
+# or an absolute IRI. In any case, the associated absolute IRI will be returned.
 # 
 # @param ctx the context to use.
 # @param term the term to expand.
@@ -1958,14 +1887,13 @@ expandTerm = _expandTerm
 
 def compactIri(ctx, iri):
     """
-    Compacts an IRI into a term or CURIE it can be. IRIs will not be
-    compacted to relative IRIs if they match the given context's default
-    vocabulary.
+    Compacts an IRI into a term if it can be. IRIs will not be compacted to
+    relative IRIs if they match the given context's default vocabulary.
 
     :param ctx: the context to use.
     :param iri: the IRI to compact.
 
-    :return: the compacted IRI as a term or CURIE or the original IRI.
+    :return: the compacted IRI as a term or the original IRI.
     """
     return _compactIri(ctx, iri, None)
 
