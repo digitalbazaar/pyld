@@ -1540,8 +1540,8 @@ def _subframe(
     # 2. There is no existing embed OR it is an autoembed, AND
     #    autoembed mode is off.
     embedOn = (
-        (('@embed' in frame and frame['@embed'] == True) or
-        options['defaults']['embedOn']) and
+        (('@embed' in frame and frame['@embed']) or
+        ('@embed' not in frame and options['defaults']['embedOn'])) and
         (embed == None or (embed['autoembed'] and not autoembed)))
 
     if not embedOn:
