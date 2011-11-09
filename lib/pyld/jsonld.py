@@ -988,10 +988,10 @@ class Processor:
         resort = True
         while len(bnodes) > 0:
             if resort:
+                resort = False
                 bnodes.sort(cmp=bnodeSort)
 
             # name all bnodes accoring to the first bnodes relation mappings
-            # (if it has mappings then a resort will be necessary)
             bnode = bnodes.pop(0)
             iri = bnode['@subject']['@iri']
             resort = self.serializations[iri]['props'] is not None
@@ -1020,17 +1020,17 @@ class Processor:
                         self.renameBlankNode(subjects[iriK], c14n.next())
                         renamed.append(iriK)
 
-                # only clear serializations if resorting is necessary
-                if resort:
-                    # only keep non-canonically named bnodes
-                    tmp = bnodes
-                    bnodes = []
-                    for b in tmp:
-                        iriB = b['@subject']['@iri']
-                        if not c14n.inNamespace(iriB):
-                            for i2 in renamed:
-                                self.markSerializationDirty(iriB, i2, dir)
-                            bnodes.append(b)
+                # only keep non-canonically named bnodes
+                tmp = bnodes
+                bnodes = []
+                for b in tmp:
+                    iriB = b['@subject']['@iri']
+                    if not c14n.inNamespace(iriB):
+                        for i2 in renamed:
+                            if self.markSerializationDirty(iriB, i2, dir):
+                                # resort if a serialization was marked dirty
+                                resort = True
+                        bnodes.append(b)
 
         # sort property lists that now have canonically named bnodes
         for key in edges['props']:
@@ -1047,10 +1047,15 @@ class Processor:
         :param iri: the IRI of the bnode to check.
         :param changed: the old IRI of the bnode that changed.
         :param dir: the direction to check ('props' or 'refs').
+        
+        :return: True if the serialization was marked dirty, False if not.
         """
+        rval = False
         s = self.serializations[iri]
         if s[dir] is not None and changed in s[dir]['m']:
             s[dir] = None
+            rval = True
+        return rval
 
     def serializeMapping(self, mb):
         """
