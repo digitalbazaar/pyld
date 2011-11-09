@@ -1411,8 +1411,18 @@ class Processor:
         if '@context' in frame:
             ctx = copy.copy(frame['@context'])
 
-        # remove context from frame
-        frame = expand(frame)
+            # remove context from frame
+            frame = expand(frame)
+        elif isinstance(frame, list):
+            # save first context in the array
+            if len(frame) > 0 and '@context' in frame[0]:
+                ctx = copy.copy(frame['@context'])
+
+            # expand all elements in the array
+            tmp = []
+            for f in frame:
+                tmp.append(expand(f))
+            frame = tmp
 
         # create framing options
         # TODO: merge in options from function parameter
