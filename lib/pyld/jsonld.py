@@ -980,17 +980,21 @@ class Processor:
                 'refs': None
             }
 
-        # keep sorting and naming blank nodes until they are all named
-        while len(bnodes) > 0:
-            # define bnode sorting function
-            def bnodeSort(a, b):
-                return self.deepCompareBlankNodes(a, b)
+        # define bnode sorting function
+        def bnodeSort(a, b):
+            return self.deepCompareBlankNodes(a, b)
 
-            bnodes.sort(cmp=bnodeSort)
+        # keep sorting and naming blank nodes until they are all named
+        resort = True
+        while len(bnodes) > 0:
+            if resort:
+                bnodes.sort(cmp=bnodeSort)
 
             # name all bnodes accoring to the first bnodes relation mappings
+            # (if it has mappings then a resort will be necessary)
             bnode = bnodes.pop(0)
             iri = bnode['@subject']['@iri']
+            resort = self.serializations[iri]['props'] is not None
             dirs = ['props', 'refs']
             for dir in dirs:
                 # if no serialization has been computed,
@@ -1016,15 +1020,17 @@ class Processor:
                         self.renameBlankNode(subjects[iriK], c14n.next())
                         renamed.append(iriK)
 
-                # only keep non-canonically named bnodes
-                tmp = bnodes
-                bnodes = []
-                for b in tmp:
-                    iriB = b['@subject']['@iri']
-                    if not c14n.inNamespace(iriB):
-                        for i2 in renamed:
-                            self.markSerializationDirty(iriB, i2, dir)
-                        bnodes.append(b)
+                # only clear serializations if resorting is necessary
+                if resort:
+                    # only keep non-canonically named bnodes
+                    tmp = bnodes
+                    bnodes = []
+                    for b in tmp:
+                        iriB = b['@subject']['@iri']
+                        if not c14n.inNamespace(iriB):
+                            for i2 in renamed:
+                                self.markSerializationDirty(iriB, i2, dir)
+                            bnodes.append(b)
 
         # sort property lists that now have canonically named bnodes
         for key in edges['props']:
