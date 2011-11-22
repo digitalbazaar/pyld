@@ -1427,7 +1427,7 @@ class Processor:
         elif isinstance(frame, list):
             # save first context in the array
             if len(frame) > 0 and '@context' in frame[0]:
-                ctx = copy.copy(frame['@context'])
+                ctx = copy.copy(frame[0]['@context'])
 
             # expand all elements in the array
             tmp = []
