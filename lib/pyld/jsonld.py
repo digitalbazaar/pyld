@@ -1575,7 +1575,15 @@ def _subframe(
             embeds[iri] = embed
         # replace the existing embed with a reference
         elif embed['parent'] is not None:
-            embed['parent'][embed['key']] = value['@subject']
+            objs = embed['parent'][embed['key']]
+            if isinstance(objs, list):
+                for i in range(0, len(objs)):
+                    if (isinstance(objs[i], dict) and '@subject' in objs[i] and
+                        objs[i]['@subject']['@iri'] == iri):
+                        objs[i] = value['@subject'];
+                        break
+            else:
+                embed['parent'][embed['key']] = value['@subject']
 
         # update embed entry
         embed['autoembed'] = autoembed
@@ -1720,7 +1728,13 @@ def _frame(
             if rval is None:
                 rval = value
             else:
-                rval.append(value)
+                # determine if value is a reference
+                isRef = (value is not None and isinstance(value, dict) and
+                    '@iri' in value and value['@iri'] in embeds)
+
+                # push any value that isn't a parentless reference
+                if not (parent is None and isRef):
+                    rval.append(value)
 
     return rval
 
