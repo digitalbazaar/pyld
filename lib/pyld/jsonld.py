@@ -1533,6 +1533,20 @@ def _isDuckType(src, frame):
 
     return rval
 
+def _removeDependentEmbeds(iri, embeds):
+    """
+    Recursively removes dependent dangling embeds.
+    
+    :param iri: the iri of the parent to remove the embeds for.
+    :param embeds: the embed map.
+    """
+    iris = embeds.keys()
+    for i in iris:
+        if (i in embeds and embeds[i]['parent'] is not None and
+            embeds[i]['parent']['@subject']['@iri'] == iri):
+            del embeds[i]
+            _removeDependentEmbeds(i, embeds)
+
 def _subframe(
    subjects, value, frame, embeds, autoembed, parent, parentKey, options):
     """
@@ -1577,6 +1591,7 @@ def _subframe(
         elif embed['parent'] is not None:
             objs = embed['parent'][embed['key']]
             if isinstance(objs, list):
+                # find and replace embed in array
                 for i in range(0, len(objs)):
                     if (isinstance(objs[i], dict) and '@subject' in objs[i] and
                         objs[i]['@subject']['@iri'] == iri):
@@ -1584,6 +1599,9 @@ def _subframe(
                         break
             else:
                 embed['parent'][embed['key']] = value['@subject']
+
+            # recursively remove any dependent dangling embeds
+            _removeDependentEmbeds(iri, embeds)
 
         # update embed entry
         embed['autoembed'] = autoembed
