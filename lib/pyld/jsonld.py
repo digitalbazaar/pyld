@@ -20,7 +20,6 @@ __all__ = ["compact", "expand", "frame", "normalize", "triples"]
 import copy
 
 ns = {
-    'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     'xsd': 'http://www.w3.org/2001/XMLSchema#'
 }
 
@@ -105,8 +104,8 @@ def _compactIri(ctx, iri, usedCtx):
                     usedCtx[key] = ctx[key]
                 break
 
-    # term not found, if term is rdf type, use built-in keyword
-    if rval is None and iri == ns['rdf'] + 'type':
+    # term not found, if term is @type, use keyword
+    if rval is None and iri == '@type':
         rval = _getKeywords(ctx)['@type']
 
     # term not found, check the context for a term prefix
@@ -169,12 +168,12 @@ def _expandTerm(ctx, term, usedCtx):
         rval = ctx[term]
         if usedCtx is not None:
             usedCtx[term] = rval
-    # 3. The property is the special-case subject.
+    # 3. The property is the special-case @subject.
     elif term == keywords['@subject']:
-        rval = keywords['@subject']
-    # 4. The property is the special-case rdf type.
+        rval = '@subject'
+    # 4. The property is the special-case @type.
     elif term == keywords['@type']:
-        rval = ns['rdf'] + 'type'
+        rval = '@type'
     # 5. The property is a relative IRI, prepend the default vocab.
     else:
         rval = term
@@ -833,7 +832,7 @@ class Processor:
         p = _expandTerm(ctx, property, None)
 
         # built-in type coercion JSON-LD-isms
-        if p == '@subject' or p == ns['rdf'] + 'type':
+        if p == '@subject' or p == '@type':
             rval = '@iri'
 
         # check type coercion for property
@@ -1474,7 +1473,7 @@ def _isType(src, frame):
     rval = False
 
     # check if type(s) are specified in frame and src
-    rType = ns['rdf'] + 'type'
+    rType = '@type'
     if (rType in frame and isinstance(src, dict) and '@subject' in src and
         rType in src):
         tmp = src[rType] if isinstance(src[rType], list) else [src[rType]]
@@ -1515,7 +1514,7 @@ def _isDuckType(src, frame):
     rval = False
 
     # frame must not have a specific type
-    rType = ns['rdf'] + 'type'
+    rType = '@type'
     if rType not in frame:
         # get frame properties that must exist on src
         props = frame.keys()
@@ -1621,7 +1620,7 @@ def _subframe(
         # iterate over keys in value
         for key, v in value.items():
             # skip keywords and type
-            if key.find('@') != 0 and key != ns['rdf'] + 'type':
+            if key.find('@') != 0 and key != '@type':
                 # get the subframe if available
                 if key in frame:
                     f = frame[key]
@@ -1647,7 +1646,7 @@ def _subframe(
         # iterate over frame keys to add any missing values
         for key, f in frame.items():
             # skip keywords, type query, and non-None keys in value
-            if (key.find('@') != 0 and key != (ns['rdf'] + 'type') and
+            if (key.find('@') != 0 and key != '@type' and
                 (key not in value or value[key] is None)):
                 # add empty array to value
                 if isinstance(f, list):
