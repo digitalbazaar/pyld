@@ -78,6 +78,23 @@ def _getKeywords(ctx):
 
     return rval
 
+def _getTermIri(ctx, term):
+    """
+    Gets the IRI associated with a term.
+
+    :param ctx: the context to use.
+    :param term: the term.
+
+    :return: the IRI or None.
+    """
+    rval = None
+    if term in ctx:
+        if isinstance(ctx[term], basestring):
+            rval = ctx[term]
+        elif isinstance(ctx[term], dict) and '@iri' in ctx[term]:
+            rval = ctx[term]['@iri']
+    return rval
+
 def _compactIri(ctx, iri, usedCtx):
     """
     Compacts an IRI into a term if it can be. IRIs will not be compacted to
@@ -97,10 +114,10 @@ def _compactIri(ctx, iri, usedCtx):
         # skip special context keys (start with '@')
         if len(key) > 0 and not key.startswith('@'):
             # compact to a term
-            if iri == ctx[key]:
+            if iri == _getTermIri(ctx, key):
                 rval = key
                 if usedCtx is not None:
-                    usedCtx[key] = ctx[key]
+                    usedCtx[key] = copy.copy(ctx[key])
                 break
 
     # term not found, if term is @type, use keyword
@@ -113,15 +130,16 @@ def _compactIri(ctx, iri, usedCtx):
             # skip special context keys (start with '@')
             if len(key) > 0 and not key.startswith('@'):
                 # see if IRI begins with the next IRI from the context
-                ctxIri = ctx[key]
-                idx = iri.find(ctxIri)
+                ctxIri = _getTermIri(ctx, key)
+                if ctxIri is not None:
+                    idx = iri.find(ctxIri)
 
-                # compact to a prefixed term
-                if idx == 0 and len(iri) > len(ctxIri):
-                    rval = key + ':' + iri[len(ctxIri):]
-                    if usedCtx is not None:
-                        usedCtx[key] = ctxIri
-                    break
+                    # compact to a prefixed term
+                    if idx == 0 and len(iri) > len(ctxIri):
+                        rval = key + ':' + iri[len(ctxIri):]
+                        if usedCtx is not None:
+                            usedCtx[key] = copy.copy(ctx[key])
+                        break
 
     # could not compact IRI
     if rval is None:
@@ -147,7 +165,7 @@ def _expandTerm(ctx, term, usedCtx):
     # get JSON-LD keywords
     keywords = _getKeywords(ctx)
 
-    # 1. If the property has a colon, then it has a prefix or an absolute IRI:
+    # 1. If the property has a colon, it has a prefix or an absolute IRI:
     idx = term.find(':')
     if idx != -1:
         # get the potential prefix
@@ -156,17 +174,18 @@ def _expandTerm(ctx, term, usedCtx):
         # 1.1 See if the prefix is in the context
         if prefix in ctx:
             # prefix found, expand property to absolute IRI
-            rval = ctx[prefix] + term[idx + 1:]
+            iri = _getTermIri(ctx, prefix)
+            rval = iri + term[idx + 1:]
             if usedCtx is not None:
-                usedCtx[prefix] = ctx[prefix]
+                usedCtx[prefix] = copy.copy(ctx[prefix])
         # 1.2. Prefix is not in context, property is already an absolute IRI:
         else:
             rval = term
     # 2. If the property is in the context, then it's a term.
     elif term in ctx:
-        rval = ctx[term]
+        rval = _getTermIri(ctx, term)
         if usedCtx is not None:
-            usedCtx[term] = rval
+            usedCtx[term] = copy.copy(ctx[term])
     # 3. The property is the special-case @subject.
     elif term == keywords['@subject']:
         rval = '@subject'
@@ -833,18 +852,15 @@ class Processor:
         # built-in type coercion JSON-LD-isms
         if p == '@subject' or p == '@type':
             rval = '@iri'
-
-        # check type coercion for property
-        elif '@coerce' in ctx:
-            # property found, return expanded type
+        else:
+            # look up compacted property for a coercion type
             p = _compactIri(ctx, p, None)
-            if p in ctx['@coerce']:
-                type = ctx['@coerce'][p]
+            if p in ctx and isinstance(ctx[p], dict) and '@type' in ctx[p]:
+                # property found, return expanded type
+                type = ctx[p]['@type']
                 rval = _expandTerm(ctx, type, usedCtx)
                 if usedCtx is not None:
-                    if '@coerce' not in usedCtx:
-                        usedCtx['@coerce'] = {}
-                    usedCtx['@coerce'][p] = type
+                    usedCtx[p] = copy.copy(ctx[p])
 
         return rval
 
@@ -1906,23 +1922,13 @@ def mergeContexts(ctx1, ctx2):
         if key.find('@') != 0:
             for mkey in merged:
                 if merged[mkey] == ctx2[key]:
-                    # FIXME: update related @coerce rules
+                    # FIXME: update related coerce rules
                     del merged[mkey]
                     break
 
     # merge contexts
     for key in ctx2:
-        # skip @coerce, to be merged below
-        if key != '@coerce':
-            merged[key] = ctx2[key]
-
-    # merge @coerce
-    if '@coerce' in ctx2:
-        if '@coerce' not in merged:
-            merged['@coerce'] = copy.deepcopy(ctx2['@coerce'])
-        else:
-            for key, value in ctx2['@coerce'].items():
-                merged['@coerce'][key] = value
+        merged[key] = ctx2[key]
 
     return merged
 
