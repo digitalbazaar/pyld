@@ -25,7 +25,7 @@ def _ntriple(s, p, o):
     else:
         # object is a literal
         return "<%s> <%s> \"%s\"^^<%s> ." % \
-            (s, p, o["@literal"], o["@datatype"])
+            (s, p, o["@literal"], o["@type"])
 
 ##
 # TestRunner unit testing class.

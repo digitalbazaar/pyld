@@ -58,7 +58,6 @@ def _getKeywords(ctx):
     # state
 
     rval = {
-       '@datatype': '@datatype',
        '@iri': '@iri',
        '@language': '@language',
        '@literal': '@literal',
@@ -271,7 +270,7 @@ def _compareObjects(o1, o2):
         rval = _compareObjectKeys(o1, o2, '@literal')
         if rval == 0:
             if '@literal' in o1:
-                rval = _compareObjectKeys(o1, o2, '@datatype')
+                rval = _compareObjectKeys(o1, o2, '@type')
                 if rval == 0:
                     rval = _compareObjectKeys(o1, o2, '@language')
             # both are '@iri' objects
@@ -299,7 +298,7 @@ def _compareBlankNodeObjects(a, b):
     # 3.2.3. The bnode with the alphabetically-first string is first.
     # 3.2.4. The bnode with a @literal is first.
     # 3.2.5. The bnode with the alphabetically-first @literal is first.
-    # 3.2.6. The bnode with the alphabetically-first @datatype is first.
+    # 3.2.6. The bnode with the alphabetically-first @type is first.
     # 3.2.7. The bnode with a @language is first.
     # 3.2.8. The bnode with the alphabetically-first @language is first.
     # 3.2.9. The bnode with the alphabetically-first @iri is first.
@@ -599,10 +598,10 @@ class Processor:
             if isinstance(value, dict):
                 # type coercion can only occur if language is not specified
                 if '@language' not in value:
-                    # datatype must match coerce type if specified
-                    if '@datatype' in value:
-                        type = value['@datatype']
-                    # datatype is IRI
+                    # type must match coerce type if specified
+                    if '@type' in value:
+                        type = value['@type']
+                    # type is IRI
                     elif '@iri' in value:
                         type = '@iri'
                     # can be coerced to any type
@@ -628,7 +627,7 @@ class Processor:
                 # error
                 elif type != coerce:
                     raise Exception('Cannot coerce type because the ' +
-                        'datatype does not match.')
+                        'type does not match.')
                 # do reverse type-coercion
                 else:
                     if isinstance(value, dict):
@@ -724,8 +723,8 @@ class Processor:
                     rval['@literal'] = value[keywords['@literal']]
                     if keywords['@language'] in value:
                         rval['@language'] = value[keywords['@language']]
-                    elif keywords['@datatype'] in value:
-                        rval['@datatype'] = value[keywords['@datatype']]
+                    elif keywords['@type'] in value:
+                        rval['@type'] = value[keywords['@type']]
         else:
             # do type coercion
             coerce = self.getCoerceType(ctx, property, None)
@@ -742,7 +741,7 @@ class Processor:
                 else:
                     coerce = xsd['integer']
 
-            # coerce to appropriate datatype, only expand subjects if requested
+            # coerce to appropriate type, only expand subjects if requested
             if coerce is not None and (
                 property != keywords['@subject'] or expandSubjects):
                 rval = {}
@@ -750,9 +749,9 @@ class Processor:
                 # expand IRI
                 if coerce == '@iri':
                     rval['@iri'] = _expandTerm(ctx, value, None)
-                # other datatype
+                # other type
                 else:
-                    rval['@datatype'] = coerce
+                    rval['@type'] = coerce
                     if coerce == xsd['double']:
                         # do special JSON-LD double format
                         value = '%1.6e' % value
@@ -1794,9 +1793,9 @@ def _serializeProperties(b):
                     else:
                         rval += '"' + o['@literal'] + '"'
 
-                        # datatype literal
-                        if '@datatype' in o:
-                            rval += '^^<' + o['@datatype'] + '>'
+                        # type literal
+                        if '@type' in o:
+                            rval += '^^<' + o['@type'] + '>'
                         # language literal
                         elif '@language' in o:
                             rval += '@' + o['@language']
