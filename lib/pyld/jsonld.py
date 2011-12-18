@@ -683,7 +683,7 @@ class Processor:
 
         return rval
 
-    def expand(self, ctx, property, value, expandSubjects):
+    def expand(self, ctx, property, value):
         """
         Recursively expands a value using the given context. Any context in
         the value will be removed.
@@ -691,7 +691,6 @@ class Processor:
         :param ctx: the context.
         :param property: the property that points to the value, None for none.
         :param value: the value to expand.
-        :param expandSubjects: True to expand subjects (normalize), False not to.
 
         :return: the expanded value.
         """
@@ -710,7 +709,7 @@ class Processor:
             # recursively add expanded values to array
             rval = []
             for i in value:
-                rval.append(self.expand(ctx, property, i, expandSubjects))
+                rval.append(self.expand(ctx, property, i))
         elif isinstance(value, dict):
             # if value has a context, use it
             if '@context' in value:
@@ -732,7 +731,7 @@ class Processor:
                     elif key != '@context':
                         # set object to expanded property
                         _setProperty(rval, _expandTerm(ctx, key, None),
-                            self.expand(ctx, key, value[key], expandSubjects))
+                            self.expand(ctx, key, value[key]))
             # only need to expand keywords
             else:
                 rval = {}
@@ -760,9 +759,8 @@ class Processor:
                 else:
                     coerce = xsd['integer']
 
-            # coerce to appropriate type, only expand subjects if requested
-            if coerce is not None and (
-                property != keywords['@subject'] or expandSubjects):
+            # coerce to appropriate type (do not expand subjects)
+            if coerce is not None and property != keywords['@subject']:
                 rval = {}
 
                 # expand IRI
