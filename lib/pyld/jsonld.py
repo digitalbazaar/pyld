@@ -1619,8 +1619,8 @@ def _subframe(
 
         # iterate over keys in value
         for key, v in value.items():
-            # skip keywords and type
-            if key.find('@') != 0 and key != '@type':
+            # skip keywords
+            if key.find('@') != 0:
                 # get the subframe if available
                 if key in frame:
                     f = frame[key]
@@ -1645,8 +1645,8 @@ def _subframe(
 
         # iterate over frame keys to add any missing values
         for key, f in frame.items():
-            # skip keywords, type query, and non-None keys in value
-            if (key.find('@') != 0 and key != '@type' and
+            # skip keywords and non-None keys in value
+            if (key.find('@') != 0 and
                 (key not in value or value[key] is None)):
                 # add empty array to value
                 if isinstance(f, list):
