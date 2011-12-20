@@ -58,10 +58,9 @@ def _getKeywords(ctx):
     # state
 
     rval = {
-       '@iri': '@iri',
+       '@id': '@id',
        '@language': '@language',
        '@literal': '@literal',
-       '@subject': '@subject',
        '@type': '@type'
     }
 
@@ -91,8 +90,8 @@ def _getTermIri(ctx, term):
     if term in ctx:
         if isinstance(ctx[term], basestring):
             rval = ctx[term]
-        elif isinstance(ctx[term], dict) and '@iri' in ctx[term]:
-            rval = ctx[term]['@iri']
+        elif isinstance(ctx[term], dict) and '@id' in ctx[term]:
+            rval = ctx[term]['@id']
     return rval
 
 def _compactIri(ctx, iri, usedCtx):
@@ -160,7 +159,7 @@ def _expandTerm(ctx, term, usedCtx):
 
     :return: the expanded term as an absolute IRI.
     """
-    rval = None
+    rval = term
 
     # get JSON-LD keywords
     keywords = _getKeywords(ctx)
@@ -171,34 +170,62 @@ def _expandTerm(ctx, term, usedCtx):
         # get the potential prefix
         prefix = term[0:idx]
 
-        # 1.1 See if the prefix is in the context
+        # expand term if prefix is in context, otherwise leave it be
         if prefix in ctx:
             # prefix found, expand property to absolute IRI
             iri = _getTermIri(ctx, prefix)
             rval = iri + term[idx + 1:]
             if usedCtx is not None:
                 usedCtx[prefix] = copy.copy(ctx[prefix])
-        # 1.2. Prefix is not in context, property is already an absolute IRI:
-        else:
-            rval = term
     # 2. If the property is in the context, then it's a term.
     elif term in ctx:
         rval = _getTermIri(ctx, term)
         if usedCtx is not None:
             usedCtx[term] = copy.copy(ctx[term])
-    # 3. The property is the special-case @subject.
-    elif term == keywords['@subject']:
-        rval = '@subject'
-    # 4. The property is the special-case @type.
-    elif term == keywords['@type']:
-        rval = '@type'
-    # 5. The property is a relative IRI, prepend the default vocab.
+    # 3. The property is a keyword.
     else:
-        rval = term
-        if '@vocab' in ctx:
-            rval = ctx['@vocab'] + rval
-            if usedCtx is not None:
-                usedCtx['@vocab'] = ctx['@vocab']
+        for k, v in keywords.items():
+            if term == v:
+                rval = k
+                break
+
+    return rval
+
+def _isReference(value):
+    """
+    Gets whether or not a value is a reference to a subject (or a subject with
+    no properties).
+
+    :param value: the value to check.
+
+    :return: True if the value is a reference to a subject, False if not.
+    """
+    # Note: A value is a reference to a subject if all of these hold true:
+    # 1. It is an Object.
+    # 2. It is has an @id key.
+    # 3. It has only 1 key.
+    return (value != None and
+      isinstance(value, dict) and
+      '@id' in value and
+      len(value.keys()) == 1)
+
+def _isSubject(value):
+    """
+    Gets whether or not a value is a subject with properties.
+
+    :param value: the value to check.
+
+    :return: True if the value is a subject with properties, False if not.
+    """
+    rval = False
+
+    # Note: A value is a subject if all of these hold true:
+    # 1. It is an Object.
+    # 2. It is not a literal.
+    # 3. It has more than 1 key OR any existing key is not '@id'.
+    if (value is not None and isinstance(value, dict) and
+        '@literal' not in value):
+        rval = len(value.keys()) > 1 or '@id' not in value
 
     return rval
 
@@ -213,16 +240,14 @@ def _isNamedBlankNode(v):
     Checks if a named node is blank.
     """
     # look for "_:" at the beginning of the subject
-    return (isinstance(v, dict) and '@subject' in v and
-        '@iri' in v['@subject'] and _isBlankNodeIri(v['@subject']['@iri']))
+    return (isinstance(v, dict) and '@id' in v and _isBlankNodeIri(v['@id']))
 
 def _isBlankNode(v):
     """
     Checks if the node is blank.
     """
-    # look for no subject or named blank node
-    return (isinstance(v, dict) and not ('@iri' in v or '@literal' in v) and
-        ('@subject' not in v or _isNamedBlankNode(v)))
+    # look for a subject with no ID or a blank node ID
+    return (_isSubject(v) and ('@id' not in v or _isNamedBlankNode(v)))
 
 def _compare(v1, v2):
     """
@@ -292,9 +317,9 @@ def _compareObjects(o1, o2):
                 rval = _compareObjectKeys(o1, o2, '@type')
                 if rval == 0:
                     rval = _compareObjectKeys(o1, o2, '@language')
-            # both are '@iri' objects
+            # both are '@id' objects
             else:
-                rval = _compare(o1['@iri'], o2['@iri'])
+                rval = _compare(o1['@id'], o2['@id'])
 
     return rval
 
@@ -320,43 +345,43 @@ def _compareBlankNodeObjects(a, b):
     # 3.2.6. The bnode with the alphabetically-first @type is first.
     # 3.2.7. The bnode with a @language is first.
     # 3.2.8. The bnode with the alphabetically-first @language is first.
-    # 3.2.9. The bnode with the alphabetically-first @iri is first.
+    # 3.2.9. The bnode with the alphabetically-first @id is first.
 
     for p in a:
-        # step #3.1
-        lenA = len(a[p]) if isinstance(a[p], list) else 1
-        lenB = len(b[p]) if isinstance(b[p], list) else 1
-        rval = _compare(lenA, lenB)
+        if p != '@id':
+            # step #3.1
+            lenA = len(a[p]) if isinstance(a[p], list) else 1
+            lenB = len(b[p]) if isinstance(b[p], list) else 1
+            rval = _compare(lenA, lenB)
 
-        # step #3.2.1
-        if rval == 0:
-            # normalize objects to an array
-            objsA = a[p]
-            objsB = b[p]
-            if not isinstance(objsA, list):
-                objsA = [objsA]
-                objsB = [objsB]
+            # step #3.2.1
+            if rval == 0:
+                # normalize objects to an array
+                objsA = a[p]
+                objsB = b[p]
+                if not isinstance(objsA, list):
+                    objsA = [objsA]
+                    objsB = [objsB]
 
-            def bnodeFilter(e):
-                return (isinstance(e, basestring) or
-                    not ('@iri' in e and _isBlankNodeIri(e['@iri'])))
+                def bnodeFilter(e):
+                    return not _isNamedBlankNode(e)
 
-            # filter non-bnodes (remove bnodes from comparison)
-            objsA = filter(bnodeFilter, objsA)
-            objsB = filter(bnodeFilter, objsB)
-            rval = _compare(len(objsA), len(objsB))
+                # compare non-bnodes (remove bnodes from comparison)
+                objsA = filter(bnodeFilter, objsA)
+                objsB = filter(bnodeFilter, objsB)
+                rval = _compare(len(objsA), len(objsB))
 
-        # steps #3.2.2-3.2.9
-        if rval == 0:
-            objsA.sort(_compareObjects)
-            objsB.sort(_compareObjects)
-            for i in range(0, len(objsA)):
-                rval = _compareObjects(objsA[i], objsB[i])
-                if rval != 0:
-                    break
+            # steps #3.2.2-3.2.9
+            if rval == 0:
+                objsA.sort(_compareObjects)
+                objsB.sort(_compareObjects)
+                for i in range(0, len(objsA)):
+                    rval = _compareObjects(objsA[i], objsB[i])
+                    if rval != 0:
+                        break
 
-        if rval != 0:
-            break
+            if rval != 0:
+                break
 
     return rval
 
@@ -399,13 +424,13 @@ def _collectSubjects(input, subjects, bnodes):
         for i in input:
             _collectSubjects(i, subjects, bnodes)
     elif isinstance(input, dict):
-        if '@subject' in input:
-            # graph literal
-            if isinstance(input['@subject'], list):
-                _collectSubjects(input['@subject'], subjects, bnodes)
+        if '@id' in input:
+            # graph literal/disjoint graph
+            if isinstance(input['@id'], list):
+                _collectSubjects(input['@id'], subjects, bnodes)
             # named subject
-            else:
-                subjects[input['@subject']['@iri']] = input
+            elif _isSubject(input):
+                subjects[input['@id']] = input
         # unnamed blank node
         elif _isBlankNode(input):
             bnodes.append(input)
@@ -435,43 +460,41 @@ def _flatten(parent, parentProperty, value, subjects):
         for i in value:
             _flatten(parent, parentProperty, i, subjects)
     elif isinstance(value, dict):
+        # already-expanded value or special-case reference-only @type
+        if '@literal' in value or parentProperty == '@type':
+            flattened = copy.copy(value)
         # graph literal/disjoint graph
-        if '@subject' in value and isinstance(value['@subject'], list):
+        elif isinstance(value['@id'], list):
             # cannot flatten embedded graph literals
             if parent is not None:
                 raise Exception('Embedded graph literals cannot be flattened.')
 
             # top-level graph literal
-            for key in value['@subject']:
+            for key in value['@id']:
                 _flatten(parent, parentProperty, key, subjects)
-        # already-expanded value
-        elif '@literal' in value or '@iri' in value:
-            flattened = copy.copy(value)
-        # subject
+        # regular subject
         else:
             # create or fetch existing subject
-            subject = None
-            if value['@subject']['@iri'] in subjects:
-                # FIXME: '@subject' might be a graph literal (as {})
-                subject = subjects[value['@subject']['@iri']]
+            if value['@id'] in subjects:
+                # FIXME: '@id' might be a graph literal (as {})
+                subject = subjects[value['@id']]
             else:
-                subject = {}
-                if '@subject' in value:
-                    # FIXME: '@subject' might be a graph literal (as {})
-                    subjects[value['@subject']['@iri']] = subject
-            flattened = subject
+                # FIXME: '@id' might be a graph literal (as {})
+                subject = {'@id': value['@id']}
+                subjects[value['@id']] = subject
+            flattened = {'@id': subject['@id']}
 
             # flatten embeds
             for key, v in value.items():
-                # drop None values
-                if v is not None:
+                # drop None values, skip @id (it is already set above)
+                if v is not None and key != '@id':
                     if key in subject:
                         if not isinstance(subject[key], list):
                             subject[key] = [subject[key]]
                     else:
                         subject[key] = []
 
-                    _flatten(subject[key], None, v, subjects)
+                    _flatten(subject[key], key, v, subjects)
                     if len(subject[key]) == 1:
                         # convert subject[key] to object if it has only 1
                         subject[key] = subject[key][0]
@@ -481,20 +504,13 @@ def _flatten(parent, parentProperty, value, subjects):
 
     # add flattened value to parent
     if flattened is not None and parent is not None:
-        # remove top-level '@subject' for subjects
-        # 'http://mypredicate': {'@subject': {'@iri': 'http://mysubject'}}
-        # becomes
-        # 'http://mypredicate': {'@iri': 'http://mysubject'}
-        if isinstance(flattened, dict) and '@subject' in flattened:
-            flattened = flattened['@subject']
-
         if isinstance(parent, list):
             # do not add duplicate IRIs for the same property
             duplicate = False
-            if isinstance(flattened, dict) and '@iri' in flattened:
+            if isinstance(flattened, dict) and '@id' in flattened:
                 def parentFilter(e):
-                    return (isinstance(e, dict) and '@iri' in e and
-                        e['@iri'] == flattened['@iri'])
+                    return (isinstance(e, dict) and '@id' in e and
+                        e['@id'] == flattened['@id'])
 
                 duplicate = len(filter(parentFilter, parent)) > 0
             if not duplicate:
@@ -591,14 +607,13 @@ class Processor:
             for i in value:
                 rval.append(self.compact(ctx, property, i, usedCtx))
         # graph literal/disjoint graph
-        elif (isinstance(value, dict) and '@subject' in value and
-            isinstance(value['@subject'], list)):
+        elif (isinstance(value, dict) and '@id' in value and
+            isinstance(value['@id'], list)):
             rval = {}
-            rval[keywords['@subject']] = self.compact(
-                ctx, property, value['@subject'], usedCtx)
-        # value has sub-properties if it doesn't define a literal or IRI value
-        elif (isinstance(value, dict) and '@literal' not in value and
-            '@iri' not in value):
+            rval[keywords['@id']] = self.compact(
+                ctx, property, value['@id'], usedCtx)
+        # recurse if value is a subject
+        elif _isSubject(value):
             # recursively handle sub-properties that aren't a sub-context
             rval = {}
             for key in value:
@@ -620,9 +635,9 @@ class Processor:
                     # type must match coerce type if specified
                     if '@type' in value:
                         type = value['@type']
-                    # type is IRI
-                    elif '@iri' in value:
-                        type = '@iri'
+                    # type is ID (IRI)
+                    elif '@id' in value:
+                        type = '@id'
                     # can be coerced to any type
                     else:
                         type = coerce
@@ -650,8 +665,8 @@ class Processor:
                 # do reverse type-coercion
                 else:
                     if isinstance(value, dict):
-                        if '@iri' in value:
-                            rval = value['@iri']
+                        if '@id' in value:
+                            rval = value['@id']
                         elif '@literal' in value:
                             rval = value['@literal']
                     else:
@@ -674,10 +689,10 @@ class Processor:
                 rval = copy.copy(value)
 
             # compact IRI
-            if type == '@iri':
+            if type == '@id':
                 if isinstance(rval, dict):
-                    rval[keywords['@iri']] = _compactIri(
-                        ctx, rval[keywords['@iri']], usedCtx)
+                    rval[keywords['@id']] = _compactIri(
+                        ctx, rval[keywords['@id']], usedCtx)
                 else:
                     rval = _compactIri(ctx, rval, usedCtx)
 
@@ -715,34 +730,17 @@ class Processor:
             if '@context' in value:
                 ctx = mergeContexts(ctx, value['@context'])
 
-            # get JSON-LD keywords
-            keywords = _getKeywords(ctx)
-
-            # value has sub-properties if it doesn't define a literal or IRI
-            # value
-            if not (keywords['@literal'] in value or keywords['@iri'] in value):
-                # recursively handle sub-properties that aren't a sub-context
-                rval = {}
-                for key in value:
-                    # preserve frame keywords
-                    if (key == '@embed' or key == '@explicit' or
-                        key == '@default' or key == '@omitDefault'):
-                        _setProperty(rval, key, copy.copy(value[key]))
-                    elif key != '@context':
-                        # set object to expanded property
-                        _setProperty(rval, _expandTerm(ctx, key, None),
-                            self.expand(ctx, key, value[key]))
-            # only need to expand keywords
-            else:
-                rval = {}
-                if keywords['@iri'] in value:
-                    rval['@iri'] = value[keywords['@iri']]
-                else:
-                    rval['@literal'] = value[keywords['@literal']]
-                    if keywords['@language'] in value:
-                        rval['@language'] = value[keywords['@language']]
-                    elif keywords['@type'] in value:
-                        rval['@type'] = value[keywords['@type']]
+            # recursively handle sub-properties that aren't a sub-context
+            rval = {}
+            for key in value:
+                # preserve frame keywords
+                if (key == '@embed' or key == '@explicit' or
+                    key == '@default' or key == '@omitDefault'):
+                    _setProperty(rval, key, copy.copy(value[key]))
+                elif key != '@context':
+                    # set object to expanded property
+                    _setProperty(rval, _expandTerm(ctx, key, None),
+                        self.expand(ctx, key, value[key]))
         else:
             # do type coercion
             coerce = self.getCoerceType(ctx, property, None)
@@ -759,13 +757,16 @@ class Processor:
                 else:
                     coerce = xsd['integer']
 
-            # coerce to appropriate type (do not expand subjects)
-            if coerce is not None and property != keywords['@subject']:
+            # special-case expand @id and @type (skips '@id' expansion)
+            if property == keywords['@id'] or property == keywords['@type']:
+                rval = _expandTerm(ctx, value, None)
+            # coerce to appropriate type
+            elif coerce is not None:
                 rval = {}
 
                 # expand IRI
-                if coerce == '@iri':
-                    rval['@iri'] = _expandTerm(ctx, value, None)
+                if coerce == '@id':
+                    rval['@id'] = _expandTerm(ctx, value, None)
                 # other type
                 else:
                     rval['@type'] = coerce
@@ -802,7 +803,7 @@ class Processor:
             self.c14n = None
 
             # expand input
-            expanded = self.expand({}, None, input, True)
+            expanded = self.expand({}, None, input)
 
             # assign names to unnamed bnodes
             self.nameBlankNodes(expanded)
@@ -824,7 +825,7 @@ class Processor:
             self.canonicalizeBlankNodes(rval)
 
             def normalizeSort(a, b):
-                return _compare(a['@subject']['@iri'], b['@subject']['@iri'])
+                return _compare(a['@id'], b['@id'])
 
             # sort output
             rval.sort(cmp=normalizeSort)
@@ -848,8 +849,8 @@ class Processor:
         p = _expandTerm(ctx, property, None)
 
         # built-in type coercion JSON-LD-isms
-        if p == '@subject' or p == '@type':
-            rval = '@iri'
+        if p == '@id' or p == '@type':
+            rval = '@id'
         else:
             # look up compacted property for a coercion type
             p = _compactIri(ctx, p, None)
@@ -878,11 +879,11 @@ class Processor:
 
         # uniquely name all unnamed bnodes
         for bnode in bnodes:
-            if not ('@subject' in bnode):
+            if not ('@id' in bnode):
                 # generate names until one is unique
                 while(ng.next() in subjects):
                     pass
-                bnode['@subject'] = { '@iri': ng.current() }
+                bnode['@id'] = ng.current()
                 subjects[ng.current()] = bnode
 
     def renameBlankNode(self, b, id):
@@ -893,10 +894,10 @@ class Processor:
         :param b: the blank node to rename.
         :param id: the new name to use.
         """
-        old = b['@subject']['@iri']
+        old = b['@id']
 
         # update bnode IRI
-        b['@subject']['@iri'] = id
+        b['@id'] = id
 
         # update subjects map
         subjects = self.subjects
@@ -926,9 +927,9 @@ class Processor:
                     tmp = ([ref[p]] if isinstance(ref[p], dict) else
                         (ref[p] if isinstance(ref[p], list) else []))
                     for n in tmp:
-                        if (isinstance(n, dict) and '@iri' in n and
-                            n['@iri'] == old):
-                            n['@iri'] = id
+                        if (isinstance(n, dict) and '@id' in n and
+                            n['@id'] == old):
+                            n['@id'] = id
 
         # update references from this bnode
         props = self.edges['props'][id]['all']
@@ -958,7 +959,7 @@ class Processor:
         subjects = self.subjects = {}
         bnodes = []
         for s in input:
-            iri = s['@subject']['@iri']
+            iri = s['@id']
             subjects[iri] = s
             edges['refs'][iri] = {
                 'all': [],
@@ -981,12 +982,12 @@ class Processor:
         # rename all bnodes that happen to be in the c14n namespace
         # and initialize serializations
         for bnode in bnodes:
-            iri = bnode['@subject']['@iri']
+            iri = bnode['@id']
             if c14n.inNamespace(iri):
                 while ngTmp.next() in subjects:
                     pass
                 self.renameBlankNode(bnode, ngTmp.current())
-                iri = bnode['@subject']['@iri']
+                iri = bnode['@id']
             self.serializations[iri] = {
                 'props': None,
                 'refs': None
@@ -1005,7 +1006,7 @@ class Processor:
 
             # name all bnodes accoring to the first bnodes relation mappings
             bnode = bnodes.pop(0)
-            iri = bnode['@subject']['@iri']
+            iri = bnode['@id']
             resort = self.serializations[iri]['props'] is not None
             dirs = ['props', 'refs']
             for dir in dirs:
@@ -1036,7 +1037,7 @@ class Processor:
                 tmp = bnodes
                 bnodes = []
                 for b in tmp:
-                    iriB = b['@subject']['@iri']
+                    iriB = b['@id']
                     if not c14n.inNamespace(iriB):
                         for i2 in renamed:
                             if self.markSerializationDirty(iriB, i2, dir):
@@ -1235,8 +1236,8 @@ class Processor:
         rval = 0
 
         # compare IRIs
-        iriA = a['@subject']['@iri']
-        iriB = b['@subject']['@iri']
+        iriA = a['@id']
+        iriB = b['@id']
         if iriA == iriB:
             rval = 0
         else:
@@ -1319,8 +1320,8 @@ class Processor:
 
         # step #4
         if rval == 0:
-            edgesA = self.edges['refs'][a['@subject']['@iri']]['all']
-            edgesB = self.edges['refs'][b['@subject']['@iri']]['all']
+            edgesA = self.edges['refs'][a['@id']]['all']
+            edgesB = self.edges['refs'][b['@id']]['all']
             rval = _compare(len(edgesA), len(edgesB))
 
         # step #5
@@ -1387,14 +1388,14 @@ class Processor:
         for iri in self.subjects:
             subject = self.subjects[iri]
             for key in subject:
-                if key != '@subject':
+                if key != '@id':
                     # normalize to array for single codepath
                     object = subject[key]
                     tmp = [object] if not isinstance(object, list) else object
                     for o in tmp:
-                        if (isinstance(o, dict) and '@iri' in o and
-                            o['@iri'] in self.subjects):
-                            objIri = o['@iri']
+                        if (isinstance(o, dict) and '@id' in o and
+                            o['@id'] in self.subjects):
+                            objIri = o['@id']
 
                             # map object to this subject
                             refs[objIri]['all'].append({ 's': iri, 'p': key })
@@ -1461,7 +1462,7 @@ class Processor:
         # build map of all subjects
         subjects = {}
         for i in input:
-            subjects[i['@subject']['@iri']] = i
+            subjects[i['@id']] = i
 
         # frame input
         rval = _frame(subjects, input, frame, {}, False, None, None, options)
@@ -1487,16 +1488,15 @@ def _isType(src, frame):
 
     # check if type(s) are specified in frame and src
     rType = '@type'
-    if (rType in frame and isinstance(src, dict) and '@subject' in src and
-        rType in src):
+    if (rType in frame and isinstance(src, dict) and rType in src):
         tmp = src[rType] if isinstance(src[rType], list) else [src[rType]]
         types = (frame[rType] if isinstance(frame[rType], list)
             else [frame[rType]])
 
         for t in range(0, len(types)):
-            rType = types[t]['@iri']
+            rType = types[t]
             for i in tmp:
-                if i['@iri'] == rType:
+                if i == rType:
                     rval = True
                     break
             if rval:
@@ -1536,7 +1536,7 @@ def _isDuckType(src, frame):
             # src always matches if there are no properties
             rval = True
         # src must be a subject with all the given properties
-        elif isinstance(src, dict) and '@subject' in src:
+        elif isinstance(src, dict) and '@id' in src:
             rval = True
             for i in props:
                 if i not in src:
@@ -1555,7 +1555,7 @@ def _removeDependentEmbeds(iri, embeds):
     iris = embeds.keys()
     for i in iris:
         if (i in embeds and embeds[i]['parent'] is not None and
-            embeds[i]['parent']['@subject']['@iri'] == iri):
+            embeds[i]['parent']['@id'] == iri):
             del embeds[i]
             _removeDependentEmbeds(i, embeds)
 
@@ -1578,7 +1578,7 @@ def _subframe(
     """
 
     # get existing embed entry
-    iri = value['@subject']['@iri']
+    iri = value['@id']
     embed = embeds[iri] if iri in embeds else None
 
     # determine if value should be embedded or referenced,
@@ -1593,7 +1593,7 @@ def _subframe(
 
     if not embedOn:
         # not embedding, so only use subject IRI as reference
-        value = value['@subject']
+        value = {'@id': value['@id']}
     else:
         # create new embed entry
         if embed is None:
@@ -1605,12 +1605,12 @@ def _subframe(
             if isinstance(objs, list):
                 # find and replace embed in array
                 for i in range(0, len(objs)):
-                    if (isinstance(objs[i], dict) and '@subject' in objs[i] and
-                        objs[i]['@subject']['@iri'] == iri):
-                        objs[i] = value['@subject'];
+                    if (isinstance(objs[i], dict) and '@id' in objs[i] and
+                        objs[i]['@id'] == iri):
+                        objs[i] = {'@id': value['@id']}
                         break
             else:
-                embed['parent'][embed['key']] = value['@subject']
+                embed['parent'][embed['key']] = {'@id': value['@id']}
 
             # recursively remove any dependent dangling embeds
             _removeDependentEmbeds(iri, embeds)
@@ -1626,8 +1626,8 @@ def _subframe(
         if explicitOn:
             # remove keys from the value that aren't in the frame
             for key in value.keys():
-                # do not remove @subject or any frame key
-                if key != '@subject' and key not in frame:
+                # do not remove @id or any frame key
+                if key != '@id' and key not in frame:
                     del value[key]
 
         # iterate over keys in value
@@ -1647,11 +1647,11 @@ def _subframe(
                 input = (value[key] if isinstance(value[key], list)
                     else [value[key]])
                 for n in range(0, len(input)):
-                    # replace reference to subject w/subject
+                    # replace reference to subject w/embedded subject
                     if (isinstance(input[n], dict) and
-                        '@iri' in input[n] and
-                        input[n]['@iri'] in subjects):
-                        input[n] = subjects[input[n]['@iri']]
+                        '@id' in input[n] and
+                        input[n]['@id'] in subjects):
+                        input[n] = subjects[input[n]['@id']]
                 value[key] = _frame(
                     subjects, input, f, embeds, _autoembed,
                     value, key, options)
@@ -1732,9 +1732,9 @@ def _frame(
         values.append([])
         for n in input:
             # dereference input if it refers to a subject
-            if (isinstance(n, dict) and '@iri' in n and
-               n['@iri'] in subjects):
-               n = subjects[n['@iri']]
+            if (isinstance(n, dict) and '@id' in n and
+               n['@id'] in subjects):
+               n = subjects[n['@id']]
 
             # add input to list if it matches frame specific type or duck-type
             if _isType(n, frame) or _isDuckType(n, frame):
@@ -1749,7 +1749,7 @@ def _frame(
     for frame, vals in zip(frames, values):
         for value in vals:
             # if value is a subject, do subframing
-            if isinstance(value, dict) and '@subject' in value:
+            if _isSubject(value):
                 value = _subframe(
                     subjects, value, frame, embeds, autoembed,
                     parent, parentKey, options)
@@ -1758,9 +1758,8 @@ def _frame(
             if rval is None:
                 rval = value
             else:
-                # determine if value is a reference
-                isRef = (value is not None and isinstance(value, dict) and
-                    '@iri' in value and value['@iri'] in embeds)
+                # determine if value is a reference to an embed
+                isRef = (_isReference(value) and value['@id'] in embeds)
 
                 # push any value that isn't a parentless reference
                 if not (parent is None and isRef):
@@ -1788,7 +1787,7 @@ def _serializeProperties(b):
     rval = ''
     first = True
     for p in b.keys():
-        if p != '@subject':
+        if p != '@id':
             if first:
                 first = False
             else:
@@ -1797,12 +1796,12 @@ def _serializeProperties(b):
             objs = b[p] if isinstance(b[p], list) else [b[p]]
             for o in objs:
                 if isinstance(o, dict):
-                    # iri
-                    if '@iri' in o:
-                        if _isBlankNodeIri(o['@iri']):
+                    # ID (IRI)
+                    if '@id' in o:
+                        if _isBlankNodeIri(o['@id']):
                             rval += '_:'
                         else:
-                            rval += '<' + o['@iri'] + '>'
+                            rval += '<' + o['@id'] + '>'
                     # literal
                     else:
                         rval += '"' + o['@literal'] + '"'
@@ -1856,7 +1855,7 @@ def expand(input):
 
     :return: the context-neutral JSON-LD object.
     """
-    return Processor().expand({}, None, input, False)
+    return Processor().expand({}, None, input)
 
 def compact(ctx, input):
     """
@@ -1987,9 +1986,9 @@ def triples(input, callback=_defaultTriplesCallback):
 
     quit = False
     for e in normalized:
-        s = e['@subject']['@iri']
+        s = e['@id']
         for p, obj in e.iteritems():
-            if p == '@subject': continue
+            if p == '@id': continue
             if not isinstance(obj, list):
                 obj = [obj]
             for o2 in obj:

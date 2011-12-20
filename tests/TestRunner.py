@@ -19,9 +19,9 @@ def _ntriple(s, p, o):
     if isinstance(o, basestring):
         # simple literal
         return "<%s> <%s> \"%s\" ." % (s, p, o)
-    elif "@iri" in o:
+    elif "@id" in o:
         # object is an IRI
-        return "<%s> <%s> <%s> ." % (s, p, o["@iri"])
+        return "<%s> <%s> <%s> ." % (s, p, o["@id"])
     else:
         # object is a literal
         return "<%s> <%s> \"%s\"^^<%s> ." % \
