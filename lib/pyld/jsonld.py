@@ -60,7 +60,7 @@ def _getKeywords(ctx):
     rval = {
        '@id': '@id',
        '@language': '@language',
-       '@literal': '@literal',
+       '@value': '@value',
        '@type': '@type'
     }
 
@@ -221,10 +221,10 @@ def _isSubject(value):
 
     # Note: A value is a subject if all of these hold true:
     # 1. It is an Object.
-    # 2. It is not a literal.
+    # 2. It is not a literal (@value).
     # 3. It has more than 1 key OR any existing key is not '@id'.
     if (value is not None and isinstance(value, dict) and
-        '@literal' not in value):
+        '@value' not in value):
         rval = len(value.keys()) > 1 or '@id' not in value
 
     return rval
@@ -311,9 +311,9 @@ def _compareObjects(o1, o2):
     elif isinstance(o2, basestring):
         rval = 1
     else:
-        rval = _compareObjectKeys(o1, o2, '@literal')
+        rval = _compareObjectKeys(o1, o2, '@value')
         if rval == 0:
-            if '@literal' in o1:
+            if '@value' in o1:
                 rval = _compareObjectKeys(o1, o2, '@type')
                 if rval == 0:
                     rval = _compareObjectKeys(o1, o2, '@language')
@@ -340,8 +340,8 @@ def _compareBlankNodeObjects(a, b):
     # 3.2.1. The bnode with fewer non-bnodes is first.
     # 3.2.2. The bnode with a string object is first.
     # 3.2.3. The bnode with the alphabetically-first string is first.
-    # 3.2.4. The bnode with a @literal is first.
-    # 3.2.5. The bnode with the alphabetically-first @literal is first.
+    # 3.2.4. The bnode with a @value is first.
+    # 3.2.5. The bnode with the alphabetically-first @value is first.
     # 3.2.6. The bnode with the alphabetically-first @type is first.
     # 3.2.7. The bnode with a @language is first.
     # 3.2.8. The bnode with the alphabetically-first @language is first.
@@ -461,7 +461,7 @@ def _flatten(parent, parentProperty, value, subjects):
             _flatten(parent, parentProperty, i, subjects)
     elif isinstance(value, dict):
         # already-expanded value or special-case reference-only @type
-        if '@literal' in value or parentProperty == '@type':
+        if '@value' in value or parentProperty == '@type':
             flattened = copy.copy(value)
         # graph literal/disjoint graph
         elif isinstance(value['@id'], list):
@@ -667,8 +667,8 @@ class Processor:
                     if isinstance(value, dict):
                         if '@id' in value:
                             rval = value['@id']
-                        elif '@literal' in value:
-                            rval = value['@literal']
+                        elif '@value' in value:
+                            rval = value['@value']
                     else:
                         rval = value
 
@@ -778,7 +778,7 @@ class Processor:
                         value = 'true' if value else 'false'
                     else:
                         value = '%s' % value
-                    rval['@literal'] = value
+                    rval['@value'] = value
             # nothing to coerce
             else:
                 rval = '' + value
@@ -1470,7 +1470,14 @@ class Processor:
 
         # apply context
         if ctx is not None and rval is not None:
-            rval = compact(ctx, rval)
+            # preserve top-level array by compacting individual entries
+            if isinstance(rval, list):
+                tmp = rval
+                rval = []
+                for i in range(0, len(tmp)):
+                    rval.append(compact(ctx, tmp[i]))
+            else:
+                rval = compact(ctx, rval)
 
         return rval
 
@@ -1805,7 +1812,7 @@ def _serializeProperties(b):
                             rval += '<' + o['@id'] + '>'
                     # literal
                     else:
-                        rval += '"' + o['@literal'] + '"'
+                        rval += '"' + o['@value'] + '"'
 
                         # type literal
                         if '@type' in o:
@@ -1877,27 +1884,22 @@ def compact(ctx, input):
         # fully expand input
         input = expand(input)
 
-        if isinstance(input, list):
-            rval = []
-            tmp = input
-        else:
-            tmp = [input]
+        # setup output context
+        ctxOut = {}
 
-        for value in tmp:
-            # setup output context
-            ctxOut = {}
+        # compact
+        output = Processor().compact(
+            copy.copy(ctx), None, input, ctxOut)
 
-            # compact
-            output = Processor().compact(copy.copy(ctx), None, value, ctxOut)
-
-            # add context if used
-            if len(ctxOut.keys()) > 0:
-                output["@context"] = ctxOut
-
-            if rval is None:
-                rval = output
+        # add context if used
+        rval = output
+        if len(ctxOut.keys()) > 0:
+            rval = {'@context': ctxOut}
+            if isinstance(output, list):
+                rval[_getKeywords(ctxOut)['@id']] = output
             else:
-                rval.append(output)
+                for key, value in output.items():
+                    rval[key] = value
 
     return rval
 
