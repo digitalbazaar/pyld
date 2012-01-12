@@ -119,9 +119,13 @@ def _compactIri(ctx, iri, usedCtx):
                     usedCtx[key] = copy.copy(ctx[key])
                 break
 
-    # term not found, if term is @type, use keyword
-    if rval is None and iri == '@type':
-        rval = _getKeywords(ctx)['@type']
+    # term not found, if term is keyword, use alias
+    if rval is None:
+        keywords = _getKeywords(ctx)
+        if iri in keywords:
+            rval = keywords[iri]
+            if rval != iri and usedCtx is not None:
+                usedCtx[key] = iri
 
     # term not found, check the context for a term prefix
     if rval is None:
