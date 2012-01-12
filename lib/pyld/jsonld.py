@@ -12,7 +12,7 @@ JSON-LD.
 .. moduleauthor:: Tim McNamara <tim.mcnamara@okfn.org>
 """
 
-__copyright__ = "Copyright (c) 2011 Digital Bazaar, Inc."
+__copyright__ = "Copyright (c) 2011-2012 Digital Bazaar, Inc."
 __license__ = "New BSD licence"
 
 __all__ = ["compact", "expand", "frame", "normalize", "triples"]
@@ -758,7 +758,8 @@ class Processor:
                     coerce = xsd['integer']
 
             # special-case expand @id and @type (skips '@id' expansion)
-            if property == keywords['@id'] or property == keywords['@type']:
+            if (property == '@id' or property == keywords['@id'] or
+                property == '@type' or property == keywords['@type']):
                 rval = _expandTerm(ctx, value, None)
             # coerce to appropriate type
             elif coerce is not None:
