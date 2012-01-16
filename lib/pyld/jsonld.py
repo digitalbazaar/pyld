@@ -509,14 +509,10 @@ def _flatten(parent, parentProperty, value, subjects):
     # add flattened value to parent
     if flattened is not None and parent is not None:
         if isinstance(parent, list):
-            # do not add duplicate IRIs for the same property
-            duplicate = False
-            if isinstance(flattened, dict) and '@id' in flattened:
-                def parentFilter(e):
-                    return (isinstance(e, dict) and '@id' in e and
-                        e['@id'] == flattened['@id'])
-
-                duplicate = len(filter(parentFilter, parent)) > 0
+            # do not add duplicates for the same property
+            def parentFilter(e):
+                return (_compareObjects(e, flattened) == 0)
+            duplicate = len(filter(parentFilter, parent)) > 0
             if not duplicate:
                 parent.append(flattened)
         else:
