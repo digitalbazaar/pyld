@@ -1912,15 +1912,20 @@ def mergeDicts(merged, dict):
 
     :return: the merged dictionary.
     """
+    # if the new context contains any IRIs that are in the merged context,
+    # remove them from the merged context, they will be overwritten
     for key in dict:
         # ignore special keys starting with '@'
         if key.find('@') != 0:
-            # If key exists, value is replaced
-            # Otherwise, value is created
+            for mkey in merged:
+                if merged[mkey] == dict[key]:
+                    # FIXME: update related coerce rules
+                    del merged[mkey]
+                    break
 
-            # Following comment was in main PyLD branch
-            # FIXME: update related coerce rules
-            merged[key] = dict[key]
+    # merge contexts
+    for key in dict:
+        merged[key] = dict[key]
 
     return merged
 
