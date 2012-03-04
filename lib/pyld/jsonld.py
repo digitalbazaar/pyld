@@ -308,7 +308,7 @@ def _compareObjects(o1, o2):
     rval = 0
 
     if isinstance(o1, basestring):
-        if isinstance(o2, basestring):
+        if not isinstance(o2, basestring):
             rval = -1
         else:
             rval = _compare(o1, o2)
@@ -1048,11 +1048,10 @@ class Processor:
 
         # sort property lists that now have canonically named bnodes
         for key in edges['props']:
-            if len(edges['props'][key]['bnodes']) > 0:
-                bnode = subjects[key]
-                for p in bnode:
-                    if p.find('@') != 0 and isinstance(bnode[p], list):
-                        bnode[p].sort(_compareObjects)
+            subject = subjects[key]
+            for p in subject:
+                if p != '@id' and isinstance(subject[p], list):
+                    subject[p].sort(_compareObjects)
 
     def markSerializationDirty(self, iri, changed, dir):
         """
