@@ -1902,6 +1902,32 @@ def compact(ctx, input):
 
     return rval
 
+def mergeDicts(merged, dict):
+    """
+    Merges dict to the merged dictionnary.
+
+    :param merged: the dictionnay to overwrite/append to.
+    :param dict: the new dict to merge onto merged.
+
+    :return: the merged dictionary.
+    """
+    # if the new context contains any IRIs that are in the merged context,
+    # remove them from the merged context, they will be overwritten
+    for key in dict:
+        # ignore special keys starting with '@'
+        if key.find('@') != 0:
+            for mkey in merged:
+                if merged[mkey] == dict[key]:
+                    # FIXME: update related coerce rules
+                    del merged[mkey]
+                    break
+
+    # merge contexts
+    for key in dict:
+        merged[key] = dict[key]
+
+    return merged
+
 def mergeContexts(ctx1, ctx2):
     """
     Merges one context with another.
@@ -1916,18 +1942,14 @@ def mergeContexts(ctx1, ctx2):
 
     # if the new context contains any IRIs that are in the merged context,
     # remove them from the merged context, they will be overwritten
-    for key in ctx2:
-        # ignore special keys starting with '@'
-        if key.find('@') != 0:
-            for mkey in merged:
-                if merged[mkey] == ctx2[key]:
-                    # FIXME: update related coerce rules
-                    del merged[mkey]
-                    break
-
-    # merge contexts
-    for key in ctx2:
-        merged[key] = ctx2[key]
+    if isinstance(ctx2, dict):
+        merged = mergeDicts(merged, ctx2)
+    elif isinstance(ctx2, list):
+        for ctx2Elt in ctx2:
+            # TODO : What if ctx2Elt is an IRI to an external context
+            #        Can ctx2Elt be a list again ?
+            if isinstance(ctx2Elt, dict):
+                merged = mergeDicts(merged, ctx2Elt)
 
     return merged
 
