@@ -1886,9 +1886,11 @@ def compact(ctx, input):
         # setup output context
         ctxOut = {}
 
+        usedCtx = {}
+        usedCtx = mergeContexts(usedCtx, ctx)
         # compact
         output = Processor().compact(
-            copy.copy(ctx), None, input, ctxOut)
+            usedCtx, None, input, ctxOut)
 
         # add context if used
         rval = output
