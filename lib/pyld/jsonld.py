@@ -712,8 +712,7 @@ class JsonLdProcessor:
             if _is_subject_reference(element):
                 type = JsonLdProcessor.getContextValue(ctx, property, '@type')
                 if type == '@id' or property == '@graph':
-                    element = self._compactIri(ctx, element['@id'])
-                    return element
+                    return self._compactIri(ctx, element['@id'])
 
             # recursively process element keys
             rval = {}
@@ -741,7 +740,8 @@ class JsonLdProcessor:
                 # preserve empty arrays
                 if len(value) == 0:
                     prop = self._compactIri(ctx, key)
-                    JsonLdProcessor.addValue(rval, prop, [], True)
+                    if prop is not None:
+                        JsonLdProcessor.addValue(rval, prop, [], True)
 
                 # recusively process array values
                 for v in value:
@@ -749,6 +749,10 @@ class JsonLdProcessor:
 
                     # compact property
                     prop = self._compactIri(ctx, key, v)
+
+                    # skip null properties
+                    if prop is None:
+                        continue
 
                     # remove @list for recursion (will re-add if necessary)
                     if is_list:
@@ -2052,6 +2056,10 @@ class JsonLdProcessor:
 
         # no matching terms, use IRI
         if len(terms) == 0:
+            # return None if a null mapping exists
+            if iri in ctx['mappings'] and ctx['mappings'][iri]['@id'] is None:
+                return None
+            # use iri
             return iri
 
         # return shortest and lexicographically-least term
@@ -2121,7 +2129,7 @@ class JsonLdProcessor:
                 kw = active_ctx['mappings'][key]['@id']
                 if _is_keyword(kw):
                     active_ctx['keywords'][kw].remove(key)
-                del active_ctx['mappings'][key]
+            active_ctx['mappings'][key] = {'@id': None}
             defined[key] = True
             return
 
@@ -2138,7 +2146,7 @@ class JsonLdProcessor:
                 if key not in aliases:
                     aliases.append(key)
                     aliases.sort(key=cmp_to_key(_compare_shortest_least))
-            else:
+            elif value is not None:
                 # expand value to a full IRI
                 value = self._expandContextIri(
                     active_ctx, ctx, value, base, defined)
@@ -2217,8 +2225,10 @@ class JsonLdProcessor:
             # add @language to mapping
             mapping['@language'] = language
 
-        # merge onto parent mapping if one exists for a prefix
-        if prefix is not None and prefix in active_ctx['mappings']:
+        # if not a null mapping, merge onto parent mapping if one exists for
+        # a prefix
+        if (mapping['@id'] is not None and prefix is not None and
+            prefix in active_ctx['mappings']):
             mapping = dict(
                 list(active_ctx['mappings'][prefix].items()) +
                 list(mapping.items()))
@@ -2247,8 +2257,8 @@ class JsonLdProcessor:
         # recurse if value is a term
         if value in active_ctx['mappings']:
             id = active_ctx['mappings'][value]['@id']
-            # value is already an absolute IRI
-            if value == id:
+            # value is already an absolute IRI or id is a null mapping
+            if value == id or id is None:
                 return value
             return self._expandContextIri(active_ctx, ctx, id, base, defined)
 
@@ -2268,8 +2278,9 @@ class JsonLdProcessor:
             # recurse if prefix is defined
             if prefix in active_ctx['mappings']:
                 id = active_ctx['mappings'][prefix]['@id']
-                return self._expandContextIri(
-                    active_ctx, ctx, id, base, defined) + suffix
+                if id is not None:
+                    return self._expandContextIri(
+                        active_ctx, ctx, id, base, defined) + suffix
 
             # consider value an absolute IRI
             return value
