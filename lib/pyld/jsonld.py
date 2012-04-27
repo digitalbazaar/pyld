@@ -596,7 +596,7 @@ class JsonLdProcessor:
                 if len(objects) != len(s2[p]):
                     return False
                 # compare each object
-                for oi, o in objects:
+                for o in objects:
                     # s2 is missing s1 object
                     if not JsonLdProcessor.hasValue(s2, p, o):
                         return False
@@ -852,8 +852,8 @@ class JsonLdProcessor:
 
             # @type must be a string, array of strings, or an empty JSON object
             if (prop == '@type' and
-                not _is_string(value) or _is_array_of_strings(value) or
-                _is_empty_object(value)):
+                not (_is_string(value) or _is_array_of_strings(value) or
+                _is_empty_object(value))):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax "@type" value must a string, '
                     'an array of strings, or an empty object.',
@@ -1046,7 +1046,7 @@ class JsonLdProcessor:
             cmp_hashes = cmp_to_key(lambda x, y: cmp(x['hash'], y['hash']))
             for result in sorted(results, key=cmp_hashes):
                 # name all bnodes in path namer in key-entry order
-                for bnode in result.pathNamer.order:
+                for bnode in result['pathNamer'].order:
                     namer.getName(bnode)
 
         # create JSON-LD array
@@ -1216,16 +1216,16 @@ class JsonLdProcessor:
 
             for o in objects:
                 # convert boolean to @value
-                if is_bool(o):
-                    o = {'@value': 'True' if o else 'False',
+                if _is_bool(o):
+                    o = {'@value': 'true' if o else 'false',
                         '@type': XSD_BOOLEAN}
                 # convert double to @value
-                elif is_double(o):
+                elif _is_double(o):
                     # do special JSON-LD double format,
                     # printf(' % 1.16e') equivalent
-                    o = {'@value': ('%1.6e' % o), '@type': XSD_DOUBLE}
+                    o = {'@value': ('%1.16e' % o), '@type': XSD_DOUBLE}
                 # convert integer to @value
-                elif is_integer(o):
+                elif _is_integer(o):
                     o = {'@value': str(o), '@type': XSD_INTEGER}
 
                 # object is a blank node
@@ -1277,7 +1277,7 @@ class JsonLdProcessor:
         # build linked list in reverse
         tail = {'@id': RDF_NIL}
         for e in reversed(value['@list']):
-          tail = {RDF_FIRST: e, RDF_REST: tail}
+            tail = {RDF_FIRST: [e], RDF_REST: [tail]}
         return tail
 
     def _addStatement(self, statements, statement):
@@ -1319,7 +1319,7 @@ class JsonLdProcessor:
                 id = namer.getName(id) if namer.isNamed(id) else '_:z'
                 triple += id
             else:
-                triple += ' <%s> ' % s
+                triple += '<%s>' % s
 
             # serialize property
             p = RDF_TYPE if p == '@type' else p
@@ -1418,9 +1418,7 @@ class JsonLdProcessor:
             # choose a path and namer from the permutations
             chosen_path = None
             chosen_namer = None
-            permutator = Permutator(group)
-            while permutator.hasNext():
-                permutation = permutator.next()
+            for permutation in permutations(group):
                 path_namer_copy = copy.deepcopy(path_namer)
 
                 # build adjacent path
@@ -1918,10 +1916,10 @@ class JsonLdProcessor:
             return sum(self._rankTerm(ctx, term, v) for v in lst)
 
         # rank boolean or number
-        if is_bool(value) or is_double(value) or is_integer(value):
-            if is_bool(value):
+        if _is_bool(value) or _is_double(value) or _is_integer(value):
+            if _is_bool(value):
                 type = XSD_BOOLEAN
-            elif is_double(value):
+            elif _is_double(value):
                 type = XSD_DOUBLE
             else:
                 type = XSD_INTEGER
@@ -2242,7 +2240,7 @@ class JsonLdProcessor:
 
         # recurse if value is a term
         if value in active_ctx['mappings']:
-            id = active_ctx.mappings[value]['@id']
+            id = active_ctx['mappings'][value]['@id']
             # value is already an absolute IRI
             if value == id:
                 return value
@@ -2323,7 +2321,7 @@ class JsonLdProcessor:
             return term
 
         # prepend base to term
-        return "baseterm"
+        return base + term
 
     def _getInitialContext(self,):
         """
@@ -2347,6 +2345,15 @@ class JsonLdError(Exception):
         self.type = type
         self.details = details
         self.cause = cause
+
+    def __str__(self):
+        rval = repr(self.message)
+        rval += '\nType: ' + self.type
+        if self.details:
+            rval += '\nDetails: ' + repr(self.details)
+        if self.cause:
+            rval += '\nCause: ' + str(self.cause)
+        return rval
 
 
 class UniqueNamer:
@@ -2543,7 +2550,7 @@ def _is_array_of_strings(input):
     return True
 
 
-def is_bool(value):
+def _is_bool(input):
     """
     Returns True if the given input is a Boolean.
 
@@ -2554,7 +2561,7 @@ def is_bool(value):
     return isinstance(input, bool)
 
 
-def is_integer(value):
+def _is_integer(input):
     """
     Returns True if the given input is an Integer.
 
@@ -2565,7 +2572,7 @@ def is_integer(value):
     return isinstance(input, Integral)
 
 
-def is_double(value):
+def _is_double(input):
     """
     Returns True if the given input is a Double.
 
@@ -2573,7 +2580,7 @@ def is_double(value):
 
     :return: True if the input is a Double, False if not.
     """
-    return isinstance(input, Real)
+    return not isinstance(input, Integral) and isinstance(input, Real)
 
 
 def _is_subject(value):
