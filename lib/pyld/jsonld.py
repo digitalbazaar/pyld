@@ -1563,7 +1563,7 @@ class JsonLdProcessor:
         explicit_on = self._getFrameFlag(frame, options, 'explicit')
 
         # add matches to output
-        for id, subject in matches.items():
+        for id, subject in sorted(matches.items()):
             # Note: In order to treat each top-level match as a
             # compartmentalized result, create an independent copy of the
             # embedded subjects map when the property is None, which only
