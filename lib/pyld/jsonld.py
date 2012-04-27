@@ -286,7 +286,7 @@ class JsonLdProcessor:
         options.setdefault('optimize', False)
 
         # preserve frame context
-        ctx = frame['@context'] or {}
+        ctx = frame.get('@context', {})
 
         try:
             # expand input
@@ -1508,7 +1508,7 @@ class JsonLdProcessor:
         # create new subject or merge into existing one
         subject = subjects.setdefault(name, {})
         subject['@id'] = name
-        for prop, objects in input:
+        for prop, objects in input.items():
             # skip @id
             if prop == '@id':
                 continue
@@ -1655,7 +1655,7 @@ class JsonLdProcessor:
                                 state, output, prop, copy.deepcopy(o))
 
                 # handle defaults in order
-                for prop in sorted(frame.items()):
+                for prop in sorted(frame.keys()):
                     # skip keywords
                     if _is_keyword(prop):
                         continue
@@ -1774,7 +1774,7 @@ class JsonLdProcessor:
                     # recurse into subject
                     o = {}
                     s = state['subjects'][id]
-                    for prop, v in s:
+                    for prop, v in s.items():
                         # copy keywords
                         if _is_keyword(prop):
                             o[prop] = copy.deepcopy(v)
@@ -1876,7 +1876,7 @@ class JsonLdProcessor:
                 return input
 
             # recurse through properties
-            for prop, v in input:
+            for prop, v in input.items():
                 result = self._removePreserve(ctx, v)
                 container = JsonLdProcessor.getContextValue(
                     ctx, prop, '@container')
@@ -1982,7 +1982,6 @@ class JsonLdProcessor:
         if _is_keyword(iri):
             # return alias if available
             aliases = ctx['keywords'][iri]
-            print 'aliases: %s' % aliases
             if len(aliases) > 0:
               return aliases[0]
             else:

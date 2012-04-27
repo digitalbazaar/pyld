@@ -23,8 +23,8 @@ from pyld import jsonld
 TEST_TYPES = [
     'jld:ExpandTest',
     'jld:NormalizeTest',
-    'jld:CompactTest']#,
-    #'jld:FrameTest']
+    'jld:CompactTest',
+    'jld:FrameTest']
 
 # FIXME: remove me
 def _ntriple(s, p, o):
@@ -170,8 +170,6 @@ class TestRunner:
                 if not success or self.options.verbose:
                     print 'Expect:', json.dumps(expect, indent=2)
                     print 'Result:', json.dumps(result, indent=2)
-                    # FIXME: remove me
-                    raise Exception('REMOVE ME')
 
         print 'Done. Total:%d Passed:%d Failed:%d' % (total, passed, failed)
 
