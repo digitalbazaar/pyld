@@ -22,8 +22,8 @@ from pyld import jsonld
 # supported test types
 TEST_TYPES = [
     'jld:ExpandTest',
-    'jld:NormalizeTest']#,
-    #'jld:CompactTest',
+    'jld:NormalizeTest',
+    'jld:CompactTest']#,
     #'jld:FrameTest']
 
 # FIXME: remove me
@@ -192,6 +192,8 @@ def deep_compare(expect, result):
         if len(expect) != len(result):
             return False
         for k, v in expect.items():
+            if k not in result:
+                return False
             if not deep_compare(v, result[k]):
                 return False
         return True

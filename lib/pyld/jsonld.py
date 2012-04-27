@@ -224,7 +224,7 @@ class JsonLdProcessor:
                 graph = compacted
                 compacted = {}
                 compacted['@context'] = ctx
-                for k, v in graph:
+                for k, v in graph.items():
                     compacted[k] = v
 
         if options['activeCtx']:
@@ -717,7 +717,7 @@ class JsonLdProcessor:
 
             # recursively process element keys
             rval = {}
-            for key, value in element:
+            for key, value in element.items():
                 # compact @id and @type(s)
                 if key == '@id' or key == '@type':
                     # compact single @id
@@ -741,7 +741,7 @@ class JsonLdProcessor:
                 # preserve empty arrays
                 if len(value) == 0:
                     prop = self._compactIri(ctx, key)
-                    JsonLdProcessor.addValue(rval, prop, array(), True)
+                    JsonLdProcessor.addValue(rval, prop, [], True)
 
                 # recusively process array values
                 for v in value:
@@ -1982,6 +1982,7 @@ class JsonLdProcessor:
         if _is_keyword(iri):
             # return alias if available
             aliases = ctx['keywords'][iri]
+            print 'aliases: %s' % aliases
             if len(aliases) > 0:
               return aliases[0]
             else:
@@ -1993,7 +1994,7 @@ class JsonLdProcessor:
         highest = 0
         list_container = False
         is_list = _is_list(value)
-        for term, entry in ctx['mappings']:
+        for term, entry in ctx['mappings'].items():
             has_container = '@container' in entry
 
             # skip terms with non-matching iris
@@ -2033,7 +2034,7 @@ class JsonLdProcessor:
 
         # no term matches, add possible CURIEs
         if len(terms) == 0:
-            for term, entry in ctx['mappings']:
+            for term, entry in ctx['mappings'].items():
                 # skip terms with colons, they can't be prefixes
                 if term.find(':') != -1:
                     continue
@@ -2051,7 +2052,7 @@ class JsonLdProcessor:
             return iri
 
         # return shortest and lexicographically-least term
-        sort(terms, key=cmp_to_key(_compare_shortest_least))
+        terms.sort(key=cmp_to_key(_compare_shortest_least))
         return terms[0]
 
     def _defineContextMapping(self, active_ctx, ctx, key, base, defined):
@@ -2131,9 +2132,9 @@ class JsonLdProcessor:
 
                 # uniquely add key as a keyword alias and resort
                 aliases = active_ctx['keywords'][value]
-                if key in aliases:
+                if key not in aliases:
                     aliases.append(key)
-                    sort(aliases, key=cmp_to_key(_compare_shortest_least))
+                    aliases.sort(key=cmp_to_key(_compare_shortest_least))
             else:
                 # expand value to a full IRI
                 value = self._expandContextIri(
