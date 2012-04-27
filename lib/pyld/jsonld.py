@@ -711,7 +711,7 @@ class JsonLdProcessor:
             # compact subject references
             if _is_subject_reference(element):
                 type = JsonLdProcessor.getContextValue(ctx, property, '@type')
-                if type == '@id':
+                if type == '@id' or property == '@graph':
                     element = self._compactIri(ctx, element['@id'])
                     return element
 
@@ -850,14 +850,9 @@ class JsonLdProcessor:
                     'Invalid JSON-LD syntax "@id" value must a string.',
                     'jsonld.SyntaxError', {'value': value})
 
-            # @type must be a string, array of strings, or an empty JSON object
-            if (prop == '@type' and
-                not (_is_string(value) or _is_array_of_strings(value) or
-                _is_empty_object(value))):
-                raise JsonLdError(
-                    'Invalid JSON-LD syntax "@type" value must a string, '
-                    'an array of strings, or an empty object.',
-                    'jsonld.SyntaxError', {'value': value})
+            # validate @type value
+            if prop == '@type':
+                _validate_type_value(value)
 
             # @graph must be an array or an object
             if (prop == '@graph' and not
@@ -903,6 +898,19 @@ class JsonLdProcessor:
                     if container == '@list':
                         # ensure value is an array
                         value = {'@list': JsonLdProcessor.arrayify(value)}
+
+                # optimize away @id for @type
+                if prop == '@type':
+                    if _is_subject_reference(value):
+                        value = value['@id']
+                    elif _is_array(value):
+                        val = []
+                        for v in value:
+                          if _is_subject_reference(v):
+                            val.append(v['@id'])
+                          else:
+                            val.append(v)
+                        value = val
 
                 # add value, use an array if not @id, @type, @value, or
                 # @language
@@ -1155,8 +1163,8 @@ class JsonLdProcessor:
             # get type definition from context
             type = JsonLdProcessor.getContextValue(ctx, property, '@type')
 
-            # do @id expansion
-            if type == '@id':
+            # do @id expansion (automatic for @graph)
+            if type == '@id' or prop == '@graph':
                 rval = {'@id': self._expandTerm(ctx, value, base)}
             # other type
             elif type is not None:
@@ -1709,7 +1717,7 @@ class JsonLdProcessor:
         :return: all of the matched subjects.
         """
         rval = {}
-        for id in sorted(subjects):
+        for id in subjects:
             subject = state['subjects'][id]
             if self._filterSubject(subject, frame):
                 rval[id] = subject
@@ -1974,10 +1982,6 @@ class JsonLdProcessor:
         if iri is None:
             return iri
 
-        # compact rdf:type
-        if iri == RDF_TYPE:
-            return '@type'
-
         # term is a keyword
         if _is_keyword(iri):
             # return alias if available
@@ -2159,8 +2163,10 @@ class JsonLdProcessor:
                 raise JsonLdError(
                     'Invalid JSON-LD syntax @context @id values must be '
                     'strings.', 'jsonld.SyntaxError', {'context': ctx})
-            # expand @id to full IRI
-            id = self._expandContextIri(active_ctx, ctx, id, base, defined)
+            # expand @id if it is not @type
+            if id != '@type':
+                # expand @id to full IRI
+                id = self._expandContextIri(active_ctx, ctx, id, base, defined)
             # add @id to mapping
             mapping['@id'] = id
         else:
@@ -2471,123 +2477,135 @@ def _compare_shortest_least(a, b):
     return rval
 
 
-def _is_keyword(value, ctx=None):
+def _is_keyword(v, ctx=None):
     """
     Returns whether or not the given value is a keyword (or a keyword alias).
 
-    :param value: the value to check.
+    :param v: the value to check.
     :param [ctx]: the active context to check against.
 
     :return: True if the value is a keyword, False if not.
     """
     if ctx is not None:
-        if value in ctx['keywords']:
+        if v in ctx['keywords']:
             return True
         for kw, aliases in ctx['keywords'].items():
-            if value in aliases:
+            if v in aliases:
                 return True
     else:
-        return value in KEYWORDS
+        return v in KEYWORDS
 
 
-def _is_object(input):
+def _is_object(v):
     """
-    Returns True if the given input is an Object.
+    Returns True if the given value is an Object.
 
-    :param input: the input to check.
+    :param v: the value to check.
 
-    :return: True if the input is an Object, False if not.
+    :return: True if the value is an Object, False if not.
     """
-    return isinstance(input, dict)
+    return isinstance(v, dict)
 
 
-def _is_empty_object(input):
+def _is_empty_object(v):
     """
-    Returns True if the given input is an empty Object.
+    Returns True if the given value is an empty Object.
 
-    :param input: the input to check.
+    :param v: the value to check.
 
-    :return: True if the input is an empty Object, False if not.
+    :return: True if the value is an empty Object, False if not.
     """
-    return _is_object(input) and len(input) == 0
+    return _is_object(v) and len(v) == 0
 
 
-def _is_array(input):
+def _is_array(v):
     """
-    Returns True if the given input is an Array.
+    Returns True if the given value is an Array.
 
-    :param input: the input to check.
+    :param v: the value to check.
 
-    :return: True if the input is an Array, False if not.
+    :return: True if the value is an Array, False if not.
     """
-    return isinstance(input, list)
+    return isinstance(v, list)
 
 
-def _is_string(input):
+def _is_string(v):
     """
-    Returns True if the given input is a String.
+    Returns True if the given value is a String.
 
-    :param input: the input to check.
+    :param v: the value to check.
 
-    :return: True if the input is a String, False if not.
+    :return: True if the value is a String, False if not.
     """
-    return isinstance(input, basestring)
+    return isinstance(v, basestring)
 
 
-def _is_array_of_strings(input):
+def _validate_type_value(v):
     """
-    Returns True if the given input is an Array of Strings.
+    Raises an exception if the given value is not a valid @type value.
 
-    :param input: the input to check.
-
-    :return: True if the input is an Array of Strings, False if not.
+    :param v: the value to check.
     """
-    if not _is_array(input):
-        return False
-    for v in input:
-        if not _is_string(v):
-            return False
-    return True
+    # must be a string, subject reference, or empty object
+    if (_is_string(v) or _is_subject_reference(v) or
+        _is_empty_object(v)):
+        return
+
+    # must be an array
+    is_valid = False
+    if _is_array(v):
+        # must contain only strings or subject references
+        is_valid = True
+        for e in v:
+            if not (_is_string(e) or _is_subject_reference(e)):
+                is_valid = False
+                break
+
+    if not is_valid:
+        raise JsonLdError(
+            'Invalid JSON-LD syntax "@type" value must a string, '
+            'an array of strings, or an empty object.',
+            'jsonld.SyntaxError', {'value': v})
 
 
-def _is_bool(input):
+def _is_bool(v):
     """
-    Returns True if the given input is a Boolean.
+    Returns True if the given value is a Boolean.
 
-    :param input: the input to check.
+    :param v: the value to check.
 
-    :return: True if the input is a Boolean, False if not.
+    :return: True if the value is a Boolean, False if not.
     """
-    return isinstance(input, bool)
+    return isinstance(v, bool)
 
 
-def _is_integer(input):
+def _is_integer(v):
     """
-    Returns True if the given input is an Integer.
+    Returns True if the given value is an Integer.
 
-    :param input: the input to check.
+    :param v: the value to check.
 
-    :return: True if the input is an Integer, False if not.
+    :return: True if the value is an Integer, False if not.
     """
-    return isinstance(input, Integral)
+    return isinstance(v, Integral)
 
 
-def _is_double(input):
+def _is_double(v):
     """
-    Returns True if the given input is a Double.
+    Returns True if the given value is a Double.
 
-    :param input: the input to check.
+    :param v: the value to check.
 
-    :return: True if the input is a Double, False if not.
+    :return: True if the value is a Double, False if not.
     """
-    return not isinstance(input, Integral) and isinstance(input, Real)
+    return not isinstance(v, Integral) and isinstance(v, Real)
 
 
-def _is_subject(value):
+def _is_subject(v):
     """
     Returns True if the given value is a subject with properties.
 
-    :param value: the value to check.
+    :param v: the value to check.
 
     :return: True if the value is a subject with properties, False if not.
     """
@@ -2596,61 +2614,59 @@ def _is_subject(value):
     # 2. It is not a @value, @set, or @list.
     # 3. It has more than 1 key OR any existing key is not @id.
     rval = False
-    if (_is_object(value) and
-        '@value' not in value and
-        '@set' not in value and
-        '@list' not in value):
-        rval = len(value) > 1 or '@id' not in value
+    if (_is_object(v) and
+        '@value' not in v and '@set' not in v and '@list' not in v):
+        rval = len(v) > 1 or '@id' not in v
     return rval
 
 
-def _is_subject_reference(value):
+def _is_subject_reference(v):
     """
     Returns True if the given value is a subject reference.
 
-    :param value: the value to check.
+    :param v: the value to check.
 
     :return: True if the value is a subject reference, False if not.
     """
     # Note: A value is a subject reference if all of these hold True:
     # 1. It is an Object.
     # 2. It has a single key: @id.
-    return (_is_object(value) and len(value) == 1 and '@id' in value)
+    return (_is_object(v) and len(v) == 1 and '@id' in v)
 
 
-def _is_value(value):
+def _is_value(v):
     """
     Returns True if the given value is a @value.
 
-    :param mixed value the value to check.
+    :param v: the value to check.
 
-    :return: bool True if the value is a @value, False if not.
+    :return: True if the value is a @value, False if not.
     """
     # Note: A value is a @value if all of these hold True:
     # 1. It is an Object.
     # 2. It has the @value property.
-    return _is_object(value) and '@value' in value
+    return _is_object(v) and '@value' in v
 
 
-def _is_list(value):
+def _is_list(v):
     """
     Returns True if the given value is a @list.
 
-    :param value: the value to check.
+    :param v: the value to check.
 
     :return: True if the value is a @list, False if not.
     """
     # Note: A value is a @list if all of these hold True:
     # 1. It is an Object.
     # 2. It has the @list property.
-    return _is_object(value) and '@list' in value
+    return _is_object(v) and '@list' in v
 
 
-def _is_bnode(value):
+def _is_bnode(v):
     """
     Returns True if the given value is a blank node.
 
-    :param value: the value to check.
+    :param v: the value to check.
 
     :return: True if the value is a blank node, False if not.
     """
@@ -2659,35 +2675,34 @@ def _is_bnode(value):
     # 2. If it has an @id key its value begins with '_:'.
     # 3. It has no keys OR is not a @value, @set, or @list.
     rval = False
-    if _is_object(value):
-        if '@id' in value:
-            rval = value['@id'].startswith('_:')
+    if _is_object(v):
+        if '@id' in v:
+            rval = v['@id'].startswith('_:')
         else:
-            rval = (len(value) == 0 or not
-                ('@value' in value or '@set' in value or '@list' in value))
+            rval = (len(v) == 0 or not
+                ('@value' in v or '@set' in v or '@list' in v))
     return rval
 
 
-def _is_absolute_iri(value):
+def _is_absolute_iri(v):
     """
     Returns True if the given value is an absolute IRI, False if not.
 
-    :param value: the value to check.
+    :param v: the value to check.
 
     :return: True if the value is an absolute IRI, False if not.
     """
-    return value.find(':') != -1
+    return v.find(':') != -1
 
 
-def _get_bnode_name(value):
+def _get_bnode_name(v):
     """
     A helper function that gets the blank node name from a statement value
     (a subject or object). If the statement value is not a blank node or it
     has an @id of '_:a', then None will be returned.
 
-    :param value: the statement value.
+    :param v: the statement value.
 
     :return: the blank node name or None if none was found.
     """
-    return (value['@id'] if _is_bnode(value) and
-        value['@id'] != '_:a' else None)
+    return (v['@id'] if _is_bnode(v) and v['@id'] != '_:a' else None)
