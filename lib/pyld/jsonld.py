@@ -4,7 +4,7 @@ Python implementation of JSON-LD processor
 This implementation is ported from the Javascript implementation of
 JSON-LD.
 
-.. module:: pyld
+.. module:: jsonld
   :synopsis: Python implementation of JSON-LD
 
 .. moduleauthor:: Dave Longley 
@@ -12,2018 +12,2675 @@ JSON-LD.
 .. moduleauthor:: Tim McNamara <tim.mcnamara@okfn.org>
 """
 
-__copyright__ = "Copyright (c) 2011-2012 Digital Bazaar, Inc."
-__license__ = "New BSD licence"
+__copyright__ = 'Copyright (c) 2011-2012 Digital Bazaar, Inc.'
+__license__ = 'New BSD license'
 
-__all__ = ["compact", "expand", "frame", "normalize", "triples"]
+__all__ = ['compact', 'expand', 'frame', 'normalize', 'toRDF',
+    'JsonLdProcessor']
 
-import copy
+import copy, hashlib
+from functools import cmp_to_key
+from numbers import Integral, Real
 
-ns = {
-    'xsd': 'http://www.w3.org/2001/XMLSchema#'
-}
+# XSD constants
+XSD_BOOLEAN = 'http://www.w3.org/2001/XMLSchema#boolean'
+XSD_DOUBLE = 'http://www.w3.org/2001/XMLSchema#double'
+XSD_INTEGER = 'http://www.w3.org/2001/XMLSchema#integer'
 
-xsd = {
-    'boolean': ns['xsd'] + 'boolean',
-    'double': ns['xsd'] + 'double',
-    'integer': ns['xsd'] + 'integer'
-}
+# RDF constants
+RDF_FIRST = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#first'
+RDF_REST = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'
+RDF_NIL = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#nil'
+RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
 
-def _setProperty(s, p, o):
+# JSON-LD keywords
+KEYWORDS = [
+    '@context',
+    '@container',
+    '@default',
+    '@embed',
+    '@explicit',
+    '@graph',
+    '@id',
+    '@language',
+    '@list',
+    '@omitDefault',
+    '@preserve',
+    '@set',
+    '@type',
+    '@value']
+
+
+def compact(input, ctx, options=None):
     """
-    Sets a subject's property to the given object value. If a value already
-    exists, it will be appended to an array.
+    Performs JSON-LD compaction.
 
-    :param s: the subjet.
-    :param p: the property.
-    :param o: the object.
+    :param input: input the JSON-LD input to compact.
+    :param ctx: the JSON-LD context to compact with.
+    :param [options]: the options to use.
+      [base] the base IRI to use.
+      [strict] use strict mode (default: True).
+      [optimize] True to optimize the compaction (default: False).
+      [graph] True to always output a top-level graph (default: False).
+
+    :return: the compacted JSON-LD output.
     """
-    if p in s:
-        if isinstance(s[p], list):
-            s[p].append(o)
-        else:
-            s[p] = [s[p], o]
-    else:
-        s[p] = o
+    return JsonLdProcessor().compact(input, ctx, options)
 
-def _getKeywords(ctx):
+
+def expand(input, options=None):
     """
-    Gets the keywords from a context.
+    Performs JSON-LD expansion.
 
-    :param ctx: the context.
+    :param input: the JSON-LD object to expand.
+    :param [options]: the options to use.
+      [base] the base IRI to use.
 
-    :return: the keywords.
+    :return: the expanded JSON-LD output.
     """
-    # TODO: reduce calls to this function by caching keywords in processor
-    # state
+    return JsonLdProcessor().expand(input, options)
 
-    rval = {
-       '@id': '@id',
-       '@language': '@language',
-       '@value': '@value',
-       '@type': '@type'
-    }
 
-    if ctx:
-       # gather keyword aliases from context
-       keywords = {}
-       for key, value in ctx.items():
-          if isinstance(value, basestring) and value in rval:
-             keywords[value] = key
-
-       # overwrite keywords
-       for key in keywords:
-          rval[key] = keywords[key]
-
-    return rval
-
-def _getTermIri(ctx, term):
+def frame(input, frame, options=None):
     """
-    Gets the IRI associated with a term.
+    Performs JSON-LD framing.
 
-    :param ctx: the context to use.
-    :param term: the term.
+    :param input: the JSON-LD object to frame.
+    :param frame: the JSON-LD frame to use.
+    :param [options]: the options to use.
+      [base] the base IRI to use.
+      [embed] default @embed flag (default: True).
+      [explicit] default @explicit flag (default: False).
+      [omitDefault] default @omitDefault flag (default: False).
+      [optimize] optimize when compacting (default: False).
 
-    :return: the IRI or None.
+    :return: the framed JSON-LD output.
     """
-    rval = None
-    if term in ctx:
-        if isinstance(ctx[term], basestring):
-            rval = ctx[term]
-        elif isinstance(ctx[term], dict) and '@id' in ctx[term]:
-            rval = ctx[term]['@id']
-    return rval
+    return JsonLdProcessor().frame(input, frame, options)
 
-def _compactIri(ctx, iri, usedCtx):
+
+def normalize(input, options=None):
     """
-    Compacts an IRI into a term if it can be. IRIs will not be compacted to
-    relative IRIs if they match the given context's default vocabulary.
+    Performs JSON-LD normalization.
 
-    :param ctx: the context to use.
-    :param iri: the IRI to compact.
-    :param usedCtx: a context to update if a value was used from "ctx".
+    :param input: the JSON-LD object to normalize.
+    :param [options]: the options to use.
+      [base] the base IRI to use.
 
-    :return: the compacted IRI as a term or the original IRI.
+    :return: the normalized JSON-LD output.
     """
-    rval = None
-
-    # check the context for a term that could shorten the IRI
-    # (give preference to regular terms over prefixed terms)
-    for key in ctx:
-        # skip special context keys (start with '@')
-        if len(key) > 0 and not key.startswith('@'):
-            # compact to a term
-            if iri == _getTermIri(ctx, key):
-                rval = key
-                if usedCtx is not None:
-                    usedCtx[key] = copy.copy(ctx[key])
-                break
-
-    # term not found, if term is keyword, use alias
-    if rval is None:
-        keywords = _getKeywords(ctx)
-        if iri in keywords:
-            rval = keywords[iri]
-            if rval != iri and usedCtx is not None:
-                usedCtx[key] = iri
-
-    # term not found, check the context for a term prefix
-    if rval is None:
-        for key in ctx:
-            # skip special context keys (start with '@')
-            if len(key) > 0 and not key.startswith('@'):
-                # see if IRI begins with the next IRI from the context
-                ctxIri = _getTermIri(ctx, key)
-                if ctxIri is not None:
-                    idx = iri.find(ctxIri)
-
-                    # compact to a prefixed term
-                    if idx == 0 and len(iri) > len(ctxIri):
-                        rval = key + ':' + iri[len(ctxIri):]
-                        if usedCtx is not None:
-                            usedCtx[key] = copy.copy(ctx[key])
-                        break
-
-    # could not compact IRI
-    if rval is None:
-        rval = iri
-
-    return rval
+    return JsonLdProcessor().normalize(input, options)
 
 
-def _expandTerm(ctx, term, usedCtx):
+def toRDF(input, options=None):
     """
-    Expands a term into an absolute IRI. The term may be a term, a relative
-    IRI, or an absolute IRI. In any case, the associated absolute IRI will be
-    returned.
+    Outputs the RDF statements found in the given JSON-LD object.
 
-    :param ctx: the context to use.
-    :param term: the term to expand.
-    :param usedCtx: a context to update if a value was used from "ctx".
+    :param input: the JSON-LD object.
+    :param [options]: the options to use.
+      [base] the base IRI to use.
 
-    :return: the expanded term as an absolute IRI.
+    :return: all RDF statements in the JSON-LD object.
     """
-    rval = term
+    return JsonLdProcessor().toRDF(input, options)
 
-    # get JSON-LD keywords
-    keywords = _getKeywords(ctx)
 
-    # 1. If the property has a colon, it has a prefix or an absolute IRI:
-    idx = term.find(':')
-    if idx != -1:
-        # get the potential prefix
-        prefix = term[0:idx]
-
-        # expand term if prefix is in context, otherwise leave it be
-        if prefix in ctx:
-            # prefix found, expand property to absolute IRI
-            iri = _getTermIri(ctx, prefix)
-            rval = iri + term[idx + 1:]
-            if usedCtx is not None:
-                usedCtx[prefix] = copy.copy(ctx[prefix])
-    # 2. If the property is in the context, then it's a term.
-    elif term in ctx:
-        rval = _getTermIri(ctx, term)
-        if usedCtx is not None:
-            usedCtx[term] = copy.copy(ctx[term])
-    # 3. The property is a keyword.
-    else:
-        for k, v in keywords.items():
-            if term == v:
-                rval = k
-                break
-
-    return rval
-
-def _isReference(value):
-    """
-    Gets whether or not a value is a reference to a subject (or a subject with
-    no properties).
-
-    :param value: the value to check.
-
-    :return: True if the value is a reference to a subject, False if not.
-    """
-    # Note: A value is a reference to a subject if all of these hold true:
-    # 1. It is an Object.
-    # 2. It is has an @id key.
-    # 3. It has only 1 key.
-    return (value != None and
-      isinstance(value, dict) and
-      '@id' in value and
-      len(value.keys()) == 1)
-
-def _isSubject(value):
-    """
-    Gets whether or not a value is a subject with properties.
-
-    :param value: the value to check.
-
-    :return: True if the value is a subject with properties, False if not.
-    """
-    rval = False
-
-    # Note: A value is a subject if all of these hold true:
-    # 1. It is an Object.
-    # 2. It is not a literal (@value).
-    # 3. It has more than 1 key OR any existing key is not '@id'.
-    if (value is not None and isinstance(value, dict) and
-        '@value' not in value):
-        rval = len(value.keys()) > 1 or '@id' not in value
-
-    return rval
-
-def _isBlankNodeIri(v):
-    """
-    Checks if an IRI is a blank node.
-    """
-    return v.find('_:') == 0
-
-def _isNamedBlankNode(v):
-    """
-    Checks if a named node is blank.
-    """
-    # look for "_:" at the beginning of the subject
-    return (isinstance(v, dict) and '@id' in v and _isBlankNodeIri(v['@id']))
-
-def _isBlankNode(v):
-    """
-    Checks if the node is blank.
-    """
-    # look for a subject with no ID or a blank node ID
-    return (_isSubject(v) and ('@id' not in v or _isNamedBlankNode(v)))
-
-def _compare(v1, v2):
-    """
-    Compares two values.
-
-    :param v1: the first value.
-    :param v2: the second value.
-
-    :return: -1 if v1 < v2, 0 if v1 == v2, 1 if v1 > v2.
-    """
-    rval = 0
-
-    if isinstance(v1, list) and isinstance(v2, list):
-        for i in range(0, len(v1)):
-            rval = _compare(v1[i], v2[i])
-            if rval != 0:
-                break
-    else:
-        rval = -1 if v1 < v2 else (1 if v1 > v2 else 0)
-
-    return rval
-
-def _compareObjectKeys(o1, o2, key):
-    """
-    Compares two keys in an object. If the key exists in one object
-    and not the other, that object is less. If the key exists in both objects,
-    then the one with the lesser value is less.
-    
-    :param o1: the first object.
-    :param o2: the second object.
-    :param key: the key.
-
-    :return: -1 if o1 < o2, 0 if o1 == o2, 1 if o1 > o2.
-    """
-    rval = 0
-    if key in o1:
-        if key in o2:
-            rval = _compare(o1[key], o2[key])
-        else:
-            rval = -1
-    elif key in o2:
-        rval = 1
-    return rval
-
-def _compareObjects(o1, o2):
-    """
-    Compares two object values.
-
-    :param o1: the first object.
-    :param o2: the second object.
-
-    :return: -#1 if o1 < o2, 0 if o1 == o2, 1 if o1 > o2.
-    """
-    rval = 0
-
-    if isinstance(o1, basestring):
-        if not isinstance(o2, basestring):
-            rval = -1
-        else:
-            rval = _compare(o1, o2)
-    elif isinstance(o2, basestring):
-        rval = 1
-    else:
-        rval = _compareObjectKeys(o1, o2, '@value')
-        if rval == 0:
-            if '@value' in o1:
-                rval = _compareObjectKeys(o1, o2, '@type')
-                if rval == 0:
-                    rval = _compareObjectKeys(o1, o2, '@language')
-            # both are '@id' objects
-            else:
-                rval = _compare(o1['@id'], o2['@id'])
-
-    return rval
-
-def _compareBlankNodeObjects(a, b):
-    """
-    Compares the object values between two bnodes.
-
-    :param a: the first bnode.
-    :param b: the second bnode.
-    
-    :return: -1 if a < b, 0 if a == b, 1 if a > b.
-    """
-    rval = 0
-
-    # 3.     For each property, compare sorted object values.
-    # 3.1.   The bnode with fewer objects is first.
-    # 3.2.   For each object value, compare only literals and non-bnodes.
-    # 3.2.1. The bnode with fewer non-bnodes is first.
-    # 3.2.2. The bnode with a string object is first.
-    # 3.2.3. The bnode with the alphabetically-first string is first.
-    # 3.2.4. The bnode with a @value is first.
-    # 3.2.5. The bnode with the alphabetically-first @value is first.
-    # 3.2.6. The bnode with the alphabetically-first @type is first.
-    # 3.2.7. The bnode with a @language is first.
-    # 3.2.8. The bnode with the alphabetically-first @language is first.
-    # 3.2.9. The bnode with the alphabetically-first @id is first.
-
-    for p in a:
-        if p != '@id':
-            # step #3.1
-            lenA = len(a[p]) if isinstance(a[p], list) else 1
-            lenB = len(b[p]) if isinstance(b[p], list) else 1
-            rval = _compare(lenA, lenB)
-
-            # step #3.2.1
-            if rval == 0:
-                # normalize objects to an array
-                objsA = a[p]
-                objsB = b[p]
-                if not isinstance(objsA, list):
-                    objsA = [objsA]
-                    objsB = [objsB]
-
-                def bnodeFilter(e):
-                    return not _isNamedBlankNode(e)
-
-                # compare non-bnodes (remove bnodes from comparison)
-                objsA = filter(bnodeFilter, objsA)
-                objsB = filter(bnodeFilter, objsB)
-                rval = _compare(len(objsA), len(objsB))
-
-            # steps #3.2.2-3.2.9
-            if rval == 0:
-                objsA.sort(_compareObjects)
-                objsB.sort(_compareObjects)
-                for i in range(0, len(objsA)):
-                    rval = _compareObjects(objsA[i], objsB[i])
-                    if rval != 0:
-                        break
-
-            if rval != 0:
-                break
-
-    return rval
-
-class NameGenerator:
-    """
-    Creates a blank node name generator using the given prefix for the
-    blank nodes.
-
-    :param prefix: the prefix to use.
-
-    :return: the blank node name generator.
-    """
-    def __init__(self, prefix):
-        self.count = -1
-        self.prefix = prefix
-
-    def next(self):
-        self.count += 1
-        return self.current()
-
-    def current(self):
-        return '_:%s%s' % (self.prefix, self.count)
-
-    def inNamespace(self, iri):
-        return iri.startswith('_:' + self.prefix)
-
-def _collectSubjects(input, subjects, bnodes):
-    """
-    Populates a map of all named subjects from the given input and an array
-    of all unnamed bnodes (includes embedded ones).
-
-    :param input: the input (must be expanded, no context).
-    :param subjects: the subjects map to populate.
-    :param bnodes: the bnodes array to populate.
-    """
-    if input is None:
-        # nothing to collect
-        pass
-    elif isinstance(input, list):
-        for i in input:
-            _collectSubjects(i, subjects, bnodes)
-    elif isinstance(input, dict):
-        if '@id' in input:
-            # graph literal/disjoint graph
-            if isinstance(input['@id'], list):
-                _collectSubjects(input['@id'], subjects, bnodes)
-            # named subject
-            elif _isSubject(input):
-                subjects[input['@id']] = input
-        # unnamed blank node
-        elif _isBlankNode(input):
-            bnodes.append(input)
-
-        # recurse through subject properties
-        for key in input:
-            _collectSubjects(input[key], subjects, bnodes)
-
-def _flatten(parent, parentProperty, value, subjects):
-    """
-    Flattens the given value into a map of unique subjects. It is assumed that
-    all blank nodes have been uniquely named before this call. Array values for
-    properties will be sorted.
-
-    :param parent: the value's parent, None for none.
-    :param parentProperty: the property relating the value to the parent.
-    :param value: the value to flatten.
-    :param subjects: the map of subjects to write to.
-    """
-    flattened = None
-
-    if value is None:
-        # drop None values
-        pass
-    elif isinstance(value, list):
-        # list of objects or a disjoint graph
-        for i in value:
-            _flatten(parent, parentProperty, i, subjects)
-    elif isinstance(value, dict):
-        # already-expanded value or special-case reference-only @type
-        if '@value' in value or parentProperty == '@type':
-            flattened = copy.copy(value)
-        # graph literal/disjoint graph
-        elif isinstance(value['@id'], list):
-            # cannot flatten embedded graph literals
-            if parent is not None:
-                raise Exception('Embedded graph literals cannot be flattened.')
-
-            # top-level graph literal
-            for key in value['@id']:
-                _flatten(parent, parentProperty, key, subjects)
-        # regular subject
-        else:
-            # create or fetch existing subject
-            if value['@id'] in subjects:
-                # FIXME: '@id' might be a graph literal (as {})
-                subject = subjects[value['@id']]
-            else:
-                # FIXME: '@id' might be a graph literal (as {})
-                subject = {'@id': value['@id']}
-                subjects[value['@id']] = subject
-            flattened = {'@id': subject['@id']}
-
-            # flatten embeds
-            for key, v in value.items():
-                # drop None values, skip @id (it is already set above)
-                if v is not None and key != '@id':
-                    if key in subject:
-                        if not isinstance(subject[key], list):
-                            subject[key] = [subject[key]]
-                    else:
-                        subject[key] = []
-
-                    _flatten(subject[key], key, v, subjects)
-                    if len(subject[key]) == 1:
-                        # convert subject[key] to object if it has only 1
-                        subject[key] = subject[key][0]
-    # string value
-    else:
-        flattened = value
-
-    # add flattened value to parent
-    if flattened is not None and parent is not None:
-        if isinstance(parent, list):
-            # do not add duplicates for the same property
-            def parentFilter(e):
-                return (_compareObjects(e, flattened) == 0)
-            duplicate = len(filter(parentFilter, parent)) > 0
-            if not duplicate:
-                parent.append(flattened)
-        else:
-            parent[parentProperty] = flattened
-
-class MappingBuilder:
-    """
-    A MappingBuilder is used to build a mapping of existing blank node names
-    to a form for serialization. The serialization is used to compare blank
-    nodes against one another to determine a sort order.
-    """
-    def __init__(self):
-        """
-        Initialize the MappingBuilder.
-        """
-        self.count = 1
-        self.processed = {}
-        self.mapping = {}
-        self.adj = {}
-        self.keyStack = [{ 'keys': ['s1'], 'idx': 0 }]
-        self.done = {}
-        self.s = ''
-
-    def copy(self):
-        """
-        Copies this MappingBuilder.
-
-        :return: the MappingBuilder copy.
-        """
-        rval = MappingBuilder()
-        rval.count = self.count
-        rval.processed = copy.copy(self.processed)
-        rval.mapping = copy.copy(self.mapping)
-        rval.adj = copy.copy(self.adj)
-        rval.keyStack = copy.copy(self.keyStack)
-        rval.done = copy.copy(self.done)
-        rval.s = self.s
-        return rval
-
-    def mapNode(self, iri):
-        """
-        Maps the next name to the given bnode IRI if the bnode IRI isn't already
-        in the mapping. If the given bnode IRI is canonical, then it will be
-        given a shortened form of the same name.
-
-        :param iri: the blank node IRI to map the next name to.
-
-        :return: the mapped name.
-        """
-        if iri not in self.mapping:
-            if iri.startswith('_:c14n'):
-                self.mapping[iri] = 'c%s' % iri[0:6]
-            else:
-                self.mapping[iri] = 's%s' % self.count
-                self.count += 1
-        return self.mapping[iri]
-
-class Processor:
+class JsonLdProcessor:
     """
     A JSON-LD processor.
     """
+
     def __init__(self):
         """
         Initialize the JSON-LD processor.
         """
         pass
 
-    def compact(self, ctx, property, value, usedCtx):
+    def compact(self, input, ctx, options):
         """
-        Recursively compacts a value. This method will compact IRIs to
-        terms and do reverse type coercion to compact a value.
+        Performs JSON-LD compaction.
 
-        :param ctx: the context to use.
-        :param property: the property that points to the value, None for none.
-        :param value: the value to compact.
-        :param usedCtx: a context to update if a value was used from "ctx".
+        :param input: the JSON-LD input to compact.
+        :param ctx: the context to compact with.
+        :param options: the options to use.
+          [base] the base IRI to use.
+          [strict] use strict mode (default: True).
+          [optimize] True to optimize the compaction (default: False).
+          [graph] True to always output a top-level graph (default: False).
+          [activeCtx] True to also return the active context used.
+
+        :return: the compacted JSON-LD output.
+        """
+        # nothing to compact
+        if input is None:
+            return None
+
+        # set default options
+        options = options or {}
+        options.setdefault('base', '')
+        options.setdefault('strict', True)
+        options.setdefault('optimize', False)
+        options.setdefault('graph', False)
+        options.setdefault('activeCtx', False)
+
+        # expand input
+        try:
+            expanded = self.expand(input, options)
+        except JsonLdError as cause:
+            raise JsonLdError('Could not expand input before compaction.',
+                'jsonld.CompactError', None, cause)
+
+        # process context
+        active_ctx = self._getInitialContext()
+        try:
+            active_ctx = self.processContext(active_ctx, ctx, options)
+        except JsonLdError as cause:
+            raise JsonLdError('Could not process context before compaction.',
+                'jsonld.CompactError', None, cause)
+
+        # do compaction
+        compacted = self._compact(active_ctx, None, expanded, options)
+
+        # always use an array if graph options is on
+        if options['graph'] == True:
+            compacted = JsonLdProcessor.arrayify(compacted)
+        # elif compacted is an array with 1 entry, remove array
+        elif _is_array(compacted) and len(compacted) == 1:
+            compacted = compacted[0]
+
+        # follow @context key
+        if _is_object(ctx) and '@context' in ctx:
+            ctx = ctx['@context']
+
+        # build output context
+        ctx = copy.deepcopy(ctx)
+        ctx = JsonLdProcessor.arrayify(ctx)
+
+        # remove empty contexts
+        tmp = ctx
+        ctx = []
+        for v in tmp:
+            if not _is_object(v) or len(v) > 0:
+                ctx.append(v)
+
+        # remove array if only one context
+        ctx_length = len(ctx)
+        has_context = (ctx_length > 0)
+        if ctx_length == 1:
+            ctx = ctx[0]
+
+        # add context
+        if has_context or options['graph']:
+            if _is_array(compacted):
+                # use '@graph' keyword
+                kwgraph = self._compactIri(active_ctx, '@graph')
+                graph = compacted
+                compacted = {}
+                if has_context:
+                    compacted['@context'] = ctx
+                compacted[kwgraph] = graph
+            elif _is_object(compacted):
+                # reorder keys so @context is first
+                graph = compacted
+                compacted = {}
+                compacted['@context'] = ctx
+                for k, v in graph:
+                    compacted[k] = v
+
+        if options['activeCtx']:
+            return {'compacted': compacted, 'activeCtx': active_ctx}
+        else:
+            return compacted
+
+    def expand(self, input, options):
+        """
+        Performs JSON-LD expansion.
+
+        :param input: the JSON-LD object to expand.
+        :param options: the options to use.
+          [base] the base IRI to use.
+
+        :return: the expanded JSON-LD output.
+        """
+        # set default options
+        options = options or {}
+        options.setdefault('base', '')
+
+        # resolve all @context URLs in the input
+        input = copy.deepcopy(input)
+        #self._resolveUrls(input, options['resolver'])
+
+        # do expansion
+        ctx = self._getInitialContext()
+        expanded = self._expand(ctx, None, input, options, False)
+
+        # optimize away @graph with no other properties
+        if (_is_object(expanded) and '@graph' in expanded and
+            len(expanded) == 1):
+            expanded = expanded['@graph']
+
+        # normalize to an array
+        return JsonLdProcessor.arrayify(expanded)
+
+    def frame(self, input, frame, options):
+        """
+        Performs JSON-LD framing.
+
+        :param input: the JSON-LD object to frame.
+        :param frame: the JSON-LD frame to use.
+        :param options: the options to use.
+          [base] the base IRI to use.
+          [embed] default @embed flag (default: True).
+          [explicit] default @explicit flag (default: False).
+          [omitDefault] default @omitDefault flag (default: False).
+          [optimize] optimize when compacting (default: False).
+
+        :return: the framed JSON-LD output.
+        """
+        # set default options
+        options = options or {}
+        options.setdefault('base', '')
+        options.setdefault('embed', True)
+        options.setdefault('explicit', False)
+        options.setdefault('omitDefault', False)
+        options.setdefault('optimize', False)
+
+        # preserve frame context
+        ctx = frame['@context'] or {}
+
+        try:
+            # expand input
+            _input = self.expand(input, options)
+        except JsonLdError as cause:
+            raise JsonLdError('Could not expand input before framing.',
+                'jsonld.FrameError', None, cause)
+
+        try:
+            # expand frame
+            _frame = self.expand(frame, options)
+        except JsonLdError as cause:
+            raise JsonLdError('Could not expand frame before framing.',
+                'jsonld.FrameError', None, cause)
+
+        # do framing
+        framed = self._frame(_input, _frame, options)
+
+        try:
+            # compact result (force @graph option to True)
+            options['graph'] = True
+            options['activeCtx'] = True
+            result = self.compact(framed, ctx, options)
+        except JsonLdError as cause:
+            raise JsonLdError('Could not compact framed output.',
+                'jsonld.FrameError', None, cause)
+
+        compacted = result['compacted']
+        ctx = result['activeCtx']
+
+        # get graph alias
+        graph = self._compactIri(ctx, '@graph')
+        # remove @preserve from results
+        compacted[graph] = self._removePreserve(ctx, compacted[graph])
+        return compacted
+
+    def normalize(self, input, options):
+        """
+        Performs JSON-LD normalization.
+
+        :param input: the JSON-LD object to normalize.
+        :param options: the options to use.
+          [base] the base IRI to use.
+
+        :return: the JSON-LD normalized output.
+        """
+        # set default options
+        options = options or {}
+        options.setdefault('base', '')
+
+        try:
+          # expand input then do normalization
+          expanded = self.expand(input, options)
+        except JsonLdError as cause:
+            raise JsonLdError('Could not expand input before normalization.',
+                'jsonld.NormalizeError', None, cause)
+
+        # do normalization
+        return self._normalize(expanded)
+
+    def toRDF(self, input, options):
+        """
+        Outputs the RDF statements found in the given JSON-LD object.
+
+        :param input: the JSON-LD object.
+        :param options: the options to use.
+
+        :return: the RDF statements.
+        """
+        # set default options
+        options = options or {}
+        options.setdefault('base', '')
+
+        # resolve all @context URLs in the input
+        input = copy.deepcopy(input)
+        #self._resolveUrls(input, options['resolver'])
+
+        # output RDF statements
+        return self._toRDF(input)
+
+    def processContext(self, active_ctx, local_ctx, options):
+        """
+        Processes a local context, resolving any URLs as necessary, and
+        returns a new active context in its callback.
+
+        :param active_ctx: the current active context.
+        :param local_ctx: the local context to process.
+        :param options: the options to use.
+
+        :return: the new active context.
+        """
+
+        # return initial context early for None context
+        if local_ctx == None:
+            return self._getInitialContext()
+
+        # set default options
+        options = options or {}
+        options.setdefault('base', '')
+
+        # resolve URLs in local_ctx
+        local_ctx = copy.deepcopy(local_ctx)
+        if _is_object(local_ctx) and '@context' not in local_ctx:
+            local_ctx = {'@context': local_ctx}
+        #ctx = self._resolveUrls(local_ctx, options['resolver'])
+        ctx = local_ctx
+
+        # process context
+        return self._processContext(active_ctx, ctx, options)
+
+    @staticmethod
+    def hasProperty(subject, property):
+        """
+        Returns True if the given subject has the given property.
+
+        :param subject: the subject to check.
+        :param property: the property to look for.
+
+        :return: True if the subject has the given property, False if not.
+        """
+        if property in subject:
+            value = subject[property]
+            return not _is_array(value) or len(value) > 0
+        return False
+
+    @staticmethod
+    def hasValue(subject, property, value):
+        """
+         Determines if the given value is a property of the given subject.
+
+        :param subject: the subject to check.
+        :param property: the property to check.
+        :param value: the value to check.
+
+        :return: True if the value exists, False if not.
+        """
+        rval = False
+        if JsonLdProcessor.hasProperty(subject, property):
+            val = subject[property]
+            is_list = _is_list(val)
+            if _is_array(val) or is_list:
+                if is_list:
+                    val = val['@list']
+                for v in val:
+                    if JsonLdProcessor.compareValues(value, v):
+                        rval = True
+                        break
+            # avoid matching the set of values with an array value parameter
+            elif not _is_array(value):
+                rval = JsonLdProcessor.compareValues(value, val)
+        return rval
+
+    @staticmethod
+    def addValue(subject, property, value, property_is_array=False):
+        """
+        Adds a value to a subject. If the subject already has the value, it
+        will not be added. If the value is an array, all values in the array
+        will be added.
+
+        Note: If the value is a subject that already exists as a property of
+        the given subject, this method makes no attempt to deeply merge
+        properties. Instead, the value will not be added.
+
+        :param subject: the subject to add the value to.
+        :param property: the property that relates the value to the subject.
+        :param value: the value to add.
+        :param [property_is_array]: True if the property is always an array,
+          False if not (default: False).
+        """
+        if _is_array(value):
+            if (len(value) == 0 and property_is_array and
+                property not in subject):
+                subject[property] = []
+            for v in value:
+                JsonLdProcessor.addValue(
+                    subject, property, v, property_is_array)
+        elif property in subject:
+            has_value = JsonLdProcessor.hasValue(subject, property, value)
+
+            # make property an array if value not present or always an array
+            if (not _is_array(subject[property]) and
+                (not has_value or property_is_array)):
+                subject[property] = [subject[property]]
+
+            # add new value
+            if not has_value:
+                subject[property].append(value)
+        else:
+            # add new value as set or single value
+            subject[property] = [value] if property_is_array else value
+
+    @staticmethod
+    def getValues(subject, property):
+        """
+        Gets all of the values for a subject's property as an array.
+
+        :param subject: the subject.
+        :param property: the property.
+
+        :return: all of the values for a subject's property as an array.
+        """
+        return JsonLdProcessor.arrayify(subject[property] or [])
+
+    @staticmethod
+    def removeProperty(subject, property):
+        """
+        Removes a property from a subject.
+
+        :param subject: the subject.
+        :param property: the property.
+        """
+        del subject[property]
+
+    @staticmethod
+    def removeValue(subject, property, value, property_is_array=False):
+        """
+        Removes a value from a subject.
+
+        :param subject: the subject.
+        :param property: the property that relates the value to the subject.
+        :param value: the value to remove.
+        :param [property_is_array]: True if the property is always an array,
+          False if not (default: False).
+        """
+        # filter out value
+        def filter_value(e):
+            return not JsonLdProcessor.compareValues(e, value)
+        values = JsonLdProcessor.getValues(subject, property)
+        values = filter(filter_value, values)
+
+        if len(values) == 0:
+            JsonLdProcessor.removeProperty(subject, property)
+        elif len(values) == 1 and not property_is_array:
+            subject[property] = values[0]
+        else:
+            subject[property] = values
+
+    @staticmethod
+    def compareValues(v1, v2):
+        """
+        Compares two JSON-LD values for equality. Two JSON-LD values will be
+        considered equal if:
+
+        1. They are both primitives of the same type and value.
+        2. They are both @values with the same @value, @type, and @language, OR
+        3. They both have @ids they are the same.
+
+        :param v1: the first value.
+        :param v2: the second value.
+
+        :return: True if v1 and v2 are considered equal, False if not.
+        """
+        # 1. equal primitives
+        if v1 == v2:
+            return True
+
+        # 2. equal @values
+        if (_is_value(v1) and _is_value(v2) and
+            v1['@value'] == v2['@value'] and
+            ('@type' in v1) == ('@type' in v2) and
+            ('@language' in v1) == ('@language' in v2) and
+            ('@type' not in v1 or v1['@type'] == v2['@type']) and
+            ('@language' not in v1 or v2['@language'] == v2['@language'])):
+            return True
+
+        # 3. equal @ids
+        if (_is_object(v1) and '@id' in v1 and
+            _is_object(v2) and '@id' in v2):
+            return v1['@id'] == v2['@id']
+
+        return False
+
+    @staticmethod
+    def compareNormalized(n1, n2):
+        """
+        Compares two JSON-LD normalized inputs for equality.
+
+        :param n1: the first normalized input.
+        :param n2: the second normalized input.
+
+        :return: True if the inputs are equivalent, False if not.
+        """
+        if not _is_array(n1) or not _is_array(n2):
+            raise JsonLdError(
+                'Invalid JSON-LD syntax normalized JSON-LD must be an array.',
+                'jsonld.SyntaxError')
+        # different # of subjects
+        if len(n1) != len(n2):
+            return False
+        # assume subjects are in the same order because of normalization
+        for s1, s2 in zip(n1, n2):
+            # different @ids
+            if s1['@id'] != s2['@id']:
+                return False
+            # subjects have different properties
+            if len(s1) != len(s2):
+                return False
+            # compare each property
+            for p, objects in s1.items():
+                # skip @id property
+                if p == '@id':
+                    continue
+                # s2 is missing s1 property
+                if not JsonLdProcessor.hasProperty(s2, p):
+                    return False
+                # subjects have different objects for the property
+                if len(objects) != len(s2[p]):
+                    return False
+                # compare each object
+                for oi, o in objects:
+                    # s2 is missing s1 object
+                    if not JsonLdProcessor.hasValue(s2, p, o):
+                        return False
+        return True
+
+    @staticmethod
+    def getContextValue(ctx, key, type):
+        """
+        Gets the value for the given active context key and type, None if none
+        is set.
+
+        :param ctx: the active context.
+        :param key: the context key.
+        :param [type]: the type of value to get (eg: '@id', '@type'), if not
+          specified gets the entire entry for a key, None if not found.
+
+        :return: mixed the value.
+        """
+        rval = None
+
+        # return None for invalid key
+        if key == None:
+          return rval
+
+        # get default language
+        if type == '@language' and type in ctx:
+          rval = ctx[type]
+
+        # get specific entry information
+        if key in ctx['mappings']:
+          entry = ctx['mappings'][key]
+
+          # return whole entry
+          if type == None:
+            rval = entry
+          # return entry value for type
+          elif type in entry:
+            rval = entry[type]
+
+        return rval
+
+    @staticmethod
+    def arrayify(value):
+        """
+        If value is an array, returns value, otherwise returns an array
+        containing value as the only element.
+
+        :param value: the value.
+
+        :return: an array.
+        """
+        return value if _is_array(value) else [value]
+
+    def _compact(self, ctx, property, element, options):
+        """
+        Recursively compacts an element using the given active context. All values
+        must be in expanded form before this method is called.
+
+        :param ctx: the active context to use.
+        :param property: the property that points to the element, None for
+          none.
+        :param element: the element to compact.
+        :param options: the compaction options.
 
         :return: the compacted value.
         """
-        rval = None
-
-        # get JSON-LD keywords
-        keywords = _getKeywords(ctx)
-
-        if value is None:
-            # return None, but check coerce type to add to usedCtx
-            rval = None
-            self.getCoerceType(ctx, property, usedCtx)
-        elif isinstance(value, list):
-            # recursively add compacted values to array
+        # recursively compact array
+        if _is_array(element):
             rval = []
-            for i in value:
-                rval.append(self.compact(ctx, property, i, usedCtx))
-        # graph literal/disjoint graph
-        elif (isinstance(value, dict) and '@id' in value and
-            isinstance(value['@id'], list)):
+            for e in element:
+                e = self._compact(ctx, property, e, options)
+                # drop None values
+                if e is not None:
+                    rval.append(e)
+            if len(rval) == 1:
+                # use single element if no container is specified
+                container = JsonLdProcessor.getContextValue(
+                    ctx, property, '@container')
+                if container != '@list' and container != '@set':
+                    rval = rval[0]
+            return rval
+
+        # recursively compact object
+        if _is_object(element):
+            # element is a @value
+            if _is_value(element):
+                type = JsonLdProcessor.getContextValue(ctx, property, '@type')
+                language = JsonLdProcessor.getContextValue(
+                    ctx, property, '@language')
+
+                # matching @type specified in context, compact element
+                if (type != None and
+                    '@type' in element and element['@type'] == type):
+                    # use native datatypes for certain xsd types
+                    element = element['@value']
+                    if type == XSD_BOOLEAN:
+                      element = not (element == 'False' or element == '0')
+                    elif type == XSD_INTEGER:
+                      element = int(element)
+                    elif(type == XSD_DOUBLE):
+                      element = float(element)
+                # matching @language specified in context, compact element
+                elif(language is not None and
+                     '@language' in element and
+                     element['@language'] == language):
+                    element = element['@value']
+                # compact @type IRI
+                elif '@type' in element:
+                    element['@type'] = self._compactIri(ctx, element['@type'])
+                return element
+
+            # compact subject references
+            if _is_subject_reference(element):
+                type = JsonLdProcessor.getContextValue(ctx, property, '@type')
+                if type == '@id':
+                    element = self._compactIri(ctx, element['@id'])
+                    return element
+
+            # recursively process element keys
             rval = {}
-            rval[keywords['@id']] = self.compact(
-                ctx, property, value['@id'], usedCtx)
-        # recurse if value is a subject
-        elif _isSubject(value):
-            # recursively handle sub-properties that aren't a sub-context
-            rval = {}
-            for key in value:
-                if value[key] != '@context':
-                    # set object to compacted property, only overwrite existing
-                    # properties if the property actually compacted
-                    p = _compactIri(ctx, key, usedCtx)
-                    if p != key or p not in rval:
-                       rval[p] = self.compact(ctx, key, value[key], usedCtx)
-        else:
-            # get coerce type
-            coerce = self.getCoerceType(ctx, property, usedCtx)
-
-            # get type from value, to ensure coercion is valid
-            type = None
-            if isinstance(value, dict):
-                # type coercion can only occur if language is not specified
-                if '@language' not in value:
-                    # type must match coerce type if specified
-                    if '@type' in value:
-                        type = value['@type']
-                    # type is ID (IRI)
-                    elif '@id' in value:
-                        type = '@id'
-                    # can be coerced to any type
+            for key, value in element:
+                # compact @id and @type(s)
+                if key == '@id' or key == '@type':
+                    # compact single @id
+                    if _is_string(value):
+                        value = self._compactIri(ctx, value)
+                    # value must be a @type array
                     else:
-                        type = coerce
-            # type can be coerced to anything
-            elif isinstance(value, basestring):
-                type = coerce
+                        types = []
+                        for v in value:
+                            types.append(self._compactIri(ctx, v))
+                        value = types
 
-            # types that can be auto-coerced from a JSON-builtin
-            if coerce is None and (type == xsd['boolean'] or
-                type == xsd['integer'] or type == xsd['double']):
-                coerce = type
+                    # compact property and add value
+                    prop = self._compactIri(ctx, key)
+                    is_array = (_is_array(value) and len(value) == 0)
+                    JsonLdProcessor.addValue(rval, prop, value, is_array)
+                    continue
 
-            # do reverse type-coercion
-            if coerce is not None:
-                # type is only None if a language was specified, which is an
-                # error if type coercion is specified
-                if type is None:
-                    raise Exception('Cannot coerce type when a language is ' +
-                        'specified. The language information would be lost.')
-                # if the value type does not match the coerce type, it is an
-                # error
-                elif type != coerce:
-                    raise Exception('Cannot coerce type because the ' +
-                        'type does not match.')
-                # do reverse type-coercion
-                else:
-                    if isinstance(value, dict):
-                        if '@id' in value:
-                            rval = value['@id']
-                        elif '@value' in value:
-                            rval = value['@value']
-                    else:
-                        rval = value
+                # Note: value must be an array due to expansion algorithm.
 
-                    # do basic JSON types conversion
-                    if coerce == xsd['boolean']:
-                        rval = (rval == 'true' or rval != 0)
-                    elif coerce == xsd['double']:
-                        rval = float(rval)
-                    elif coerce == xsd['integer']:
-                        rval = int(rval)
+                # preserve empty arrays
+                if len(value) == 0:
+                    prop = self._compactIri(ctx, key)
+                    JsonLdProcessor.addValue(rval, prop, array(), True)
 
-            # no type-coercion, just change keywords/copy value
-            elif isinstance(value, dict):
-                rval = {}
-                for key, v in value.items():
-                    rval[keywords[key]] = v
-            else:
-                rval = copy.copy(value)
+                # recusively process array values
+                for v in value:
+                    is_list = _is_list(v)
 
-            # compact IRI
-            if type == '@id':
-                if isinstance(rval, dict):
-                    rval[keywords['@id']] = _compactIri(
-                        ctx, rval[keywords['@id']], usedCtx)
-                else:
-                    rval = _compactIri(ctx, rval, usedCtx)
+                    # compact property
+                    prop = self._compactIri(ctx, key, v)
 
-        return rval
+                    # remove @list for recursion (will re-add if necessary)
+                    if is_list:
+                        v = v['@list']
 
-    def expand(self, ctx, property, value):
+                    # recursively compact value
+                    v = self._compact(ctx, prop, v, options)
+
+                    # get container type for property
+                    container = JsonLdProcessor.getContextValue(
+                        ctx, prop, '@container')
+
+                    # handle @list
+                    if is_list and container != '@list':
+                        # handle messy @list compaction
+                        if prop in rval and options['strict']:
+                            raise JsonLdError(
+                                'JSON-LD compact error property has a "@list" '
+                                '@container rule but there is more than a '
+                                'single @list that matches the compacted term '
+                                'in the document. Compaction might mix '
+                                'unwanted items into the list.',
+                                'jsonld.SyntaxError')
+                        # reintroduce @list keyword
+                        kwlist = self._compactIri(ctx, '@list')
+                        v = {kwlist: v}
+
+                    # if @container is @set or @list or value is an empty
+                    # array, use an array when adding value
+                    is_array = (container == '@set' or container == '@list' or
+                      (_is_array(v) and len(v) == 0))
+
+                    # add compact value
+                    JsonLdProcessor.addValue(rval, prop, v, is_array)
+
+            return rval
+
+        # only primitives remain which are already compact
+        return element
+
+    def _expand(self, ctx, property, element, options, property_is_list):
         """
-        Recursively expands a value using the given context. Any context in
-        the value will be removed.
+        Recursively expands an element using the given context. Any context in
+        the element will be removed. All context URLs must have been resolved
+        before calling this method.
 
-        :param ctx: the context.
-        :param property: the property that points to the value, None for none.
-        :param value: the value to expand.
+        :param stdClass ctx the context to use.
+        :param mixed property the property for the element, None for none.
+        :param mixed element the element to expand.
+        :param array options the expansion options.
+        :param bool property_is_list True if the property is a list, False if
+          not.
 
-        :return: the expanded value.
+        :return: mixed the expanded value.
         """
-        rval = None
-
-        # TODO: add data format error detection?
-
-        # value is None, nothing to expand
-        if value is None:
-            rval = None
-        # if no property is specified and the value is a string (this means the
-        # value is a property itself), expand to an IRI
-        elif property is None and isinstance(value, basestring):
-            rval = _expandTerm(ctx, value, None)
-        elif isinstance(value, list):
-            # recursively add expanded values to array
+        # recursively expand array
+        if _is_array(element):
             rval = []
-            for i in value:
-                rval.append(self.expand(ctx, property, i))
-        elif isinstance(value, dict):
-            # if value has a context, use it
-            if '@context' in value:
-                ctx = mergeContexts(ctx, value['@context'])
+            for e in element:
+                # expand element
+                e = self._expand(ctx, property, e, options, property_is_list)
+                if _is_array(e) and property_is_list:
+                  # lists of lists are illegal
+                  raise JsonLdError(
+                      'Invalid JSON-LD syntax lists of lists are not '
+                      'permitted.', 'jsonld.SyntaxError')
+                # drop None values
+                elif e is not None:
+                    rval.append(e)
+            return rval
 
-            # recursively handle sub-properties that aren't a sub-context
-            rval = {}
-            for key in value:
-                # preserve frame keywords
-                if (key == '@embed' or key == '@explicit' or
-                    key == '@default' or key == '@omitDefault'):
-                    _setProperty(rval, key, copy.copy(value[key]))
-                elif key != '@context':
-                    # set object to expanded property
-                    _setProperty(rval, _expandTerm(ctx, key, None),
-                        self.expand(ctx, key, value[key]))
-        else:
-            # do type coercion
-            coerce = self.getCoerceType(ctx, property, None)
+        # expand non-object element according to value expansion rules
+        if not _is_object(element):
+            return self._expandValue(ctx, property, element, options['base'])
 
-            # get JSON-LD keywords
-            keywords = _getKeywords(ctx)
+        # Note: element must be an object, recursively expand it
 
-            # automatic coercion for basic JSON types
-            if coerce is None and isinstance(value, (int, long, float, bool)):
-                if isinstance(value, bool):
-                    coerce = xsd['boolean']
-                elif isinstance(value, float):
-                    coerce = xsd['double']
-                else:
-                    coerce = xsd['integer']
+        # if element has a context, process it
+        if '@context' in element:
+            ctx = self._processContext(ctx, element['@context'], options)
+            del element['@context']
 
-            # special-case expand @id and @type (skips '@id' expansion)
-            if (property == '@id' or property == keywords['@id'] or
-                property == '@type' or property == keywords['@type']):
-                rval = _expandTerm(ctx, value, None)
-            # coerce to appropriate type
-            elif coerce is not None:
-                rval = {}
+        rval = {}
+        for key, value in element.items():
+            # expand property
+            prop = self._expandTerm(ctx, key)
 
-                # expand IRI
-                if coerce == '@id':
-                    rval['@id'] = _expandTerm(ctx, value, None)
-                # other type
-                else:
-                    rval['@type'] = coerce
-                    if coerce == xsd['double']:
-                        # do special JSON-LD double format
-                        value = '%1.6e' % value
-                    elif coerce == xsd['boolean']:
-                        value = 'true' if value else 'false'
-                    else:
-                        value = '%s' % value
-                    rval['@value'] = value
-            # nothing to coerce
+            # drop non-absolute IRI keys that aren't keywords
+            if not _is_absolute_iri(prop) and not _is_keyword(prop, ctx):
+                continue
+            # if value is None and property is not @value, continue
+            value = element[key]
+            if value == None and prop != '@value':
+                continue
+
+            # syntax error if @id is not a string
+            if prop == '@id' and not _is_string(value):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax "@id" value must a string.',
+                    'jsonld.SyntaxError', {'value': value})
+
+            # @type must be a string, array of strings, or an empty JSON object
+            if (prop == '@type' and
+                not _is_string(value) or _is_array_of_strings(value) or
+                _is_empty_object(value)):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax "@type" value must a string, '
+                    'an array of strings, or an empty object.',
+                    'jsonld.SyntaxError', {'value': value})
+
+            # @graph must be an array or an object
+            if (prop == '@graph' and not
+                (_is_object(value) or _is_array(value))):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax "@value" value must not be an '
+                    'object or an array.',
+                    'jsonld.SyntaxError', {'value': value})
+
+            # @value must not be an object or an array
+            if (prop == '@value' and
+                (_is_object(value) or _is_array(value))):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax "@value" value must not be an '
+                    'object or an array.',
+                    'jsonld.SyntaxError', {'value': value})
+
+            # @language must be a string
+            if (prop == '@language' and not _is_string(value)):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax "@language" value must not be '
+                    'a string.', 'jsonld.SyntaxError', {'value': value})
+
+            # recurse into @list, @set, or @graph, keeping active property
+            is_list = (prop == '@list')
+            if is_list or prop == '@set' or prop == '@graph':
+                value = self._expand(ctx, property, value, options, is_list)
+                if is_list and _is_list(value):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax lists of lists are not '
+                        'permitted.', 'jsonld.SyntaxError')
             else:
-                rval = '' + value
+                # update active property and recursively expand value
+                property = key
+                value = self._expand(ctx, property, value, options, False)
+
+            # drop None values if property is not @value (dropped below)
+            if value != None or prop == '@value':
+                # convert value to @list if container specifies it
+                if prop != '@list' and not _is_list(value):
+                    container = JsonLdProcessor.getContextValue(
+                        ctx, property, '@container')
+                    if container == '@list':
+                        # ensure value is an array
+                        value = {'@list': JsonLdProcessor.arrayify(value)}
+
+                # add value, use an array if not @id, @type, @value, or
+                # @language
+                use_array = not (prop == '@id' or prop == '@type' or
+                    prop == '@value' or prop == '@language')
+                JsonLdProcessor.addValue(rval, prop, value, use_array)
+
+        # get property count on expanded output
+        count = len(rval)
+
+        # @value must only have @language or @type
+        if '@value' in rval:
+            if ((count == 2 and '@type' not in rval and
+                '@language' not in rval) or count > 2):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax an element containing '
+                    '"@value" must have at most one other property which '
+                    'can be "@type" or "@language".',
+                    'jsonld.SyntaxError', {'element': rval})
+            # value @type must be a string
+            if '@type' in rval and not _is_string(rval['@type']):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax the "@type" value of an '
+                    'element containing "@value" must be a string.',
+                    'jsonld.SyntaxError', {'element': rval})
+            # return only the value of @value if there is no @type or @language
+            elif count == 1:
+                rval = rval['@value']
+            # drop None @values
+            elif rval['@value'] == None:
+                rval = None
+        # convert @type to an array
+        elif '@type' in rval and not _is_array(rval['@type']):
+            rval['@type'] = [rval['@type']]
+        # handle @set and @list
+        elif '@set' in rval or '@list' in rval:
+            if count != 1:
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax if an element has the '
+                    'property "@set" or "@list", then it must be its '
+                    'only property.',
+                    'jsonld.SyntaxError', {'element': rval})
+            # optimize away @set
+            if '@set' in rval:
+                rval = rval['@set']
+        # drop objects with only @language
+        elif '@language' in rval and count == 1:
+            rval = None
 
         return rval
 
-    ##
-    def normalize(self, input):
+    def _frame(self, input, frame, options):
         """
-        Normalizes a JSON-LD object.
-
-        :param input: the JSON-LD object to normalize.
-
-        :return: the normalized JSON-LD object.
-        """
-        rval = []
-
-        # TODO: validate context
-
-        if input is not None:
-            # create name generator state
-            self.tmp = None
-            self.c14n = None
-
-            # expand input
-            expanded = self.expand({}, None, input)
-
-            # assign names to unnamed bnodes
-            self.nameBlankNodes(expanded)
-
-            # flatten
-            subjects = {}
-            _flatten(None, None, expanded, subjects)
-
-            # append subjects with sorted properties to array
-            for s in subjects.values():
-                sorted = {}
-                keys = s.keys()
-                keys.sort()
-                for k in keys:
-                    sorted[k] = s[k]
-                rval.append(sorted)
-
-            # canonicalize blank nodes
-            self.canonicalizeBlankNodes(rval)
-
-            def normalizeSort(a, b):
-                return _compare(a['@id'], b['@id'])
-
-            # sort output
-            rval.sort(cmp=normalizeSort)
-
-        return rval
-
-
-    def getCoerceType(self, ctx, property, usedCtx):
-        """
-        Gets the coerce type for the given property.
-
-        :param ctx: the context to use.
-        :param property: the property to get the coerced type for.
-        :param usedCtx: a context to update if a value was used from "ctx".
-
-        :return: the coerce type, None for none.
-        """
-        rval = None
-
-        # get expanded property
-        p = _expandTerm(ctx, property, None)
-
-        # built-in type coercion JSON-LD-isms
-        if p == '@id' or p == '@type':
-            rval = '@id'
-        else:
-            # look up compacted property for a coercion type
-            p = _compactIri(ctx, p, None)
-            if p in ctx and isinstance(ctx[p], dict) and '@type' in ctx[p]:
-                # property found, return expanded type
-                type = ctx[p]['@type']
-                rval = _expandTerm(ctx, type, usedCtx)
-                if usedCtx is not None:
-                    usedCtx[p] = copy.copy(ctx[p])
-
-        return rval
-
-    def nameBlankNodes(self, input):
-        """
-        Assigns unique names to blank nodes that are unnamed in the given input.
-
-        :param input: the input to assign names to.
-        """
-        # create temporary blank node name generator
-        ng = self.tmp = NameGenerator('tmp')
-
-        # collect subjects and unnamed bnodes
-        subjects = {}
-        bnodes = []
-        _collectSubjects(input, subjects, bnodes)
-
-        # uniquely name all unnamed bnodes
-        for bnode in bnodes:
-            if not ('@id' in bnode):
-                # generate names until one is unique
-                while(ng.next() in subjects):
-                    pass
-                bnode['@id'] = ng.current()
-                subjects[ng.current()] = bnode
-
-    def renameBlankNode(self, b, id):
-        """
-        Renames a blank node, changing its references, etc. The method assumes
-        that the given name is unique.
-
-        :param b: the blank node to rename.
-        :param id: the new name to use.
-        """
-        old = b['@id']
-
-        # update bnode IRI
-        b['@id'] = id
-
-        # update subjects map
-        subjects = self.subjects
-        subjects[id] = subjects[old]
-        del subjects[old]
-
-        # update reference and property lists
-        self.edges['refs'][id] = self.edges['refs'][old]
-        self.edges['props'][id] = self.edges['props'][old]
-        del self.edges['refs'][old]
-        del self.edges['props'][old]
-
-        # update references to this bnode
-        refs = self.edges['refs'][id]['all']
-        for i in refs:
-            iri = i['s']
-            if iri == old:
-                iri = id
-            ref = subjects[iri]
-            props = self.edges['props'][iri]['all']
-            for i2 in props:
-                if i2['s'] == old:
-                    i2['s'] = id
-
-                    # normalize property to array for single code-path
-                    p = i2['p']
-                    tmp = ([ref[p]] if isinstance(ref[p], dict) else
-                        (ref[p] if isinstance(ref[p], list) else []))
-                    for n in tmp:
-                        if (isinstance(n, dict) and '@id' in n and
-                            n['@id'] == old):
-                            n['@id'] = id
-
-        # update references from this bnode
-        props = self.edges['props'][id]['all']
-        for i in props:
-            iri = i['s']
-            refs = self.edges['refs'][iri]['all']
-            for r in refs:
-                if r['s'] == old:
-                    r['s'] = id
-
-    def canonicalizeBlankNodes(self, input):
-        """
-        Canonically names blank nodes in the given input.
-
-        :param input: the flat input graph to assign names to.
-        """
-        # create serialization state
-        self.renamed = {}
-        self.mappings = {}
-        self.serializations = {}
-
-        # collect subject and bnodes from flat input graph
-        edges = self.edges = {
-            'refs': {},
-            'props': {}
-        }
-        subjects = self.subjects = {}
-        bnodes = []
-        for s in input:
-            iri = s['@id']
-            subjects[iri] = s
-            edges['refs'][iri] = {
-                'all': [],
-                'bnodes': []
-            }
-            edges['props'][iri] = {
-                'all': [],
-                'bnodes': []
-            }
-            if _isBlankNodeIri(iri):
-                bnodes.append(s)
-
-        # collect edges in the graph
-        self.collectEdges()
-
-        # create canonical blank node name generator
-        c14n = self.c14n = NameGenerator('c14n')
-        ngTmp = self.tmp
-
-        # rename all bnodes that happen to be in the c14n namespace
-        # and initialize serializations
-        for bnode in bnodes:
-            iri = bnode['@id']
-            if c14n.inNamespace(iri):
-                while ngTmp.next() in subjects:
-                    pass
-                self.renameBlankNode(bnode, ngTmp.current())
-                iri = bnode['@id']
-            self.serializations[iri] = {
-                'props': None,
-                'refs': None
-            }
-
-        # define bnode sorting function
-        def bnodeSort(a, b):
-            return self.deepCompareBlankNodes(a, b)
-
-        # keep sorting and naming blank nodes until they are all named
-        resort = True
-        while len(bnodes) > 0:
-            if resort:
-                resort = False
-                bnodes.sort(cmp=bnodeSort)
-
-            # name all bnodes accoring to the first bnodes relation mappings
-            bnode = bnodes.pop(0)
-            iri = bnode['@id']
-            resort = self.serializations[iri]['props'] is not None
-            dirs = ['props', 'refs']
-            for dir in dirs:
-                # if no serialization has been computed,
-                # name only the first node
-                if self.serializations[iri][dir] is None:
-                    mapping = {}
-                    mapping[iri] = 's1'
-                else:
-                    mapping = self.serializations[iri][dir]['m']
-
-                # define key sorting function
-                def sortKeys(a, b):
-                    return _compare(mapping[a], mapping[b])
-
-                # sort keys by value to name them in order
-                keys = mapping.keys()
-                keys.sort(sortKeys)
-
-                # name bnodes in mapping
-                renamed = []
-                for iriK in keys:
-                    if not c14n.inNamespace(iri) and iriK in subjects:
-                        self.renameBlankNode(subjects[iriK], c14n.next())
-                        renamed.append(iriK)
-
-                # only keep non-canonically named bnodes
-                tmp = bnodes
-                bnodes = []
-                for b in tmp:
-                    iriB = b['@id']
-                    if not c14n.inNamespace(iriB):
-                        for i2 in renamed:
-                            if self.markSerializationDirty(iriB, i2, dir):
-                                # resort if a serialization was marked dirty
-                                resort = True
-                        bnodes.append(b)
-
-        # sort property lists that now have canonically named bnodes
-        for key in edges['props']:
-            subject = subjects[key]
-            for p in subject:
-                if p != '@id' and isinstance(subject[p], list):
-                    subject[p].sort(_compareObjects)
-
-    def markSerializationDirty(self, iri, changed, dir):
-        """
-        Marks a relation serialization as dirty if necessary.
-
-        :param iri: the IRI of the bnode to check.
-        :param changed: the old IRI of the bnode that changed.
-        :param dir: the direction to check ('props' or 'refs').
-        
-        :return: True if the serialization was marked dirty, False if not.
-        """
-        rval = False
-        s = self.serializations[iri]
-        if s[dir] is not None and changed in s[dir]['m']:
-            s[dir] = None
-            rval = True
-        return rval
-
-    def serializeMapping(self, mb):
-        """
-        Recursively increments the relation serialization for a mapping.
-
-        :param mb: the mapping builder to update.
-        """
-        if len(mb.keyStack) > 0:
-            # continue from top of key stack
-            next = mb.keyStack.pop()
-            while next['idx'] < len(next['keys']):
-                k = next['keys'][next['idx']]
-                if k not in mb.adj:
-                    mb.keyStack.append(next)
-                    break
-                next['idx'] += 1
-
-                if k in mb.done:
-                    # mark cycle
-                    mb.s += '_' + k
-                else:
-                    # mark key as serialized
-                    mb.done[k] = True
-
-                    # serialize top-level key and its details
-                    s = k
-                    adj = mb.adj[k]
-                    iri = adj['i']
-                    if iri in self.subjects:
-                        b = self.subjects[iri]
-
-                        # serialize properties
-                        s += '[' + _serializeProperties(b) + ']'
-
-                        # serialize references
-                        s += '['
-                        first = True
-                        refs = self.edges['refs'][iri]['all']
-                        for r in refs:
-                            if first:
-                                first = False
-                            else:
-                                s += '|'
-                            s += '<' + r['p'] + '>'
-                            s += ('_:' if _isBlankNodeIri(r['s']) else
-                               ('<' + r['s'] + '>'))
-                        s += ']'
-
-                    # serialize adjacent node keys
-                    s += ''.join(adj['k'])
-                    mb.s += s
-                    mb.keyStack.append({ 'keys': adj['k'], 'idx': 0 })
-                    self.serializeMapping(mb)
-
-    def serializeCombos(self, s, iri, siri, mb, dir, mapped, notMapped):
-        """
-        Recursively serializes adjacent bnode combinations.
-
-        :param s: the serialization to update.
-        :param iri: the IRI of the bnode being serialized.
-        :param siri: the serialization name for the bnode IRI.
-        :param mb: the MappingBuilder to use.
-        :param dir: the edge direction to use ('props' or 'refs').
-        :param mapped: all of the already-mapped adjacent bnodes.
-        :param notMapped: all of the not-yet mapped adjacent bnodes.
-        """
-        # handle recursion
-        if len(notMapped) > 0:
-            # copy mapped nodes
-            mapped = copy.copy(mapped)
-
-            # map first bnode in list
-            mapped[mb.mapNode(notMapped[0]['s'])] = notMapped[0]['s']
-
-            # recurse into remaining possible combinations
-            original = mb.copy()
-            notMapped = notMapped[1:]
-            rotations = max(1, len(notMapped))
-            for r in range(0, rotations):
-                m = mb if r == 0 else original.copy()
-                self.serializeCombos(s, iri, siri, m, dir, mapped, notMapped)
-
-                # rotate not-mapped for next combination
-                _rotate(notMapped)
-        # no more adjacent bnodes to map, update serialization
-        else:
-            keys = mapped.keys()
-            keys.sort()
-            mb.adj[siri] = { 'i': iri, 'k': keys, 'm': mapped }
-            self.serializeMapping(mb)
-
-            # optimize away mappings that are already too large
-            if (s[dir] is None or
-                _compareSerializations(mb.s, s[dir]['s']) <= 0):
-                # recurse into adjacent alues
-                for k in keys:
-                    self.serializeBlankNode(s, mapped[k], mb, dir)
-
-                # update least serialization if new one has been found
-                self.serializeMapping(mb)
-                if (s[dir] is None or
-                    (_compareSerializations(mb.s, s[dir]['s']) <= 0 and
-                    len(mb.s) >= len(s[dir]['s']))):
-                    s[dir] = { 's': mb.s, 'm': mb.mapping }
-
-    def serializeBlankNode(self, s, iri, mb, dir):
-        """
-        Computes the relation serialization for the given blank node IRI.
-
-        :param s: the serialization to update.
-        :param iri: the current bnode IRI to be mapped.
-        :param mb: the MappingBuilder to use.
-        :param dir: the edge direction to use ('props' or 'refs').
-        """
-        # only do mapping if iri not already processed
-        if iri not in mb.processed:
-            # iri now processed
-            mb.processed[iri] = True
-            siri = mb.mapNode(iri)
-
-            # copy original mapping builder
-            original = mb.copy()
-
-            # split adjacent bnodes on mapped and not-mapped
-            adj = self.edges[dir][iri]['bnodes']
-            mapped = {}
-            notMapped = []
-            for i in adj:
-                if i['s'] in mb.mapping:
-                    mapped[mb.mapping[i['s']]] = i['s']
-                else:
-                    notMapped.append(i)
-
-            # TODO: ensure this optimization does not alter canonical order
-
-            # if the current bnode already has a serialization, reuse it
-            #hint = (self.serializations[iri][dir] if iri in
-            #   self.serializations else None)
-            #if hint is not None:
-            #    hm = hint['m']
-            #    
-            #    def notMappedSort(a, b):
-            #        return _compare(hm[a['s']], hm[b['s']])
-            #    
-            #    notMapped.sort(cmp=notMappedSort)
-            #    for i in notMapped:
-            #        mapped[mb.mapNode(notMapped[i]['s'])] = notMapped[i]['s']
-            #    notMapped = []
-
-            # loop over possible combinations
-            combos = max(1, len(notMapped))
-            for i in range(0, combos):
-                m = mb if i == 0 else original.copy()
-                self.serializeCombos(s, iri, siri, mb, dir, mapped, notMapped)
-
-    def deepCompareBlankNodes(self, a, b):
-        """
-        Compares two blank nodes for equivalence.
-
-        :param a: the first blank node.
-        :param b: the second blank node.
-
-        :return: -1 if a < b, 0 if a == b, 1 if a > b.
-        """
-        rval = 0
-
-        # compare IRIs
-        iriA = a['@id']
-        iriB = b['@id']
-        if iriA == iriB:
-            rval = 0
-        else:
-            # do shallow compare first
-            rval = self.shallowCompareBlankNodes(a, b)
-
-            # deep comparison is necessary
-            if rval == 0:
-                # compare property edges then reference edges
-                dirs = ['props', 'refs']
-                for i in range(0, len(dirs)):
-                    # recompute 'a' and 'b' serializations as necessary
-                    dir = dirs[i]
-                    sA = self.serializations[iriA]
-                    sB = self.serializations[iriB]
-                    if sA[dir] is None:
-                        mb = MappingBuilder()
-                        if dir == 'refs':
-                            # keep same mapping and count from 'props'
-                            # serialization
-                            mb.mapping = copy.copy(sA['props']['m'])
-                            mb.count = len(mb.mapping.keys()) + 1
-                        self.serializeBlankNode(sA, iriA, mb, dir)
-                    if sB[dir] is None:
-                        mb = MappingBuilder()
-                        if dir == 'refs':
-                            # keep same mapping and count from 'props'
-                            # serialization
-                            mb.mapping = copy.copy(sB['props']['m'])
-                            mb.count = len(mb.mapping.keys()) + 1
-                        self.serializeBlankNode(sB, iriB, mb, dir)
-
-                    # compare serializations
-                    rval = _compare(sA[dir]['s'], sB[dir]['s'])
-
-                    if rval != 0:
-                        break
-        return rval
-
-    def shallowCompareBlankNodes(self, a, b):
-        """
-        Performs a shallow sort comparison on the given bnodes.
-
-        :param a: the first bnode.
-        :param b: the second bnode.
-
-        :return: -1 if a < b, 0 if a == b, 1 if a > b.
-        """
-        rval = 0
-
-        # ShallowSort Algorithm (when comparing two bnodes):
-        # 1.   Compare the number of properties.
-        # 1.1. The bnode with fewer properties is first.
-        # 2.   Compare alphabetically sorted-properties.
-        # 2.1. The bnode with the alphabetically-first property is first.
-        # 3.   For each property, compare object values.
-        # 4.   Compare the number of references.
-        # 4.1. The bnode with fewer references is first.
-        # 5.   Compare sorted references.
-        # 5.1. The bnode with the reference iri (vs. bnode) is first.
-        # 5.2. The bnode with the alphabetically-first reference iri is first.
-        # 5.3. The bnode with the alphabetically-first reference property is
-        #      first.
-
-        pA = a.keys()
-        pB = b.keys()
-
-        # step #1
-        rval = _compare(len(pA), len(pB))
-
-        # step #2
-        if rval == 0:
-            pA.sort()
-            pB.sort()
-            rval = _compare(pA, pB)
-
-        # step #3
-        if rval == 0:
-            rval = _compareBlankNodeObjects(a, b)
-
-        # step #4
-        if rval == 0:
-            edgesA = self.edges['refs'][a['@id']]['all']
-            edgesB = self.edges['refs'][b['@id']]['all']
-            rval = _compare(len(edgesA), len(edgesB))
-
-        # step #5
-        if rval == 0:
-            for i in range(0, len(edgesA)):
-                rval = self.compareEdges(edgesA[i], edgesB[i])
-                if rval != 0:
-                    break
-
-        return rval
-
-    ##
-    def compareEdges(self, a, b):
-        """
-        Compares two edges. Edges with an IRI (vs. a bnode ID) come first, then
-        alphabetically-first IRIs, then alphabetically-first properties. If a
-        blank node has been canonically named, then blank nodes will be compared
-        after properties (with a preference for canonically named over
-        non-canonically named), otherwise they won't be.
-
-        :param a: the first edge.
-        :param b: the second edge.
-
-        :return: -1 if a < b, 0 if a == b, 1 if a > b.
-        """
-        rval = 0
-
-        bnodeA = _isBlankNodeIri(a['s'])
-        bnodeB = _isBlankNodeIri(b['s'])
-        c14n = self.c14n
-
-        # if not both bnodes, one that is a bnode is greater
-        if bnodeA != bnodeB:
-            rval = 1 if bnodeA else - 1
-        else:
-            if not bnodeA:
-                rval = _compare(a['s'], b['s'])
-            if rval == 0:
-                rval = _compare(a['p'], b['p'])
-
-            # do bnode IRI comparison if canonical naming has begun
-            if rval == 0 and c14n is not None:
-                c14nA = c14n.inNamespace(a['s'])
-                c14nB = c14n.inNamespace(b['s'])
-                if c14nA != c14nB:
-                    rval = 1 if c14nA else - 1
-                elif c14nA:
-                    rval = _compare(a['s'], b['s'])
-
-        return rval
-
-    def collectEdges(self):
-        """
-        Populates the given reference map with all of the subject edges in the
-        graph. The references will be categorized by the direction of the edges,
-        where 'props' is for properties and 'refs' is for references to a
-        subject as an object. The edge direction categories for each IRI will
-        be sorted into groups 'all' and 'bnodes'.
-        """
-        refs = self.edges['refs']
-        props = self.edges['props']
-
-        # collect all references and properties
-        for iri in self.subjects:
-            subject = self.subjects[iri]
-            for key in subject:
-                if key != '@id':
-                    # normalize to array for single codepath
-                    object = subject[key]
-                    tmp = [object] if not isinstance(object, list) else object
-                    for o in tmp:
-                        if (isinstance(o, dict) and '@id' in o and
-                            o['@id'] in self.subjects):
-                            objIri = o['@id']
-
-                            # map object to this subject
-                            refs[objIri]['all'].append({ 's': iri, 'p': key })
-
-                            # map this subject to object
-                            props[iri]['all'].append({ 's': objIri, 'p': key })
-
-        # create node filter function
-        def filterNodes(edge):
-            return _isBlankNodeIri(edge['s'])
-
-        # create sorted categories
-        for iri in refs:
-            refs[iri]['all'].sort(cmp=self.compareEdges)
-            refs[iri]['bnodes'] = filter(filterNodes, refs[iri]['all'])
-        for iri in props:
-            props[iri]['all'].sort(cmp=self.compareEdges)
-            props[iri]['bnodes'] = filter(filterNodes, props[iri]['all'])
-
-    def frame(self, input, frame, options=None):
-        """
-        Frames JSON-LD input.
-
-        :param input: the JSON-LD input.
-        :param frame: the frame to use.
-        :param options: framing options to use.
+        Performs JSON-LD framing.
+
+        :param input: the expanded JSON-LD to frame.
+        :param frame: the expanded JSON-LD frame to use.
+        :param options: the framing options.
 
         :return: the framed output.
         """
-        rval = None
+        # create framing state
+        state = {'options': options, 'subjects': {}}
 
-        # normalize input
-        input = self.normalize(input)
+        # produce a map of all subjects and name each bnode
+        namer = UniqueNamer('_:t')
+        self._flatten(state['subjects'], input, namer, None, None)
 
-        # save frame context
-        ctx = None
-        if '@context' in frame:
-            ctx = copy.copy(frame['@context'])
+        # frame the subjects
+        framed = []
+        self._matchFrame(state, state['subjects'].keys(), frame, framed, None)
+        return framed
 
-            # remove context from frame
-            frame = expand(frame)
-        elif isinstance(frame, list):
-            # save first context in the array
-            if len(frame) > 0 and '@context' in frame[0]:
-                ctx = copy.copy(frame[0]['@context'])
+    def _normalize(self, input):
+        """
+        Performs JSON-LD normalization.
 
-            # expand all elements in the array
-            tmp = []
-            for f in frame:
-                tmp.append(expand(f))
-            frame = tmp
+        :param input: the expanded JSON-LD object to normalize.
 
-        # create framing options
-        # TODO: merge in options from function parameter
-        options = {
-            'defaults':
-            {
-                'embedOn': True,
-                'explicitOn': False,
-                'omitDefaultOn': False
-            }
-        }
-
-        # build map of all subjects
+        :return: the normalized output.
+        """
+        # get statements
+        namer = UniqueNamer('_:t')
+        bnodes = {}
         subjects = {}
-        for i in input:
-            subjects[i['@id']] = i
+        self._getStatements(input, namer, bnodes, subjects)
 
-        # frame input
-        rval = _frame(subjects, input, frame, {}, False, None, None, options)
+        # create canonical namer
+        namer = UniqueNamer('_:c14n')
 
-        # apply context
-        if ctx is not None and rval is not None:
-            # preserve top-level array by compacting individual entries
-            if isinstance(rval, list):
-                tmp = rval
-                rval = []
-                for i in range(0, len(tmp)):
-                    rval.append(compact(ctx, tmp[i]))
-            else:
-                rval = compact(ctx, rval)
+        # continue to hash bnode statements while bnodes are assigned names
+        unnamed = None
+        nextUnnamed = bnodes.keys()
+        duplicates = None
+        while True:
+            unnamed = nextUnnamed
+            nextUnnamed = []
+            duplicates = {}
+            unique = {}
+            for bnode in unnamed:
+                # hash statements for each unnamed bnode
+                statements = bnodes[bnode]
+                hash = self._hashStatements(statements, namer)
+
+                # store hash as unique or a duplicate
+                if hash in duplicates:
+                    duplicates[hash].append(bnode)
+                    nextUnnamed.append(bnode)
+                elif hash in unique:
+                    duplicates[hash] = [unique[hash], bnode]
+                    nextUnnamed.append(unique[hash])
+                    nextUnnamed.append(bnode)
+                    del unique[hash]
+                else:
+                    unique[hash] = bnode
+
+            # name unique bnodes in sorted hash order
+            for hash, bnode in sorted(unique.items()):
+                namer.getName(bnode)
+
+            # done when no more bnodes named
+            if len(unnamed) == len(nextUnnamed):
+                break
+
+        # enumerate duplicate hash groups in sorted order
+        for hash, group in sorted(duplicates.items()):
+            # process group
+            results = []
+            for bnode in group:
+                # skip already-named bnodes
+                if namer.isNamed(bnode):
+                  continue
+
+                # hash bnode paths
+                path_namer = UniqueNamer('_:t')
+                path_namer.getName(bnode)
+                results.append(self._hashPaths(
+                  bnodes, bnodes[bnode], namer, path_namer))
+
+            # name bnodes in hash order
+            cmp_hashes = cmp_to_key(lambda x, y: cmp(x['hash'], y['hash']))
+            for result in sorted(results, key=cmp_hashes):
+                # name all bnodes in path namer in key-entry order
+                for bnode in result.pathNamer.order:
+                    namer.getName(bnode)
+
+        # create JSON-LD array
+        output = []
+
+        # add all bnodes
+        for id, statements in bnodes.items():
+            # add all property statements to bnode
+            bnode = {'@id': namer.getName(id)}
+            for statement in statements:
+                if statement['s'] == '_:a':
+                    z = _get_bnode_name(statement['o'])
+                    o = {'@id': namer.getName(z)} if z else statement['o']
+                    JsonLdProcessor.addValue(bnode, statement['p'], o, True)
+            output.append(bnode)
+
+        # add all non-bnodes
+        for id, statements in subjects.items():
+            # add all statements to subject
+            subject = {'@id': id}
+            for statement in statements:
+                z = _get_bnode_name(statement['o'])
+                o = {'@id': namer.getName(z)} if z else statement['o']
+                JsonLdProcessor.addValue(subject, statement['p'], o, True)
+            output.append(subject)
+
+        # sort normalized output by @id
+        cmp_ids = cmp_to_key(lambda x, y: cmp(x['@id'], y['@id']))
+        output.sort(key=cmp_ids)
+        return output
+
+    def _toRDF(self, input):
+        """
+        Outputs the RDF statements found in the given JSON-LD object.
+
+        :param input: the JSON-LD object.
+
+        :return: the RDF statements.
+        """
+        # FIXME: implement
+        raise JsonLdError('Not implemented', 'jsonld.NotImplemented')
+
+    def _processContext(self, active_ctx, local_ctx, options):
+        """
+        Processes a local context and returns a new active context.
+
+        :param active_ctx: the current active context.
+        :param local_ctx: the local context to process.
+        :param options: the context processing options.
+
+        :return: the new active context.
+        """
+        # initialize the resulting context
+        rval = copy.deepcopy(active_ctx)
+
+        # normalize local context to an array
+        ctxs = JsonLdProcessor.arrayify(local_ctx)
+
+        # process each context in order
+        for ctx in ctxs:
+            # reset to initial context
+            if ctx is None:
+                rval = self._getInitialContext()
+                continue
+
+            # dereference @context key if present
+            if _is_object(ctx) and '@context' in ctx:
+                ctx = ctx['@context']
+
+            # context must be an object by now, all URLs resolved before this call
+            if not _is_object(ctx):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax @context must be an object.',
+                    'jsonld.SyntaxError', {'context': ctx})
+
+            # define context mappings for keys in local context
+            defined = {}
+            for k, v in ctx.items():
+                self._defineContextMapping(
+                    rval, ctx, k, options['base'], defined)
 
         return rval
 
+    def _expandValue(self, ctx, property, value, base):
+        """
+        Expands the given value by using the coercion and keyword rules in the
+        given context.
 
-def _isType(src, frame):
-    """
-    Returns True if the given source is a subject and has one of the given
-    types in the given frame.
+        :param ctx: the active context to use.
+        :param property: the property the value is associated with.
+        :param value: the value to expand.
+        :param base: the base IRI to use.
 
-    :param src: the input.
-    :param frame: the frame with types to look for.
+        :return: the expanded value.
+        """
+        # default to simple string return value
+        rval = value
 
-    :return: True if the src has one of the given types.
-    """
-    rval = False
+        # special-case expand @id and @type (skips '@id' expansion)
+        prop = self._expandTerm(ctx, property)
+        if prop == '@id':
+            rval = self._expandTerm(ctx, value, base)
+        elif prop == '@type':
+            rval = self._expandTerm(ctx, value)
+        else:
+            # get type definition from context
+            type = JsonLdProcessor.getContextValue(ctx, property, '@type')
 
-    # check if type(s) are specified in frame and src
-    rType = '@type'
-    if (rType in frame and isinstance(src, dict) and rType in src):
-        tmp = src[rType] if isinstance(src[rType], list) else [src[rType]]
-        types = (frame[rType] if isinstance(frame[rType], list)
-            else [frame[rType]])
-
-        for t in range(0, len(types)):
-            rType = types[t]
-            for i in tmp:
-                if i == rType:
-                    rval = True
-                    break
-            if rval:
-                break
-
-    return rval
-
-def _filterNonKeywords(e):
-    """
-    Returns True if the given element is not a keyword.
-
-    :param e: the element.
-
-    :return True: if the given element is not a keyword.
-    """
-    return e.find('@') != 0
-
-
-def _isDuckType(src, frame):
-    """
-    Returns True if the given src matches the given frame via duck-typing.
-
-    :param src: the input.
-    :param frame: the frame to check against.
-
-    :return: True if the src matches the frame.
-    """
-    rval = False
-
-    # frame must not have a specific type
-    rType = '@type'
-    if rType not in frame:
-        # get frame properties that must exist on src
-        props = frame.keys()
-        props = filter(_filterNonKeywords, props)
-        if not props:
-            # src always matches if there are no properties
-            rval = True
-        # src must be a subject with all the given properties
-        elif isinstance(src, dict) and '@id' in src:
-            rval = True
-            for i in props:
-                if i not in src:
-                    rval = False
-                    break
-
-    return rval
-
-def _removeDependentEmbeds(iri, embeds):
-    """
-    Recursively removes dependent dangling embeds.
-    
-    :param iri: the iri of the parent to remove the embeds for.
-    :param embeds: the embed map.
-    """
-    iris = embeds.keys()
-    for i in iris:
-        if (i in embeds and embeds[i]['parent'] is not None and
-            embeds[i]['parent']['@id'] == iri):
-            del embeds[i]
-            _removeDependentEmbeds(i, embeds)
-
-def _subframe(
-   subjects, value, frame, embeds, autoembed, parent, parentKey, options):
-    """
-    Subframes a value.
-    
-    :param subjects: a map of subjects in the graph.
-    :param value: the value to subframe.
-    :param frame: the frame to use.
-    :param embeds: a map of previously embedded subjects, used to prevent
-       cycles.
-    :param autoembed: true if auto-embed is on, false if not.
-    :param parent: the parent object.
-    :param parentKey: the parent key.
-    :param options: the framing options.
-    
-    :return: the framed input.
-    """
-
-    # get existing embed entry
-    iri = value['@id']
-    embed = embeds[iri] if iri in embeds else None
-
-    # determine if value should be embedded or referenced,
-    # embed is ON if:
-    # 1. The frame OR default option specifies @embed as ON, AND
-    # 2. There is no existing embed OR it is an autoembed, AND
-    #    autoembed mode is off.
-    embedOn = (
-        (('@embed' in frame and frame['@embed']) or
-        ('@embed' not in frame and options['defaults']['embedOn'])) and
-        (embed == None or (embed['autoembed'] and not autoembed)))
-
-    if not embedOn:
-        # not embedding, so only use subject IRI as reference
-        value = {'@id': value['@id']}
-    else:
-        # create new embed entry
-        if embed is None:
-            embed = {}
-            embeds[iri] = embed
-        # replace the existing embed with a reference
-        elif embed['parent'] is not None:
-            objs = embed['parent'][embed['key']]
-            if isinstance(objs, list):
-                # find and replace embed in array
-                for i in range(0, len(objs)):
-                    if (isinstance(objs[i], dict) and '@id' in objs[i] and
-                        objs[i]['@id'] == iri):
-                        objs[i] = {'@id': value['@id']}
-                        break
+            # do @id expansion
+            if type == '@id':
+                rval = {'@id': self._expandTerm(ctx, value, base)}
+            # other type
+            elif type is not None:
+                rval = {'@value': str(value), '@type': type}
+            # check for language tagging
             else:
-                embed['parent'][embed['key']] = {'@id': value['@id']}
+                language = JsonLdProcessor.getContextValue(
+                    ctx, property, '@language')
+                if language is not None:
+                    rval = {'@value': str(value), '@language': language}
 
-            # recursively remove any dependent dangling embeds
-            _removeDependentEmbeds(iri, embeds)
+        return rval
 
-        # update embed entry
-        embed['autoembed'] = autoembed
-        embed['parent'] = parent
-        embed['key'] = parentKey
+    def _getStatements(self, input, namer, bnodes, subjects, name=None):
+        """
+        Recursively gets all statements from the given expanded JSON-LD input.
 
-        # check explicit flag
-        explicitOn = (frame['@explicit'] if '@explicit' in frame
-            else options['defaults']['explicitOn'])
-        if explicitOn:
-            # remove keys from the value that aren't in the frame
-            for key in value.keys():
-                # do not remove @id or any frame key
-                if key != '@id' and key not in frame:
-                    del value[key]
+        :param input: the valid expanded JSON-LD input.
+        :param namer: the namer to use when encountering blank nodes.
+        :param bnodes: the blank node statements map to populate.
+        :param subjects: the subject statements map to populate.
+        :param [name]: the name (@id) assigned to the current input.
+        """
+        # recurse into arrays
+        if _is_array(input):
+            for e in input:
+                self._getStatements(e, namer, bnodes, subjects)
+            return
+        # Note:safe to assume input is a subject/blank node
+        is_bnode = _is_bnode(input)
 
-        # iterate over keys in value
-        for key, v in value.items():
-            # skip keywords
-            if key.find('@') != 0:
-                # get the subframe if available
-                if key in frame:
-                    f = frame[key]
-                    _autoembed = False
-                # use a catch-all subframe to preserve data from graph
+        # name blank node if appropriate, use passed name if given
+        if name is None:
+            name = input.get('@id')
+            if is_bnode:
+                name = namer.getName(name)
+
+        # use a subject of '_:a' for blank node statements
+        s = '_:a' if is_bnode else name
+
+        # get statements for the blank node
+        if is_bnode:
+            entries = bnodes.setdefault(name, [])
+        else:
+            entries = subjects.setdefault(name, [])
+
+        # add all statements in input
+        for p, objects in input.items():
+            # skip @id
+            if p == '@id':
+                continue
+
+            # convert @lists into embedded blank node linked lists
+            for i, o in enumerate(objects):
+                if _is_list(o):
+                    objects[i] = self._makeLinkedList(o)
+
+            for o in objects:
+                # convert boolean to @value
+                if is_bool(o):
+                    o = {'@value': 'True' if o else 'False',
+                        '@type': XSD_BOOLEAN}
+                # convert double to @value
+                elif is_double(o):
+                    # do special JSON-LD double format,
+                    # printf(' % 1.16e') equivalent
+                    o = {'@value': ('%1.6e' % o), '@type': XSD_DOUBLE}
+                # convert integer to @value
+                elif is_integer(o):
+                    o = {'@value': str(o), '@type': XSD_INTEGER}
+
+                # object is a blank node
+                if _is_bnode(o):
+                    # name object position blank node
+                    o_name = namer.getName(o.get('@id'))
+
+                    # add property statement
+                    self._addStatement(entries,
+                        {'s': s, 'p': p, 'o': {'@id': o_name}})
+
+                    # add reference statement
+                    o_entries = bnodes.setdefault(o_name, [])
+                    self._addStatement(o_entries,
+                        {'s': name, 'p': p, 'o': {'@id': '_:a'}})
+
+                    # recurse into blank node
+                    self._getStatements(o, namer, bnodes, subjects, o_name)
+                # object is a string, @value, subject reference
+                elif (_is_string(o) or _is_value(o) or
+                    _is_subject_reference(o)):
+                    # add property statement
+                    self._addStatement(entries, {'s': s, 'p': p, 'o': o})
+
+                    # ensure a subject entry exists for subject reference
+                    if (_is_subject_reference(o) and
+                        o['@id'] not in subjects):
+                        subjects.setdefault(o['@id'], [])
+                # object must be an embedded subject
                 else:
-                    f = [] if isinstance(value[key], list) else {}
-                    _autoembed = True
+                    # add property statement
+                    self._addStatement(entries,
+                        {'s': s, 'p': p, 'o': {'@id': o['@id']}})
 
-                # build input and do recursion
-                input = (value[key] if isinstance(value[key], list)
-                    else [value[key]])
-                for n in range(0, len(input)):
-                    # replace reference to subject w/embedded subject
-                    if (isinstance(input[n], dict) and
-                        '@id' in input[n] and
-                        input[n]['@id'] in subjects):
-                        input[n] = subjects[input[n]['@id']]
-                value[key] = _frame(
-                    subjects, input, f, embeds, _autoembed,
-                    value, key, options)
+                    # recurse into subject
+                    self._getStatements(o, namer, bnodes, subjects)
 
-        # iterate over frame keys to add any missing values
-        for key, f in frame.items():
-            # skip keywords and non-None keys in value
-            if (key.find('@') != 0 and
-                (key not in value or value[key] is None)):
-                # add empty array to value
-                if isinstance(f, list):
-                    value[key] = []
-                # add default value to value
+    def _makeLinkedList(self, value):
+        """
+        Converts a @list value into an embedded linked list of blank nodes in
+        expanded form. The resulting array can be used as an RDF-replacement
+        for a property that used a @list.
+
+        :param value: the @list value.
+
+        :return: the head of the linked list of blank nodes.
+        """
+        # convert @list array into embedded blank node linked list
+        # build linked list in reverse
+        tail = {'@id': RDF_NIL}
+        for e in reversed(value['@list']):
+          tail = {RDF_FIRST: e, RDF_REST: tail}
+        return tail
+
+    def _addStatement(self, statements, statement):
+        """
+        Adds a statement to an array of statements. If the statement already
+        exists in the array, it will not be added.
+
+        :param statements: the statements array.
+        :param statement: the statement to add.
+        """
+        for s in statements:
+            if (s['s'] == statement['s'] and s['p'] == statement['p'] and
+                JsonLdProcessor.compareValues(s['o'], statement['o'])):
+                return
+        statements.append(statement)
+
+    def _hashStatements(self, statements, namer):
+        """
+        Hashes all of the statements about a blank node.
+
+        :param statements: the statements about the bnode.
+        :param namer: the canonical bnode namer.
+
+        :return: the new hash.
+        """
+        # serialize all statements
+        triples = []
+        for statement in statements:
+            s, p, o = statement['s'], statement['p'], statement['o']
+
+            # serialize triple
+            triple = ''
+
+            # serialize subject
+            if s == '_:a':
+                triple += '_:a'
+            elif s.startswith('_:'):
+                id = s
+                id = namer.getName(id) if namer.isNamed(id) else '_:z'
+                triple += id
+            else:
+                triple += ' <%s> ' % s
+
+            # serialize property
+            p = RDF_TYPE if p == '@type' else p
+            triple += ' <%s> ' % p
+
+            # serialize object
+            if _is_bnode(o):
+                if o['@id'] == '_:a':
+                  triple += '_:a'
                 else:
-                    # use first subframe if frame is an array
-                    if isinstance(f, list):
-                        f = f[0] if len(f) > 0 else {}
-
-                    # determine if omit default is on
-                    omitOn = (f['@omitDefault'] if
-                        '@omitDefault' in f
-                        else options['defaults']['omitDefaultOn'])
-                    if not omitOn:
-                        if '@default' in f:
-                            # use specified default value
-                            value[key] = f['@default']
-                        else:
-                            # built-in default value is: None
-                            value[key] = None
-
-    return value
-
-def _frame(
-    subjects, input, frame, embeds, autoembed, parent, parentKey, options):
-    """
-    Recursively frames the given input according to the given frame.
-
-    :param subjects: a map of subjects in the graph.
-    :param input: the input to frame.
-    :param frame: the frame to use.
-    :param embeds: a map of previously embedded subjects, used to prevent
-       cycles.
-    :param autoembed: true if auto-embed is on, false if not.
-    :param parent: the parent object (for subframing).
-    :param parentKey: the parent key (for subframing).
-    :param options: the framing options.
-
-    :return: the framed input.
-    """
-    rval = None
-
-    # prepare output, set limit, get array of frames
-    limit = -1
-    frames = None
-    if isinstance(frame, list):
-        rval = []
-        frames = frame
-        if not frames:
-            frames.append({})
-    else:
-        frames = [frame]
-        limit = 1
-
-    omitOn = False
-    if hasattr(options, 'default') and hasattr(options['defaults'], 'omitDefaultOn'):
-        omitOn = options['defaults']['omitDefaultOn']
-
-    # iterate over frames adding input matches to list
-    values = []
-    for i in range(0, len(frames)):
-        # get next frame
-        frame = frames[i]
-        if not isinstance(frame, (list, dict)):
-            raise Exception('Invalid JSON - LD frame. Frame type is not a map' +
-               'or array.')
-
-        # create array of values for each frame
-        values.append([])
-        for n in input:
-            # dereference input if it refers to a subject
-            if (isinstance(n, dict) and '@id' in n and
-               n['@id'] in subjects):
-               n = subjects[n['@id']]
-
-            # add input to list if it matches frame specific type or duck-type
-            if _isType(n, frame) or _isDuckType(n, frame):
-                values[i].append(n)
-                limit -= 1
-            if limit == 0:
-                break
-        if limit == 0:
-            break
-
-    # for each matching value, add it to the output
-    for frame, vals in zip(frames, values):
-        for value in vals:
-            # if value is a subject, do subframing
-            if _isSubject(value):
-                value = _subframe(
-                    subjects, value, frame, embeds, autoembed,
-                    parent, parentKey, options)
-
-            # add value to output
-            if rval is None:
-                rval = value
+                  id = o['@id']
+                  id = namer.getName(id) if namer.isNamed(id) else '_:z'
+                  triple += id
+            elif _is_string(o):
+                triple += '"%s"' % o
+            elif _is_subject_reference(o):
+                triple += '<%s>' % o['@id']
+            # must be a value
             else:
-                # determine if value is a reference to an embed
-                isRef = (_isReference(value) and value['@id'] in embeds)
+                triple += '"%s"' % o['@value']
+                if '@type' in o:
+                  triple += '^^<%s>' % o['@type']
+                elif '@language' in o:
+                  triple += '@%s' % o['@language']
 
-                # push any value that isn't a parentless reference
-                if not (parent is None and isRef):
-                    rval.append(value)
+            # add triple
+            triples.append(triple)
 
-    return rval
+        # sort serialized triples
+        triples.sort()
 
-def _rotate(a):
-    """
-    Rotates the elements in an array one position.
+        # return hashed triples
+        md = hashlib.sha1()
+        md.update(''.join(triples))
+        return md.hexdigest()
 
-    :param a: the array.
-    """
-    if len(a) > 0:
-        a.append(a.pop(0))
+    def _hashPaths(self, bnodes, statements, namer, path_namer):
+        """
+        Produces a hash for the paths of adjacent bnodes for a bnode,
+        incorporating all information about its subgraph of bnodes. This
+        method will recursively pick adjacent bnode permutations that produce the
+        lexicographically-least 'path' serializations.
 
-def _serializeProperties(b):
-    """
-    Serializes the properties of the given bnode for its relation serialization.
+        :param bnodes: the map of bnode statements.
+        :param statements: the statements for the bnode the hash is for.
+        :param namer: the canonical bnode namer.
+        :param path_namer: the namer used to assign names to adjacent bnodes.
 
-    :param b: the blank node.
+        :return: the hash and path namer used.
+        """
+        # create SHA-1 digest
+        md = hashlib.sha1()
 
-    :return: the serialized properties.
-    """
-    rval = ''
-    first = True
-    for p in b.keys():
-        if p != '@id':
-            if first:
-                first = False
+        # group adjacent bnodes by hash, keep properties & references separate
+        groups = {}
+        cache = {}
+        for statement in statements:
+            s, p, o = statement['s'], statement['p'], statement['o']
+            if s != '_:a' and s.startswith('_:'):
+                bnode = s
+                direction = 'p'
             else:
-                rval += '|'
-            rval += '<' + p + '>'
-            objs = b[p] if isinstance(b[p], list) else [b[p]]
-            for o in objs:
-                if isinstance(o, dict):
-                    # ID (IRI)
-                    if '@id' in o:
-                        if _isBlankNodeIri(o['@id']):
-                            rval += '_:'
-                        else:
-                            rval += '<' + o['@id'] + '>'
-                    # literal
+                bnode = _get_bnode_name(o)
+                direction = 'r'
+
+            if bnode is not None:
+                # get bnode name (try canonical, path, then hash)
+                if namer.isNamed(bnode):
+                    name = namer.getName(bnode)
+                elif path_namer.isNamed(bnode):
+                    name = path_namer.getName(bnode)
+                elif bnode in cache:
+                    name = cache[bnode]
+                else:
+                    name = self._hashStatements(bnodes[bnode], namer)
+                    cache[bnode] = name
+
+                # hash direction, property, and bnode name/hash
+                group_md = hashlib.sha1()
+                group_md.update(direction)
+                group_md.update(RDF_TYPE if p == '@type' else p)
+                group_md.update(name)
+                group_hash = group_md.hexdigest()
+
+                # add bnode to hash group
+                if group_hash in groups:
+                    groups[group_hash].append(bnode)
+                else:
+                    groups[group_hash] = [bnode]
+
+        # iterate over groups in sorted hash order
+        for group_hash, group in sorted(groups.items()):
+            # digest group hash
+            md.update(group_hash)
+
+            # choose a path and namer from the permutations
+            chosen_path = None
+            chosen_namer = None
+            permutator = Permutator(group)
+            while permutator.hasNext():
+                permutation = permutator.next()
+                path_namer_copy = copy.deepcopy(path_namer)
+
+                # build adjacent path
+                path = ''
+                skipped = False
+                recurse = []
+                for bnode in permutation:
+                    # use canonical name if available
+                    if namer.isNamed(bnode):
+                        path += namer.getName(bnode)
                     else:
-                        rval += '"' + o['@value'] + '"'
+                        # recurse if bnode isn't named in the path yet
+                        if not path_namer_copy.isNamed(bnode):
+                            recurse.append(bnode)
+                        path += path_namer_copy.getName(bnode)
 
-                        # type literal
-                        if '@type' in o:
-                            rval += '^^<' + o['@type'] + '>'
-                        # language literal
-                        elif '@language' in o:
-                            rval += '@' + o['@language']
-                # plain literal
+                    # skip permutation if path is already >= chosen path
+                    if (chosen_path is not None and
+                        len(path) >= len(chosen_path) and path > chosen_path):
+                        skipped = True
+                        break
+
+                # recurse
+                if not skipped:
+                    for bnode in recurse:
+                        result = self._hashPaths(
+                            bnodes, bnodes[bnode], namer, path_namer_copy)
+                        path += path_namer_copy.getName(bnode)
+                        path += '<%s>' % result['hash']
+                        path_namer_copy = result['pathNamer']
+
+                        # skip permutation if path is already >= chosen path
+                        if (chosen_path is not None and
+                            len(path) >= len(chosen_path) and
+                            path > chosen_path):
+                            skipped = True
+                            break
+
+                if not skipped and (chosen_path is None or path < chosen_path):
+                    chosen_path = path
+                    chosen_namer = path_namer_copy
+
+            # digest chosen path and update namer
+            md.update(chosen_path)
+            path_namer = chosen_namer
+
+        # return SHA-1 hash and path namer
+        return {'hash': md.hexdigest(), 'pathNamer': path_namer}
+
+    def _flatten(self, subjects, input, namer, name, lst):
+        """
+        Recursively flattens the subjects in the given JSON-LD expanded input.
+
+        :param subjects: a map of subject @id to subject.
+        :param input: the JSON-LD expanded input.
+        :param namer: the blank node namer.
+        :param name: the name assigned to the current input if it is a bnode.
+        :param lst: the list to append to, None for none.
+        """
+        # recurse through array
+        if _is_array(input):
+            for e in input:
+                self._flatten(subjects, e, namer, None, lst)
+            return
+        elif not _is_object(input):
+            # add non-object to list
+            if lst is not None:
+                lst.append(input)
+
+        # Note: input must be an object
+
+        # add value to list
+        if _is_value(input) and lst is not None:
+            lst.append(input)
+            pass
+
+        # get name for subject
+        if name is None:
+            name = input.get('@id')
+            if _is_bnode(input):
+                name = namer.getName(name)
+
+        # add subject reference to list
+        if lst is not None:
+            lst.append({'@id': name})
+
+        # create new subject or merge into existing one
+        subject = subjects.setdefault(name, {})
+        subject['@id'] = name
+        for prop, objects in input:
+            # skip @id
+            if prop == '@id':
+                continue
+
+            # copy keywords
+            if _is_keyword(prop):
+                subject[prop] = objects
+                continue
+
+            # iterate over objects
+            for o in objects:
+                # handle embedded subject or subject reference
+                if _is_subject(o) or _is_subject_reference(o):
+                    # rename blank node @id
+                    id = o.get('@id', '_:')
+                    if id.startswith('_:'):
+                        id = namer.getName(id)
+
+                    # add reference and recurse
+                    JsonLdProcessor.addValue(subject, prop, {'@id': id}, True)
+                    self._flatten(subjects, o, namer, id, None)
                 else:
-                    rval += '"' + o + '"'
-    return rval
+                    # recurse into list
+                    if _is_list(o):
+                        olst = {}
+                        self._flatten(subjects, o['@list'], namer, name, olst)
+                        o = {'@list': olst}
 
-def _compareSerializations(s1, s2):
-    """
-    Compares two serializations for the same blank node. If the two
-    serializations aren't complete enough to determine if they are equal (or if
-    they are actually equal), 0 is returned.
+                    # add non-subject
+                    JsonLdProcessor.addValue(subject, prop, o, True)
 
-    :param s1: the first serialization.
-    :param s2: the second serialization.
+    def _matchFrame(self, state, subjects, frame, parent, property):
+        """
+        Frames subjects according to the given frame.
 
-    :return: -1 if s1 < s2, 0 if s1 == s2 (or indeterminate), 1 if s1 > v2.
-    """
-    rval = 0
-    if len(s1) == len(s2):
-        rval = _compare(s1, s2)
-    elif len(s1) > len(s2):
-        rval = _compare(s1[0:len(s2)], s2)
-    else:
-        rval = _compare(s1, s2[0:len(s1)])
-    return rval
+        :param state: the current framing state.
+        :param subjects: the subjects to filter.
+        :param frame: the frame.
+        :param parent: the parent subject or top-level array.
+        :param property: the parent property, initialized to None.
+        """
+        # validate the frame
+        self._validateFrame(state, frame)
+        frame = frame[0]
 
-def normalize(input):
-    """
-    Normalizes a JSON-LD object.
+        # filter out subjects that match the frame
+        matches = self._filterSubjects(state, subjects, frame)
 
-    :param input: the JSON-LD object to normalize.
+        # get flags for current frame
+        options = state['options']
+        embed_on = self._getFrameFlag(frame, options, 'embed')
+        explicit_on = self._getFrameFlag(frame, options, 'explicit')
 
-    :return: the normalized JSON-LD object.
-    """
-    return Processor().normalize(input)
+        # add matches to output
+        for id, subject in matches.items():
+            # Note: In order to treat each top-level match as a
+            # compartmentalized result, create an independent copy of the
+            # embedded subjects map when the property is None, which only
+            # occurs at the top-level.
+            if property is None:
+                state['embeds'] = {}
 
-def expand(input):
-    """
-    Removes the context from a JSON-LD object, expanding it to full-form.
+            # start output
+            output = {'@id': id}
 
-    :param input: the JSON-LD object to remove the context from.
+            # prepare embed meta info
+            embed = {'parent': parent, 'property': property}
 
-    :return: the context-neutral JSON-LD object.
-    """
-    return Processor().expand({}, None, input)
+            # if embed is on and there is an existing embed
+            if embed_on and id in state['embeds']:
+                # only overwrite an existing embed if it has already been added
+                # to its parent -- otherwise its parent is somewhere up the
+                # tree from this embed and the embed would occur twice once
+                # the tree is added
+                embed_on = False
 
-def compact(ctx, input):
-    """
-    Expands the given JSON-LD object and then compacts it using the
-    given context.
+                # existing embed's parent is an array
+                existing = state['embeds'][id]
+                if _is_array(existing['parent']):
+                    for p in existing['parent']:
+                        if JsonLdProcessor.compareValues(output, p):
+                            embed_on = True
+                            break
+                # existing embed's parent is an object
+                elif JsonLdProcessor.hasValue(
+                    existing['parent'], existing['property'], output):
+                    embed_on = True
 
-    :param ctx: the new context to use.
-    :param input: the input JSON-LD object.
+                # existing embed has already been added, so allow an overwrite
+                if embed_on:
+                    self._removeEmbed(state, id)
 
-    :return: the output JSON-LD object.
-    """
-    rval = None
-
-    # TODO: should context simplification be optional? (ie: remove context
-    # entries that are not used in the output)
-
-    if input is not None:
-        # fully expand input
-        input = expand(input)
-
-        # setup output context
-        ctxOut = {}
-
-        usedCtx = {}
-        usedCtx = mergeContexts(usedCtx, ctx)
-        # compact
-        output = Processor().compact(
-            usedCtx, None, input, ctxOut)
-
-        # add context if used
-        rval = output
-        if len(ctxOut.keys()) > 0:
-            rval = {'@context': ctxOut}
-            if isinstance(output, list):
-                rval[_getKeywords(ctxOut)['@id']] = output
+            # not embedding, add output without any other properties
+            if not embed_on:
+                self._addFrameOutput(state, parent, property, output)
             else:
-                for key, value in output.items():
-                    rval[key] = value
+                # add embed meta info
+                state['embeds'][id] = embed
 
+                # iterate over subject properties in order
+                for prop, objects in sorted(subject.items()):
+                    # copy keywords to output
+                    if _is_keyword(prop):
+                        output[prop] = copy.deepcopy(subject[prop])
+                        continue
+
+                    # if property isn't in the frame
+                    if prop not in frame:
+                        # if explicit is off, embed values
+                        if not explicit_on:
+                            self._embedValues(state, subject, prop, output)
+                        continue
+
+                    # add objects
+                    objects = subject[prop]
+                    for o in objects:
+                        # recurse into list
+                        if _is_list(o):
+                            # add empty list
+                            lst = {'@list': []}
+                            self._addFrameOutput(state, output, prop, lst)
+
+                            # add list objects
+                            src = o['@list']
+                            for o in src:
+                                # recurse into subject reference
+                                if _is_subject_reference(o):
+                                    self._matchFrame(
+                                        state, [o['@id']], frame[prop],
+                                        lst, '@list')
+                                # include other values automatically
+                                else:
+                                    self._addFrameOutput(
+                                        state, lst, '@list', copy.deepcopy(o))
+                            continue
+
+                        # recurse into subject reference
+                        if _is_subject_reference(o):
+                            self._matchFrame(
+                                state, [o['@id']], frame[prop], output, prop)
+                        # include other values automatically
+                        else:
+                            self._addFrameOutput(
+                                state, output, prop, copy.deepcopy(o))
+
+                # handle defaults in order
+                for prop in sorted(frame.items()):
+                    # skip keywords
+                    if _is_keyword(prop):
+                        continue
+                    # if omit default is off, then include default values for
+                    # properties that appear in the next frame but are not in
+                    # the matching subject
+                    next = frame[prop][0]
+                    omit_default_on = self._getFrameFlag(
+                        next, options, 'omitDefault')
+                    if not omit_default_on and prop not in output:
+                        preserve = '@null'
+                        if '@default' in next:
+                            preserve = copy.deepcopy(next['@default'])
+                        output[prop] = {'@preserve': preserve}
+
+                # add output to parent
+                self._addFrameOutput(state, parent, property, output)
+
+    def _getFrameFlag(self, frame, options, name):
+        """
+        Gets the frame flag value for the given flag name.
+
+        :param frame: the frame.
+        :param options: the framing options.
+        :param name: the flag name.
+
+        :return: the flag value.
+        """
+        return frame.get('@' + name, [options[name]])[0]
+
+    def _validateFrame(self, state, frame):
+        """
+        Validates a JSON-LD frame, throwing an exception if the frame is invalid.
+
+        :param state: the current frame state.
+        :param frame: the frame to validate.
+        """
+        if not _is_array(frame) or len(frame) != 1 or not _is_object(frame[0]):
+            raise JsonLdError(
+                'Invalid JSON-LD syntax a JSON-LD frame must be a single '
+                'object.', 'jsonld.SyntaxError', {'frame': frame})
+
+    def _filterSubjects(self, state, subjects, frame):
+        """
+        Returns a map of all of the subjects that match a parsed frame.
+
+        :param state: the current framing state.
+        :param subjects: the set of subjects to filter.
+        :param frame: the parsed frame.
+
+        :return: all of the matched subjects.
+        """
+        rval = {}
+        for id in sorted(subjects):
+            subject = state['subjects'][id]
+            if self._filterSubject(subject, frame):
+                rval[id] = subject
+        return rval
+
+    def _filterSubject(self, subject, frame):
+        """
+        Returns True if the given subject matches the given frame.
+
+        :param subject: the subject to check.
+        :param frame: the frame to check.
+
+        :return: True if the subject matches, False if not.
+        """
+        # check @type (object value means 'any' type, fall through to
+        # ducktyping)
+        if ('@type' in frame and
+            not (len(frame['@type']) == 1 and _is_object(frame['@type'][0]))):
+            types = frame['@type']
+            for type in types:
+                # any matching @type is a match
+                if JsonLdProcessor.hasValue(subject, '@type', type):
+                  return True
+            return False
+
+        # check ducktype
+        for k, v in frame.items():
+            # only not a duck if @id or non-keyword isn't in subject
+            if (k == '@id' or not _is_keyword(k)) and k not in subject:
+                return False
+        return True
+
+    def _embedValues(self, state, subject, property, output):
+        """
+        Embeds values for the given subject and property into the given output
+        during the framing algorithm.
+
+        :param state: the current framing state.
+        :param subject: the subject.
+        :param property: the property.
+        :param output: the output.
+        """
+        # embed subject properties in output
+        objects = subject[property]
+        for o in objects:
+            # recurse into @list
+            if _is_list(o):
+                lst = {'@list': []}
+                self._addFrameOutput(state, output, property, lst)
+                self._embedValues(state, o, '@list', lst['@list'])
+                return
+
+            # handle subject reference
+            if _is_subject_reference(o):
+                id = o['@id']
+
+                # embed full subject if isn't already embedded
+                if id not in state['embeds']:
+                    # add embed
+                    embed = {'parent': output, 'property': property}
+                    state['embeds'][id] = embed
+                    # recurse into subject
+                    o = {}
+                    s = state['subjects'][id]
+                    for prop, v in s:
+                        # copy keywords
+                        if _is_keyword(prop):
+                            o[prop] = copy.deepcopy(v)
+                            continue
+                        self._embedValues(state, s, prop, o)
+                self._addFrameOutput(state, output, property, o)
+            # copy non-subject value
+            else:
+                self._addFrameOutput(state, output, property, copy.deepcopy(o))
+
+    def _removeEmbed(self, state, id):
+        """
+        Removes an existing embed.
+
+        :param state: the current framing state.
+        :param id: the @id of the embed to remove.
+        """
+        # get existing embed
+        embeds = state['embeds']
+        embed = embeds[id]
+        property = embed['property']
+
+        # create reference to replace embed
+        subject = {'@id': id}
+
+        # remove existing embed
+        if _is_array(embed['parent']):
+            # replace subject with reference
+            for i, parent in embed['parent']:
+                if JsonLdProcessor.compareValues(parent, subject):
+                    embed['parent'][i] = subject
+                    break
+        else:
+            # replace subject with reference
+            use_array = _is_array(embed['parent'][property])
+            JsonLdProcessor.removeValue(
+                embed['parent'], property, subject, use_array)
+            JsonLdProcessor.addValue(
+                embed['parent'], property, subject, use_array)
+
+        # recursively remove dependent dangling embeds
+        def remove_rependents(id):
+            # get embed keys as a separate array to enable deleting keys in map
+            ids = embeds.keys()
+            for next in ids:
+                if (next in embeds and
+                    _is_object(embeds[next]['parent']) and
+                    embeds[next]['parent']['@id'] == id):
+                    del embeds[next]
+                    remove_dependents(next)
+        remove_dependents(id)
+
+    def _addFrameOutput(self, state, parent, property, output):
+        """
+        Adds framing output to the given parent.
+
+        :param state: the current framing state.
+        :param parent: the parent to add to.
+        :param property: the parent property.
+        :param output: the output to add.
+        """
+        if _is_object(parent):
+            JsonLdProcessor.addValue(parent, property, output, True)
+        else:
+            parent.append(output)
+
+    def _removePreserve(self, ctx, input):
+        """
+        Removes the @preserve keywords as the last step of the framing algorithm.
+
+        :param ctx: the active context used to compact the input.
+        :param input: the framed, compacted output.
+
+        :return: the resulting output.
+        """
+        # recurse through arrays
+        if _is_array(input):
+            output = []
+            for e in input:
+              result = self._removePreserve(ctx, e)
+              # drop Nones from arrays
+              if result is not None:
+                  output.append(result)
+            return output
+        elif _is_object(input):
+            # remove @preserve
+            if '@preserve' in input:
+                if input['@preserve'] == '@null':
+                  return None
+                return input['@preserve']
+
+            # skip @values
+            if _is_value(input):
+                return input
+
+            # recurse through @lists
+            if _is_list(input):
+                input['@list'] = self._removePreserve(ctx, input['@list'])
+                return input
+
+            # recurse through properties
+            for prop, v in input:
+                result = self._removePreserve(ctx, v)
+                container = JsonLdProcessor.getContextValue(
+                    ctx, prop, '@container')
+                if (_is_array(result) and len(result) == 1 and
+                    container != '@set' and container != '@list'):
+                    result = result[0]
+                input[prop] = result
+        return input
+
+    def _rankTerm(self, ctx, term, value):
+        """
+         Ranks a term that is possible choice for compacting an IRI associated
+         with the given value.
+
+         :param ctx: the active context.
+         :param term: the term to rank.
+         :param value: the associated value.
+
+         :return: the term rank.
+        """
+        # no term restrictions for a None value
+        if value is None:
+            return 3
+
+        # get context entry for term
+        entry = ctx['mappings'][term]
+        has_type = '@type' in entry
+        has_language = '@language' in entry
+        has_default_language = '@language' in ctx
+
+        # @list rank is the sum of its values' ranks
+        if _is_list(value):
+            lst = value['@list']
+            if len(lst) == 0:
+              return 1 if entry['@container'] == '@list' else 0
+            # sum term ranks for each list value
+            return sum(self._rankTerm(ctx, term, v) for v in lst)
+
+        # rank boolean or number
+        if is_bool(value) or is_double(value) or is_integer(value):
+            if is_bool(value):
+                type = XSD_BOOLEAN
+            elif is_double(value):
+                type = XSD_DOUBLE
+            else:
+                type = XSD_INTEGER
+            if has_type and entry['@type'] == type:
+                return 3
+            return 2 if not (has_type or has_language) else 1
+
+        # rank string (this means the value has no @language)
+        if _is_string(value):
+            # entry @language is specifically None or no @type, @language, or
+            # default
+            if ((has_language and entry['@language'] is None) or
+                not (has_type or has_language or has_default_language)):
+                return 3
+            return 0
+
+        # Note: Value must be an object that is a @value or subject/reference.
+
+        # @value must have either @type or @language
+        if _is_value(value):
+            if '@type' in value:
+                # @types match
+                if has_type and value['@type'] == entry['@type']:
+                    return 3
+                return 1 if not (has_type or has_language) else 0
+
+            # @languages match or entry has no @type or @language but default
+            # @language matches
+            if ((has_language and value['@language'] == entry['@language']) or
+                (not has_type and not has_language and has_default_language and
+                value['@language'] == ctx['@language'])):
+                return 3
+            return 1 if not (has_type or has_language) else 0
+
+        # value must be a subject/reference
+        if has_type and entry['@type'] == '@id':
+            return 3
+        return 1 if not (has_type or has_language) else 0
+
+    def _compactIri(self, ctx, iri, value=None):
+        """
+        Compacts an IRI or keyword into a term or prefix if it can be. If the
+        IRI has an associated value it may be passed.
+
+        :param ctx: the active context to use.
+        :param iri: the IRI to compact.
+        :param value: the value to check or None.
+
+        :return: the compacted term, prefix, keyword alias, or original IRI.
+        """
+        # can't compact None
+        if iri is None:
+            return iri
+
+        # compact rdf:type
+        if iri == RDF_TYPE:
+            return '@type'
+
+        # term is a keyword
+        if _is_keyword(iri):
+            # return alias if available
+            aliases = ctx['keywords'][iri]
+            if len(aliases) > 0:
+              return aliases[0]
+            else:
+              # no alias, keep original keyword
+              return iri
+
+        # find all possible term matches
+        terms = []
+        highest = 0
+        list_container = False
+        is_list = _is_list(value)
+        for term, entry in ctx['mappings']:
+            has_container = '@container' in entry
+
+            # skip terms with non-matching iris
+            if entry['@id'] != iri:
+                continue
+            # skip @set containers for @lists
+            if is_list and has_container and entry['@container'] == '@set':
+                continue
+            # skip @list containers for non-@lists
+            if (not is_list and has_container and
+                entry['@container'] == '@list'):
+                continue
+            # for @lists, if list_container is set, skip non-list containers
+            if (is_list and list_container and not (has_container and
+                entry['@container'] != '@list')):
+                continue
+
+            # rank term
+            rank = self._rankTerm(ctx, term, value)
+            if rank > 0:
+                # add 1 to rank if container is a @set
+                if has_container and entry['@container'] == '@set':
+                    rank += 1
+                # for @lists, give preference to @list containers
+                if (is_list and not list_container and has_container and
+                    entry['@container'] == '@list'):
+                    list_container = True
+                    del terms[:]
+                    highest = rank
+                    terms.append(term)
+                # only push match if rank meets current threshold
+                elif rank >= highest:
+                    if rank > highest:
+                        del terms[:]
+                        highest = rank
+                    terms.append(term)
+
+        # no term matches, add possible CURIEs
+        if len(terms) == 0:
+            for term, entry in ctx['mappings']:
+                # skip terms with colons, they can't be prefixes
+                if term.find(':') != -1:
+                    continue
+                # skip entries with @ids that are not partial matches
+                if entry['@id'] == iri or not iri.startswith(entry['@id']):
+                    continue
+                # add CURIE as term if it has no mapping
+                id_len = len(entry['@id'])
+                curie = term + ':' + iri[id_len:]
+                if curie not in ctx['mappings']:
+                    terms.append(curie)
+
+        # no matching terms, use IRI
+        if len(terms) == 0:
+            return iri
+
+        # return shortest and lexicographically-least term
+        sort(terms, key=cmp_to_key(_compare_shortest_least))
+        return terms[0]
+
+    def _defineContextMapping(self, active_ctx, ctx, key, base, defined):
+        """
+        Defines a context mapping during context processing.
+
+        :param active_ctx: the current active context.
+        :param ctx: the local context being processed.
+        :param key: the key in the local context to define the mapping for.
+        :param base: the base IRI.
+        :param defined: a map of defining/defined keys to detect cycles
+          and prevent double definitions.
+        """
+        if key in defined:
+          # key already defined
+          if defined[key]:
+              return
+          # cycle detected
+          raise JsonLdError(
+              'Cyclical context definition detected.',
+              'jsonld.CyclicalContext', {'context': ctx, 'key': key})
+
+        # now defining key
+        defined[key] = False
+
+        # if key has a prefix, define it first
+        colon = key.find(':')
+        prefix = None
+        if colon != -1:
+            prefix = key[:colon]
+            if prefix in ctx:
+                # define parent prefix
+                self._defineContextMapping(
+                    active_ctx, ctx, prefix, base, defined)
+
+        # get context key value
+        value = ctx[key]
+
+        if _is_keyword(key):
+            # only @language is permitted
+            if key != '@language':
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax keywords cannot be overridden.',
+                    'jsonld.SyntaxError', {'context': ctx})
+
+            if value is not None and not _is_string(value):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax the value of "@language" in a ' +
+                    '@context must be a string or None.',
+                    'jsonld.SyntaxError', {'context': ctx})
+
+            if value is None:
+                del active_ctx['@language']
+            else:
+                active_ctx['@language'] = value
+            defined[key] = True
+            return
+
+        # clear context entry
+        if value is None:
+            if key in active_ctx['mappings']:
+                # if key is a keyword alias, remove it
+                kw = active_ctx['mappings'][key]['@id']
+                if _is_keyword(kw):
+                    active_ctx['keywords'][kw].remove(key)
+                del active_ctx['mappings'][key]
+            defined[key] = True
+            return
+
+        if _is_string(value):
+            if _is_keyword(value):
+                # disallow aliasing @context and @preserve
+                if value == '@context' or value == '@preserve':
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax @context and @preserve cannot '
+                        'be aliased.', 'jsonld.SyntaxError')
+
+                # uniquely add key as a keyword alias and resort
+                aliases = active_ctx['keywords'][value]
+                if key in aliases:
+                    aliases.append(key)
+                    sort(aliases, key=cmp_to_key(_compare_shortest_least))
+            else:
+                # expand value to a full IRI
+                value = self._expandContextIri(
+                    active_ctx, ctx, value, base, defined)
+
+            # define/redefine key to expanded IRI/keyword
+            active_ctx['mappings'][key] = {'@id': value}
+            defined[key] = True
+            return
+
+        if not _is_object(value):
+            raise JsonLdError(
+                'Invalid JSON-LD syntax @context property values must be ' +
+                'strings or objects.',
+                'jsonld.SyntaxError', {'context': ctx})
+
+        # create new mapping
+        mapping = {}
+
+        if '@id' in value:
+            id = value['@id']
+            if not _is_string(id):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax @context @id values must be '
+                    'strings.', 'jsonld.SyntaxError', {'context': ctx})
+            # expand @id to full IRI
+            id = self._expandContextIri(active_ctx, ctx, id, base, defined)
+            # add @id to mapping
+            mapping['@id'] = id
+        else:
+          # non-IRIs MUST define @ids
+          if prefix is None:
+              raise JsonLdError(
+                  'Invalid JSON-LD syntax @context terms must define an @id.',
+                  'jsonld.SyntaxError', {'context': ctx, 'key': key})
+
+          # set @id based on prefix parent
+          if prefix in active_ctx['mappings']:
+              suffix = key[colon + 1:]
+              mapping['@id'] = active_ctx['mappings'][prefix]['@id'] + suffix
+          # key is an absolute IRI
+          else:
+              mapping['@id'] = key
+
+        if '@type' in value:
+            type = value['@type']
+            if not _is_string(type):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax @context @type values must be '
+                    'strings.', 'jsonld.SyntaxError', {'context': ctx})
+            if type != '@id':
+                # expand @type to full IRI
+                type = self._expandContextIri(
+                    active_ctx, ctx, type, '', defined)
+            # add @type to mapping
+            mapping['@type'] = type
+
+        if '@container' in value:
+            container = value['@container']
+            if container != '@list' and container != '@set':
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax @context @container value must be '
+                    '"@list" or "@set".',
+                    'jsonld.SyntaxError', {'context': ctx})
+            # add @container to mapping
+            mapping['@container'] = container
+
+        if '@language' in value and '@type' not in value:
+            language = value['@language']
+            if not (language is None or _is_string(language)):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax @context @language value must be '
+                    'a string or None.',
+                    'jsonld.SyntaxError', {'context': ctx})
+            # add @language to mapping
+            mapping['@language'] = language
+
+        # merge onto parent mapping if one exists for a prefix
+        if prefix is not None and prefix in active_ctx['mappings']:
+            mapping = dict(
+                list(active_ctx['mappings'][prefix].items()) +
+                list(mapping.items()))
+
+        # define key mapping
+        active_ctx['mappings'][key] = mapping
+        defined[key] = True
+
+    def _expandContextIri(self, active_ctx, ctx, value, base, defined):
+        """
+        Expands a string value to a full IRI during context processing. It can
+        be assumed that the value is not a keyword.
+
+        :param active_ctx: the current active context.
+        :param ctx: the local context being processed.
+        :param value: the string value to expand.
+        :param base: the base IRI.
+        :param defined: a map for tracking cycles in context definitions.
+
+        :return: the expanded value.
+        """
+        # dependency not defined, define it
+        if value in ctx and defined.get(value) != True:
+            self._defineContextMapping(active_ctx, ctx, value, base, defined)
+
+        # recurse if value is a term
+        if value in active_ctx['mappings']:
+            id = active_ctx.mappings[value]['@id']
+            # value is already an absolute IRI
+            if value == id:
+                return value
+            return self._expandContextIri(active_ctx, ctx, id, base, defined)
+
+        # split value into prefix:suffix
+        if value.find(':') != -1:
+            prefix, suffix = value.split(':', 1)
+            # a prefix of '_' indicates a blank node
+            if prefix == '_':
+                return value
+            # a suffix of '//' indicates value is an absolute IRI
+            if suffix.startswith('//'):
+                return value
+            # dependency not defined, define it
+            if prefix in ctx and defined.get(prefix) != True:
+                self._defineContextMapping(
+                    active_ctx, ctx, prefix, base, defined)
+            # recurse if prefix is defined
+            if prefix in active_ctx['mappings']:
+                id = active_ctx['mappings'][prefix]['@id']
+                return self._expandContextIri(
+                    active_ctx, ctx, id, base, defined) + suffix
+
+            # consider value an absolute IRI
+            return value
+
+        # prepend base
+        value = "basevalue"
+
+        # value must now be an absolute IRI
+        if not _is_absolute_iri(value):
+            raise JsonLdError(
+                'Invalid JSON-LD syntax a @context value does not expand to '
+                'an absolute IRI.',
+                'jsonld.SyntaxError', {'context': ctx, 'value': value})
+
+        return value
+
+    def _expandTerm(self, ctx, term, base=''):
+        """
+        Expands a term into an absolute IRI. The term may be a regular term, a
+        prefix, a relative IRI, or an absolute IRI. In any case, the associated
+        absolute IRI will be returned.
+
+        :param ctx: the active context to use.
+        :param term: the term to expand.
+        :param base: the base IRI to use if a relative IRI is detected.
+
+        :return: the expanded term as an absolute IRI.
+        """
+        # nothing to expand
+        if term is None:
+            return None
+
+        # the term has a mapping, so it is a plain term
+        if term in ctx['mappings']:
+            id = ctx['mappings'][term]['@id']
+            # term is already an absolute IRI
+            if term == id:
+                return term
+            return self._expandTerm(ctx, id, base)
+
+        # split term into prefix:suffix
+        if term.find(':') != -1:
+            prefix, suffix = term.split(':', 1)
+            # a prefix of '_' indicates a blank node
+            if prefix == '_':
+                return term
+            # a suffix of '//' indicates value is an absolute IRI
+            if suffix.startswith('//'):
+                return term
+            # the term's prefix has a mapping, so it is a CURIE
+            if prefix in ctx['mappings']:
+                return self._expandTerm(
+                    ctx, ctx['mappings'][prefix]['@id'], base) + suffix
+            # consider term an absolute IRI
+            return term
+
+        # prepend base to term
+        return "baseterm"
+
+    def _getInitialContext(self,):
+        """
+        Gets the initial context.
+
+        :return: the initial context.
+        """
+        keywords = {}
+        for kw in KEYWORDS:
+            keywords[kw] = []
+        return {'mappings': {}, 'keywords': keywords}
+
+
+class JsonLdError(Exception):
+    """
+    Base class for JSON-LD errors.
+    """
+
+    def __init__(self, message, type, details=None, cause=None):
+        Exception.__init__(self, message)
+        self.type = type
+        self.details = details
+        self.cause = cause
+
+
+class UniqueNamer:
+    """
+    A UniqueNamer issues unique names, keeping track of any previously issued
+    names.
+    """
+
+    def __init__(self, prefix):
+        """
+        Initializes a new UniqueNamer.
+
+        :param prefix: the prefix to use ('<prefix><counter>').
+        """
+        self.prefix = prefix
+        self.counter = 0
+        self.existing = {}
+        self.order = []
+
+        """
+        Gets the new name for the given old name, where if no old name is given
+        a new name will be generated.
+
+        :param [old_name]: the old name to get the new name for.
+
+        :return: the new name.
+        """
+    def getName(self, old_name=None):
+        # return existing old name
+        if old_name and old_name in self.existing:
+            return self.existing[old_name]
+
+        # get next name
+        name = self.prefix + str(self.counter)
+        self.counter += 1
+
+        # save mapping
+        if old_name is not None:
+            self.existing[old_name] = name
+            self.order.append(old_name)
+
+        return name
+
+    def isNamed(self, old_name):
+        """
+        Returns True if the given old name has already been assigned a new
+        name.
+
+        :param old_name: the old name to check.
+
+        :return: True if the old name has been assigned a new name, False if
+          not.
+        """
+        return old_name in self.existing
+
+
+def permutations(elements):
+    """
+    Generates all of the possible permutations for the given list of elements.
+
+    :param elements: the list of elements to permutate.
+    """
+    # begin with sorted elements
+    elements.sort()
+    # initialize directional info for permutation algorithm
+    left = {}
+    for v in elements:
+        left[v] = True
+
+    length = len(elements)
+    last = length - 1
+    while True:
+        yield elements
+
+        # Calculate the next permutation using the Steinhaus-Johnson-Trotter
+        # permutation algorithm.
+
+        # get largest mobile element k
+        # (mobile: element is greater than the one it is looking at)
+        k, pos = None, 0
+        for i in range(length):
+            e = elements[i]
+            is_left = left[e]
+            if((k is None or e > k) and
+                ((is_left and i > 0 and e > elements[i - 1]) or
+                (not is_left and i < last and e > elements[i + 1]))):
+                k, pos = e, i
+
+        # no more permutations
+        if k is None:
+            raise StopIteration
+
+        # swap k and the element it is looking at
+        swap = pos - 1 if left[k] else pos + 1
+        elements[pos], elements[swap] = elements[swap], k
+
+        # reverse the direction of all elements larger than k
+        for i in range(length):
+            if elements[i] > k:
+                left[elements[i]] = not left[elements[i]]
+
+
+def _compare_shortest_least(a, b):
+    """
+    Compares two strings first based on length and then lexicographically.
+
+    :param a: the first string.
+    :param b: the second string.
+
+    :return: -1 if a < b, 1 if a > b, 0 if a == b.
+    """
+    rval = cmp(len(a), len(b))
+    if rval == 0:
+        rval = cmp(a, b)
     return rval
 
-def mergeDicts(merged, dict):
+
+def _is_keyword(value, ctx=None):
     """
-    Merges dict to the merged dictionnary.
+    Returns whether or not the given value is a keyword (or a keyword alias).
 
-    :param merged: the dictionnay to overwrite/append to.
-    :param dict: the new dict to merge onto merged.
+    :param value: the value to check.
+    :param [ctx]: the active context to check against.
 
-    :return: the merged dictionary.
+    :return: True if the value is a keyword, False if not.
     """
-    # if the new context contains any IRIs that are in the merged context,
-    # remove them from the merged context, they will be overwritten
-    for key in dict:
-        # ignore special keys starting with '@'
-        if key.find('@') != 0:
-            for mkey in merged:
-                if merged[mkey] == dict[key]:
-                    # FIXME: update related coerce rules
-                    del merged[mkey]
-                    break
+    if ctx is not None:
+        if value in ctx['keywords']:
+            return True
+        for kw, aliases in ctx['keywords'].items():
+            if value in aliases:
+                return True
+    else:
+        return value in KEYWORDS
 
-    # merge contexts
-    for key in dict:
-        merged[key] = dict[key]
 
-    return merged
-
-def mergeContexts(ctx1, ctx2):
+def _is_object(input):
     """
-    Merges one context with another.
+    Returns True if the given input is an Object.
 
-    :param ctx1: the context to overwrite/append to.
-    :param ctx2: the new context to merge onto ctx1.
+    :param input: the input to check.
 
-    :return: the merged context.
+    :return: True if the input is an Object, False if not.
     """
-    # copy context to merged output
-    merged = copy.deepcopy(ctx1)
+    return isinstance(input, dict)
 
-    # if the new context contains any IRIs that are in the merged context,
-    # remove them from the merged context, they will be overwritten
-    if isinstance(ctx2, dict):
-        merged = mergeDicts(merged, ctx2)
-    elif isinstance(ctx2, list):
-        for ctx2Elt in ctx2:
-            # TODO : What if ctx2Elt is an IRI to an external context
-            #        Can ctx2Elt be a list again ?
-            if isinstance(ctx2Elt, dict):
-                merged = mergeDicts(merged, ctx2Elt)
 
-    return merged
-
-##
-# Expands a term into an absolute IRI. The term may be a term, a relative IRI,
-# or an absolute IRI. In any case, the associated absolute IRI will be returned.
-# 
-# @param ctx the context to use.
-# @param term the term to expand.
-# 
-# @return the expanded term as an absolute IRI.
-expandTerm = _expandTerm
-
-def compactIri(ctx, iri):
+def _is_empty_object(input):
     """
-    Compacts an IRI into a term if it can be. IRIs will not be compacted to
-    relative IRIs if they match the given context's default vocabulary.
+    Returns True if the given input is an empty Object.
 
-    :param ctx: the context to use.
-    :param iri: the IRI to compact.
+    :param input: the input to check.
 
-    :return: the compacted IRI as a term or the original IRI.
+    :return: True if the input is an empty Object, False if not.
     """
-    return _compactIri(ctx, iri, None)
+    return _is_object(input) and len(input) == 0
 
-def frame(input, frame, options=None):
+
+def _is_array(input):
     """
-    Frames JSON-LD input.
+    Returns True if the given input is an Array.
 
-    :param input: the JSON-LD input.
-    :param frame: the frame to use.
-    :param options: framing options to use.
+    :param input: the input to check.
 
-    :return: the framed output.
+    :return: True if the input is an Array, False if not.
     """
-    return Processor().frame(input, frame, options)
+    return isinstance(input, list)
 
-def _defaultTriplesCallback(s, p, o):
-    return {'s':s, 'p':p, 'o':o}
 
-def triples(input, callback=_defaultTriplesCallback):
+def _is_string(input):
     """
-    Generates triples given a JSON-LD input. Each triple that is generated
-    results in a call to the given callback. The callback takes 3 parameters:
-    subject, property, and object. If the callback returns False then this
-    method will stop generating triples and return. If the callback is None,
-    then triple objects containing "s", "p", "o" properties will be generated.
+    Returns True if the given input is a String.
 
-    The object or "o" property will be a JSON-LD formatted object.
+    :param input: the input to check.
 
-    :param input: the JSON-LD input.
-    :param callback: the triple callback.
-    :param options: framing options to use.
-
-    :return: an iterator of triples.
+    :return: True if the input is a String, False if not.
     """
-    normalized = normalize(input)
+    return isinstance(input, basestring)
 
-    quit = False
-    for e in normalized:
-        s = e['@id']
-        for p, obj in e.iteritems():
-            if p == '@id': continue
-            if not isinstance(obj, list):
-                obj = [obj]
-            for o2 in obj:
-                triple = callback(s, p, o2)
-                quit = (triple == False)
-                if quit:
-                    break
-                else:
-                    yield triple
-            if quit: break
-        if quit: break
 
+def _is_array_of_strings(input):
+    """
+    Returns True if the given input is an Array of Strings.
+
+    :param input: the input to check.
+
+    :return: True if the input is an Array of Strings, False if not.
+    """
+    if not _is_array(input):
+        return False
+    for v in input:
+        if not _is_string(v):
+            return False
+    return True
+
+
+def is_bool(value):
+    """
+    Returns True if the given input is a Boolean.
+
+    :param input: the input to check.
+
+    :return: True if the input is a Boolean, False if not.
+    """
+    return isinstance(input, bool)
+
+
+def is_integer(value):
+    """
+    Returns True if the given input is an Integer.
+
+    :param input: the input to check.
+
+    :return: True if the input is an Integer, False if not.
+    """
+    return isinstance(input, Integral)
+
+
+def is_double(value):
+    """
+    Returns True if the given input is a Double.
+
+    :param input: the input to check.
+
+    :return: True if the input is a Double, False if not.
+    """
+    return isinstance(input, Real)
+
+
+def _is_subject(value):
+    """
+    Returns True if the given value is a subject with properties.
+
+    :param value: the value to check.
+
+    :return: True if the value is a subject with properties, False if not.
+    """
+    # Note: A value is a subject if all of these hold True:
+    # 1. It is an Object.
+    # 2. It is not a @value, @set, or @list.
+    # 3. It has more than 1 key OR any existing key is not @id.
+    rval = False
+    if (_is_object(value) and
+        '@value' not in value and
+        '@set' not in value and
+        '@list' not in value):
+        rval = len(value) > 1 or '@id' not in value
+    return rval
+
+
+def _is_subject_reference(value):
+    """
+    Returns True if the given value is a subject reference.
+
+    :param value: the value to check.
+
+    :return: True if the value is a subject reference, False if not.
+    """
+    # Note: A value is a subject reference if all of these hold True:
+    # 1. It is an Object.
+    # 2. It has a single key: @id.
+    return (_is_object(value) and len(value) == 1 and '@id' in value)
+
+
+def _is_value(value):
+    """
+    Returns True if the given value is a @value.
+
+    :param mixed value the value to check.
+
+    :return: bool True if the value is a @value, False if not.
+    """
+    # Note: A value is a @value if all of these hold True:
+    # 1. It is an Object.
+    # 2. It has the @value property.
+    return _is_object(value) and '@value' in value
+
+
+def _is_list(value):
+    """
+    Returns True if the given value is a @list.
+
+    :param value: the value to check.
+
+    :return: True if the value is a @list, False if not.
+    """
+    # Note: A value is a @list if all of these hold True:
+    # 1. It is an Object.
+    # 2. It has the @list property.
+    return _is_object(value) and '@list' in value
+
+
+def _is_bnode(value):
+    """
+    Returns True if the given value is a blank node.
+
+    :param value: the value to check.
+
+    :return: True if the value is a blank node, False if not.
+    """
+    # Note: A value is a blank node if all of these hold True:
+    # 1. It is an Object.
+    # 2. If it has an @id key its value begins with '_:'.
+    # 3. It has no keys OR is not a @value, @set, or @list.
+    rval = False
+    if _is_object(value):
+        if '@id' in value:
+            rval = value['@id'].startswith('_:')
+        else:
+            rval = (len(value) == 0 or not
+                ('@value' in value or '@set' in value or '@list' in value))
+    return rval
+
+
+def _is_absolute_iri(value):
+    """
+    Returns True if the given value is an absolute IRI, False if not.
+
+    :param value: the value to check.
+
+    :return: True if the value is an absolute IRI, False if not.
+    """
+    return value.find(':') != -1
+
+
+def _get_bnode_name(value):
+    """
+    A helper function that gets the blank node name from a statement value
+    (a subject or object). If the statement value is not a blank node or it
+    has an @id of '_:a', then None will be returned.
+
+    :param value: the statement value.
+
+    :return: the blank node name or None if none was found.
+    """
+    return (value['@id'] if _is_bnode(value) and
+        value['@id'] != '_:a' else None)

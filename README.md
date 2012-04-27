@@ -22,10 +22,10 @@ To run the sample tests you will need to get the test suite files from the
 
 https://github.com/json-ld/json-ld.org
 
-Then run the TestRunner application and point it at the directory
+Then run the runtests.py application and point it at the directory
 containing the tests.
 
-    python tests/TestRunner.py -d {PATH_TO_JSON_LD_ORG/test-suite/tests}
+    python tests/runtests.py -d {PATH_TO_JSON_LD_ORG/test-suite/tests}
 
 [Python]: http://www.python.org/
 [JSON-LD]: http://json-ld.org/
