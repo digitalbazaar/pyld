@@ -1234,8 +1234,8 @@ class JsonLdProcessor:
                 # convert double to @value
                 elif _is_double(o):
                     # do special JSON-LD double format,
-                    # printf(' % 1.16e') equivalent
-                    o = {'@value': ('%1.16e' % o), '@type': XSD_DOUBLE}
+                    # printf(' % 1.15e') equivalent
+                    o = {'@value': ('%1.15e' % o), '@type': XSD_DOUBLE}
                 # convert integer to @value
                 elif _is_integer(o):
                     o = {'@value': str(o), '@type': XSD_INTEGER}
@@ -2286,7 +2286,7 @@ class JsonLdProcessor:
             return value
 
         # prepend base
-        value = "basevalue"
+        value = self._prependBase(base, value)
 
         # value must now be an absolute IRI
         if not _is_absolute_iri(value):
@@ -2338,9 +2338,24 @@ class JsonLdProcessor:
             return term
 
         # prepend base to term
-        return base + term
+        return self._prependBase(base, term)
 
-    def _getInitialContext(self,):
+    def _prependBase(self, base, iri):
+        """
+        Prepends a base IRI to the given relative IRI.
+
+        :param base: the base IRI.
+        :param iri: the relative IRI.
+
+        :return: the absolute IRI.
+        """
+        if iri == '' or iri.startswith('#'):
+            return base + iri
+        else:
+            # prepend last directory for base
+            return base[:base.rfind('/') + 1] + iri;
+
+    def _getInitialContext(self):
         """
         Gets the initial context.
 
