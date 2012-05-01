@@ -2714,8 +2714,8 @@ class JsonLdProcessor:
         datatype = '(?:\\^\\^' + iri + ')'
         language = '(?:@([a-z]+(?:-[a-z0-9]+)*))'
         literal = '(?:' + plain + '(?:' + datatype + '|' + language + ')?)'
-        ws = '[ \t]+'
-        wso = '[ \t]*'
+        ws = '[ \\t]+'
+        wso = '[ \\t]*'
         eoln = r'(?:\r\n)|(?:\n)|(?:\r)/g'
         empty = r'^' + wso + '$'
 
