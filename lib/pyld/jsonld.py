@@ -15,10 +15,10 @@ JSON-LD.
 __copyright__ = 'Copyright (c) 2011-2012 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
 
-__all__ = ['compact', 'expand', 'frame', 'normalize', 'toRDF',
+__all__ = ['compact', 'expand', 'frame', 'normalize', 'fromRDF', 'toRDF',
     'JsonLdProcessor']
 
-import copy, hashlib
+import copy, hashlib, re
 from functools import cmp_to_key
 from numbers import Integral, Real
 
@@ -112,6 +112,22 @@ def normalize(input, options=None):
     return JsonLdProcessor().normalize(input, options)
 
 
+def fromRDF(input, options=None):
+    """
+    Converts RDF statements into JSON-LD.
+
+    :param statements: a serialized string of RDF statements in a format
+      specified by the format option or an array of the RDF statements
+      to convert.
+    :param [options]: the options to use:
+      [format] the format if input is a string:
+        'application/nquads' for N-Quads (default).
+      [notType] true to use rdf:type, false to use @type (default).
+
+    :return: the JSON-LD output.
+    """
+    return JsonLdProcessor().fromRDF(input, options)
+
 def toRDF(input, options=None):
     """
     Outputs the RDF statements found in the given JSON-LD object.
@@ -119,6 +135,8 @@ def toRDF(input, options=None):
     :param input: the JSON-LD object.
     :param [options]: the options to use.
       [base] the base IRI to use.
+      [format] the format to use to output a string:
+        'application/nquads' for N-Quads (default).
 
     :return: all RDF statements in the JSON-LD object.
     """
@@ -347,6 +365,33 @@ class JsonLdProcessor:
         # do normalization
         return self._normalize(expanded)
 
+    def fromRDF(self, statements, options):
+        """
+        Converts RDF statements into JSON-LD.
+        
+        :param statements: a serialized string of RDF statements in a format
+          specified by the format option or an array of the RDF statements
+          to convert.
+        :param options: the options to use.
+        
+        :return: the JSON-LD output.
+        """
+        # set default options
+        options = options or {}
+        options.setdefault('format', 'application/nquads')
+        options.setdefault('notType', False)
+
+        if _is_string(statements):
+            # supported formats
+            if options['format'] == 'application/nquads':
+                statements = self._parseNQuads(statements)
+            else:
+                raise JsonLdError('Unknown input format.',
+                    'jsonld.UnknownFormat', {'format': options['format']})
+
+        # convert from RDF
+        return self._fromRDF(statements, options)
+
     def toRDF(self, input, options):
         """
         Outputs the RDF statements found in the given JSON-LD object.
@@ -360,12 +405,32 @@ class JsonLdProcessor:
         options = options or {}
         options.setdefault('base', '')
 
-        # resolve all @context URLs in the input
-        input = copy.deepcopy(input)
-        #self._resolveUrls(input, options['resolver'])
+        try:
+            # expand input
+            expanded = self.expand(input, options)
+        except JsonLdError as cause:
+            raise JsonLdError('Could not expand input before conversion to '
+                'RDF.', 'jsonld.RdfError', None, cause)
+
+        # get RDF statements
+        namer = UniqueNamer('_:t')
+        statements = []
+        self._toRDF(expanded, namer, None, None, None, statements)
+
+        # convert to output format
+        if 'format' in options:
+            if options['format'] == 'application/nquads':
+                nquads = []
+                for statement in statements:
+                    nquads.append(self._toNQuad(statement))
+                nquads.sort()
+                statements = ''.join(nquads)
+            else:
+                raise JsonLdError('Unknown output format.',
+                    'jsonld.UnknownFormat', {'format': options['format']})
 
         # output RDF statements
-        return self._toRDF(input)
+        return statements
 
     def processContext(self, active_ctx, local_ctx, options):
         """
@@ -1090,16 +1155,258 @@ class JsonLdProcessor:
         output.sort(key=cmp_ids)
         return output
 
-    def _toRDF(self, input):
+    def _fromRDF(self, statements, options):
+        """
+        Converts RDF statements into JSON-LD.
+        
+        :param statements: the RDF statements.
+        :param options: the RDF conversion options.
+        
+        :return: the JSON-LD output.
+        """
+        # prepare graph map (maps graph name => subjects, lists)
+        default_graph = {'subjects': {}, 'listMap': {}}
+        graphs = {'': default_graph}
+
+        for statement in statements:
+            # get subject, property, object, and graph name (default to '')
+            s = statement['subject']['nominalValue']
+            p = statement['property']['nominalValue']
+            o = statement['object']
+            name = statement.get('name', {'nominalValue': ''})['nominalValue']
+
+            # create a graph entry as needed
+            graph = graphs.setdefault(name, {'subjects': {}, 'listMap': {}})
+
+            # handle element in @list
+            if p == RDF_FIRST:
+                # create list entry as needed
+                list_map = graph['listMap']
+                entry = list_map.setdefault(s, {})
+                # set object value
+                entry['first'] = self._rdfToObject(o)
+                continue
+
+            # handle other element in @list
+            if p == RDF_REST:
+                # set next in list
+                if o['interfaceName'] == 'BlankNode':
+                    # create list entry as needed
+                    list_map = graph['listMap']
+                    entry = list_map.setdefault(s, {})
+                    entry['rest'] = o['nominalValue']
+                continue
+
+            # if graph is not the default graph
+            if name != '':
+                # add graph subject to default graph as needed
+                default_graph['subjects'].setdefault(name, {'@id': name})
+
+            # add subject to graph as needed
+            subjects = graph['subjects']
+            value = subjects.setdefault(s, {'@id': s})
+
+            # convert to @type unless options indicate to treat rdf:type as property
+            if p == RDF_TYPE and not options['notType']:
+                # add value of object as @type
+                JsonLdProcessor.addValue(
+                    value, '@type', o['nominalValue'], True)
+            else:
+                # add property to value as needed
+                object = self._rdfToObject(o)
+                JsonLdProcessor.addValue(value, p, object, True)
+
+                # a bnode might be the start of a list, so add it to list map
+                if o['interfaceName'] == 'BlankNode':
+                    id = object['@id']
+                    # create list entry as needed
+                    list_map = graph['listMap']
+                    entry = list_map.setdefault(id, {})
+                    entry['head'] = object
+
+        # build @lists
+        for name, graph in graphs.items():
+            # find list head
+            list_map = graph['listMap']
+            for subject, entry in list_map.items():
+                # head found, build lists
+                if 'head' in entry and 'first' in entry:
+                    # replace bnode @id with @list
+                    value = entry['head']
+                    del value['@id']
+                    list_ = value['@list'] = [entry['first']]
+                    while 'rest' in entry:
+                        rest = entry['rest']
+                        entry = list_map[rest]
+                        if 'first' not in entry:
+                            raise JsonLdError(
+                                'Invalid RDF list entry.',
+                                'jsonld.RdfError', {bnode: rest})
+                        list_.append(entry['first'])
+
+        # build default graph in subject @id order
+        output = []
+        for id, subject in sorted(default_graph['subjects'].items()):
+            # add subject to default graph
+            output.append(subject)
+
+            # output named graph in subject @id order
+            if id in graphs:
+                graph = subject['@graph'] = []
+                for id, subject in sorted(graphs[id]['subjects'].items()):
+                    graph.append(subject)
+        return output
+
+    def _toRDF(self, element, namer, subject, property, graph, statements):
         """
         Outputs the RDF statements found in the given JSON-LD object.
 
-        :param input: the JSON-LD object.
-
-        :return: the RDF statements.
+        :param element: the JSON-LD element.
+        :param namer: the UniqueNamer for assigning bnode names.
+        :param subject: the active subject.
+        :param property: the active property.
+        :param graph: the graph name.
+        :param statements: the array to add statements to.
         """
-        # FIXME: implement
-        raise JsonLdError('Not implemented', 'jsonld.NotImplemented')
+        if _is_object(element):
+            # convert @value to object
+            if _is_value(element):
+                object = {
+                    'nominalValue': element['@value'],
+                    'interfaceName': 'LiteralNode'
+                }
+                if '@type' in element:
+                    object['datatype'] = {
+                        'nominalValue': element['@type'],
+                        'interfaceName': 'IRI'
+                    }
+                elif '@language' in element:
+                    object['language'] = element['@language']
+                # emit literal
+                statement = {
+                    'subject': copy.deepcopy(subject),
+                    'property': copy.deepcopy(property),
+                    'object': object
+                }
+                if graph is not None:
+                    statement['name'] = graph
+                statements.append(statement)
+                return
+
+            # convert @list
+            if _is_list(element):
+                list_ = self._makeLinkedList(element)
+                self._toRDF(list_, namer, subject, property, graph, statements)
+                return
+
+            # Note: element must be a subject
+
+            # get subject @id (generate one if it is a bnode)
+            id = element['@id'] if '@id' in element else None
+            is_bnode = _is_bnode(element)
+            if is_bnode:
+                id = namer.getName(id)
+
+            # create object
+            object = {
+                'nominalValue': id,
+                'interfaceName': 'BlankNode' if is_bnode else 'IRI'
+            }
+
+            # emit statement if subject isn't None
+            if subject is not None:
+                statement = {
+                    'subject': copy.deepcopy(subject),
+                    'property': copy.deepcopy(property),
+                    'object': copy.deepcopy(object)
+                }
+                if graph is not None:
+                    statement['name'] = graph
+                statements.append(statement)
+
+            # set new active subject to object
+            subject = object
+
+            # recurse over subject properties in order
+            for prop, value in sorted(element.items()):
+                # convert @type to rdf:type
+                if prop == '@type':
+                    prop = RDF_TYPE
+
+                # recurse into @graph
+                if prop == '@graph':
+                    self._toRDF(value, namer, None, None, subject, statements)
+                    continue
+
+                # skip keywords
+                if _is_keyword(prop):
+                    continue
+
+                # create new active property
+                property = {'nominalValue': prop, 'interfaceName': 'IRI'}
+
+                # recurse into value
+                self._toRDF(value, namer, subject, property, graph, statements)
+
+            return
+
+        if _is_array(element):
+            # recurse into arrays
+            for e in element:
+                self._toRDF(e, namer, subject, property, graph, statements)
+            return
+
+        if _is_string(element):
+            # property can be None for string subject references in @graph
+            if property is None:
+                return
+            # emit IRI for rdf:type, else plain literal
+            if property['nominalValue'] == RDF_TYPE:
+                object_type = 'IRI'
+            else:
+                object_type = 'LiteralNode'
+            statement = {
+                'subject': copy.deepcopy(subject),
+                'property': copy.deepcopy(property),
+                'object': {
+                    'nominalValue': element,
+                    'interfaceName': object_type
+                }
+            }
+            if graph is not None:
+                statement['name'] = graph
+            statements.append(statement)
+            return
+
+        if _is_bool(element) or _is_double(element) or _is_integer(element):
+            # convert to XSD datatype
+            if _is_bool(element):
+                datatype = XSD_BOOLEAN
+                value = 'true' if element else 'false'
+            elif _is_double(element):
+                datatype = XSD_DOUBLE
+                # printf('%1.15e') equivalent
+                value = '%1.15e' % element
+            else:
+                datatype = XSD_INTEGER
+                value = str(element)
+            # emit typed literal
+            statement = {
+                'subject': copy.deepcopy(subject),
+                'property': copy.deepcopy(property),
+                'object': {
+                    'nominalValue': value,
+                    'interfaceName': 'LiteralNode',
+                    'datatype': {
+                        'nominalValue': datatype,
+                        'interfaceName': 'IRI'
+                    }
+                }
+            }
+            if graph is not None:
+                statement['name'] = graph
+            statements.append(statement)
+            return
 
     def _processContext(self, active_ctx, local_ctx, options):
         """
@@ -1182,6 +1489,32 @@ class JsonLdProcessor:
 
         return rval
 
+    def _rdfToObject(self, o):
+        """
+        Converts an RDF statement object to a JSON-LD object.
+
+        :param o: the RDF statement object to convert.
+
+        :return: the JSON-LD object.
+        """
+        # convert empty list
+        if o['interfaceName'] == 'IRI' and o['nominalValue'] == RDF_NIL:
+            return {'@list': []}
+
+        # convert IRI/BlankNode object to JSON-LD
+        if o['interfaceName'] == 'IRI' or o['interfaceName'] == 'BlankNode':
+            return {'@id': o['nominalValue']}
+
+        # convert literal object to JSON-LD
+        rval = {'@value': o['nominalValue']}
+        # add datatype
+        if 'datatype' in o:
+            rval['@type'] = o['datatype']['nominalValue']
+        # add language
+        elif 'language' in o:
+            rval['@language'] = o['language']
+        return rval
+
     def _getStatements(self, input, namer, bnodes, subjects, name=None):
         """
         Recursively gets all statements from the given expanded JSON-LD input.
@@ -1234,7 +1567,7 @@ class JsonLdProcessor:
                 # convert double to @value
                 elif _is_double(o):
                     # do special JSON-LD double format,
-                    # printf(' % 1.15e') equivalent
+                    # printf('%1.15e') equivalent
                     o = {'@value': ('%1.15e' % o), '@type': XSD_DOUBLE}
                 # convert integer to @value
                 elif _is_integer(o):
@@ -1480,7 +1813,7 @@ class JsonLdProcessor:
         # return SHA-1 hash and path namer
         return {'hash': md.hexdigest(), 'pathNamer': path_namer}
 
-    def _flatten(self, subjects, input, namer, name, lst):
+    def _flatten(self, subjects, input, namer, name, list_):
         """
         Recursively flattens the subjects in the given JSON-LD expanded input.
 
@@ -1488,23 +1821,23 @@ class JsonLdProcessor:
         :param input: the JSON-LD expanded input.
         :param namer: the blank node namer.
         :param name: the name assigned to the current input if it is a bnode.
-        :param lst: the list to append to, None for none.
+        :param list_: the list to append to, None for none.
         """
         # recurse through array
         if _is_array(input):
             for e in input:
-                self._flatten(subjects, e, namer, None, lst)
+                self._flatten(subjects, e, namer, None, list_)
             return
         elif not _is_object(input):
             # add non-object to list
-            if lst is not None:
-                lst.append(input)
+            if list_ is not None:
+                list_.append(input)
 
         # Note: input must be an object
 
         # add value to list
-        if _is_value(input) and lst is not None:
-            lst.append(input)
+        if _is_value(input) and list_ is not None:
+            list_.append(input)
             pass
 
         # get name for subject
@@ -1514,8 +1847,8 @@ class JsonLdProcessor:
                 name = namer.getName(name)
 
         # add subject reference to list
-        if lst is not None:
-            lst.append({'@id': name})
+        if list_ is not None:
+            list_.append({'@id': name})
 
         # create new subject or merge into existing one
         subject = subjects.setdefault(name, {})
@@ -1545,9 +1878,9 @@ class JsonLdProcessor:
                 else:
                     # recurse into list
                     if _is_list(o):
-                        olst = {}
-                        self._flatten(subjects, o['@list'], namer, name, olst)
-                        o = {'@list': olst}
+                        olist = []
+                        self._flatten(subjects, o['@list'], namer, name, olist)
+                        o = {'@list': olist}
 
                     # add non-subject
                     JsonLdProcessor.addValue(subject, prop, o, True)
@@ -1640,8 +1973,8 @@ class JsonLdProcessor:
                         # recurse into list
                         if _is_list(o):
                             # add empty list
-                            lst = {'@list': []}
-                            self._addFrameOutput(state, output, prop, lst)
+                            list_ = {'@list': []}
+                            self._addFrameOutput(state, output, prop, list_)
 
                             # add list objects
                             src = o['@list']
@@ -1650,11 +1983,11 @@ class JsonLdProcessor:
                                 if _is_subject_reference(o):
                                     self._matchFrame(
                                         state, [o['@id']], frame[prop],
-                                        lst, '@list')
+                                        list_, '@list')
                                 # include other values automatically
                                 else:
                                     self._addFrameOutput(
-                                        state, lst, '@list', copy.deepcopy(o))
+                                        state, list_, '@list', copy.deepcopy(o))
                             continue
 
                         # recurse into subject reference
@@ -1769,9 +2102,9 @@ class JsonLdProcessor:
         for o in objects:
             # recurse into @list
             if _is_list(o):
-                lst = {'@list': []}
-                self._addFrameOutput(state, output, property, lst)
-                self._embedValues(state, o, '@list', lst['@list'])
+                list_ = {'@list': []}
+                self._addFrameOutput(state, output, property, list_)
+                self._embedValues(state, o, '@list', list_['@list'])
                 return
 
             # handle subject reference
@@ -1921,11 +2254,11 @@ class JsonLdProcessor:
 
         # @list rank is the sum of its values' ranks
         if _is_list(value):
-            lst = value['@list']
-            if len(lst) == 0:
+            list_ = value['@list']
+            if len(list_) == 0:
               return 1 if entry['@container'] == '@list' else 0
             # sum term ranks for each list value
-            return sum(self._rankTerm(ctx, term, v) for v in lst)
+            return sum(self._rankTerm(ctx, term, v) for v in list_)
 
         # rank boolean or number
         if _is_bool(value) or _is_double(value) or _is_integer(value):
@@ -2353,7 +2686,7 @@ class JsonLdProcessor:
             return base + iri
         else:
             # prepend last directory for base
-            return base[:base.rfind('/') + 1] + iri;
+            return base[:base.rfind('/') + 1] + iri
 
     def _getInitialContext(self):
         """
@@ -2365,6 +2698,141 @@ class JsonLdProcessor:
         for kw in KEYWORDS:
             keywords[kw] = []
         return {'mappings': {}, 'keywords': keywords}
+
+    def _parseNQuads(self, input):
+        """
+        Parses statements in the form of N-Quads.
+
+        :param input: the N-Quads input to parse.
+
+        :return: an array of RDF statements.
+        """
+        # define partial regexes
+        iri = '(?:<([^:]+:[^>]*)>)'
+        bnode = '(_:(?:[A-Za-z][A-Za-z0-9]*))'
+        plain = '"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"'
+        datatype = '(?:\\^\\^' + iri + ')'
+        language = '(?:@([a-z]+(?:-[a-z0-9]+)*))'
+        literal = '(?:' + plain + '(?:' + datatype + '|' + language + ')?)'
+        ws = '[ \t]+'
+        wso = '[ \t]*'
+        eoln = r'(?:\r\n)|(?:\n)|(?:\r)/g'
+        empty = r'^' + wso + '$'
+
+        # define quad part regexes
+        subject = '(?:' + iri + '|' + bnode + ')' + ws
+        property = iri + ws
+        object = '(?:' + iri + '|' + bnode + '|' + literal + ')' + wso
+        graph = '(?:\\.|(?:(?:' + iri + '|' + bnode + ')' + wso + '\\.))'
+
+        # full quad regex
+        quad = r'^' + wso + subject + property + object + graph + wso + '$'
+
+        # build RDF statements
+        statements = []
+
+        # split N-Quad input into lines
+        lines = re.split(eoln, input)
+        line_number = 0
+        for line in lines:
+            line_number += 1
+
+            # skip empty lines
+            if re.match(empty, line) is not None:
+                continue
+
+            # parse quad
+            match = re.match(quad, line)
+            if match is None:
+                raise JsonLdError(
+                    'Error while parsing N-Quads invalid quad.',
+                    'jsonld.ParseError', {line: lineNumber})
+            match = match.groups()
+
+            # create RDF statement
+            s = {}
+
+            # get subject
+            if match[0] is not None:
+                s['subject'] = {
+                    'nominalValue': match[0], 'interfaceName': 'IRI'}
+            else:
+                s['subject'] = {
+                    'nominalValue': match[1], 'interfaceName': 'BlankNode'}
+
+            # get property
+            s['property'] = {'nominalValue': match[2], 'interfaceName': 'IRI'}
+
+            # get object
+            if match[3] is not None:
+                s['object'] = {
+                    'nominalValue': match[3], 'interfaceName': 'IRI'}
+            elif match[4] is not None:
+                s['object'] = {
+                    'nominalValue': match[4], 'interfaceName': 'BlankNode'}
+            else:
+                s['object'] = {
+                    'nominalValue': match[5], 'interfaceName': 'LiteralNode'}
+                if match[6] is not None:
+                    s['object']['datatype'] = {
+                        'nominalValue': match[6], 'interfaceName': 'IRI'}
+                elif match[7] is not None:
+                    s['object']['language'] = match[7]
+
+            # get graph
+            if match[8] is not None:
+                s['name'] = {'nominalValue': match[8], 'interfaceName': 'IRI'}
+            elif match[9] is not None:
+                s['name'] = {
+                    'nominalValue': match[9], 'interfaceName': 'BlankNode'}
+
+            # add statement
+            statements.append(s)
+
+        return statements
+
+    def _toNQuad(self, statement):
+        """
+         * Converts an RDF statement to an N-Quad string (a single quad).
+         *
+         * @param statement the RDF statement to convert.
+         *
+         * @return the N-Quad string.
+        """
+        s = statement['subject']
+        p = statement['property']
+        o = statement['object']
+        g = statement.get('name')
+
+        quad = ''
+
+        # subject is an IRI or bnode
+        if s['interfaceName'] == 'IRI':
+            quad += '<' + s['nominalValue'] + '>'
+        else:
+            quad += s['nominalValue']
+
+        # property is always an IRI
+        quad += ' <' + p['nominalValue'] + '> '
+
+        # object is IRI, bnode, or literal
+        if o['interfaceName'] == 'IRI':
+            quad += '<' + o['nominalValue'] + '>'
+        elif(o['interfaceName'] == 'BlankNode'):
+            quad += o['nominalValue']
+        else:
+            quad += '"' + o['nominalValue'] + '"'
+            if 'datatype' in o:
+                quad += '^^<' + o['datatype']['nominalValue'] + '>'
+            elif 'language' in o:
+                quad += '@' + o['language']
+
+        # graph
+        if g is not None:
+            quad += ' <' + g['nominalValue'] + '>'
+
+        quad += ' .\n'
+        return quad
 
 
 class JsonLdError(Exception):

@@ -24,23 +24,9 @@ TEST_TYPES = [
     'jld:ExpandTest',
     'jld:NormalizeTest',
     'jld:CompactTest',
-    'jld:FrameTest']
-
-# FIXME: remove me
-def _ntriple(s, p, o):
-    """
-    Creates ntriple lines.
-    """
-    if isinstance(o, basestring):
-        # simple literal
-        return '<%s> <%s> \'%s\' .' % (s, p, o)
-    elif '@id' in o:
-        # object is an IRI
-        return '<%s> <%s> <%s> .' % (s, p, o['@id'])
-    else:
-        # object is a literal
-        return '<%s> <%s> \'%s\'^^<%s> .' % \
-            (s, p, o['@value'], o['@type'])
+    'jld:FrameTest',
+    'jld:FromRDFTest',
+    'jld:ToRDFTest']
 
 class TestRunner:
     """
@@ -132,9 +118,18 @@ class TestRunner:
                 total += 1
                 count += 1
 
-                # open the input and expected result json files
-                input = json.load(open(join(self.test_dir, test['input'])))
-                expect = json.load(open(join(self.test_dir, test['expect'])))
+                # read input file
+                with open(join(self.test_dir, test['input'])) as f:
+                    if test['input'].endswith('.jsonld'):
+                        input = json.load(f)
+                    else:
+                        input = f.read().decode('utf8')
+                # read expect file
+                with open(join(self.test_dir, test['expect'])) as f:
+                    if test['expect'].endswith('.jsonld'):
+                        expect = json.load(f)
+                    else:
+                        expect = f.read().decode('utf8')
                 result = None
 
                 # JSON-LD options
@@ -152,6 +147,11 @@ class TestRunner:
                 elif 'jld:FrameTest' in test_type:
                     frame = json.load(open(join(self.test_dir, test['frame'])))
                     result = jsonld.frame(input, frame, options)
+                elif 'jld:FromRDFTest' in test_type:
+                    result = jsonld.fromRDF(input, options)
+                elif 'jld:ToRDFTest' in test_type:
+                    options['format'] = 'application/nquads'
+                    result = jsonld.toRDF(input, options)
 
                 # check the expected value against the test result
                 if 'jld:NormalizeTest' in test_type:
