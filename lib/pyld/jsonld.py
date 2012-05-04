@@ -1033,9 +1033,9 @@ class JsonLdProcessor:
                 id = statement[node]['nominalValue']
                 if statement[node]['interfaceName'] == 'BlankNode':
                     if id in bnodes:
-                        bnodes[id].append(statement)
+                        bnodes[id]['statements'].append(statement)
                     else:
-                        bnodes[id] = [statement]
+                        bnodes[id] = {'statements': [statement]}
 
         # create canonical namer
         namer = UniqueNamer('_:c14n')
@@ -1508,8 +1508,11 @@ class JsonLdProcessor:
 
         :return: the new hash.
         """
+        if 'hash' in bnodes[id]:
+            return bnodes[id]['hash']
+
         # serialize all of bnode's statements
-        statements = bnodes[id]
+        statements = bnodes[id]['statements']
         nquads = []
         for statement in statements:
             nquads.append(self._toNQuad(statement, id))
@@ -1518,7 +1521,8 @@ class JsonLdProcessor:
         # return hashed quads
         md = hashlib.sha1()
         md.update(''.join(nquads))
-        return md.hexdigest()
+        hash = bnodes[id]['hash'] = md.hexdigest()
+        return hash
 
     def _hashPaths(self, id, bnodes, namer, path_namer):
         """
@@ -1539,8 +1543,7 @@ class JsonLdProcessor:
 
         # group adjacent bnodes by hash, keep properties & references separate
         groups = {}
-        cache = {}
-        statements = bnodes[id]
+        statements = bnodes[id]['statements']
         for statement in statements:
             # get adjacent bnode
             bnode = _get_adjacent_bnode_name(statement['subject'], id)
@@ -1557,11 +1560,8 @@ class JsonLdProcessor:
                     name = namer.getName(bnode)
                 elif path_namer.isNamed(bnode):
                     name = path_namer.getName(bnode)
-                elif bnode in cache:
-                    name = cache[bnode]
                 else:
                     name = self._hashStatements(bnode, bnodes, namer)
-                    cache[bnode] = name
 
                 # hash direction, property, and bnode name/hash
                 group_md = hashlib.sha1()
