@@ -343,13 +343,17 @@ class JsonLdProcessor:
 
     def normalize(self, input, options):
         """
-        Performs JSON-LD normalization.
+        Performs RDF normalization on the given JSON-LD input. The
+        output is a sorted array of RDF statements unless the 'format'
+        option is used.
 
         :param input: the JSON-LD object to normalize.
         :param options: the options to use.
           [base] the base IRI to use.
+          [format] the format if output is a string:
+            'application/nquads' for N-Quads.
 
-        :return: the JSON-LD normalized output.
+        :return: the normalized output.
         """
         # set default options
         options = options or {}
@@ -363,7 +367,7 @@ class JsonLdProcessor:
                 'jsonld.NormalizeError', None, cause)
 
         # do normalization
-        return self._normalize(expanded)
+        return self._normalize(expanded, options)
 
     def fromRDF(self, statements, options):
         """
@@ -623,49 +627,6 @@ class JsonLdProcessor:
             return v1['@id'] == v2['@id']
 
         return False
-
-    @staticmethod
-    def compareNormalized(n1, n2):
-        """
-        Compares two JSON-LD normalized inputs for equality.
-
-        :param n1: the first normalized input.
-        :param n2: the second normalized input.
-
-        :return: True if the inputs are equivalent, False if not.
-        """
-        if not _is_array(n1) or not _is_array(n2):
-            raise JsonLdError(
-                'Invalid JSON-LD syntax normalized JSON-LD must be an array.',
-                'jsonld.SyntaxError')
-        # different # of subjects
-        if len(n1) != len(n2):
-            return False
-        # assume subjects are in the same order because of normalization
-        for s1, s2 in zip(n1, n2):
-            # different @ids
-            if s1['@id'] != s2['@id']:
-                return False
-            # subjects have different properties
-            if len(s1) != len(s2):
-                return False
-            # compare each property
-            for p, objects in s1.items():
-                # skip @id property
-                if p == '@id':
-                    continue
-                # s2 is missing s1 property
-                if not JsonLdProcessor.hasProperty(s2, p):
-                    return False
-                # subjects have different objects for the property
-                if len(objects) != len(s2[p]):
-                    return False
-                # compare each object
-                for o in objects:
-                    # s2 is missing s1 object
-                    if not JsonLdProcessor.hasValue(s2, p, o):
-                        return False
-        return True
 
     @staticmethod
     def getContextValue(ctx, key, type):
@@ -1053,19 +1014,28 @@ class JsonLdProcessor:
         self._matchFrame(state, state['subjects'].keys(), frame, framed, None)
         return framed
 
-    def _normalize(self, input):
+    def _normalize(self, input, options):
         """
-        Performs JSON-LD normalization.
+        Performs RDF normalization on the given JSON-LD input.
 
         :param input: the expanded JSON-LD object to normalize.
+        :param options: the normalization options.
 
         :return: the normalized output.
         """
-        # get statements
-        namer = UniqueNamer('_:t')
+        # map bnodes to RDF statements
+        statements = []
         bnodes = {}
-        subjects = {}
-        self._getStatements(input, namer, bnodes, subjects)
+        namer = UniqueNamer('_:t')
+        self._toRDF(input, namer, None, None, None, statements)
+        for statement in statements:
+            for node in ['subject', 'object']:
+                id = statement[node]['nominalValue']
+                if statement[node]['interfaceName'] == 'BlankNode':
+                    if id in bnodes:
+                        bnodes[id].append(statement)
+                    else:
+                        bnodes[id] = [statement]
 
         # create canonical namer
         namer = UniqueNamer('_:c14n')
@@ -1081,8 +1051,7 @@ class JsonLdProcessor:
             unique = {}
             for bnode in unnamed:
                 # hash statements for each unnamed bnode
-                statements = bnodes[bnode]
-                hash = self._hashStatements(statements, namer)
+                hash = self._hashStatements(bnode, bnodes, namer)
 
                 # store hash as unique or a duplicate
                 if hash in duplicates:
@@ -1117,7 +1086,7 @@ class JsonLdProcessor:
                 path_namer = UniqueNamer('_:t')
                 path_namer.getName(bnode)
                 results.append(self._hashPaths(
-                  bnodes, bnodes[bnode], namer, path_namer))
+                  bnode, bnodes, namer, path_namer))
 
             # name bnodes in hash order
             cmp_hashes = cmp_to_key(lambda x, y: cmp(x['hash'], y['hash']))
@@ -1126,34 +1095,30 @@ class JsonLdProcessor:
                 for bnode in result['pathNamer'].order:
                     namer.getName(bnode)
 
-        # create JSON-LD array
-        output = []
+        # create normalized array
+        normalized = []
 
-        # add all bnodes
-        for id, statements in bnodes.items():
-            # add all property statements to bnode
-            bnode = {'@id': namer.getName(id)}
-            for statement in statements:
-                if statement['s'] == '_:a':
-                    z = _get_bnode_name(statement['o'])
-                    o = {'@id': namer.getName(z)} if z else statement['o']
-                    JsonLdProcessor.addValue(bnode, statement['p'], o, True)
-            output.append(bnode)
+        # update bnode names in each statement and serialize
+        for statement in statements:
+            for node in ['subject', 'object']:
+                if statement[node]['interfaceName'] == 'BlankNode':
+                    statement[node]['nominalValue'] = namer.getName(
+                        statement[node]['nominalValue'])
+            normalized.append(self._toNQuad(statement))
 
-        # add all non-bnodes
-        for id, statements in subjects.items():
-            # add all statements to subject
-            subject = {'@id': id}
-            for statement in statements:
-                z = _get_bnode_name(statement['o'])
-                o = {'@id': namer.getName(z)} if z else statement['o']
-                JsonLdProcessor.addValue(subject, statement['p'], o, True)
-            output.append(subject)
+        # sort normalized output
+        normalized.sort()
 
-        # sort normalized output by @id
-        cmp_ids = cmp_to_key(lambda x, y: cmp(x['@id'], y['@id']))
-        output.sort(key=cmp_ids)
-        return output
+        # handle output format
+        if 'format' in options:
+            if options['format'] == 'application/nquads':
+                return ''.join(normalized)
+            else:
+                raise JsonLdError('Unknown output format.',
+                    'jsonld.UnknownFormat', {'format': options['format']})
+
+        # return parsed RDF statements
+        return self._parseNQuads(''.join(normalized))
 
     def _fromRDF(self, statements, options):
         """
@@ -1515,98 +1480,6 @@ class JsonLdProcessor:
             rval['@language'] = o['language']
         return rval
 
-    def _getStatements(self, input, namer, bnodes, subjects, name=None):
-        """
-        Recursively gets all statements from the given expanded JSON-LD input.
-
-        :param input: the valid expanded JSON-LD input.
-        :param namer: the namer to use when encountering blank nodes.
-        :param bnodes: the blank node statements map to populate.
-        :param subjects: the subject statements map to populate.
-        :param [name]: the name (@id) assigned to the current input.
-        """
-        # recurse into arrays
-        if _is_array(input):
-            for e in input:
-                self._getStatements(e, namer, bnodes, subjects)
-            return
-        # Note:safe to assume input is a subject/blank node
-        is_bnode = _is_bnode(input)
-
-        # name blank node if appropriate, use passed name if given
-        if name is None:
-            name = input.get('@id')
-            if is_bnode:
-                name = namer.getName(name)
-
-        # use a subject of '_:a' for blank node statements
-        s = '_:a' if is_bnode else name
-
-        # get statements for the blank node
-        if is_bnode:
-            entries = bnodes.setdefault(name, [])
-        else:
-            entries = subjects.setdefault(name, [])
-
-        # add all statements in input
-        for p, objects in input.items():
-            # skip @id
-            if p == '@id':
-                continue
-
-            # convert @lists into embedded blank node linked lists
-            for i, o in enumerate(objects):
-                if _is_list(o):
-                    objects[i] = self._makeLinkedList(o)
-
-            for o in objects:
-                # convert boolean to @value
-                if _is_bool(o):
-                    o = {'@value': 'true' if o else 'false',
-                        '@type': XSD_BOOLEAN}
-                # convert double to @value
-                elif _is_double(o):
-                    # do special JSON-LD double format,
-                    # printf('%1.15e') equivalent
-                    o = {'@value': ('%1.15e' % o), '@type': XSD_DOUBLE}
-                # convert integer to @value
-                elif _is_integer(o):
-                    o = {'@value': str(o), '@type': XSD_INTEGER}
-
-                # object is a blank node
-                if _is_bnode(o):
-                    # name object position blank node
-                    o_name = namer.getName(o.get('@id'))
-
-                    # add property statement
-                    self._addStatement(entries,
-                        {'s': s, 'p': p, 'o': {'@id': o_name}})
-
-                    # add reference statement
-                    o_entries = bnodes.setdefault(o_name, [])
-                    self._addStatement(o_entries,
-                        {'s': name, 'p': p, 'o': {'@id': '_:a'}})
-
-                    # recurse into blank node
-                    self._getStatements(o, namer, bnodes, subjects, o_name)
-                # object is a string, @value, subject reference
-                elif (_is_string(o) or _is_value(o) or
-                    _is_subject_reference(o)):
-                    # add property statement
-                    self._addStatement(entries, {'s': s, 'p': p, 'o': o})
-
-                    # ensure a subject entry exists for subject reference
-                    if (_is_subject_reference(o) and
-                        o['@id'] not in subjects):
-                        subjects.setdefault(o['@id'], [])
-                # object must be an embedded subject
-                else:
-                    # add property statement
-                    self._addStatement(entries,
-                        {'s': s, 'p': p, 'o': {'@id': o['@id']}})
-
-                    # recurse into subject
-                    self._getStatements(o, namer, bnodes, subjects)
 
     def _makeLinkedList(self, value):
         """
@@ -1625,91 +1498,37 @@ class JsonLdProcessor:
             tail = {RDF_FIRST: [e], RDF_REST: [tail]}
         return tail
 
-    def _addStatement(self, statements, statement):
-        """
-        Adds a statement to an array of statements. If the statement already
-        exists in the array, it will not be added.
-
-        :param statements: the statements array.
-        :param statement: the statement to add.
-        """
-        for s in statements:
-            if (s['s'] == statement['s'] and s['p'] == statement['p'] and
-                JsonLdProcessor.compareValues(s['o'], statement['o'])):
-                return
-        statements.append(statement)
-
-    def _hashStatements(self, statements, namer):
+    def _hashStatements(self, id, bnodes, namer):
         """
         Hashes all of the statements about a blank node.
 
-        :param statements: the statements about the bnode.
+        :param id: the ID of the bnode to hash statements for.
+        :param bnodes: the mapping of bnodes to statements.
         :param namer: the canonical bnode namer.
 
         :return: the new hash.
         """
-        # serialize all statements
-        triples = []
+        # serialize all of bnode's statements
+        statements = bnodes[id]
+        nquads = []
         for statement in statements:
-            s, p, o = statement['s'], statement['p'], statement['o']
-
-            # serialize triple
-            triple = ''
-
-            # serialize subject
-            if s == '_:a':
-                triple += '_:a'
-            elif s.startswith('_:'):
-                id = s
-                id = namer.getName(id) if namer.isNamed(id) else '_:z'
-                triple += id
-            else:
-                triple += '<%s>' % s
-
-            # serialize property
-            p = RDF_TYPE if p == '@type' else p
-            triple += ' <%s> ' % p
-
-            # serialize object
-            if _is_bnode(o):
-                if o['@id'] == '_:a':
-                  triple += '_:a'
-                else:
-                  id = o['@id']
-                  id = namer.getName(id) if namer.isNamed(id) else '_:z'
-                  triple += id
-            elif _is_string(o):
-                triple += '"%s"' % o
-            elif _is_subject_reference(o):
-                triple += '<%s>' % o['@id']
-            # must be a value
-            else:
-                triple += '"%s"' % o['@value']
-                if '@type' in o:
-                  triple += '^^<%s>' % o['@type']
-                elif '@language' in o:
-                  triple += '@%s' % o['@language']
-
-            # add triple
-            triples.append(triple)
-
-        # sort serialized triples
-        triples.sort()
-
-        # return hashed triples
+            nquads.append(self._toNQuad(statement, id))
+        # sort serialized quads
+        nquads.sort()
+        # return hashed quads
         md = hashlib.sha1()
-        md.update(''.join(triples))
+        md.update(''.join(nquads))
         return md.hexdigest()
 
-    def _hashPaths(self, bnodes, statements, namer, path_namer):
+    def _hashPaths(self, id, bnodes, namer, path_namer):
         """
         Produces a hash for the paths of adjacent bnodes for a bnode,
         incorporating all information about its subgraph of bnodes. This
         method will recursively pick adjacent bnode permutations that produce the
         lexicographically-least 'path' serializations.
 
+        :param id: the ID of the bnode to hash paths for.
         :param bnodes: the map of bnode statements.
-        :param statements: the statements for the bnode the hash is for.
         :param namer: the canonical bnode namer.
         :param path_namer: the namer used to assign names to adjacent bnodes.
 
@@ -1721,14 +1540,16 @@ class JsonLdProcessor:
         # group adjacent bnodes by hash, keep properties & references separate
         groups = {}
         cache = {}
+        statements = bnodes[id]
         for statement in statements:
-            s, p, o = statement['s'], statement['p'], statement['o']
-            if s != '_:a' and s.startswith('_:'):
-                bnode = s
+            # get adjacent bnode
+            bnode = _get_adjacent_bnode_name(statement['subject'], id)
+            if bnode is not None:
                 direction = 'p'
             else:
-                bnode = _get_bnode_name(o)
-                direction = 'r'
+                bnode = _get_adjacent_bnode_name(statement['object'], id)
+                if bnode is not None:
+                    direction = 'r'
 
             if bnode is not None:
                 # get bnode name (try canonical, path, then hash)
@@ -1739,13 +1560,13 @@ class JsonLdProcessor:
                 elif bnode in cache:
                     name = cache[bnode]
                 else:
-                    name = self._hashStatements(bnodes[bnode], namer)
+                    name = self._hashStatements(bnode, bnodes, namer)
                     cache[bnode] = name
 
                 # hash direction, property, and bnode name/hash
                 group_md = hashlib.sha1()
                 group_md.update(direction)
-                group_md.update(RDF_TYPE if p == '@type' else p)
+                group_md.update(statement['property']['nominalValue'])
                 group_md.update(name)
                 group_hash = group_md.hexdigest()
 
@@ -1790,7 +1611,7 @@ class JsonLdProcessor:
                 if not skipped:
                     for bnode in recurse:
                         result = self._hashPaths(
-                            bnodes, bnodes[bnode], namer, path_namer_copy)
+                            bnode, bnodes, namer, path_namer_copy)
                         path += path_namer_copy.getName(bnode)
                         path += '<%s>' % result['hash']
                         path_namer_copy = result['pathNamer']
@@ -2791,13 +2612,15 @@ class JsonLdProcessor:
 
         return statements
 
-    def _toNQuad(self, statement):
+    def _toNQuad(self, statement, bnode=None):
         """
-         * Converts an RDF statement to an N-Quad string (a single quad).
-         *
-         * @param statement the RDF statement to convert.
-         *
-         * @return the N-Quad string.
+        Converts an RDF statement to an N-Quad string (a single quad).
+
+        :param statement: the RDF statement to convert.
+        :param bnode: the bnode the statement is mapped to (optional, for
+          use during normalization only).
+
+        :return: the N-Quad string.
         """
         s = statement['subject']
         p = statement['property']
@@ -2809,6 +2632,13 @@ class JsonLdProcessor:
         # subject is an IRI or bnode
         if s['interfaceName'] == 'IRI':
             quad += '<' + s['nominalValue'] + '>'
+        # normalization mode
+        elif bnode is not None:
+            if s['nominalValue'] == bnode:
+                quad += '_:a'
+            else:
+                quad += '_:z'
+        # normal mode
         else:
             quad += s['nominalValue']
 
@@ -2819,7 +2649,15 @@ class JsonLdProcessor:
         if o['interfaceName'] == 'IRI':
             quad += '<' + o['nominalValue'] + '>'
         elif(o['interfaceName'] == 'BlankNode'):
-            quad += o['nominalValue']
+            # normalization mode
+            if bnode is not None:
+                if o['nominalValue'] == bnode:
+                    quad += '_:a'
+                else:
+                    quad += '_:z'
+            # normal mode:
+            else:
+                quad += o['nominalValue']
         else:
             quad += '"' + o['nominalValue'] + '"'
             if 'datatype' in o:
@@ -3189,14 +3027,19 @@ def _is_absolute_iri(v):
     return v.find(':') != -1
 
 
-def _get_bnode_name(v):
+def _get_adjacent_bnode_name(node, id):
     """
-    A helper function that gets the blank node name from a statement value
-    (a subject or object). If the statement value is not a blank node or it
-    has an @id of '_:a', then None will be returned.
+    A helper function that gets the blank node name from an RDF statement
+    node (subject or object). If the node is not a blank node or its
+    nominal value does not match the given blank node ID, it will be
+    returned.
 
-    :param v: the statement value.
+    :param node: the RDF statement node.
+    :param id: the ID of the blank node to look next to.
 
-    :return: the blank node name or None if none was found.
+    :return: the adjacent blank node name or None if none was found.
     """
-    return (v['@id'] if _is_bnode(v) and v['@id'] != '_:a' else None)
+    if node['interfaceName'] == 'BlankNode' and node['nominalValue'] != id:
+        return node['nominalValue']
+    else:
+        return None

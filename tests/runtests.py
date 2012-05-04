@@ -138,6 +138,7 @@ class TestRunner:
                         test['input']}
 
                 if 'jld:NormalizeTest' in test_type:
+                    options['format'] = 'application/nquads'
                     result = jsonld.normalize(input, options)
                 elif 'jld:ExpandTest' in test_type:
                     result = jsonld.expand(input, options)
@@ -154,11 +155,7 @@ class TestRunner:
                     result = jsonld.toRDF(input, options)
 
                 # check the expected value against the test result
-                if 'jld:NormalizeTest' in test_type:
-                    success = jsonld.JsonLdProcessor.compareNormalized(
-                        expect, result)
-                else:
-                    success = deep_compare(expect, result)
+                success = deep_compare(expect, result)
 
                 if success:
                     passed += 1
