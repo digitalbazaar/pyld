@@ -1508,6 +1508,7 @@ class JsonLdProcessor:
 
         :return: the new hash.
         """
+        # return cached hash
         if 'hash' in bnodes[id]:
             return bnodes[id]['hash']
 
@@ -2634,10 +2635,7 @@ class JsonLdProcessor:
             quad += '<' + s['nominalValue'] + '>'
         # normalization mode
         elif bnode is not None:
-            if s['nominalValue'] == bnode:
-                quad += '_:a'
-            else:
-                quad += '_:z'
+            quad += '_:a' if s['nominalValue'] == bnode else '_:z'
         # normal mode
         else:
             quad += s['nominalValue']
@@ -2651,11 +2649,8 @@ class JsonLdProcessor:
         elif(o['interfaceName'] == 'BlankNode'):
             # normalization mode
             if bnode is not None:
-                if o['nominalValue'] == bnode:
-                    quad += '_:a'
-                else:
-                    quad += '_:z'
-            # normal mode:
+                quad += '_:a' if o['nominalValue'] == bnode else '_:z'
+            # normal mode
             else:
                 quad += o['nominalValue']
         else:
