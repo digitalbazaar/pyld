@@ -766,8 +766,7 @@ class JsonLdProcessor:
                 # preserve empty arrays
                 if len(value) == 0:
                     prop = self._compactIri(ctx, key)
-                    if prop is not None:
-                        JsonLdProcessor.addValue(rval, prop, [], True)
+                    JsonLdProcessor.addValue(rval, prop, [], True)
 
                 # recusively process array values
                 for v in value:
@@ -775,10 +774,6 @@ class JsonLdProcessor:
 
                     # compact property
                     prop = self._compactIri(ctx, key, v)
-
-                    # skip null properties
-                    if prop is None:
-                        continue
 
                     # remove @list for recursion (will re-add if necessary)
                     if is_list:
@@ -1387,6 +1382,9 @@ class JsonLdProcessor:
         rval = copy.deepcopy(active_ctx)
 
         # normalize local context to an array
+        if (_is_object(local_ctx) and '@context' in local_ctx and
+            _is_array(local_ctx['@context'])):
+            local_ctx = local_ctx['@context']
         ctxs = JsonLdProcessor.arrayify(local_ctx)
 
         # process each context in order
@@ -2209,11 +2207,8 @@ class JsonLdProcessor:
                 if curie not in ctx['mappings']:
                     terms.append(curie)
 
-        # no matching terms, use IRI
+        # no matching terms
         if len(terms) == 0:
-            # return None if a null mapping exists
-            if iri in ctx['mappings'] and ctx['mappings'][iri]['@id'] is None:
-                return None
             # use iri
             return iri
 
@@ -2278,13 +2273,15 @@ class JsonLdProcessor:
             return
 
         # clear context entry
-        if value is None:
+        if (value is None or
+            (_is_object(value) and '@id' in value and
+            value['@id'] is None)):
             if key in active_ctx['mappings']:
                 # if key is a keyword alias, remove it
                 kw = active_ctx['mappings'][key]['@id']
                 if _is_keyword(kw):
                     active_ctx['keywords'][kw].remove(key)
-            active_ctx['mappings'][key] = {'@id': None}
+                del active_ctx['mappings'][key]
             defined[key] = True
             return
 
@@ -2301,7 +2298,7 @@ class JsonLdProcessor:
                 if key not in aliases:
                     aliases.append(key)
                     aliases.sort(key=cmp_to_key(_compare_shortest_least))
-            elif value is not None:
+            elif value:
                 # expand value to a full IRI
                 value = self._expandContextIri(
                     active_ctx, ctx, value, base, defined)
@@ -2380,10 +2377,8 @@ class JsonLdProcessor:
             # add @language to mapping
             mapping['@language'] = language
 
-        # if not a null mapping, merge onto parent mapping if one exists for
-        # a prefix
-        if (mapping['@id'] is not None and prefix is not None and
-            prefix in active_ctx['mappings']):
+        # merge onto parent mapping if one exists for a prefix
+        if prefix is not None and prefix in active_ctx['mappings']:
             mapping = dict(
                 list(active_ctx['mappings'][prefix].items()) +
                 list(mapping.items()))
@@ -2412,8 +2407,8 @@ class JsonLdProcessor:
         # recurse if value is a term
         if value in active_ctx['mappings']:
             id = active_ctx['mappings'][value]['@id']
-            # value is already an absolute IRI or id is a null mapping
-            if value == id or id is None:
+            # value is already an absolute IRI
+            if value == id:
                 return value
             return self._expandContextIri(active_ctx, ctx, id, base, defined)
 
@@ -2433,9 +2428,8 @@ class JsonLdProcessor:
             # recurse if prefix is defined
             if prefix in active_ctx['mappings']:
                 id = active_ctx['mappings'][prefix]['@id']
-                if id is not None:
-                    return self._expandContextIri(
-                        active_ctx, ctx, id, base, defined) + suffix
+                return self._expandContextIri(
+                    active_ctx, ctx, id, base, defined) + suffix
 
             # consider value an absolute IRI
             return value
