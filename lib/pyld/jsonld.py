@@ -360,8 +360,8 @@ class JsonLdProcessor:
         options.setdefault('base', '')
 
         try:
-          # expand input then do normalization
-          expanded = self.expand(input, options)
+            # expand input then do normalization
+            expanded = self.expand(input, options)
         except JsonLdError as cause:
             raise JsonLdError('Could not expand input before normalization.',
                 'jsonld.NormalizeError', None, cause)
