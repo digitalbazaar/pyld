@@ -3030,5 +3030,4 @@ def _get_adjacent_bnode_name(node, id):
     """
     if node['interfaceName'] == 'BlankNode' and node['nominalValue'] != id:
         return node['nominalValue']
-    else:
-        return None
+    return None
