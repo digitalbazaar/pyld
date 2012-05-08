@@ -709,6 +709,11 @@ class JsonLdProcessor:
         if _is_object(element):
             # element is a @value
             if _is_value(element):
+                # if @value is the only key, return its value
+                if len(element.keys()) == 1:
+                    return element['@value']
+
+                # get type and language context rules
                 type = JsonLdProcessor.getContextValue(ctx, property, '@type')
                 language = JsonLdProcessor.getContextValue(
                     ctx, property, '@language')
@@ -901,9 +906,9 @@ class JsonLdProcessor:
                     'Invalid JSON-LD syntax "@language" value must not be '
                     'a string.', 'jsonld.SyntaxError', {'value': value})
 
-            # recurse into @list, @set, or @graph, keeping active property
+            # recurse into @list or @set keeping active property
             is_list = (prop == '@list')
-            if is_list or prop == '@set' or prop == '@graph':
+            if is_list or prop == '@set':
                 value = self._expand(ctx, property, value, options, is_list)
                 if is_list and _is_list(value):
                     raise JsonLdError(
@@ -961,9 +966,6 @@ class JsonLdProcessor:
                     'Invalid JSON-LD syntax the "@type" value of an '
                     'element containing "@value" must be a string.',
                     'jsonld.SyntaxError', {'element': rval})
-            # return only the value of @value if there is no @type or @language
-            elif count == 1:
-                rval = rval['@value']
             # drop None @values
             elif rval['@value'] == None:
                 rval = None
@@ -1231,13 +1233,29 @@ class JsonLdProcessor:
         if _is_object(element):
             # convert @value to object
             if _is_value(element):
+                value = element['@value']
+                datatype = element.get('@type')
+                if (_is_bool(value) or _is_double(value) or
+                    _is_integer(value)):
+                    # convert to XSD datatype
+                    if _is_bool(value):
+                        value = 'true' if value else 'false'
+                        datatype = datatype or XSD_BOOLEAN
+                    elif _is_double(value):
+                        # printf('%1.15e') equivalent
+                        value = '%1.15e' % value
+                        datatype = datatype or XSD_DOUBLE
+                    else:
+                        value = str(value)
+                        datatype = datatype or XSD_INTEGER
+
                 object = {
-                    'nominalValue': element['@value'],
+                    'nominalValue': value,
                     'interfaceName': 'LiteralNode'
                 }
-                if '@type' in element:
+                if datatype is not None:
                     object['datatype'] = {
-                        'nominalValue': element['@type'],
+                        'nominalValue': datatype,
                         'interfaceName': 'IRI'
                     }
                 elif '@language' in element:
@@ -1316,51 +1334,15 @@ class JsonLdProcessor:
                 self._toRDF(e, namer, subject, property, graph, statements)
             return
 
+        # element must be an rdf:type IRI (@values covered above)
         if _is_string(element):
-            # property can be None for string subject references in @graph
-            if property is None:
-                return
-            # emit IRI for rdf:type, else plain literal
-            if property['nominalValue'] == RDF_TYPE:
-                object_type = 'IRI'
-            else:
-                object_type = 'LiteralNode'
+            # emit IRI
             statement = {
                 'subject': copy.deepcopy(subject),
                 'property': copy.deepcopy(property),
                 'object': {
                     'nominalValue': element,
-                    'interfaceName': object_type
-                }
-            }
-            if graph is not None:
-                statement['name'] = graph
-            statements.append(statement)
-            return
-
-        if _is_bool(element) or _is_double(element) or _is_integer(element):
-            # convert to XSD datatype
-            if _is_bool(element):
-                datatype = XSD_BOOLEAN
-                value = 'true' if element else 'false'
-            elif _is_double(element):
-                datatype = XSD_DOUBLE
-                # printf('%1.15e') equivalent
-                value = '%1.15e' % element
-            else:
-                datatype = XSD_INTEGER
-                value = str(element)
-            # emit typed literal
-            statement = {
-                'subject': copy.deepcopy(subject),
-                'property': copy.deepcopy(property),
-                'object': {
-                    'nominalValue': value,
-                    'interfaceName': 'LiteralNode',
-                    'datatype': {
-                        'nominalValue': datatype,
-                        'interfaceName': 'IRI'
-                    }
+                    'interfaceName': 'IRI'
                 }
             }
             if graph is not None:
@@ -1424,6 +1406,10 @@ class JsonLdProcessor:
 
         :return: the expanded value.
         """
+        # nothing to expand
+        if value is None:
+            return None
+
         # default to simple string return value
         rval = value
 
@@ -1440,15 +1426,18 @@ class JsonLdProcessor:
             # do @id expansion (automatic for @graph)
             if type == '@id' or prop == '@graph':
                 rval = {'@id': self._expandTerm(ctx, value, base)}
-            # other type
-            elif type is not None:
-                rval = {'@value': str(value), '@type': type}
-            # check for language tagging
-            else:
-                language = JsonLdProcessor.getContextValue(
-                    ctx, property, '@language')
-                if language is not None:
-                    rval = {'@value': str(value), '@language': language}
+            elif not _is_keyword(prop):
+                rval = {'@value': value}
+
+                # other type
+                if type is not None:
+                    rval['@type'] = type
+                # check for language tagging
+                else:
+                    language = JsonLdProcessor.getContextValue(
+                        ctx, property, '@language')
+                    if language is not None:
+                        rval['@language'] = language
 
         return rval
 
@@ -2080,42 +2069,34 @@ class JsonLdProcessor:
             # sum term ranks for each list value
             return sum(self._rankTerm(ctx, term, v) for v in list_)
 
-        # rank boolean or number
-        if _is_bool(value) or _is_double(value) or _is_integer(value):
-            if _is_bool(value):
-                type = XSD_BOOLEAN
-            elif _is_double(value):
-                type = XSD_DOUBLE
-            else:
-                type = XSD_INTEGER
-            if has_type and entry['@type'] == type:
-                return 3
-            return 2 if not (has_type or has_language) else 1
-
-        # rank string (this means the value has no @language)
-        if _is_string(value):
-            # entry @language is specifically None or no @type, @language, or
-            # default
-            if ((has_language and entry['@language'] is None) or
-                not (has_type or has_language or has_default_language)):
-                return 3
-            return 0
-
         # Note: Value must be an object that is a @value or subject/reference.
 
-        # @value must have either @type or @language
         if _is_value(value):
+            # value has a @type
             if '@type' in value:
                 # @types match
                 if has_type and value['@type'] == entry['@type']:
                     return 3
                 return 1 if not (has_type or has_language) else 0
 
+            # rank non-string value
+            if not _is_string(value['@value']):
+                return 2 if not (has_type or has_language) else 1
+
+            # value has no @type or @language
+            if '@language' not in value:
+                # entry @language is specifically None or no @type, @language, or
+                # default
+                if ((has_language and entry['@language'] is None) or
+                    not (has_type or has_language or has_default_language)):
+                    return 3
+                return 0
+
             # @languages match or entry has no @type or @language but default
             # @language matches
             if ((has_language and value['@language'] == entry['@language']) or
-                (not has_type and not has_language and has_default_language and
-                value['@language'] == ctx['@language'])):
+                (not has_type and not has_language and has_default_language
+                and value['@language'] == ctx['@language'])):
                 return 3
             return 1 if not (has_type or has_language) else 0
 
