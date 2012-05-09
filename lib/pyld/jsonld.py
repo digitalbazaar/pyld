@@ -16,11 +16,14 @@ __copyright__ = 'Copyright (c) 2011-2012 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
 
 __all__ = ['compact', 'expand', 'frame', 'normalize', 'from_rdf', 'to_rdf',
-    'JsonLdProcessor']
+    'set_url_resolver', 'resolve_url', 'JsonLdProcessor', 'ContextCache']
 
-import copy, hashlib, re
+import copy, hashlib, json, os, re, string, sys, time, traceback
+import urllib2, urlparse
+from contextlib import closing
 from functools import cmp_to_key
 from numbers import Integral, Real
+from httplib import HTTPSConnection
 
 # XSD constants
 XSD_BOOLEAN = 'http://www.w3.org/2001/XMLSchema#boolean'
@@ -49,6 +52,9 @@ KEYWORDS = [
     '@set',
     '@type',
     '@value']
+
+# Restraints
+MAX_CONTEXT_URLS = 10
 
 
 def compact(input, ctx, options=None):
@@ -143,6 +149,48 @@ def to_rdf(input, options=None):
     return JsonLdProcessor().to_rdf(input, options)
 
 
+def set_url_resolver(resolver):
+    """
+    Sets the default JSON-LD URL resolver.
+
+    :param resolver(url): the URL resolver to use.
+    """
+    _jsonld_default_url_resolver = resolver
+
+
+def resolve_url(url):
+    """
+    Retrieves JSON-LD as the given URL.
+
+    :param url: the URL to resolve.
+
+    :return: the JSON-LD.
+    """
+    global _jsonld_default_url_resolver
+    global _jsonld_context_cache
+    if (_jsonld_default_url_resolver is None or
+        _jsonld_default_url_resolver == resolve_url):
+        # create context cache as needed
+        if _jsonld_context_cache is None:
+            _jsonld_context_cache = ContextCache()
+
+        # default JSON-LD GET implementation
+        ctx = _jsonld_context_cache.get(url)
+        if ctx is None:
+            https_handler = VerifiedHTTPSHandler()
+            url_opener = urllib2.build_opener(https_handler)
+            with closing(url_opener.open(url)) as handle:
+                ctx = handle.read()
+                _jsonld_context_cache.set(url, ctx)
+        return ctx
+    return _jsonld_default_url_resolver(url)
+
+
+# The default JSON-LD URL resolver and cache.
+_jsonld_default_url_resolver = resolve_url
+_jsonld_context_cache = None
+
+
 class JsonLdProcessor:
     """
     A JSON-LD processor.
@@ -180,6 +228,7 @@ class JsonLdProcessor:
         options.setdefault('optimize', False)
         options.setdefault('graph', False)
         options.setdefault('activeCtx', False)
+        options.setdefault('resolver', _jsonld_default_url_resolver)
 
         # expand input
         try:
@@ -263,10 +312,16 @@ class JsonLdProcessor:
         # set default options
         options = options or {}
         options.setdefault('base', '')
+        options.setdefault('resolver', _jsonld_default_url_resolver)
 
         # resolve all @context URLs in the input
         input = copy.deepcopy(input)
-        #self._resolveUrls(input, options['resolver'])
+        try:
+            self._resolve_context_urls(input, {}, options['resolver'])
+        except Exception as cause:
+            raise JsonLdError(
+                'Could not perform JSON-LD expansion.',
+                'jsonld.ExpandError', None, cause)
 
         # do expansion
         ctx = self._get_initial_context()
@@ -302,6 +357,7 @@ class JsonLdProcessor:
         options.setdefault('explicit', False)
         options.setdefault('omitDefault', False)
         options.setdefault('optimize', False)
+        options.setdefault('resolver', _jsonld_default_url_resolver)
 
         # preserve frame context
         ctx = frame.get('@context', {})
@@ -358,6 +414,7 @@ class JsonLdProcessor:
         # set default options
         options = options or {}
         options.setdefault('base', '')
+        options.setdefault('resolver', _jsonld_default_url_resolver)
 
         try:
             # expand input then do normalization
@@ -408,6 +465,7 @@ class JsonLdProcessor:
         # set default options
         options = options or {}
         options.setdefault('base', '')
+        options.setdefault('resolver', _jsonld_default_url_resolver)
 
         try:
             # expand input
@@ -455,13 +513,18 @@ class JsonLdProcessor:
         # set default options
         options = options or {}
         options.setdefault('base', '')
+        options.setdefault('resolver', _jsonld_default_url_resolver)
 
         # resolve URLs in local_ctx
-        local_ctx = copy.deepcopy(local_ctx)
-        if _is_object(local_ctx) and '@context' not in local_ctx:
-            local_ctx = {'@context': local_ctx}
-        #ctx = self._resolveUrls(local_ctx, options['resolver'])
-        ctx = local_ctx
+        ctx = copy.deepcopy(local_ctx)
+        if _is_object(ctx) and '@context' not in ctx:
+            ctx = {'@context': ctx}
+        try:
+            self._resolve_context_urls(ctx, {}, options['resolver'])
+        except Exception as cause:
+            raise JsonLdError(
+                'Could not process JSON-LD context.',
+                'jsonld.ContextError', None, cause)
 
         # process context
         return self._process_context(active_ctx, ctx, options)
@@ -710,7 +773,7 @@ class JsonLdProcessor:
             # element is a @value
             if _is_value(element):
                 # if @value is the only key, return its value
-                if len(element.keys()) == 1:
+                if len(element) == 1:
                     return element['@value']
 
                 # get type and language context rules
@@ -1208,7 +1271,7 @@ class JsonLdProcessor:
                         if 'first' not in entry:
                             raise JsonLdError(
                                 'Invalid RDF list entry.',
-                                'jsonld.RdfError', {bnode: rest})
+                                'jsonld.RdfError', {'bnode': rest})
                         list_.append(entry['first'])
 
         # build default graph in subject @id order
@@ -2486,6 +2549,134 @@ class JsonLdProcessor:
         # prepend base to term
         return self._prepend_base(base, term)
 
+    def _find_context_urls(self, input, urls, replace):
+        """
+        Finds all @context URLs in the given JSON-LD input.
+
+        :param input: the JSON-LD input.
+        :param urls: a map of URLs (url => false/@contexts).
+        :param replace: true to replace the URLs in the given input with
+                 the @contexts from the urls map, false not to.
+        """
+        count = len(urls)
+        if _is_array(input):
+            for e in input:
+                self._find_context_urls(e, urls, replace)
+        elif _is_object(input):
+            for k, v in input.items():
+                if k != '@context':
+                    self._find_context_urls(v, urls, replace)
+                    continue
+
+                # array @context
+                if _is_array(v):
+                    length = len(v)
+                    i = 0
+                    while i < length:
+                        if _is_string(v[i]):
+                            url = v[i]
+                            # replace w/@context if requested
+                            if replace:
+                                ctx = urls[url]
+                                if _is_array(ctx):
+                                    # add flattened context
+                                    v.pop(i)
+                                    for e in reversed(ctx):
+                                        v.insert(i, e)
+                                    i += len(ctx)
+                                    length += len(ctx)
+                                else:
+                                    v[i] = ctx
+                            # @context URL found
+                            elif url not in urls:
+                                urls[url] = False
+                        i += 1
+                # string @context
+                elif _is_string(v):
+                    # replace w/@context if requested
+                    if replace:
+                        input[k] = urls[v]
+                    # @context URL found
+                    elif v not in urls:
+                        urls[v] = False
+
+    def _resolve_context_urls(self, input, cycles, resolver):
+        """
+        Resolves external @context URLs using the given URL resolver. Each
+        instance of @context in the input that refers to a URL will be
+        replaced with the JSON @context found at that URL.
+
+        :param input: the JSON-LD input with possible contexts.
+        :param cycles: an object for tracking context cycles.
+        :param resolver(url): the URL resolver.
+
+        :return: the result.
+        """
+        if len(cycles) > MAX_CONTEXT_URLS:
+            raise JsonLdError(
+                'Maximum number of @context URLs exceeded.',
+                'jsonld.ContextUrlError', {'max': MAX_CONTEXT_URLS})
+
+        # for tracking URLs to resolve
+        urls = {}
+
+        # find all URLs in the given input
+        self._find_context_urls(input, urls, False)
+
+        # queue all unresolved URLs
+        queue = []
+        for url, ctx in urls.items():
+            if ctx == False:
+                # validate URL
+                pieces = urlparse.urlparse(url)
+                if (not all([pieces.scheme, pieces.netloc]) or
+                    pieces.scheme not in ['http', 'https'] or
+                    set(pieces.netloc) > set(
+                        string.letters + string.digits + '-.:')):
+                    raise JsonLdError(
+                        'Malformed or unsupported URL.',
+                        'jsonld.InvalidUrl', {'url': url})
+                queue.append(url)
+
+        # resolve URLs in queue
+        for url in queue:
+            # check for context URL cycle
+            if url in cycles:
+                raise JsonLdError(
+                    'Cyclical @context URLs detected.',
+                    'jsonld.ContextUrlError', {'url': url})
+            _cycles = copy.deepcopy(cycles)
+            _cycles[url] = True
+
+            # resolve URL
+            ctx = resolver(url)
+
+            # parse string context as JSON
+            if _is_string(ctx):
+                try:
+                    ctx = json.loads(ctx)
+                except Exception as cause:
+                    raise JsonLdError(
+                        'Could not parse JSON from URL.',
+                        'jsonld.ParseError', {'url': url}, cause)
+
+            # ensure ctx is an object
+            if not _is_object(ctx):
+                raise JsonLdError(
+                    'URL does not resolve to a valid JSON-LD context.',
+                    'jsonld.InvalidUrl', {'url': url})
+
+            # use empty context if no @context key is present
+            if '@context' not in ctx:
+                ctx = {'@context': {}}
+
+            # recurse
+            self._resolve_context_urls(ctx, cycles, resolver)
+            urls[url] = ctx['@context']
+
+        # replace all URLs in the input
+        self._find_context_urls(input, urls, True)
+
     def _prepend_base(self, base, iri):
         """
         Prepends a base IRI to the given relative IRI.
@@ -2559,7 +2750,7 @@ class JsonLdProcessor:
             if match is None:
                 raise JsonLdError(
                     'Error while parsing N-Quads invalid quad.',
-                    'jsonld.ParseError', {line: lineNumber})
+                    'jsonld.ParseError', {'line': lineNumber})
             match = match.groups()
 
             # create RDF statement
@@ -2669,6 +2860,7 @@ class JsonLdError(Exception):
         self.type = type
         self.details = details
         self.cause = cause
+        self.causeTrace = traceback.extract_tb(*sys.exc_info()[2:])
 
     def __str__(self):
         rval = repr(self.message)
@@ -2677,6 +2869,7 @@ class JsonLdError(Exception):
             rval += '\nDetails: ' + repr(self.details)
         if self.cause:
             rval += '\nCause: ' + str(self.cause)
+            rval += ''.join(traceback.format_list(self.causeTrace))
         return rval
 
 
@@ -3028,3 +3221,71 @@ def _get_adjacent_bnode_name(node, id):
     if node['interfaceName'] == 'BlankNode' and node['nominalValue'] != id:
         return node['nominalValue']
     return None
+
+
+class ContextCache:
+    """
+    A simple JSON-LD context cache.
+    """
+
+    def __init__(self, size=50):
+        self.order = []
+        self.cache = {}
+        self.size = size
+        self.expires = 30 * 60 * 1000
+
+    def get(self, url):
+        if url in self.cache:
+            entry = self.cache[url]
+            if entry['expires'] >= time.time():
+                return entry['ctx']
+            del self.cache[url]
+            self.order.remove(url)
+        return None
+
+    def set(self, url, ctx):
+        if(len(self.order) == self.size):
+            del self.cache[self.order.pop(0)]
+        self.order.append(url)
+        self.cache[url] = {
+            'ctx': ctx, 'expires': (time.time() + self.expires)}
+
+
+class VerifiedHTTPSConnection(HTTPSConnection):
+    """
+    Used to verify SSL certificates when resolving URLs.
+    Taken from: http://thejosephturner.com/blog/2011/03/19/https-certificate-verification-in-python-with-urllib2/
+    """
+
+    def connect(self):
+        global _trust_root_certificates
+        # overrides the version in httplib to do certificate verification
+        sock = socket.create_connection((self.host, self.port), self.timeout)
+        if self._tunnel_host:
+            self.sock = sock
+            self._tunnel()
+        # wrap the socket using verification with trusted_root_certs
+        self.sock = ssl.wrap_socket(sock,
+            self.key_file,
+            self.cert_file,
+            cert_reqs=ssl.CERT_REQUIRED,
+            ca_certs=_trust_root_certificates)
+
+
+class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
+    """
+    Wraps urllib2 HTTPS connections enabling SSL certificate verification.
+    """
+
+    def __init__(self, connection_class=VerifiedHTTPSConnection):
+        self.specialized_conn_class = connection_class
+        urllib2.HTTPSHandler.__init__(self)
+
+    def https_open(self, req):
+        return self.do_open(self.specialized_conn_class, req)
+
+
+# the path to the system's default trusted root SSL certificates
+_trust_root_certificates = None
+if os.path.exists('/etc/ssl/certs'):
+    _trust_root_certificates = '/etc/ssl/certs'

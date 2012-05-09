@@ -37,7 +37,6 @@ class TestRunner:
         # command line options
         self.options = {}
         self.parser = OptionParser()
-        self.test_dir = None
         self.manifest_files = []
 
     def main(self):
@@ -66,7 +65,6 @@ class TestRunner:
                 os.path.isfile(self.options.file)):
                 # add manifest file to the file list
                 self.manifest_files.append(os.path.abspath(self.options.file))
-                self.test_dir = os.path.dirname(self.options.file)
             else:
                 raise Exception('Invalid test file: "%s"' % self.options.file)
 
@@ -75,14 +73,13 @@ class TestRunner:
             if (os.path.exists(self.options.directory) and
                 os.path.isdir(self.options.directory)):
                 # load manifest files from test directory
-                for self.test_dir, dirs, files in os.walk(
-                    self.options.directory):
+                for test_dir, dirs, files in os.walk(self.options.directory):
                     for manifest in files:
                         # add all .jsonld manifest files to the file list
                         if (manifest.find('manifest') != -1 and
                             manifest.endswith('.jsonld')):
                             self.manifest_files.append(
-                                join(self.test_dir, manifest))
+                                join(test_dir, manifest))
             else:
                 raise Exception('Invalid test directory: "%s"' %
                     self.options.directory)
@@ -97,6 +94,7 @@ class TestRunner:
 
         # run the tests from each manifest file
         for manifest_file in self.manifest_files:
+            test_dir = os.path.dirname(manifest_file)
             manifest = json.load(open(manifest_file, 'r'))
             count = 1
 
@@ -119,13 +117,13 @@ class TestRunner:
                 count += 1
 
                 # read input file
-                with open(join(self.test_dir, test['input'])) as f:
+                with open(join(test_dir, test['input'])) as f:
                     if test['input'].endswith('.jsonld'):
                         input = json.load(f)
                     else:
                         input = f.read().decode('utf8')
                 # read expect file
-                with open(join(self.test_dir, test['expect'])) as f:
+                with open(join(test_dir, test['expect'])) as f:
                     if test['expect'].endswith('.jsonld'):
                         expect = json.load(f)
                     else:
@@ -143,10 +141,10 @@ class TestRunner:
                 elif 'jld:ExpandTest' in test_type:
                     result = jsonld.expand(input, options)
                 elif 'jld:CompactTest' in test_type:
-                    ctx = json.load(open(join(self.test_dir, test['context'])))
+                    ctx = json.load(open(join(test_dir, test['context'])))
                     result = jsonld.compact(input, ctx, options)
                 elif 'jld:FrameTest' in test_type:
-                    frame = json.load(open(join(self.test_dir, test['frame'])))
+                    frame = json.load(open(join(test_dir, test['frame'])))
                     result = jsonld.frame(input, frame, options)
                 elif 'jld:FromRDFTest' in test_type:
                     result = jsonld.from_rdf(input, options)
