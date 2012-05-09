@@ -149,10 +149,10 @@ class TestRunner:
                     frame = json.load(open(join(self.test_dir, test['frame'])))
                     result = jsonld.frame(input, frame, options)
                 elif 'jld:FromRDFTest' in test_type:
-                    result = jsonld.fromRDF(input, options)
+                    result = jsonld.from_rdf(input, options)
                 elif 'jld:ToRDFTest' in test_type:
                     options['format'] = 'application/nquads'
-                    result = jsonld.toRDF(input, options)
+                    result = jsonld.to_rdf(input, options)
 
                 # check the expected value against the test result
                 success = deep_compare(expect, result)
