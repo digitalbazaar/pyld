@@ -1467,7 +1467,6 @@ class JsonLdProcessor:
             rval['@language'] = o['language']
         return rval
 
-
     def _makeLinkedList(self, value):
         """
         Converts a @list value into an embedded linked list of blank nodes in
