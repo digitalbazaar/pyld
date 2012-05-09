@@ -40,7 +40,7 @@ Digital Bazaar: support@digitalbazaar.com
 Requirements
 ------------
 
- * [Python] (2.5 or later)
+ * [Python][] (2.5 or later)
 
 Source
 ------
@@ -53,8 +53,8 @@ http://github.com/digitalbazaar/pyld
 This library includes a sample testing utility which may be used to verify
 that changes to the processor maintain the correct output.
 
-To run the sample tests you will need to get the test suite files from the
-[json-ld.org repository][json-ld.org] hosted on GitHub.
+To run the sample tests you will need to get the test suite files by cloning
+the [json-ld.org repository][json-ld.org] hosted on GitHub.
 
 https://github.com/json-ld/json-ld.org
 
