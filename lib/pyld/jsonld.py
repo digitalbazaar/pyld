@@ -16,7 +16,9 @@ __copyright__ = 'Copyright (c) 2011-2012 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
 
 __all__ = ['compact', 'expand', 'frame', 'normalize', 'from_rdf', 'to_rdf',
-    'set_url_resolver', 'resolve_url', 'JsonLdProcessor', 'ContextCache']
+    'set_url_resolver', 'resolve_url',
+    'register_rdf_parser', 'unregister_rdf_parser',
+    'JsonLdProcessor', 'ContextCache']
 
 import copy, hashlib, json, os, re, string, sys, time, traceback
 import urllib2, urlparse
@@ -155,7 +157,7 @@ def set_url_resolver(resolver):
 
     :param resolver(url): the URL resolver to use.
     """
-    _jsonld_default_url_resolver = resolver
+    _default_url_resolver = resolver
 
 
 def resolve_url(url):
@@ -166,29 +168,58 @@ def resolve_url(url):
 
     :return: the JSON-LD.
     """
-    global _jsonld_default_url_resolver
-    global _jsonld_context_cache
-    if (_jsonld_default_url_resolver is None or
-        _jsonld_default_url_resolver == resolve_url):
+    global _default_url_resolver
+    global _context_cache
+    if (_default_url_resolver is None or
+        _default_url_resolver == resolve_url):
         # create context cache as needed
-        if _jsonld_context_cache is None:
-            _jsonld_context_cache = ContextCache()
+        if _context_cache is None:
+            _context_cache = ContextCache()
 
         # default JSON-LD GET implementation
-        ctx = _jsonld_context_cache.get(url)
+        ctx = _context_cache.get(url)
         if ctx is None:
             https_handler = VerifiedHTTPSHandler()
             url_opener = urllib2.build_opener(https_handler)
             with closing(url_opener.open(url)) as handle:
                 ctx = handle.read()
-                _jsonld_context_cache.set(url, ctx)
+                _context_cache.set(url, ctx)
         return ctx
-    return _jsonld_default_url_resolver(url)
+    return _default_url_resolver(url)
 
 
 # The default JSON-LD URL resolver and cache.
-_jsonld_default_url_resolver = resolve_url
-_jsonld_context_cache = None
+_default_url_resolver = resolve_url
+_context_cache = None
+
+
+# Registered global RDF Statement parsers hashed by content-type.
+_rdf_parsers = {}
+
+
+def register_rdf_parser(content_type, parser):
+    """
+    Registers a global RDF Statement parser by content-type, for use with
+    jsonld_from_rdf. Global parsers will be used by JsonLdProcessors that
+    do not register their own parsers.
+
+    :param content_type: the content-type for the parser.
+    :param parser(input): the parser function (takes a string as
+             a parameter and returns an array of RDF statements).
+    """
+    global _rdf_parsers
+    _rdf_parsers[content_type] = parser
+
+
+def unregister_rdf_parser(content_type):
+    """
+    Unregisters a global RDF Statement parser by content-type.
+
+    :param content_type: the content-type for the parser.
+    """
+    global _rdf_parsers
+    if content_type in _rdf_parsers:
+        del _rdf_parsers[content_type]
 
 
 class JsonLdProcessor:
@@ -200,7 +231,8 @@ class JsonLdProcessor:
         """
         Initialize the JSON-LD processor.
         """
-        pass
+        # processor-specific RDF statement parsers
+        self.rdf_parsers = None
 
     def compact(self, input, ctx, options):
         """
@@ -228,7 +260,7 @@ class JsonLdProcessor:
         options.setdefault('optimize', False)
         options.setdefault('graph', False)
         options.setdefault('activeCtx', False)
-        options.setdefault('resolver', _jsonld_default_url_resolver)
+        options.setdefault('resolver', _default_url_resolver)
 
         # expand input
         try:
@@ -312,7 +344,7 @@ class JsonLdProcessor:
         # set default options
         options = options or {}
         options.setdefault('base', '')
-        options.setdefault('resolver', _jsonld_default_url_resolver)
+        options.setdefault('resolver', _default_url_resolver)
 
         # resolve all @context URLs in the input
         input = copy.deepcopy(input)
@@ -357,7 +389,7 @@ class JsonLdProcessor:
         options.setdefault('explicit', False)
         options.setdefault('omitDefault', False)
         options.setdefault('optimize', False)
-        options.setdefault('resolver', _jsonld_default_url_resolver)
+        options.setdefault('resolver', _default_url_resolver)
 
         # preserve frame context
         ctx = frame.get('@context', {})
@@ -414,7 +446,7 @@ class JsonLdProcessor:
         # set default options
         options = options or {}
         options.setdefault('base', '')
-        options.setdefault('resolver', _jsonld_default_url_resolver)
+        options.setdefault('resolver', _default_url_resolver)
 
         try:
             # expand input then do normalization
@@ -437,18 +469,27 @@ class JsonLdProcessor:
         
         :return: the JSON-LD output.
         """
+        global _rdf_parsers
+
         # set default options
         options = options or {}
         options.setdefault('format', 'application/nquads')
         options.setdefault('notType', False)
 
         if _is_string(statements):
-            # supported formats
-            if options['format'] == 'application/nquads':
-                statements = self._parse_nquads(statements)
-            else:
+            # supported formats (processor-specific and global)
+            if ((self.rdf_parsers is not None and
+                not options['format'] in self.rdf_parsers) or
+                (self.rdf_parsers is None and
+                not options['format'] in _rdf_parsers)):
                 raise JsonLdError('Unknown input format.',
                     'jsonld.UnknownFormat', {'format': options['format']})
+
+            if self.rdf_parsers is not None:
+                parser = self.rdf_parsers[options['format']]
+            else:
+                parser = _rdf_parsers[options['format']]
+            statements = parser(statements)
 
         # convert from RDF
         return self._from_rdf(statements, options)
@@ -465,7 +506,7 @@ class JsonLdProcessor:
         # set default options
         options = options or {}
         options.setdefault('base', '')
-        options.setdefault('resolver', _jsonld_default_url_resolver)
+        options.setdefault('resolver', _default_url_resolver)
 
         try:
             # expand input
@@ -484,7 +525,7 @@ class JsonLdProcessor:
             if options['format'] == 'application/nquads':
                 nquads = []
                 for statement in statements:
-                    nquads.append(self._to_nquad(statement))
+                    nquads.append(JsonLdProcessor.to_nquad(statement))
                 nquads.sort()
                 statements = ''.join(nquads)
             else:
@@ -513,7 +554,7 @@ class JsonLdProcessor:
         # set default options
         options = options or {}
         options.setdefault('base', '')
-        options.setdefault('resolver', _jsonld_default_url_resolver)
+        options.setdefault('resolver', _default_url_resolver)
 
         # resolve URLs in local_ctx
         ctx = copy.deepcopy(local_ctx)
@@ -528,6 +569,33 @@ class JsonLdProcessor:
 
         # process context
         return self._process_context(active_ctx, ctx, options)
+
+    def register_rdf_parser(self, content_type, parser):
+        """
+        Registers a processor-specific RDF Statement parser by content-type.
+        Global parsers will no longer be used by this processor.
+    
+        :param content_type: the content-type for the parser.
+        :param parser(input): the parser function (takes a string as
+                 a parameter and returns an array of RDF statements).
+        """
+        if self.rdf_parsers is None:
+            self.rdf_parsers = {}
+            self.rdf_parsers[content_type] = parser
+
+    def unregister_rdf_parser(self, content_type):
+        """
+        Unregisters a process-specific RDF Statement parser by content-type.
+        If there are no remaining processor-specific parsers, then the global
+        parsers will be re-enabled.
+    
+        :param content_type: the content-type for the parser.
+        """
+        if (self.rdf_parsers is not None and
+            content_type in self.rdf_parsers):
+            del self.rdf_parsers[content_type]
+            if len(self.rdf_parsers) == 0:
+                self.rdf_parsers = None
 
     @staticmethod
     def has_property(subject, property):
@@ -726,6 +794,154 @@ class JsonLdProcessor:
             rval = entry[type]
 
         return rval
+
+    @staticmethod
+    def parse_nquads(input):
+        """
+        Parses statements in the form of N-Quads.
+
+        :param input: the N-Quads input to parse.
+
+        :return: an array of RDF statements.
+        """
+        # define partial regexes
+        iri = '(?:<([^:]+:[^>]*)>)'
+        bnode = '(_:(?:[A-Za-z][A-Za-z0-9]*))'
+        plain = '"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"'
+        datatype = '(?:\\^\\^' + iri + ')'
+        language = '(?:@([a-z]+(?:-[a-z0-9]+)*))'
+        literal = '(?:' + plain + '(?:' + datatype + '|' + language + ')?)'
+        ws = '[ \\t]+'
+        wso = '[ \\t]*'
+        eoln = r'(?:\r\n)|(?:\n)|(?:\r)/g'
+        empty = r'^' + wso + '$'
+
+        # define quad part regexes
+        subject = '(?:' + iri + '|' + bnode + ')' + ws
+        property = iri + ws
+        object = '(?:' + iri + '|' + bnode + '|' + literal + ')' + wso
+        graph = '(?:\\.|(?:(?:' + iri + '|' + bnode + ')' + wso + '\\.))'
+
+        # full quad regex
+        quad = r'^' + wso + subject + property + object + graph + wso + '$'
+
+        # build RDF statements
+        statements = []
+
+        # split N-Quad input into lines
+        lines = re.split(eoln, input)
+        line_number = 0
+        for line in lines:
+            line_number += 1
+
+            # skip empty lines
+            if re.match(empty, line) is not None:
+                continue
+
+            # parse quad
+            match = re.match(quad, line)
+            if match is None:
+                raise JsonLdError(
+                    'Error while parsing N-Quads invalid quad.',
+                    'jsonld.ParseError', {'line': lineNumber})
+            match = match.groups()
+
+            # create RDF statement
+            s = {}
+
+            # get subject
+            if match[0] is not None:
+                s['subject'] = {
+                    'nominalValue': match[0], 'interfaceName': 'IRI'}
+            else:
+                s['subject'] = {
+                    'nominalValue': match[1], 'interfaceName': 'BlankNode'}
+
+            # get property
+            s['property'] = {'nominalValue': match[2], 'interfaceName': 'IRI'}
+
+            # get object
+            if match[3] is not None:
+                s['object'] = {
+                    'nominalValue': match[3], 'interfaceName': 'IRI'}
+            elif match[4] is not None:
+                s['object'] = {
+                    'nominalValue': match[4], 'interfaceName': 'BlankNode'}
+            else:
+                s['object'] = {
+                    'nominalValue': match[5], 'interfaceName': 'LiteralNode'}
+                if match[6] is not None:
+                    s['object']['datatype'] = {
+                        'nominalValue': match[6], 'interfaceName': 'IRI'}
+                elif match[7] is not None:
+                    s['object']['language'] = match[7]
+
+            # get graph
+            if match[8] is not None:
+                s['name'] = {'nominalValue': match[8], 'interfaceName': 'IRI'}
+            elif match[9] is not None:
+                s['name'] = {
+                    'nominalValue': match[9], 'interfaceName': 'BlankNode'}
+
+            # add statement
+            statements.append(s)
+
+        return statements
+
+    @staticmethod
+    def to_nquad(statement, bnode=None):
+        """
+        Converts an RDF statement to an N-Quad string (a single quad).
+
+        :param statement: the RDF statement to convert.
+        :param bnode: the bnode the statement is mapped to (optional, for
+          use during normalization only).
+
+        :return: the N-Quad string.
+        """
+        s = statement['subject']
+        p = statement['property']
+        o = statement['object']
+        g = statement.get('name')
+
+        quad = ''
+
+        # subject is an IRI or bnode
+        if s['interfaceName'] == 'IRI':
+            quad += '<' + s['nominalValue'] + '>'
+        # normalization mode
+        elif bnode is not None:
+            quad += '_:a' if s['nominalValue'] == bnode else '_:z'
+        # normal mode
+        else:
+            quad += s['nominalValue']
+
+        # property is always an IRI
+        quad += ' <' + p['nominalValue'] + '> '
+
+        # object is IRI, bnode, or literal
+        if o['interfaceName'] == 'IRI':
+            quad += '<' + o['nominalValue'] + '>'
+        elif(o['interfaceName'] == 'BlankNode'):
+            # normalization mode
+            if bnode is not None:
+                quad += '_:a' if o['nominalValue'] == bnode else '_:z'
+            # normal mode
+            else:
+                quad += o['nominalValue']
+        else:
+            quad += '"' + o['nominalValue'] + '"'
+            if 'datatype' in o:
+                quad += '^^<' + o['datatype']['nominalValue'] + '>'
+            elif 'language' in o:
+                quad += '@' + o['language']
+
+        # graph
+        if g is not None:
+            quad += ' <' + g['nominalValue'] + '>'
+
+        quad += ' .\n'
+        return quad
 
     @staticmethod
     def arrayify(value):
@@ -1168,7 +1384,7 @@ class JsonLdProcessor:
                 if statement[node]['interfaceName'] == 'BlankNode':
                     statement[node]['nominalValue'] = namer.get_name(
                         statement[node]['nominalValue'])
-            normalized.append(self._to_nquad(statement))
+            normalized.append(JsonLdProcessor.to_nquad(statement))
 
         # sort normalized output
         normalized.sort()
@@ -1182,7 +1398,7 @@ class JsonLdProcessor:
                     'jsonld.UnknownFormat', {'format': options['format']})
 
         # return parsed RDF statements
-        return self._parse_nquads(''.join(normalized))
+        return JsonLdProcessor.parse_nquads(''.join(normalized))
 
     def _from_rdf(self, statements, options):
         """
@@ -1573,7 +1789,7 @@ class JsonLdProcessor:
         statements = bnodes[id]['statements']
         nquads = []
         for statement in statements:
-            nquads.append(self._to_nquad(statement, id))
+            nquads.append(JsonLdProcessor.to_nquad(statement, id))
         # sort serialized quads
         nquads.sort()
         # return hashed quads
@@ -2703,151 +2919,9 @@ class JsonLdProcessor:
             keywords[kw] = []
         return {'mappings': {}, 'keywords': keywords}
 
-    def _parse_nquads(self, input):
-        """
-        Parses statements in the form of N-Quads.
 
-        :param input: the N-Quads input to parse.
-
-        :return: an array of RDF statements.
-        """
-        # define partial regexes
-        iri = '(?:<([^:]+:[^>]*)>)'
-        bnode = '(_:(?:[A-Za-z][A-Za-z0-9]*))'
-        plain = '"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"'
-        datatype = '(?:\\^\\^' + iri + ')'
-        language = '(?:@([a-z]+(?:-[a-z0-9]+)*))'
-        literal = '(?:' + plain + '(?:' + datatype + '|' + language + ')?)'
-        ws = '[ \\t]+'
-        wso = '[ \\t]*'
-        eoln = r'(?:\r\n)|(?:\n)|(?:\r)/g'
-        empty = r'^' + wso + '$'
-
-        # define quad part regexes
-        subject = '(?:' + iri + '|' + bnode + ')' + ws
-        property = iri + ws
-        object = '(?:' + iri + '|' + bnode + '|' + literal + ')' + wso
-        graph = '(?:\\.|(?:(?:' + iri + '|' + bnode + ')' + wso + '\\.))'
-
-        # full quad regex
-        quad = r'^' + wso + subject + property + object + graph + wso + '$'
-
-        # build RDF statements
-        statements = []
-
-        # split N-Quad input into lines
-        lines = re.split(eoln, input)
-        line_number = 0
-        for line in lines:
-            line_number += 1
-
-            # skip empty lines
-            if re.match(empty, line) is not None:
-                continue
-
-            # parse quad
-            match = re.match(quad, line)
-            if match is None:
-                raise JsonLdError(
-                    'Error while parsing N-Quads invalid quad.',
-                    'jsonld.ParseError', {'line': lineNumber})
-            match = match.groups()
-
-            # create RDF statement
-            s = {}
-
-            # get subject
-            if match[0] is not None:
-                s['subject'] = {
-                    'nominalValue': match[0], 'interfaceName': 'IRI'}
-            else:
-                s['subject'] = {
-                    'nominalValue': match[1], 'interfaceName': 'BlankNode'}
-
-            # get property
-            s['property'] = {'nominalValue': match[2], 'interfaceName': 'IRI'}
-
-            # get object
-            if match[3] is not None:
-                s['object'] = {
-                    'nominalValue': match[3], 'interfaceName': 'IRI'}
-            elif match[4] is not None:
-                s['object'] = {
-                    'nominalValue': match[4], 'interfaceName': 'BlankNode'}
-            else:
-                s['object'] = {
-                    'nominalValue': match[5], 'interfaceName': 'LiteralNode'}
-                if match[6] is not None:
-                    s['object']['datatype'] = {
-                        'nominalValue': match[6], 'interfaceName': 'IRI'}
-                elif match[7] is not None:
-                    s['object']['language'] = match[7]
-
-            # get graph
-            if match[8] is not None:
-                s['name'] = {'nominalValue': match[8], 'interfaceName': 'IRI'}
-            elif match[9] is not None:
-                s['name'] = {
-                    'nominalValue': match[9], 'interfaceName': 'BlankNode'}
-
-            # add statement
-            statements.append(s)
-
-        return statements
-
-    def _to_nquad(self, statement, bnode=None):
-        """
-        Converts an RDF statement to an N-Quad string (a single quad).
-
-        :param statement: the RDF statement to convert.
-        :param bnode: the bnode the statement is mapped to (optional, for
-          use during normalization only).
-
-        :return: the N-Quad string.
-        """
-        s = statement['subject']
-        p = statement['property']
-        o = statement['object']
-        g = statement.get('name')
-
-        quad = ''
-
-        # subject is an IRI or bnode
-        if s['interfaceName'] == 'IRI':
-            quad += '<' + s['nominalValue'] + '>'
-        # normalization mode
-        elif bnode is not None:
-            quad += '_:a' if s['nominalValue'] == bnode else '_:z'
-        # normal mode
-        else:
-            quad += s['nominalValue']
-
-        # property is always an IRI
-        quad += ' <' + p['nominalValue'] + '> '
-
-        # object is IRI, bnode, or literal
-        if o['interfaceName'] == 'IRI':
-            quad += '<' + o['nominalValue'] + '>'
-        elif(o['interfaceName'] == 'BlankNode'):
-            # normalization mode
-            if bnode is not None:
-                quad += '_:a' if o['nominalValue'] == bnode else '_:z'
-            # normal mode
-            else:
-                quad += o['nominalValue']
-        else:
-            quad += '"' + o['nominalValue'] + '"'
-            if 'datatype' in o:
-                quad += '^^<' + o['datatype']['nominalValue'] + '>'
-            elif 'language' in o:
-                quad += '@' + o['language']
-
-        # graph
-        if g is not None:
-            quad += ' <' + g['nominalValue'] + '>'
-
-        quad += ' .\n'
-        return quad
+# register the N-Quads RDF parser
+register_rdf_parser('application/nquads', JsonLdProcessor.parse_nquads)
 
 
 class JsonLdError(Exception):
