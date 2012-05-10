@@ -128,7 +128,7 @@ def from_rdf(input, options=None):
       specified by the format option or an array of the RDF statements
       to convert.
     :param [options]: the options to use:
-      [format] the format if input is a string:
+      [format] the format if input is not an array:
         'application/nquads' for N-Quads (default).
       [notType] true to use rdf:type, false to use @type (default).
 
@@ -476,7 +476,7 @@ class JsonLdProcessor:
         options.setdefault('format', 'application/nquads')
         options.setdefault('notType', False)
 
-        if _is_string(statements):
+        if not _is_array(statements):
             # supported formats (processor-specific and global)
             if ((self.rdf_parsers is not None and
                 not options['format'] in self.rdf_parsers) or
