@@ -868,8 +868,14 @@ class JsonLdProcessor:
                 s['object'] = {
                     'nominalValue': match[4], 'interfaceName': 'BlankNode'}
             else:
+                unescaped = (match[5]
+                    .replace('\\"', '\"')
+                    .replace('\\t', '\t')
+                    .replace('\\n', '\n')
+                    .replace('\\r', '\r')
+                    .replace('\\\\', '\\'))
                 s['object'] = {
-                    'nominalValue': match[5], 'interfaceName': 'LiteralNode'}
+                    'nominalValue': unescaped, 'interfaceName': 'LiteralNode'}
                 if match[6] is not None:
                     s['object']['datatype'] = {
                         'nominalValue': match[6], 'interfaceName': 'IRI'}
@@ -930,6 +936,12 @@ class JsonLdProcessor:
             else:
                 quad += o['nominalValue']
         else:
+            escaped = (o['nominalValue']
+                .replace('\\', '\\\\')
+                .replace('\t', '\\t')
+                .replace('\n', '\\n')
+                .replace('\r', '\\r')
+                .replace('\"', '\\"'))
             quad += '"' + o['nominalValue'] + '"'
             if 'datatype' in o:
                 quad += '^^<' + o['datatype']['nominalValue'] + '>'
