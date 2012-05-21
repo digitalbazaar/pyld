@@ -1976,9 +1976,10 @@ class JsonLdProcessor:
                 # handle embedded subject or subject reference
                 if _is_subject(o) or _is_subject_reference(o):
                     # rename blank node @id
-                    id = o.get('@id', '_:')
-                    if id.startswith('_:'):
-                        id = namer.get_name(id)
+                    if _is_bnode(o):
+                        id = namer.get_name(o.get('@id'))
+                    else:
+                        id = o['@id']
 
                     # add reference and recurse
                     JsonLdProcessor.add_value(
