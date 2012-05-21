@@ -1940,6 +1940,7 @@ class JsonLdProcessor:
             # add non-object to list
             if list_ is not None:
                 list_.append(input)
+            return
 
         # Note: input must be an object
 
