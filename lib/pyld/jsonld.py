@@ -1966,8 +1966,8 @@ class JsonLdProcessor:
             if prop == '@id':
                 continue
 
-            # copy keywords
-            if _is_keyword(prop):
+            # copy non-@type keywords
+            if prop != '@type' and _is_keyword(prop):
                 subject[prop] = objects
                 continue
 
@@ -1992,6 +1992,9 @@ class JsonLdProcessor:
                         self._flatten(
                             subjects, o['@list'], namer, name, olist)
                         o = {'@list': olist}
+                    # special-handle @type IRIs
+                    elif prop == '@type' and o.startswith('_:'):
+                        o = namer.get_name(o)
 
                     # add non-subject
                     JsonLdProcessor.add_value(subject, prop, o, True)
