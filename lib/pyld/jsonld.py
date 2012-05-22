@@ -640,7 +640,9 @@ class JsonLdProcessor:
         return rval
 
     @staticmethod
-    def add_value(subject, property, value, property_is_array=False):
+    def add_value(
+        subject, property, value,
+        property_is_array=False, property_is_list=False):
         """
         Adds a value to a subject. If the subject already has the value, it
         will not be added. If the value is an array, all values in the array
@@ -655,16 +657,23 @@ class JsonLdProcessor:
         :param value: the value to add.
         :param [property_is_array]: True if the property is always an array,
           False if not (default: False).
+        :param [property_is_list]: True if the property is a @list, False
+          if not (default: False).
         """
+        if(property == '@list'):
+            property_is_list = True
+
         if _is_array(value):
             if (len(value) == 0 and property_is_array and
                 property not in subject):
                 subject[property] = []
             for v in value:
                 JsonLdProcessor.add_value(
-                    subject, property, v, property_is_array)
+                    subject, property, v, property_is_array, property_is_list)
         elif property in subject:
-            has_value = JsonLdProcessor.has_value(subject, property, value)
+            # check if subject already has value unless property is list
+            has_value = (not property_is_list and
+                JsonLdProcessor.has_value(subject, property, value))
 
             # make property an array if value not present or always an array
             if (not _is_array(subject[property]) and
@@ -1106,7 +1115,8 @@ class JsonLdProcessor:
                       (_is_array(v) and len(v) == 0))
 
                     # add compact value
-                    JsonLdProcessor.add_value(rval, prop, v, is_array)
+                    JsonLdProcessor.add_value(
+                        rval, prop, v, is_array, (container == '@list'))
 
             return rval
 
@@ -1294,11 +1304,18 @@ class JsonLdProcessor:
         :return: the framed output.
         """
         # create framing state
-        state = {'options': options, 'subjects': {}}
+        state = {
+            'options': options,
+            'graphs': {'@default': {}, '@merged': {}}
+        }
 
-        # produce a map of all subjects and name each bnode
+        # produce a map of all graphs and name each bnode
         namer = UniqueNamer('_:t')
-        self._flatten(state['subjects'], input, namer, None, None)
+        self._flatten(input, state['graphs'], '@default', namer, None, None)
+        namer = UniqueNamer('_:t')
+        self._flatten(input, state['graphs'], '@merged', namer, None, None)
+        # FIXME: currently uses subjects from @merged graph only
+        state['subjects'] = state['graphs']['@merged']
 
         # frame the subjects
         framed = []
@@ -1921,12 +1938,13 @@ class JsonLdProcessor:
         # return SHA-1 hash and path namer
         return {'hash': md.hexdigest(), 'pathNamer': path_namer}
 
-    def _flatten(self, subjects, input, namer, name, list_):
+    def _flatten(self, input, graphs, graph, namer, name, list_):
         """
         Recursively flattens the subjects in the given JSON-LD expanded input.
 
-        :param subjects: a map of subject @id to subject.
         :param input: the JSON-LD expanded input.
+        :param graphs: a map of graph name to subject map.
+        :param graph: the name of the current graph.
         :param namer: the blank node namer.
         :param name: the name assigned to the current input if it is a bnode.
         :param list_: the list to append to, None for none.
@@ -1934,20 +1952,16 @@ class JsonLdProcessor:
         # recurse through array
         if _is_array(input):
             for e in input:
-                self._flatten(subjects, e, namer, None, list_)
+                self._flatten(e, graphs, graph, namer, None, list_)
             return
-        elif not _is_object(input):
-            # add non-object to list
+
+        # add non-object or value
+        elif not _is_object(input) or _is_value(input):
             if list_ is not None:
                 list_.append(input)
             return
 
-        # Note: input must be an object
-
-        # add value to list
-        if _is_value(input) and list_ is not None:
-            list_.append(input)
-            pass
+        # Note: At this point, input must be a subject.
 
         # get name for subject
         if name is None:
@@ -1960,11 +1974,19 @@ class JsonLdProcessor:
             list_.append({'@id': name})
 
         # create new subject or merge into existing one
-        subject = subjects.setdefault(name, {})
+        subject = graphs.setdefault(graph, {}).setdefault(name, {})
         subject['@id'] = name
         for prop, objects in input.items():
             # skip @id
             if prop == '@id':
+                continue
+
+            # recurse into graph
+            if prop == '@graph':
+                # add graph subjects map entry
+                graphs.setdefault(name, {})
+                g = graph if graph == '@merged' else name
+                self._flatten(objects, graphs, g, namer, None, None)
                 continue
 
             # copy non-@type keywords
@@ -1976,22 +1998,21 @@ class JsonLdProcessor:
             for o in objects:
                 # handle embedded subject or subject reference
                 if _is_subject(o) or _is_subject_reference(o):
+                    id = o.get('@id')
                     # rename blank node @id
                     if _is_bnode(o):
-                        id = namer.get_name(o.get('@id'))
-                    else:
-                        id = o['@id']
+                        id = namer.get_name(id)
 
                     # add reference and recurse
                     JsonLdProcessor.add_value(
                         subject, prop, {'@id': id}, True)
-                    self._flatten(subjects, o, namer, id, None)
+                    self._flatten(o, graphs, graph, namer, id, None)
                 else:
                     # recurse into list
                     if _is_list(o):
                         olist = []
                         self._flatten(
-                            subjects, o['@list'], namer, name, olist)
+                            o['@list'], graphs, graph, namer, name, olist)
                         o = {'@list': olist}
                     # special-handle @type IRIs
                     elif prop == '@type' and o.startswith('_:'):
