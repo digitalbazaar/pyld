@@ -1009,9 +1009,13 @@ class JsonLdProcessor:
         if _is_object(element):
             # element is a @value
             if _is_value(element):
-                # if @value is the only key, return its value
+                # if @value is the only key
                 if len(element) == 1:
-                    return element['@value']
+                    # if there is no default language, return value of @value
+                    if '@language' not in ctx:
+                        return element['@value']
+                    # return full element
+                    return element
 
                 # get type and language context rules
                 type = JsonLdProcessor.get_context_value(
