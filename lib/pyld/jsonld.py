@@ -959,7 +959,12 @@ class JsonLdProcessor:
 
         # graph
         if g is not None:
-            quad += ' <' + g['nominalValue'] + '>'
+            if g['interfaceName'] == 'IRI':
+                quad += ' <' + g['nominalValue'] + '>'
+            elif bnode is not None:
+                quad += ' _:g'
+            else:
+                quad += ' ' + g['nominalValue']
 
         quad += ' .\n'
         return quad
