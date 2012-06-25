@@ -1019,8 +1019,10 @@ class JsonLdProcessor:
                     # if there is no default language, return value of @value
                     if '@language' not in ctx:
                         return element['@value']
-                    # return full element
-                    return element
+                    # return full element, alias @value
+                    rval = {}
+                    rval[self._compact_iri(ctx, '@value')] = element['@value']
+                    return rval
 
                 # get type and language context rules
                 type = JsonLdProcessor.get_context_value(
@@ -1031,24 +1033,23 @@ class JsonLdProcessor:
                 # matching @type specified in context, compact element
                 if (type != None and
                     '@type' in element and element['@type'] == type):
-                    # use native datatypes for certain xsd types
-                    element = element['@value']
-                    if type == XSD_BOOLEAN:
-                      element = not (element == 'False' or element == '0')
-                    elif type == XSD_INTEGER:
-                      element = int(element)
-                    elif(type == XSD_DOUBLE):
-                      element = float(element)
+                    return element['@value']
                 # matching @language specified in context, compact element
                 elif(language is not None and
                      '@language' in element and
                      element['@language'] == language):
-                    element = element['@value']
-                # compact @type IRI
-                elif '@type' in element:
-                    element['@type'] = self._compact_iri(
-                        ctx, element['@type'])
-                return element
+                    return element['@value']
+                else:
+                    rval = {}
+                    # compact @type IRI
+                    if '@type' in element:
+                        rval[self._compact_iri(ctx, '@type')] = (
+                            self._compact_iri(ctx, element['@type']))
+                    elif '@language' in element:
+                        rval[self._compact_iri(ctx, '@language')] = (
+                            element['@language'])
+                    rval[self._compact_iri(ctx, '@value')] = element['@value']
+                    return rval
 
             # compact subject references
             if _is_subject_reference(element):
