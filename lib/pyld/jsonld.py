@@ -640,44 +640,38 @@ class JsonLdProcessor:
         return rval
 
     @staticmethod
-    def add_value(
-        subject, property, value,
-        property_is_array=False, property_is_list=False):
+    def add_value(subject, property, value, options={}):
         """
-        Adds a value to a subject. If the subject already has the value, it
-        will not be added. If the value is an array, all values in the array
-        will be added.
-
-        Note: If the value is a subject that already exists as a property of
-        the given subject, this method makes no attempt to deeply merge
-        properties. Instead, the value will not be added.
+        Adds a value to a subject. If the value is an array, all values in the
+        array will be added.
 
         :param subject: the subject to add the value to.
         :param property: the property that relates the value to the subject.
         :param value: the value to add.
-        :param [property_is_array]: True if the property is always an array,
-          False if not (default: False).
-        :param [property_is_list]: True if the property is a @list, False
-          if not (default: False).
+        :param [options]: the options to use:
+          [propertyIsArray] True if the property is always
+            an array, False if not (default: False).
+          [allowDuplicate] True to allow duplicates, False not to (uses
+            a simple shallow comparison of subject ID or value)
+            (default: True).
         """
-        if(property == '@list'):
-            property_is_list = True
+        options.setdefault('propertyIsArray', False)
+        options.setdefault('allowDuplicate', True)
 
         if _is_array(value):
-            if (len(value) == 0 and property_is_array and
+            if (len(value) == 0 and options['propertyIsArray'] and
                 property not in subject):
                 subject[property] = []
             for v in value:
-                JsonLdProcessor.add_value(
-                    subject, property, v, property_is_array, property_is_list)
+                JsonLdProcessor.add_value(subject, property, v, options)
         elif property in subject:
-            # check if subject already has value unless property is list
-            has_value = (not property_is_list and
+            # check if subject already has value if duplicates not allowed
+            has_value = (not options['allowDuplicate'] and
                 JsonLdProcessor.has_value(subject, property, value))
 
             # make property an array if value not present or always an array
             if (not _is_array(subject[property]) and
-                (not has_value or property_is_array)):
+                (not has_value or options['propertyIsArray'])):
                 subject[property] = [subject[property]]
 
             # add new value
@@ -685,7 +679,8 @@ class JsonLdProcessor:
                 subject[property].append(value)
         else:
             # add new value as set or single value
-            subject[property] = [value] if property_is_array else value
+            subject[property] = (
+                [value] if options['propertyIsArray'] else value)
 
     @staticmethod
     def get_values(subject, property):
@@ -710,16 +705,19 @@ class JsonLdProcessor:
         del subject[property]
 
     @staticmethod
-    def remove_value(subject, property, value, property_is_array=False):
+    def remove_value(subject, property, value, options={}):
         """
         Removes a value from a subject.
 
         :param subject: the subject.
         :param property: the property that relates the value to the subject.
         :param value: the value to remove.
-        :param [property_is_array]: True if the property is always an array,
-          False if not (default: False).
+        :param [options]: the options to use:
+          [propertyIsArray]: True if the property is always an array,
+            False if not (default: False).
         """
+        options.setdefault('propertyIsArray', False)
+
         # filter out value
         def filter_value(e):
             return not JsonLdProcessor.compare_values(e, value)
@@ -728,7 +726,7 @@ class JsonLdProcessor:
 
         if len(values) == 0:
             JsonLdProcessor.remove_property(subject, property)
-        elif len(values) == 1 and not property_is_array:
+        elif len(values) == 1 and not options['propertyIsArray']:
             subject[property] = values[0]
         else:
             subject[property] = values
@@ -1076,7 +1074,8 @@ class JsonLdProcessor:
                     # compact property and add value
                     prop = self._compact_iri(ctx, key)
                     is_array = (_is_array(value) and len(value) == 0)
-                    JsonLdProcessor.add_value(rval, prop, value, is_array)
+                    JsonLdProcessor.add_value(
+                        rval, prop, value, {'propertyIsArray': is_array})
                     continue
 
                 # Note: value must be an array due to expansion algorithm.
@@ -1084,7 +1083,8 @@ class JsonLdProcessor:
                 # preserve empty arrays
                 if len(value) == 0:
                     prop = self._compact_iri(ctx, key)
-                    JsonLdProcessor.add_value(rval, prop, [], True)
+                    JsonLdProcessor.add_value(
+                        rval, prop, [], {'propertyIsArray': True})
 
                 # recusively process array values
                 for v in value:
@@ -1126,7 +1126,7 @@ class JsonLdProcessor:
 
                     # add compact value
                     JsonLdProcessor.add_value(
-                        rval, prop, v, is_array, (container == '@list'))
+                        rval, prop, v, {'propertyIsArray': is_array})
 
             return rval
 
@@ -1260,7 +1260,8 @@ class JsonLdProcessor:
                 # @language
                 use_array = not (prop == '@id' or prop == '@type' or
                     prop == '@value' or prop == '@language')
-                JsonLdProcessor.add_value(rval, prop, value, use_array)
+                JsonLdProcessor.add_value(
+                    rval, prop, value, {'propertyIsArray': use_array})
 
         # get property count on expanded output
         count = len(rval)
@@ -1495,11 +1496,13 @@ class JsonLdProcessor:
             if p == RDF_TYPE and not options['notType']:
                 # add value of object as @type
                 JsonLdProcessor.add_value(
-                    value, '@type', o['nominalValue'], True)
+                    value, '@type', o['nominalValue'],
+                    {'propertyIsArray': True})
             else:
                 # add property to value as needed
                 object = self._rdf_to_object(o)
-                JsonLdProcessor.add_value(value, p, object, True)
+                JsonLdProcessor.add_value(
+                    value, p, object, {'propertyIsArray': True})
 
                 # a bnode might be the start of a list, so add it to list map
                 if o['interfaceName'] == 'BlankNode':
@@ -2015,7 +2018,7 @@ class JsonLdProcessor:
 
                     # add reference and recurse
                     JsonLdProcessor.add_value(
-                        subject, prop, {'@id': id}, True)
+                        subject, prop, {'@id': id}, {'propertyIsArray': True})
                     self._flatten(o, graphs, graph, namer, id, None)
                 else:
                     # recurse into list
@@ -2029,7 +2032,8 @@ class JsonLdProcessor:
                         o = namer.get_name(o)
 
                     # add non-subject
-                    JsonLdProcessor.add_value(subject, prop, o, True)
+                    JsonLdProcessor.add_value(
+                        subject, prop, o, {'propertyIsArray': True})
 
     def _match_frame(self, state, subjects, frame, parent, property):
         """
@@ -2304,9 +2308,11 @@ class JsonLdProcessor:
             # replace subject with reference
             use_array = _is_array(embed['parent'][property])
             JsonLdProcessor.remove_value(
-                embed['parent'], property, subject, use_array)
+                embed['parent'], property, subject,
+                {'propertyIsArray': use_array})
             JsonLdProcessor.add_value(
-                embed['parent'], property, subject, use_array)
+                embed['parent'], property, subject,
+                {'propertyIsArray': use_array})
 
         # recursively remove dependent dangling embeds
         def remove_dependents(id):
@@ -2331,7 +2337,8 @@ class JsonLdProcessor:
         :param output: the output to add.
         """
         if _is_object(parent):
-            JsonLdProcessor.add_value(parent, property, output, True)
+            JsonLdProcessor.add_value(
+                parent, property, output, {'propertyIsArray': True})
         else:
             parent.append(output)
 
