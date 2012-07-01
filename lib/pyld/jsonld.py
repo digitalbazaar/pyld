@@ -897,7 +897,7 @@ class JsonLdProcessor:
                     'nominalValue': match[9], 'interfaceName': 'BlankNode'}
 
             # add statement
-            statements.append(s)
+            JsonLdProcessor._append_unique_rdf_statement(statements, s)
 
         return statements
 
@@ -979,6 +979,55 @@ class JsonLdProcessor:
         """
         return value if _is_array(value) else [value]
 
+    @staticmethod
+    def _compare_rdf_statements(s1, s2):
+        """
+        Compares two RDF statements for equality.
+        
+        :param s1: the first statement.
+        :param s2: the second statement.
+        
+        :return: true if the statements are the same, false if not.
+        """
+        if _is_string(s1) or _is_string(s2):
+            return s1 == s2
+
+        for attr in ['subject', 'property', 'object']:
+            if(s1[attr]['interfaceName'] != s2[attr]['interfaceName'] or
+                s1[attr]['nominalValue'] != s2[attr]['nominalValue']):
+                return False
+
+        if s1['object'].get('language') != s2['object'].get('language'):
+            return False
+        if ('datatype' in s1['object']) != ('datatype' in s2['object']):
+            return False
+        if 'datatype' in s1['object']:
+            if(s1['object']['datatype']['interfaceName'] !=
+                s2['object']['datatype']['interfaceName'] or
+                s1['object']['datatype']['nominalValue'] !=
+                s2['object']['datatype']['nominalValue']):
+                return False
+        if 'name' in s1 != 'name' in s2:
+            return False
+        if 'name' in s1:
+            if s1['name'] != s2['name']:
+                return False
+        return True
+
+    @staticmethod
+    def _append_unique_rdf_statement(statements, statement):
+        """
+        Appends an RDF statement to the given array of statements if it is
+        unique.
+        
+        :param statements: the array to add to.
+        :param statement: the statement to add.
+        """
+        for s in statements:
+            if JsonLdProcessor._compare_rdf_statements(s, statement):
+                return
+        statements.append(statement)
+
     def _compact(self, ctx, property, element, options):
         """
         Recursively compacts an element using the given active context. All values
@@ -1014,8 +1063,10 @@ class JsonLdProcessor:
             if _is_value(element):
                 # if @value is the only key
                 if len(element) == 1:
-                    # if there is no default language, return value of @value
-                    if '@language' not in ctx:
+                    # if there is no default language or @value is not a
+                    # string, return value of @value
+                    if ('@language' not in ctx or
+                        not _is_string(element['@value'])):
                         return element['@value']
                     # return full element, alias @value
                     rval = {}
@@ -1594,7 +1645,8 @@ class JsonLdProcessor:
                 }
                 if graph is not None:
                     statement['name'] = graph
-                statements.append(statement)
+                JsonLdProcessor._append_unique_rdf_statement(
+                    statements, statement)
                 return
 
             # convert @list
@@ -1627,7 +1679,8 @@ class JsonLdProcessor:
                 }
                 if graph is not None:
                     statement['name'] = graph
-                statements.append(statement)
+                JsonLdProcessor._append_unique_rdf_statement(
+                    statements, statement)
 
             # set new active subject to object
             subject = object
@@ -1676,7 +1729,8 @@ class JsonLdProcessor:
             }
             if graph is not None:
                 statement['name'] = graph
-            statements.append(statement)
+            JsonLdProcessor._append_unique_rdf_statement(
+                statements, statement)
             return
 
     def _process_context(self, active_ctx, local_ctx, options):
