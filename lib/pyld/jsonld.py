@@ -2547,7 +2547,7 @@ class JsonLdProcessor:
                 continue
             # skip @list containers for non-@lists
             if (not is_list and has_container and
-                entry['@container'] == '@list'):
+                entry['@container'] == '@list' and value is not None):
                 continue
             # for @lists, if list_container is set, skip non-list containers
             if (is_list and list_container and not (has_container and
