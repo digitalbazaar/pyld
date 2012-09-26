@@ -135,36 +135,41 @@ class TestRunner:
                     'base': 'http://json-ld.org/test-suite/tests/' +
                         test['input']}
 
-                if 'jld:NormalizeTest' in test_type:
-                    options['format'] = 'application/nquads'
-                    result = jsonld.normalize(input, options)
-                elif 'jld:ExpandTest' in test_type:
-                    result = jsonld.expand(input, options)
-                elif 'jld:CompactTest' in test_type:
-                    ctx = json.load(open(join(test_dir, test['context'])))
-                    result = jsonld.compact(input, ctx, options)
-                elif 'jld:FrameTest' in test_type:
-                    frame = json.load(open(join(test_dir, test['frame'])))
-                    result = jsonld.frame(input, frame, options)
-                elif 'jld:FromRDFTest' in test_type:
-                    result = jsonld.from_rdf(input, options)
-                elif 'jld:ToRDFTest' in test_type:
-                    options['format'] = 'application/nquads'
-                    result = jsonld.to_rdf(input, options)
-
-                # check the expected value against the test result
-                success = deep_compare(expect, result)
-
-                if success:
-                    passed += 1
-                    print 'PASS'
-                else:
+                try:
+                    if 'jld:NormalizeTest' in test_type:
+                        options['format'] = 'application/nquads'
+                        result = jsonld.normalize(input, options)
+                    elif 'jld:ExpandTest' in test_type:
+                        result = jsonld.expand(input, options)
+                    elif 'jld:CompactTest' in test_type:
+                        ctx = json.load(open(join(test_dir, test['context'])))
+                        result = jsonld.compact(input, ctx, options)
+                    elif 'jld:FrameTest' in test_type:
+                        frame = json.load(open(join(test_dir, test['frame'])))
+                        result = jsonld.frame(input, frame, options)
+                    elif 'jld:FromRDFTest' in test_type:
+                        result = jsonld.from_rdf(input, options)
+                    elif 'jld:ToRDFTest' in test_type:
+                        options['format'] = 'application/nquads'
+                        result = jsonld.to_rdf(input, options)
+    
+                    # check the expected value against the test result
+                    success = deep_compare(expect, result)
+    
+                    if success:
+                        passed += 1
+                        print 'PASS'
+                    else:
+                        failed += 1
+                        print 'FAIL'
+    
+                    if not success or self.options.verbose:
+                        print 'Expect:', json.dumps(expect, indent=2)
+                        print 'Result:', json.dumps(result, indent=2)
+                except jsonld.JsonLdError as e:
+                    print '\nError: ', e
                     failed += 1
                     print 'FAIL'
-
-                if not success or self.options.verbose:
-                    print 'Expect:', json.dumps(expect, indent=2)
-                    print 'Result:', json.dumps(result, indent=2)
 
         print 'Done. Total:%d Passed:%d Failed:%d' % (total, passed, failed)
 
