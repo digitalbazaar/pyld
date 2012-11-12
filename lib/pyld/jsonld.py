@@ -1807,10 +1807,8 @@ class JsonLdProcessor:
 
         # special-case expand @id and @type (skips '@id' expansion)
         prop = self._expand_term(ctx, property)
-        if prop == '@id':
+        if prop == '@id' or prop == '@type':
             rval = self._expand_term(ctx, value, base)
-        elif prop == '@type':
-            rval = self._expand_term(ctx, value)
         else:
             # get type definition from context
             type = JsonLdProcessor.get_context_value(ctx, property, '@type')
