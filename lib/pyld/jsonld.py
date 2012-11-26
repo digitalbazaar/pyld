@@ -1916,7 +1916,7 @@ class JsonLdProcessor:
         nquads.sort()
         # return hashed quads
         md = hashlib.sha1()
-        md.update(''.join(nquads))
+        md.update(''.join(nquads).encode('utf-8'))
         hash = bnodes[id]['hash'] = md.hexdigest()
         return hash
 
@@ -1962,8 +1962,9 @@ class JsonLdProcessor:
                 # hash direction, property, and bnode name/hash
                 group_md = hashlib.sha1()
                 group_md.update(direction)
-                group_md.update(statement['property']['nominalValue'])
-                group_md.update(name)
+                group_md.update(
+                    statement['property']['nominalValue'].encode('utf-8'))
+                group_md.update(name.encode('utf-8'))
                 group_hash = group_md.hexdigest()
 
                 # add bnode to hash group
@@ -2025,7 +2026,7 @@ class JsonLdProcessor:
                     chosen_namer = path_namer_copy
 
             # digest chosen path and update namer
-            md.update(chosen_path)
+            md.update(chosen_path.encode('utf-8'))
             path_namer = chosen_namer
 
         # return SHA-1 hash and path namer
