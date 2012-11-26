@@ -61,11 +61,11 @@ KEYWORDS = [
 MAX_CONTEXT_URLS = 10
 
 
-def compact(input, ctx, options=None):
+def compact(input_, ctx, options=None):
     """
     Performs JSON-LD compaction.
 
-    :param input: input the JSON-LD input to compact.
+    :param input_: input the JSON-LD input to compact.
     :param ctx: the JSON-LD context to compact with.
     :param [options]: the options to use.
       [base] the base IRI to use.
@@ -75,27 +75,27 @@ def compact(input, ctx, options=None):
 
     :return: the compacted JSON-LD output.
     """
-    return JsonLdProcessor().compact(input, ctx, options)
+    return JsonLdProcessor().compact(input_, ctx, options)
 
 
-def expand(input, options=None):
+def expand(input_, options=None):
     """
     Performs JSON-LD expansion.
 
-    :param input: the JSON-LD object to expand.
+    :param input_: the JSON-LD object to expand.
     :param [options]: the options to use.
       [base] the base IRI to use.
 
     :return: the expanded JSON-LD output.
     """
-    return JsonLdProcessor().expand(input, options)
+    return JsonLdProcessor().expand(input_, options)
 
 
-def frame(input, frame, options=None):
+def frame(input_, frame, options=None):
     """
     Performs JSON-LD framing.
 
-    :param input: the JSON-LD object to frame.
+    :param input_: the JSON-LD object to frame.
     :param frame: the JSON-LD frame to use.
     :param [options]: the options to use.
       [base] the base IRI to use.
@@ -106,23 +106,23 @@ def frame(input, frame, options=None):
 
     :return: the framed JSON-LD output.
     """
-    return JsonLdProcessor().frame(input, frame, options)
+    return JsonLdProcessor().frame(input_, frame, options)
 
 
-def normalize(input, options=None):
+def normalize(input_, options=None):
     """
     Performs JSON-LD normalization.
 
-    :param input: the JSON-LD object to normalize.
+    :param input_: the JSON-LD object to normalize.
     :param [options]: the options to use.
       [base] the base IRI to use.
 
     :return: the normalized JSON-LD output.
     """
-    return JsonLdProcessor().normalize(input, options)
+    return JsonLdProcessor().normalize(input_, options)
 
 
-def from_rdf(input, options=None):
+def from_rdf(input_, options=None):
     """
     Converts RDF statements into JSON-LD.
 
@@ -138,13 +138,13 @@ def from_rdf(input, options=None):
 
     :return: the JSON-LD output.
     """
-    return JsonLdProcessor().from_rdf(input, options)
+    return JsonLdProcessor().from_rdf(input_, options)
 
-def to_rdf(input, options=None):
+def to_rdf(input_, options=None):
     """
     Outputs the RDF statements found in the given JSON-LD object.
 
-    :param input: the JSON-LD object.
+    :param input_: the JSON-LD object.
     :param [options]: the options to use.
       [base] the base IRI to use.
       [format] the format to use to output a string:
@@ -152,7 +152,7 @@ def to_rdf(input, options=None):
 
     :return: all RDF statements in the JSON-LD object.
     """
-    return JsonLdProcessor().to_rdf(input, options)
+    return JsonLdProcessor().to_rdf(input_, options)
 
 
 def set_url_resolver(resolver):
@@ -238,11 +238,11 @@ class JsonLdProcessor:
         # processor-specific RDF statement parsers
         self.rdf_parsers = None
 
-    def compact(self, input, ctx, options):
+    def compact(self, input_, ctx, options):
         """
         Performs JSON-LD compaction.
 
-        :param input: the JSON-LD input to compact.
+        :param input_: the JSON-LD input to compact.
         :param ctx: the context to compact with.
         :param options: the options to use.
           [base] the base IRI to use.
@@ -254,7 +254,7 @@ class JsonLdProcessor:
         :return: the compacted JSON-LD output.
         """
         # nothing to compact
-        if input is None:
+        if input_ is None:
             return None
 
         # set default options
@@ -268,7 +268,7 @@ class JsonLdProcessor:
 
         # expand input
         try:
-            expanded = self.expand(input, options)
+            expanded = self.expand(input_, options)
         except JsonLdError as cause:
             raise JsonLdError('Could not expand input before compaction.',
                 'jsonld.CompactError', None, cause)
@@ -335,11 +335,11 @@ class JsonLdProcessor:
         else:
             return compacted
 
-    def expand(self, input, options):
+    def expand(self, input_, options):
         """
         Performs JSON-LD expansion.
 
-        :param input: the JSON-LD object to expand.
+        :param input_: the JSON-LD object to expand.
         :param options: the options to use.
           [base] the base IRI to use.
 
@@ -351,9 +351,9 @@ class JsonLdProcessor:
         options.setdefault('resolver', _default_url_resolver)
 
         # resolve all @context URLs in the input
-        input = copy.deepcopy(input)
+        input_ = copy.deepcopy(input_)
         try:
-            self._resolve_context_urls(input, {}, options['resolver'])
+            self._resolve_context_urls(input_, {}, options['resolver'])
         except Exception as cause:
             raise JsonLdError(
                 'Could not perform JSON-LD expansion.',
@@ -361,7 +361,7 @@ class JsonLdProcessor:
 
         # do expansion
         ctx = self._get_initial_context()
-        expanded = self._expand(ctx, None, input, options, False)
+        expanded = self._expand(ctx, None, input_, options, False)
 
         # optimize away @graph with no other properties
         if (_is_object(expanded) and '@graph' in expanded and
@@ -371,11 +371,11 @@ class JsonLdProcessor:
         # normalize to an array
         return JsonLdProcessor.arrayify(expanded)
 
-    def frame(self, input, frame, options):
+    def frame(self, input_, frame, options):
         """
         Performs JSON-LD framing.
 
-        :param input: the JSON-LD object to frame.
+        :param input_: the JSON-LD object to frame.
         :param frame: the JSON-LD frame to use.
         :param options: the options to use.
           [base] the base IRI to use.
@@ -400,20 +400,20 @@ class JsonLdProcessor:
 
         try:
             # expand input
-            _input = self.expand(input, options)
+            input_ = self.expand(input_, options)
         except JsonLdError as cause:
             raise JsonLdError('Could not expand input before framing.',
                 'jsonld.FrameError', None, cause)
 
         try:
             # expand frame
-            _frame = self.expand(frame, options)
+            frame = self.expand(frame, options)
         except JsonLdError as cause:
             raise JsonLdError('Could not expand frame before framing.',
                 'jsonld.FrameError', None, cause)
 
         # do framing
-        framed = self._frame(_input, _frame, options)
+        framed = self._frame(input_, frame, options)
 
         try:
             # compact result (force @graph option to True)
@@ -433,13 +433,13 @@ class JsonLdProcessor:
         compacted[graph] = self._remove_preserve(ctx, compacted[graph])
         return compacted
 
-    def normalize(self, input, options):
+    def normalize(self, input_, options):
         """
         Performs RDF normalization on the given JSON-LD input. The
         output is a sorted array of RDF statements unless the 'format'
         option is used.
 
-        :param input: the JSON-LD object to normalize.
+        :param input_: the JSON-LD object to normalize.
         :param options: the options to use.
           [base] the base IRI to use.
           [format] the format if output is a string:
@@ -454,7 +454,7 @@ class JsonLdProcessor:
 
         try:
             # expand input then do normalization
-            expanded = self.expand(input, options)
+            expanded = self.expand(input_, options)
         except JsonLdError as cause:
             raise JsonLdError('Could not expand input before normalization.',
                 'jsonld.NormalizeError', None, cause)
@@ -499,11 +499,11 @@ class JsonLdProcessor:
         # convert from RDF
         return self._from_rdf(statements, options)
 
-    def to_rdf(self, input, options):
+    def to_rdf(self, input_, options):
         """
         Outputs the RDF statements found in the given JSON-LD object.
 
-        :param input: the JSON-LD object.
+        :param input_: the JSON-LD object.
         :param options: the options to use.
 
         :return: the RDF statements.
@@ -515,7 +515,7 @@ class JsonLdProcessor:
 
         try:
             # expand input
-            expanded = self.expand(input, options)
+            expanded = self.expand(input_, options)
         except JsonLdError as cause:
             raise JsonLdError('Could not expand input before conversion to '
                 'RDF.', 'jsonld.RdfError', None, cause)
@@ -772,14 +772,14 @@ class JsonLdProcessor:
         return False
 
     @staticmethod
-    def get_context_value(ctx, key, type):
+    def get_context_value(ctx, key, type_):
         """
         Gets the value for the given active context key and type, None if none
         is set.
 
         :param ctx: the active context.
         :param key: the context key.
-        :param [type]: the type of value to get (eg: '@id', '@type'), if not
+        :param [type_]: the type of value to get (eg: '@id', '@type'), if not
           specified gets the entire entry for a key, None if not found.
 
         :return: mixed the value.
@@ -791,28 +791,28 @@ class JsonLdProcessor:
           return rval
 
         # get default language
-        if type == '@language' and type in ctx:
-          rval = ctx[type]
+        if type_ == '@language' and type_ in ctx:
+          rval = ctx[type_]
 
         # get specific entry information
         if key in ctx['mappings']:
           entry = ctx['mappings'][key]
 
           # return whole entry
-          if type == None:
+          if type_ == None:
             rval = entry
           # return entry value for type
-          elif type in entry:
-            rval = entry[type]
+          elif type_ in entry:
+            rval = entry[type_]
 
         return rval
 
     @staticmethod
-    def parse_nquads(input):
+    def parse_nquads(input_):
         """
         Parses statements in the form of N-Quads.
 
-        :param input: the N-Quads input to parse.
+        :param input_: the N-Quads input to parse.
 
         :return: an array of RDF statements.
         """
@@ -841,7 +841,7 @@ class JsonLdProcessor:
         statements = []
 
         # split N-Quad input into lines
-        lines = re.split(eoln, input)
+        lines = re.split(eoln, input_)
         line_number = 0
         for line in lines:
             line_number += 1
@@ -1079,14 +1079,14 @@ class JsonLdProcessor:
                     return rval
 
                 # get type and language context rules
-                type = JsonLdProcessor.get_context_value(
+                type_ = JsonLdProcessor.get_context_value(
                     ctx, property, '@type')
                 language = JsonLdProcessor.get_context_value(
                     ctx, property, '@language')
 
                 # matching @type specified in context, compact element
-                if (type != None and
-                    '@type' in element and element['@type'] == type):
+                if (type_ != None and
+                    '@type' in element and element['@type'] == type_):
                     return element['@value']
                 # matching @language specified in context, compact element
                 elif(language is not None and
@@ -1107,9 +1107,9 @@ class JsonLdProcessor:
 
             # compact subject references
             if _is_subject_reference(element):
-                type = JsonLdProcessor.get_context_value(
+                type_ = JsonLdProcessor.get_context_value(
                     ctx, property, '@type')
-                if type == '@id' or property == '@graph':
+                if type_ == '@id' or property == '@graph':
                     return self._compact_iri(ctx, element['@id'])
 
             # recursively process element keys
@@ -1360,11 +1360,11 @@ class JsonLdProcessor:
 
         return rval
 
-    def _frame(self, input, frame, options):
+    def _frame(self, input_, frame, options):
         """
         Performs JSON-LD framing.
 
-        :param input: the expanded JSON-LD to frame.
+        :param input_: the expanded JSON-LD to frame.
         :param frame: the expanded JSON-LD frame to use.
         :param options: the framing options.
 
@@ -1378,9 +1378,9 @@ class JsonLdProcessor:
 
         # produce a map of all graphs and name each bnode
         namer = UniqueNamer('_:t')
-        self._flatten(input, state['graphs'], '@default', namer, None, None)
+        self._flatten(input_, state['graphs'], '@default', namer, None, None)
         namer = UniqueNamer('_:t')
-        self._flatten(input, state['graphs'], '@merged', namer, None, None)
+        self._flatten(input_, state['graphs'], '@merged', namer, None, None)
         # FIXME: currently uses subjects from @merged graph only
         state['subjects'] = state['graphs']['@merged']
 
@@ -1390,11 +1390,11 @@ class JsonLdProcessor:
             state, state['subjects'].keys(), frame, framed, None)
         return framed
 
-    def _normalize(self, input, options):
+    def _normalize(self, input_, options):
         """
         Performs RDF normalization on the given JSON-LD input.
 
-        :param input: the expanded JSON-LD object to normalize.
+        :param input_: the expanded JSON-LD object to normalize.
         :param options: the normalization options.
 
         :return: the normalized output.
@@ -1403,15 +1403,15 @@ class JsonLdProcessor:
         statements = []
         bnodes = {}
         namer = UniqueNamer('_:t')
-        self._to_rdf(input, namer, None, None, None, statements)
+        self._to_rdf(input_, namer, None, None, None, statements)
         for statement in statements:
             for node in ['subject', 'object']:
-                id = statement[node]['nominalValue']
+                id_ = statement[node]['nominalValue']
                 if statement[node]['interfaceName'] == 'BlankNode':
-                    if id in bnodes:
-                        bnodes[id]['statements'].append(statement)
+                    if id_ in bnodes:
+                        bnodes[id_]['statements'].append(statement)
                     else:
-                        bnodes[id] = {'statements': [statement]}
+                        bnodes[id_] = {'statements': [statement]}
 
         # create canonical namer
         namer = UniqueNamer('_:c14n')
@@ -1563,10 +1563,10 @@ class JsonLdProcessor:
 
                 # a bnode might be the start of a list, so add it to list map
                 if o['interfaceName'] == 'BlankNode':
-                    id = object['@id']
+                    id_ = object['@id']
                     # create list entry as needed
                     list_map = graph['listMap']
-                    entry = list_map.setdefault(id, {})
+                    entry = list_map.setdefault(id_, {})
                     entry['head'] = object
 
         # build @lists
@@ -1591,14 +1591,14 @@ class JsonLdProcessor:
 
         # build default graph in subject @id order
         output = []
-        for id, subject in sorted(default_graph['subjects'].items()):
+        for id_, subject in sorted(default_graph['subjects'].items()):
             # add subject to default graph
             output.append(subject)
 
             # output named graph in subject @id order
-            if id in graphs:
+            if id_ in graphs:
                 graph = subject['@graph'] = []
-                for id, subject in sorted(graphs[id]['subjects'].items()):
+                for id_, subject in sorted(graphs[id_]['subjects'].items()):
                     graph.append(subject)
         return output
 
@@ -1668,14 +1668,14 @@ class JsonLdProcessor:
             # Note: element must be a subject
 
             # get subject @id (generate one if it is a bnode)
-            id = element['@id'] if '@id' in element else None
+            id_ = element['@id'] if '@id' in element else None
             is_bnode = _is_bnode(element)
             if is_bnode:
-                id = namer.get_name(id)
+                id_ = namer.get_name(id_)
 
             # create object
             object = {
-                'nominalValue': id,
+                'nominalValue': id_,
                 'interfaceName': 'BlankNode' if is_bnode else 'IRI'
             }
 
@@ -1811,17 +1811,17 @@ class JsonLdProcessor:
             rval = self._expand_term(ctx, value, base)
         else:
             # get type definition from context
-            type = JsonLdProcessor.get_context_value(ctx, property, '@type')
+            type_ = JsonLdProcessor.get_context_value(ctx, property, '@type')
 
             # do @id expansion (automatic for @graph)
-            if type == '@id' or prop == '@graph':
+            if type_ == '@id' or prop == '@graph':
                 rval = {'@id': self._expand_term(ctx, value, base)}
             elif not _is_keyword(prop):
                 rval = {'@value': value}
 
                 # other type
-                if type is not None:
-                    rval['@type'] = type
+                if type_ is not None:
+                    rval['@type'] = type_
                 # check for language tagging
                 else:
                     language = JsonLdProcessor.get_context_value(
@@ -1852,25 +1852,25 @@ class JsonLdProcessor:
         rval = {'@value': o['nominalValue']}
         # add datatype
         if 'datatype' in o:
-            type = o['datatype']['nominalValue']
+            type_ = o['datatype']['nominalValue']
             # use native types for certain xsd types
             if use_native_types:
-                if type == XSD_BOOLEAN:
+                if type_ == XSD_BOOLEAN:
                     if rval['@value'] == 'true':
                         rval['@value'] = True
                     elif rval['@value'] == 'false':
                         rval['@value'] = False
                 elif _is_numeric(rval['@value']):
-                    if type == XSD_INTEGER:
+                    if type_ == XSD_INTEGER:
                         if rval['@value'].isdigit():
                             rval['@value'] = int(rval['@value'])
-                    elif type == XSD_DOUBLE:
+                    elif type_ == XSD_DOUBLE:
                         rval['@value'] = float(rval['@value'])
                 # do not add xsd:string type
-                if type != XSD_STRING:
-                    rval['@type'] = type
+                if type_ != XSD_STRING:
+                    rval['@type'] = type_
             else:
-                rval['@type'] = type
+                rval['@type'] = type_
         # add language
         if 'language' in o:
             rval['@language'] = o['language']
@@ -1893,41 +1893,41 @@ class JsonLdProcessor:
             tail = {RDF_FIRST: [e], RDF_REST: [tail]}
         return tail
 
-    def _hash_statements(self, id, bnodes, namer):
+    def _hash_statements(self, id_, bnodes, namer):
         """
         Hashes all of the statements about a blank node.
 
-        :param id: the ID of the bnode to hash statements for.
+        :param id_: the ID of the bnode to hash statements for.
         :param bnodes: the mapping of bnodes to statements.
         :param namer: the canonical bnode namer.
 
         :return: the new hash.
         """
         # return cached hash
-        if 'hash' in bnodes[id]:
-            return bnodes[id]['hash']
+        if 'hash' in bnodes[id_]:
+            return bnodes[id_]['hash']
 
         # serialize all of bnode's statements
-        statements = bnodes[id]['statements']
+        statements = bnodes[id_]['statements']
         nquads = []
         for statement in statements:
-            nquads.append(JsonLdProcessor.to_nquad(statement, id))
+            nquads.append(JsonLdProcessor.to_nquad(statement, id_))
         # sort serialized quads
         nquads.sort()
         # return hashed quads
         md = hashlib.sha1()
         md.update(''.join(nquads).encode('utf-8'))
-        hash = bnodes[id]['hash'] = md.hexdigest()
+        hash = bnodes[id_]['hash'] = md.hexdigest()
         return hash
 
-    def _hash_paths(self, id, bnodes, namer, path_namer):
+    def _hash_paths(self, id_, bnodes, namer, path_namer):
         """
         Produces a hash for the paths of adjacent bnodes for a bnode,
         incorporating all information about its subgraph of bnodes. This
         method will recursively pick adjacent bnode permutations that produce the
         lexicographically-least 'path' serializations.
 
-        :param id: the ID of the bnode to hash paths for.
+        :param id_: the ID of the bnode to hash paths for.
         :param bnodes: the map of bnode statements.
         :param namer: the canonical bnode namer.
         :param path_namer: the namer used to assign names to adjacent bnodes.
@@ -1939,14 +1939,14 @@ class JsonLdProcessor:
 
         # group adjacent bnodes by hash, keep properties & references separate
         groups = {}
-        statements = bnodes[id]['statements']
+        statements = bnodes[id_]['statements']
         for statement in statements:
             # get adjacent bnode
-            bnode = _get_adjacent_bnode_name(statement['subject'], id)
+            bnode = _get_adjacent_bnode_name(statement['subject'], id_)
             if bnode is not None:
                 direction = 'p'
             else:
-                bnode = _get_adjacent_bnode_name(statement['object'], id)
+                bnode = _get_adjacent_bnode_name(statement['object'], id_)
                 if bnode is not None:
                     direction = 'r'
 
@@ -2032,11 +2032,11 @@ class JsonLdProcessor:
         # return SHA-1 hash and path namer
         return {'hash': md.hexdigest(), 'pathNamer': path_namer}
 
-    def _flatten(self, input, graphs, graph, namer, name, list_):
+    def _flatten(self, input_, graphs, graph, namer, name, list_):
         """
         Recursively flattens the subjects in the given JSON-LD expanded input.
 
-        :param input: the JSON-LD expanded input.
+        :param input_: the JSON-LD expanded input.
         :param graphs: a map of graph name to subject map.
         :param graph: the name of the current graph.
         :param namer: the blank node namer.
@@ -2044,23 +2044,23 @@ class JsonLdProcessor:
         :param list_: the list to append to, None for none.
         """
         # recurse through array
-        if _is_array(input):
-            for e in input:
+        if _is_array(input_):
+            for e in input_:
                 self._flatten(e, graphs, graph, namer, None, list_)
             return
 
         # add non-object or value
-        elif not _is_object(input) or _is_value(input):
+        elif not _is_object(input_) or _is_value(input_):
             if list_ is not None:
-                list_.append(input)
+                list_.append(input_)
             return
 
         # Note: At this point, input must be a subject.
 
         # get name for subject
         if name is None:
-            name = input.get('@id')
-            if _is_bnode(input):
+            name = input_.get('@id')
+            if _is_bnode(input_):
                 name = namer.get_name(name)
 
         # add subject reference to list
@@ -2070,7 +2070,7 @@ class JsonLdProcessor:
         # create new subject or merge into existing one
         subject = graphs.setdefault(graph, {}).setdefault(name, {})
         subject['@id'] = name
-        for prop, objects in input.items():
+        for prop, objects in input_.items():
             # skip @id
             if prop == '@id':
                 continue
@@ -2092,15 +2092,15 @@ class JsonLdProcessor:
             for o in objects:
                 # handle embedded subject or subject reference
                 if _is_subject(o) or _is_subject_reference(o):
-                    id = o.get('@id')
+                    id_ = o.get('@id')
                     # rename blank node @id
                     if _is_bnode(o):
-                        id = namer.get_name(id)
+                        id_ = namer.get_name(id_)
 
                     # add reference and recurse
                     JsonLdProcessor.add_value(
-                        subject, prop, {'@id': id}, {'propertyIsArray': True})
-                    self._flatten(o, graphs, graph, namer, id, None)
+                        subject, prop, {'@id': id_}, {'propertyIsArray': True})
+                    self._flatten(o, graphs, graph, namer, id_, None)
                 else:
                     # recurse into list
                     if _is_list(o):
@@ -2139,7 +2139,7 @@ class JsonLdProcessor:
         explicit_on = self._get_frame_flag(frame, options, 'explicit')
 
         # add matches to output
-        for id, subject in sorted(matches.items()):
+        for id_, subject in sorted(matches.items()):
             # Note: In order to treat each top-level match as a
             # compartmentalized result, create an independent copy of the
             # embedded subjects map when the property is None, which only
@@ -2148,13 +2148,13 @@ class JsonLdProcessor:
                 state['embeds'] = {}
 
             # start output
-            output = {'@id': id}
+            output = {'@id': id_}
 
             # prepare embed meta info
             embed = {'parent': parent, 'property': property}
 
             # if embed is on and there is an existing embed
-            if embed_on and id in state['embeds']:
+            if embed_on and id_ in state['embeds']:
                 # only overwrite an existing embed if it has already been
                 # added to its parent -- otherwise its parent is somewhere up
                 # the tree from this embed and the embed would occur twice
@@ -2162,7 +2162,7 @@ class JsonLdProcessor:
                 embed_on = False
 
                 # existing embed's parent is an array
-                existing = state['embeds'][id]
+                existing = state['embeds'][id_]
                 if _is_array(existing['parent']):
                     for p in existing['parent']:
                         if JsonLdProcessor.compare_values(output, p):
@@ -2175,14 +2175,14 @@ class JsonLdProcessor:
 
                 # existing embed has already been added, so allow an overwrite
                 if embed_on:
-                    self._remove_embed(state, id)
+                    self._remove_embed(state, id_)
 
             # not embedding, add output without any other properties
             if not embed_on:
                 self._add_frame_output(state, parent, property, output)
             else:
                 # add embed meta info
-                state['embeds'][id] = embed
+                state['embeds'][id_] = embed
 
                 # iterate over subject properties in order
                 for prop, objects in sorted(subject.items()):
@@ -2286,10 +2286,10 @@ class JsonLdProcessor:
         :return: all of the matched subjects.
         """
         rval = {}
-        for id in subjects:
-            subject = state['subjects'][id]
+        for id_ in subjects:
+            subject = state['subjects'][id_]
             if self._filter_subject(subject, frame):
-                rval[id] = subject
+                rval[id_] = subject
         return rval
 
     def _filter_subject(self, subject, frame):
@@ -2306,9 +2306,9 @@ class JsonLdProcessor:
         if ('@type' in frame and
             not (len(frame['@type']) == 1 and _is_object(frame['@type'][0]))):
             types = frame['@type']
-            for type in types:
+            for t in types:
                 # any matching @type is a match
-                if JsonLdProcessor.has_value(subject, '@type', type):
+                if JsonLdProcessor.has_value(subject, '@type', t):
                   return True
             return False
 
@@ -2341,16 +2341,16 @@ class JsonLdProcessor:
 
             # handle subject reference
             if _is_subject_reference(o):
-                id = o['@id']
+                id_ = o['@id']
 
                 # embed full subject if isn't already embedded
-                if id not in state['embeds']:
+                if id_ not in state['embeds']:
                     # add embed
                     embed = {'parent': output, 'property': property}
-                    state['embeds'][id] = embed
+                    state['embeds'][id_] = embed
                     # recurse into subject
                     o = {}
-                    s = state['subjects'][id]
+                    s = state['subjects'][id_]
                     for prop, v in s.items():
                         # copy keywords
                         if _is_keyword(prop):
@@ -2363,20 +2363,20 @@ class JsonLdProcessor:
                 self._add_frame_output(
                     state, output, property, copy.deepcopy(o))
 
-    def _remove_embed(self, state, id):
+    def _remove_embed(self, state, id_):
         """
         Removes an existing embed.
 
         :param state: the current framing state.
-        :param id: the @id of the embed to remove.
+        :param id_: the @id of the embed to remove.
         """
         # get existing embed
         embeds = state['embeds']
-        embed = embeds[id]
+        embed = embeds[id_]
         property = embed['property']
 
         # create reference to replace embed
-        subject = {'@id': id}
+        subject = {'@id': id_}
 
         # remove existing embed
         if _is_array(embed['parent']):
@@ -2396,17 +2396,17 @@ class JsonLdProcessor:
                 {'propertyIsArray': use_array})
 
         # recursively remove dependent dangling embeds
-        def remove_dependents(id):
+        def remove_dependents(id_):
             # get embed keys as a separate array to enable deleting keys
             # in map
             ids = embeds.keys()
             for next in ids:
                 if (next in embeds and
                     _is_object(embeds[next]['parent']) and
-                    embeds[next]['parent']['@id'] == id):
+                    embeds[next]['parent']['@id'] == id_):
                     del embeds[next]
                     remove_dependents(next)
-        remove_dependents(id)
+        remove_dependents(id_)
 
     def _add_frame_output(self, state, parent, property, output):
         """
@@ -2423,50 +2423,50 @@ class JsonLdProcessor:
         else:
             parent.append(output)
 
-    def _remove_preserve(self, ctx, input):
+    def _remove_preserve(self, ctx, input_):
         """
         Removes the @preserve keywords as the last step of the framing algorithm.
 
         :param ctx: the active context used to compact the input.
-        :param input: the framed, compacted output.
+        :param input_: the framed, compacted output.
 
         :return: the resulting output.
         """
         # recurse through arrays
-        if _is_array(input):
+        if _is_array(input_):
             output = []
-            for e in input:
+            for e in input_:
               result = self._remove_preserve(ctx, e)
               # drop Nones from arrays
               if result is not None:
                   output.append(result)
             return output
-        elif _is_object(input):
+        elif _is_object(input_):
             # remove @preserve
-            if '@preserve' in input:
-                if input['@preserve'] == '@null':
+            if '@preserve' in input_:
+                if input_['@preserve'] == '@null':
                   return None
-                return input['@preserve']
+                return input_['@preserve']
 
             # skip @values
-            if _is_value(input):
-                return input
+            if _is_value(input_):
+                return input_
 
             # recurse through @lists
-            if _is_list(input):
-                input['@list'] = self._remove_preserve(ctx, input['@list'])
-                return input
+            if _is_list(input_):
+                input_['@list'] = self._remove_preserve(ctx, input_['@list'])
+                return input_
 
             # recurse through properties
-            for prop, v in input.items():
+            for prop, v in input_.items():
                 result = self._remove_preserve(ctx, v)
                 container = JsonLdProcessor.get_context_value(
                     ctx, prop, '@container')
                 if (_is_array(result) and len(result) == 1 and
                     container != '@set' and container != '@list'):
                     result = result[0]
-                input[prop] = result
-        return input
+                input_[prop] = result
+        return input_
 
     def _rank_term(self, ctx, term, value):
         """
@@ -2757,18 +2757,18 @@ class JsonLdProcessor:
         mapping = {}
 
         if '@id' in value:
-            id = value['@id']
-            if not _is_string(id):
+            id_ = value['@id']
+            if not _is_string(id_):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @context @id values must be '
                     'strings.', 'jsonld.SyntaxError', {'context': ctx})
             # expand @id if it is not @type
-            if id != '@type':
+            if id_ != '@type':
                 # expand @id to full IRI
-                id = self._expand_context_iri(
-                    active_ctx, ctx, id, base, defined)
+                id_ = self._expand_context_iri(
+                    active_ctx, ctx, id_, base, defined)
             # add @id to mapping
-            mapping['@id'] = id
+            mapping['@id'] = id_
         else:
           # non-IRIs MUST define @ids
           if prefix is None:
@@ -2785,17 +2785,17 @@ class JsonLdProcessor:
               mapping['@id'] = key
 
         if '@type' in value:
-            type = value['@type']
-            if not _is_string(type):
+            type_ = value['@type']
+            if not _is_string(type_):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @context @type values must be '
                     'strings.', 'jsonld.SyntaxError', {'context': ctx})
-            if type != '@id':
+            if type_ != '@id':
                 # expand @type to full IRI
-                type = self._expand_context_iri(
-                    active_ctx, ctx, type, '', defined)
+                type_ = self._expand_context_iri(
+                    active_ctx, ctx, type_, '', defined)
             # add @type to mapping
-            mapping['@type'] = type
+            mapping['@type'] = type_
 
         if '@container' in value:
             container = value['@container']
@@ -2847,12 +2847,12 @@ class JsonLdProcessor:
 
         # recurse if value is a term
         if value in active_ctx['mappings']:
-            id = active_ctx['mappings'][value]['@id']
+            id_ = active_ctx['mappings'][value]['@id']
             # value is already an absolute IRI
-            if value == id:
+            if value == id_:
                 return value
             return self._expand_context_iri(
-                active_ctx, ctx, id, base, defined)
+                active_ctx, ctx, id_, base, defined)
 
         # split value into prefix:suffix
         if value.find(':') != -1:
@@ -2869,9 +2869,9 @@ class JsonLdProcessor:
                     active_ctx, ctx, prefix, base, defined)
             # recurse if prefix is defined
             if prefix in active_ctx['mappings']:
-                id = active_ctx['mappings'][prefix]['@id']
+                id_ = active_ctx['mappings'][prefix]['@id']
                 return self._expand_context_iri(
-                    active_ctx, ctx, id, base, defined) + suffix
+                    active_ctx, ctx, id_, base, defined) + suffix
 
             # consider value an absolute IRI
             return value
@@ -2910,11 +2910,11 @@ class JsonLdProcessor:
 
         # the term has a mapping, so it is a plain term
         if term in ctx['mappings']:
-            id = ctx['mappings'][term]['@id']
+            id_ = ctx['mappings'][term]['@id']
             # term is already an absolute IRI
-            if term == id:
+            if term == id_:
                 return term
-            return self._expand_term(ctx, id, base)
+            return self._expand_term(ctx, id_, base)
 
         # split term into prefix:suffix
         if term.find(':') != -1:
@@ -2940,21 +2940,21 @@ class JsonLdProcessor:
     
         return term
 
-    def _find_context_urls(self, input, urls, replace):
+    def _find_context_urls(self, input_, urls, replace):
         """
         Finds all @context URLs in the given JSON-LD input.
 
-        :param input: the JSON-LD input.
+        :param input_: the JSON-LD input.
         :param urls: a map of URLs (url => false/@contexts).
         :param replace: true to replace the URLs in the given input with
                  the @contexts from the urls map, false not to.
         """
         count = len(urls)
-        if _is_array(input):
-            for e in input:
+        if _is_array(input_):
+            for e in input_:
                 self._find_context_urls(e, urls, replace)
-        elif _is_object(input):
-            for k, v in input.items():
+        elif _is_object(input_):
+            for k, v in input_.items():
                 if k != '@context':
                     self._find_context_urls(v, urls, replace)
                     continue
@@ -2986,18 +2986,18 @@ class JsonLdProcessor:
                 elif _is_string(v):
                     # replace w/@context if requested
                     if replace:
-                        input[k] = urls[v]
+                        input_[k] = urls[v]
                     # @context URL found
                     elif v not in urls:
                         urls[v] = False
 
-    def _resolve_context_urls(self, input, cycles, resolver):
+    def _resolve_context_urls(self, input_, cycles, resolver):
         """
         Resolves external @context URLs using the given URL resolver. Each
         instance of @context in the input that refers to a URL will be
         replaced with the JSON @context found at that URL.
 
-        :param input: the JSON-LD input with possible contexts.
+        :param input_: the JSON-LD input with possible contexts.
         :param cycles: an object for tracking context cycles.
         :param resolver(url): the URL resolver.
 
@@ -3012,7 +3012,7 @@ class JsonLdProcessor:
         urls = {}
 
         # find all URLs in the given input
-        self._find_context_urls(input, urls, False)
+        self._find_context_urls(input_, urls, False)
 
         # queue all unresolved URLs
         queue = []
@@ -3066,7 +3066,7 @@ class JsonLdProcessor:
             urls[url] = ctx['@context']
 
         # replace all URLs in the input
-        self._find_context_urls(input, urls, True)
+        self._find_context_urls(input_, urls, True)
 
     def _prepend_base(self, base, iri):
         """
@@ -3104,9 +3104,9 @@ class JsonLdError(Exception):
     Base class for JSON-LD errors.
     """
 
-    def __init__(self, message, type, details=None, cause=None):
+    def __init__(self, message, type_, details=None, cause=None):
         Exception.__init__(self, message)
-        self.type = type
+        self.type = type_
         self.details = details
         self.cause = cause
         self.causeTrace = traceback.extract_tb(*sys.exc_info()[2:])
@@ -3470,7 +3470,7 @@ def _is_absolute_iri(v):
     return v.find(':') != -1
 
 
-def _get_adjacent_bnode_name(node, id):
+def _get_adjacent_bnode_name(node, id_):
     """
     A helper function that gets the blank node name from an RDF statement
     node (subject or object). If the node is not a blank node or its
@@ -3478,11 +3478,11 @@ def _get_adjacent_bnode_name(node, id):
     returned.
 
     :param node: the RDF statement node.
-    :param id: the ID of the blank node to look next to.
+    :param id_: the ID of the blank node to look next to.
 
     :return: the adjacent blank node name or None if none was found.
     """
-    if node['interfaceName'] == 'BlankNode' and node['nominalValue'] != id:
+    if node['interfaceName'] == 'BlankNode' and node['nominalValue'] != id_:
         return node['nominalValue']
     return None
 
