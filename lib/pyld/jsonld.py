@@ -1405,9 +1405,10 @@ class JsonLdProcessor:
         namer = UniqueNamer('_:t')
         self._to_rdf(input_, namer, None, None, None, statements)
         for statement in statements:
-            for node in ['subject', 'object']:
-                id_ = statement[node]['nominalValue']
-                if statement[node]['interfaceName'] == 'BlankNode':
+            for node in ['subject', 'object', 'name']:
+                if (node in statement and
+                    statement[node]['interfaceName'] == 'BlankNode'):
+                    id_ = statement[node]['nominalValue']
                     if id_ in bnodes:
                         bnodes[id_]['statements'].append(statement)
                     else:
@@ -1456,13 +1457,13 @@ class JsonLdProcessor:
             for bnode in group:
                 # skip already-named bnodes
                 if namer.is_named(bnode):
-                  continue
+                    continue
 
                 # hash bnode paths
                 path_namer = UniqueNamer('_:t')
                 path_namer.get_name(bnode)
                 results.append(self._hash_paths(
-                  bnode, bnodes, namer, path_namer))
+                    bnode, bnodes, namer, path_namer))
 
             # name bnodes in hash order
             cmp_hashes = cmp_to_key(lambda x, y: cmp(x['hash'], y['hash']))
@@ -1476,8 +1477,10 @@ class JsonLdProcessor:
 
         # update bnode names in each statement and serialize
         for statement in statements:
-            for node in ['subject', 'object']:
-                if statement[node]['interfaceName'] == 'BlankNode':
+            for node in ['subject', 'object', 'name']:
+                if (node in statement and
+                    statement[node]['interfaceName'] == 'BlankNode' and
+                    not statement[node]['nominalValue'].startswith('_:c14n')):
                     statement[node]['nominalValue'] = namer.get_name(
                         statement[node]['nominalValue'])
             normalized.append(JsonLdProcessor.to_nquad(statement))
