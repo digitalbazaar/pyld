@@ -521,7 +521,7 @@ class JsonLdProcessor:
                 'RDF.', 'jsonld.RdfError', None, cause)
 
         # get RDF statements
-        namer = UniqueNamer('_:t')
+        namer = UniqueNamer('_:b')
         statements = []
         self._to_rdf(expanded, namer, None, None, None, statements)
 
@@ -1377,9 +1377,9 @@ class JsonLdProcessor:
         }
 
         # produce a map of all graphs and name each bnode
-        namer = UniqueNamer('_:t')
+        namer = UniqueNamer('_:b')
         self._flatten(input_, state['graphs'], '@default', namer, None, None)
-        namer = UniqueNamer('_:t')
+        namer = UniqueNamer('_:b')
         self._flatten(input_, state['graphs'], '@merged', namer, None, None)
         # FIXME: currently uses subjects from @merged graph only
         state['subjects'] = state['graphs']['@merged']
@@ -1402,7 +1402,7 @@ class JsonLdProcessor:
         # map bnodes to RDF statements
         statements = []
         bnodes = {}
-        namer = UniqueNamer('_:t')
+        namer = UniqueNamer('_:b')
         self._to_rdf(input_, namer, None, None, None, statements)
         for statement in statements:
             for node in ['subject', 'object', 'name']:
@@ -1460,7 +1460,7 @@ class JsonLdProcessor:
                     continue
 
                 # hash bnode paths
-                path_namer = UniqueNamer('_:t')
+                path_namer = UniqueNamer('_:b')
                 path_namer.get_name(bnode)
                 results.append(self._hash_paths(
                     bnode, bnodes, namer, path_namer))
@@ -1635,9 +1635,9 @@ class JsonLdProcessor:
                     else:
                         value = str(value)
                         datatype = datatype or XSD_INTEGER
-                
+
                 # default to xsd:string datatype
-                datatype = datatype or XSD_STRING 
+                datatype = datatype or XSD_STRING
 
                 object = {
                     'nominalValue': value,
@@ -2614,7 +2614,7 @@ class JsonLdProcessor:
                 suffix = iri[len(vocab):]
                 if suffix in ctx['mappings']:
                     return suffix
-        
+
         # no term matches, add possible CURIEs
         if len(terms) == 0:
             for term, entry in ctx['mappings'].items():
@@ -2694,7 +2694,7 @@ class JsonLdProcessor:
                     active_ctx['@vocab'] = value
                 defined[key] = True
                 return
-            
+
             # only @language is permitted
             if key != '@language':
                 raise JsonLdError(
@@ -2879,7 +2879,7 @@ class JsonLdProcessor:
             # consider value an absolute IRI
             return value
 
-        #prepend vocab
+        # prepend vocab
         if ctx.get('@vocab') is not None:
             value = self._prepend_base(ctx['@vocab'], value)
         # prepend base
@@ -2940,7 +2940,7 @@ class JsonLdProcessor:
         # prepend base to term
         else:
             term = self._prepend_base(base, term)
-    
+
         return term
 
     def _find_context_urls(self, input_, urls, replace):
