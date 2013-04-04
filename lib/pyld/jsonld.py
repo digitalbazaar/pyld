@@ -3218,7 +3218,18 @@ class JsonLdProcessor:
             if term is not None:
                 return term
 
-        # no term match, check for possible CURIEs
+        # no term match, use @vocab if available
+        if vocab:
+            if '@vocab' in active_ctx:
+                vocab_ = active_ctx['@vocab']
+                if iri.startswith(vocab_) and iri != vocab_:
+                    # use suffix as relative iri if it is not a term in the
+                    # active context
+                    suffix = iri[len(vocab_):]
+                    if suffix not in active_ctx['mappings']:
+                        return suffix
+
+        # no term or @vocab match, check for possible CURIEs
         candidate = None
         for term, definition in active_ctx['mappings'].items():
             # skip terms with colons, they can't be prefixes
@@ -3249,18 +3260,8 @@ class JsonLdProcessor:
         if candidate is not None:
             return candidate
 
-        # no matching terms or curies, use @vocab if available
-        if vocab:
-            if '@vocab' in active_ctx:
-                vocab_ = active_ctx['@vocab']
-                if iri.startswith(vocab_) and iri != vocab_:
-                    # use suffix as relative iri if it is not a term in the
-                    # active context
-                    suffix = iri[len(vocab_):]
-                    if suffix not in active_ctx['mappings']:
-                        return suffix
         # compact IRI relative to base
-        else:
+        if not vocab:
             return remove_base(active_ctx['@base'], iri)
 
         # return IRI as is
