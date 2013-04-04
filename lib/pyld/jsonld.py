@@ -4277,5 +4277,5 @@ class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
 
 # the path to the system's default trusted root SSL certificates
 _trust_root_certificates = None
-if os.path.exists('/etc/ssl/certs'):
-    _trust_root_certificates = '/etc/ssl/certs'
+if os.path.exists('/etc/ssl/certs/ca-certificates.crt'):
+    _trust_root_certificates = '/etc/ssl/certs/ca-certificates.crt'
