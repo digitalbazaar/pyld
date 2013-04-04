@@ -22,7 +22,7 @@ __all__ = ['compact', 'expand', 'flatten', 'frame', 'from_rdf', 'to_rdf',
     'JsonLdProcessor', 'ContextCache']
 
 import copy, hashlib, json, os, re, string, sys, time, traceback
-import urllib2, urlparse, posixpath
+import urllib2, urlparse, posixpath, socket, ssl
 from contextlib import closing
 from collections import deque
 from functools import cmp_to_key
@@ -778,19 +778,20 @@ class JsonLdProcessor:
         options.setdefault('loadContext', _default_context_loader)
 
         # retrieve URLs in local_ctx
-        ctx = copy.deepcopy(local_ctx)
-        if _is_object(ctx) and '@context' not in ctx:
-            ctx = {'@context': ctx}
+        local_ctx = copy.deepcopy(local_ctx)
+        if (_is_string(local_ctx) or (
+            _is_object(local_ctx) and '@context' not in local_ctx)):
+            local_ctx = {'@context': local_ctx}
         try:
             self._retrieve_context_urls(
-                ctx, {}, options['loadContext'], options['base'])
+                local_ctx, {}, options['loadContext'], options['base'])
         except Exception as cause:
             raise JsonLdError(
                 'Could not process JSON-LD context.',
                 'jsonld.ContextError', None, cause)
 
         # process context
-        return self._process_context(active_ctx, ctx, options)
+        return self._process_context(active_ctx, local_ctx, options)
 
     def register_rdf_parser(self, content_type, parser):
         """
