@@ -9,7 +9,7 @@ Runs json-ld.org unit tests for JSON-LD.
 .. moduleauthor:: Mike Johnson
 """
 
-__copyright__ = 'Copyright (c) 2011-2012 Digital Bazaar, Inc.'
+__copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
 
 import os, sys, json
@@ -22,11 +22,14 @@ from pyld import jsonld
 # supported test types
 TEST_TYPES = [
     'jld:ExpandTest',
-    'jld:NormalizeTest',
     'jld:CompactTest',
+    'jld:FlattenTest',
     'jld:FrameTest',
     'jld:FromRDFTest',
-    'jld:ToRDFTest']
+    'jld:ToRDFTest',
+    'jld:NormalizeTest']
+
+SKIP_TEST_TYPES = ['jld:ApiErrorTest']
 
 class TestRunner:
     """
@@ -102,12 +105,14 @@ class TestRunner:
                 # skip unsupported types
                 skip = True
                 test_type = test['@type']
-                for tt in TEST_TYPES:
-                    if tt in test_type:
-                        skip = False
+                for tt in test_type:
+                    if tt in SKIP_TEST_TYPES:
+                        skip = True
                         break
+                    if tt in TEST_TYPES:
+                        skip = False
                 if skip:
-                    print 'Skipping test: "%s" ...' % test['name']
+                    # print 'Skipping test: "%s" ...' % test['name']
                     continue
 
                 print 'JSON-LD/%s %04d/%s...' % (
@@ -136,14 +141,13 @@ class TestRunner:
                         test['input']}
 
                 try:
-                    if 'jld:NormalizeTest' in test_type:
-                        options['format'] = 'application/nquads'
-                        result = jsonld.normalize(input, options)
-                    elif 'jld:ExpandTest' in test_type:
+                    if 'jld:ExpandTest' in test_type:
                         result = jsonld.expand(input, options)
                     elif 'jld:CompactTest' in test_type:
                         ctx = json.load(open(join(test_dir, test['context'])))
                         result = jsonld.compact(input, ctx, options)
+                    elif 'jld:FlattenTest' in test_type:
+                        result = jsonld.flatten(input, None, options)
                     elif 'jld:FrameTest' in test_type:
                         frame = json.load(open(join(test_dir, test['frame'])))
                         result = jsonld.frame(input, frame, options)
@@ -152,17 +156,20 @@ class TestRunner:
                     elif 'jld:ToRDFTest' in test_type:
                         options['format'] = 'application/nquads'
                         result = jsonld.to_rdf(input, options)
-    
+                    elif 'jld:NormalizeTest' in test_type:
+                        options['format'] = 'application/nquads'
+                        result = jsonld.normalize(input, options)
+
                     # check the expected value against the test result
                     success = deep_compare(expect, result)
-    
+
                     if success:
                         passed += 1
                         print 'PASS'
                     else:
                         failed += 1
                         print 'FAIL'
-    
+
                     if not success or self.options.verbose:
                         print 'Expect:', json.dumps(expect, indent=2)
                         print 'Result:', json.dumps(result, indent=2)
