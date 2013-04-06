@@ -961,8 +961,7 @@ class JsonLdProcessor:
         1. They are both primitives of the same type and value.
         2. They are both @values with the same @value, @type, @language,
           and @index, OR
-        3. They are both @lists with the same @list and @index, OR
-        4. They both have @ids that are the same.
+        3. They both have @ids that are the same.
 
         :param v1: the first value.
         :param v2: the second value.
@@ -989,20 +988,7 @@ class JsonLdProcessor:
                 return type1 == type2
             return True
 
-        # 3. equal @lists
-        if _is_list(v1) and _is_list(v2):
-            if v1.get('@index') != v2.get('@index'):
-                return False
-            list1 = v1['@list']
-            list2 = v2['@list']
-            if len(list1) != len(list2):
-                return False
-            for i in range(len(list1)):
-                if not JsonLdProcessor.compare_values(list1[i], list2[i]):
-                    return False
-            return True
-
-        # 4. equal @ids
+        # 3. equal @ids
         if (_is_object(v1) and '@id' in v1 and
             _is_object(v2) and '@id' in v2):
             return v1['@id'] == v2['@id']
