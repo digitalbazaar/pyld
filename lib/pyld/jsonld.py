@@ -387,6 +387,11 @@ class JsonLdProcessor:
 
         :return: the compacted JSON-LD output.
         """
+        if ctx is None:
+            raise JsonLdError(
+                'The compaction context must not be null.',
+                'jsonld.CompactError')
+
         # nothing to compact
         if input_ is None:
             return None
