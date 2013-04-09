@@ -455,23 +455,22 @@ class JsonLdProcessor:
         if ctx_length == 1:
             ctx = ctx[0]
 
-        # add context
-        if has_context or options['graph']:
-            if _is_array(compacted):
-                # use '@graph' keyword
-                kwgraph = self._compact_iri(active_ctx, '@graph')
-                graph = compacted
-                compacted = {}
-                if has_context:
-                    compacted['@context'] = ctx
-                compacted[kwgraph] = graph
-            elif _is_object(compacted):
-                # reorder keys so @context is first
-                graph = compacted
-                compacted = {}
+        # add context and/or @graph
+        if _is_array(compacted):
+            # use '@graph' keyword
+            kwgraph = self._compact_iri(active_ctx, '@graph')
+            graph = compacted
+            compacted = {}
+            if has_context:
                 compacted['@context'] = ctx
-                for k, v in graph.items():
-                    compacted[k] = v
+            compacted[kwgraph] = graph
+        elif _is_object(compacted) and has_context:
+            # reorder keys so @context is first
+            graph = compacted
+            compacted = {}
+            compacted['@context'] = ctx
+            for k, v in graph.items():
+                compacted[k] = v
 
         if options['activeCtx']:
             return {'compacted': compacted, 'activeCtx': active_ctx}
