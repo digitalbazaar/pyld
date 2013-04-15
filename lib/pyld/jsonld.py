@@ -3433,11 +3433,12 @@ class JsonLdProcessor:
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @context @id value must be a '
                     'string.', 'jsonld.SyntaxError', {'context': local_ctx})
-            # add @id to mapping
-            mapping['@id'] = self._expand_iri(
-                active_ctx, id_, vocab=True, base=True,
-                local_ctx=local_ctx, defined=defined)
-        else:
+            if id_ != term:
+                # add @id to mapping
+                mapping['@id'] = self._expand_iri(
+                    active_ctx, id_, vocab=True, base=True,
+                    local_ctx=local_ctx, defined=defined)
+        if '@id' not in mapping:
             # see if the term has a prefix
             colon = term.find(':')
             if colon != -1:
