@@ -3380,24 +3380,9 @@ class JsonLdProcessor:
             defined[term] = True
             return
 
+        # convert short-hand value to object w/@id
         if _is_string(value):
-            # expand value to a full IRI
-            id_ = self._expand_iri(
-                active_ctx, value, vocab=True, base=True,
-                local_ctx=local_ctx, defined=defined)
-
-            if _is_keyword(value):
-                # disallow aliasing @context and @preserve
-                if value == '@context' or value == '@preserve':
-                    raise JsonLdError(
-                        'Invalid JSON-LD syntax; @context and @preserve '
-                        'cannot be aliased.', 'jsonld.SyntaxError',
-                        {'context': local_ctx})
-
-            # define term to expanded IRI/keyword
-            active_ctx['mappings'][term] = {'@id': id_, 'reverse': False}
-            defined[term] = True
-            return
+            value = {'@id': value}
 
         if not _is_object(value):
             raise JsonLdError(
@@ -3508,6 +3493,14 @@ class JsonLdProcessor:
             if language is not None:
                 language = language.lower()
             mapping['@language'] = language
+
+        # disallow aliasing @context and @preserve
+        id_ = mapping['@id']
+        if id_ == '@context' or id_ == '@preserve':
+            raise JsonLdError(
+                'Invalid JSON-LD syntax; @context and @preserve '
+                'cannot be aliased.', 'jsonld.SyntaxError',
+                {'context': local_ctx})
 
         # define term mapping
         active_ctx['mappings'][term] = mapping
