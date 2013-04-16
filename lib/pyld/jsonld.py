@@ -3391,7 +3391,7 @@ class JsonLdProcessor:
                 'jsonld.SyntaxError', {'context': local_ctx})
 
         # create new mapping
-        mapping = {'reverse': False}
+        mapping = active_ctx['mappings'][term] = {'reverse': False}
 
         if '@reverse' in value:
             if '@id' in value or '@type' in value or '@language' in value:
@@ -3451,6 +3451,9 @@ class JsonLdProcessor:
                 # prepend vocab to term
                 mapping['@id'] = active_ctx['@vocab'] + term
 
+        # IRI mapping now defined
+        defined[term] = True
+
         if '@type' in value:
             type_ = value['@type']
             if not _is_string(type_):
@@ -3501,10 +3504,6 @@ class JsonLdProcessor:
                 'Invalid JSON-LD syntax; @context and @preserve '
                 'cannot be aliased.', 'jsonld.SyntaxError',
                 {'context': local_ctx})
-
-        # define term mapping
-        active_ctx['mappings'][term] = mapping
-        defined[term] = True
 
     def _expand_iri(
         self, active_ctx, value, base=False, vocab=False,
