@@ -16,7 +16,7 @@ setup(
     url = 'http://github.com/digitalbazaar/pyld',
     author = 'Digital Bazaar',
     author_email = 'support@digitalbazaar.com',
-    playforms = 'any',
+    platforms = 'any',
     py_modules = [
         'pyld',
     ],
