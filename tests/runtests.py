@@ -56,8 +56,8 @@ EARL = {
         'earl:TestSubject',
         'earl:Software'
     ],
-    'doap:name': 'PyLd',
-    'dc:title': 'PyLd',
+    'doap:name': 'PyLD',
+    'dc:title': 'PyLD',
     'doap:homepage': 'https://github.com/digitalbazaar/pyld',
     'doap:license': 'https://github.com/digitalbazaar/pyld/blob/master/LICENSE',
     'doap:description': 'A JSON-LD processor for Python',
