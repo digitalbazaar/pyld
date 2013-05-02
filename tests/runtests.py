@@ -12,7 +12,7 @@ Runs json-ld.org unit tests for JSON-LD.
 __copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
 
-import os, sys, json
+import os, sys, json, datetime
 from os.path import join
 from optparse import OptionParser
 
@@ -30,6 +30,54 @@ TEST_TYPES = [
     'jld:NormalizeTest']
 
 SKIP_TEST_TYPES = ['jld:ApiErrorTest']
+
+# EARL report
+EARL = {
+    '@context': {
+        'doap': 'http://usefulinc.com/ns/doap#',
+        'foaf': 'http://xmlns.com/foaf/0.1/',
+        'dc': 'http://purl.org/dc/terms/',
+        'earl': 'http://www.w3.org/ns/earl#',
+        'xsd': 'http://www.w3.org/2001/XMLSchema#',
+        'doap:homepage': {'@type': '@id'},
+        'doap:license': {'@type': '@id'},
+        'dc:creator': {'@type': '@id'},
+        'foaf:homepage': {'@type': '@id'},
+        'subjectOf': {'@reverse': 'earl:subject'},
+        'earl:assertedBy': {'@type': '@id'},
+        'earl:mode': {'@type': '@id'},
+        'earl:test': {'@type': '@id'},
+        'earl:outcome': {'@type': '@id'},
+        'dc:date': {'@type': 'xsd:date'}
+    },
+    '@id': 'https://github.com/digitalbazaar/pyld',
+    '@type': [
+        'doap:Project',
+        'earl:TestSubject',
+        'earl:Software'
+    ],
+    'doap:name': 'PyLd',
+    'dc:title': 'PyLd',
+    'doap:homepage': 'https://github.com/digitalbazaar/pyld',
+    'doap:license': 'https://github.com/digitalbazaar/pyld/blob/master/LICENSE',
+    'doap:description': 'A JSON-LD processor for Python',
+    'doap:programming-language': 'Python',
+    'dc:creator': 'https://github.com/dlongley',
+    'doap:developer': {
+        '@id': 'https://github.com/dlongley',
+        '@type': [
+            'foaf:Person',
+            'earl:Assertor'
+        ],
+        'foaf:name': 'Dave Longley',
+        'foaf:homepage': 'https://github.com/dlongley'
+    },
+    'dc:date': {
+        '@value': datetime.datetime.utcnow().strftime('%Y-%m-%d'),
+        '@type': 'xsd:date'
+    },
+    'subjectOf': []
+}
 
 class TestRunner:
     """
@@ -51,6 +99,8 @@ class TestRunner:
             help='The single test file to run', metavar='FILE')
         self.parser.add_option('-d', '--directory', dest='directory',
             help='The directory full of test files', metavar='DIR')
+        self.parser.add_option('-e', '--earl', dest='earl',
+            help='The filename to write the EARL report to', metavar='EARL')
         self.parser.add_option('-v', '--verbose', dest='verbose',
             action='store_true', default=False,
             help='Prints verbose test data')
@@ -140,6 +190,7 @@ class TestRunner:
                     'base': 'http://json-ld.org/test-suite/tests/' +
                         test['input']}
 
+                success = False
                 try:
                     if 'jld:ExpandTest' in test_type:
                         result = jsonld.expand(input, options)
@@ -177,6 +228,26 @@ class TestRunner:
                     print '\nError: ', e
                     failed += 1
                     print 'FAIL'
+
+                # add EARL report assertion
+                EARL['subjectOf'].append({
+                    '@type': 'earl:Assertion',
+                    'earl:assertedBy': EARL['doap:developer']['@id'],
+                    'earl:mode': 'earl:automatic',
+                    'earl:test': ('http://json-ld.org/test-suite/tests/' +
+                        os.path.basename(manifest_file) + test['@id']),
+                    'earl:result': {
+                        '@type': 'earl:TestResult',
+                        'dc:date': datetime.datetime.utcnow().isoformat(),
+                        'earl:outcome': ('earl:' + 'passed' if success else
+                            'failed')
+                    }
+                })
+
+        if self.options.earl:
+            f = open(self.options.earl, 'w')
+            f.write(json.dumps(EARL, indent=2))
+            f.close()
 
         print 'Done. Total:%d Passed:%d Failed:%d' % (total, passed, failed)
 
