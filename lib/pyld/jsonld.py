@@ -3408,7 +3408,7 @@ class JsonLdProcessor:
 
             # expand and add @id mapping, set @type to @id
             mapping['@id'] = self._expand_iri(
-                active_ctx, reverse, vocab=True, base=True,
+                active_ctx, reverse, vocab=True, base=False,
                 local_ctx=local_ctx, defined=defined)
             mapping['@type'] = '@id'
             mapping['reverse'] = True
@@ -3421,7 +3421,7 @@ class JsonLdProcessor:
             if id_ != term:
                 # add @id to mapping
                 mapping['@id'] = self._expand_iri(
-                    active_ctx, id_, vocab=True, base=True,
+                    active_ctx, id_, vocab=True, base=False,
                     local_ctx=local_ctx, defined=defined)
         if '@id' not in mapping:
             # see if the term has a prefix
