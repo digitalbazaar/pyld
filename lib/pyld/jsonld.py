@@ -1062,7 +1062,7 @@ class JsonLdProcessor:
         subject = '(?:' + iri + '|' + bnode + ')' + ws
         property = iri + ws
         object = '(?:' + iri + '|' + bnode + '|' + literal + ')' + wso
-        graph = '(?:\\.|(?:(?:' + iri + '|' + bnode + ')' + wso + '\\.))'
+        graph = '(?:\\.|(?:(?:' + iri + '|' + bnode + '|' + literal + ')' + wso + '\\.))'
 
         # full quad regex
         quad = r'^' + wso + subject + property + object + graph + wso + '$'
