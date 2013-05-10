@@ -1059,6 +1059,13 @@ class JsonLdProcessor:
         object = '(?:' + iri + '|' + bnode + '|' + literal + ')' + wso
         graph = '(?:\\.|(?:(?:' + iri + '|' + bnode + ')' + wso + '\\.))'
 
+        # Note: Notice that the graph position does not include literals
+        # even though they are specified as a possible value in the
+        # N-Quads note (http://sw.deri.org/2008/07/n-quads/). This is
+        # intentional, as literals in that position are not supported by the
+        # RDF data model or the JSON-LD data model.
+        # See: https://github.com/digitalbazaar/pyld/pull/19
+
         # full quad regex
         quad = r'^' + wso + subject + property + object + graph + wso + '$'
 
