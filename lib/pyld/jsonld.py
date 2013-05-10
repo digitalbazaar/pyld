@@ -320,11 +320,6 @@ def remove_base(base, iri):
     if not (base.scheme == rel.scheme and base.netloc == rel.netloc):
         return iri
 
-    # trim base path at last directory
-    base_path = base.path
-    # if not base_path.endswith('/'):
-    #    base_path = base_path[0:base_path.rfind('/') + 1]
-
     path = posixpath.normpath(posixpath.relpath(rel.path, base.path))
     if rel.path.endswith('/') and not path.endswith('/'):
         path += '/'
