@@ -2024,7 +2024,7 @@ class JsonLdProcessor:
                     if not (_is_object(node) and
                         node['@id'].startswith('_:') and
                         (node_key_count == 3 or
-                         node_key_count == 4 and 'listHeadFor' in node) and
+                         (node_key_count == 4 and 'listHeadFor' in node)) and
                         _is_array(rdf_first) and len(rdf_first) == 1 and
                         _is_array(rdf_rest) and len(rdf_rest) == 1 and
                         _is_object(rdf_rest[0]) and '@id' in rdf_rest[0] and
