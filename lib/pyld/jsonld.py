@@ -2043,8 +2043,8 @@ class JsonLdProcessor:
 
                 del value['@id']
                 value['@list'] = list
-                for id in eliminated_nodes:
-                    del graph_object[id]
+                for id_ in eliminated_nodes:
+                    del graph_object[id_]
 
         result = []
         for subject, node in sorted(default_graph.items()):
