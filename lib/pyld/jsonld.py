@@ -1951,103 +1951,112 @@ class JsonLdProcessor:
         
         :return: the JSON-LD output.
         """
-        # prepare graph map (maps graph name => subjects, lists)
-        default_graph = {'subjects': {}, 'listMap': {}}
-        graphs = {'@default': default_graph}
+        default_graph = {}
+        graph_map = {'@default': default_graph}
 
-        for graph_name, triples in dataset.items():
-            for triple in triples:
+        for name, graph in dataset.items():
+            graph_map.setdefault(name, {})
+            if name != '@default' and name not in default_graph:
+                default_graph[name] = {'@id': name}
+            node_map = graph_map[name]
+            for triple in graph:
                 # get subject, predicate, object
                 s = triple['subject']['value']
                 p = triple['predicate']['value']
                 o = triple['object']
 
-                # create a named graph entry as needed
-                graph = graphs.setdefault(
-                    graph_name, {'subjects': {}, 'listMap': {}})
+                node = node_map.setdefault(s, {'@id': s})
 
-                # handle element in @list
-                if p == RDF_FIRST:
-                    # create list entry as needed
-                    list_map = graph['listMap']
-                    entry = list_map.setdefault(s, {})
-                    # set object value
-                    entry['first'] = self._rdf_to_object(
-                        o, options['useNativeTypes'])
-                    continue
+                object_is_id = (o['type'] == 'IRI' or o['type'] == 'blank node')
+                if (object_is_id and o['value'] != RDF_NIL and
+                    o['value'] not in node_map):
+                    node_map[o['value']] = {'@id': o['value']}
 
-                # handle other element in @list
-                if p == RDF_REST:
-                    # set next in list
-                    if o['type'] == 'blank node':
-                        # create list entry as needed
-                        list_map = graph['listMap']
-                        entry = list_map.setdefault(s, {})
-                        entry['rest'] = o['value']
-                    continue
-
-                # add graph subject to the default graph as needed
-                if (graph_name != '@default' and
-                    graph_name not in default_graph['subjects']):
-                    default_graph['subjects'].setdefault(
-                        graph_name, {'@id': graph_name})
-
-                # add subject to graph as needed
-                subjects = graph['subjects']
-                value = subjects.setdefault(s, {'@id': s})
-
-                # convert to @type unless options indicate to treat rdf:type as
-                # property
-                if p == RDF_TYPE and not options['useRdfType']:
-                    # add value of object as @type
+                if p == RDF_TYPE and object_is_id:
                     JsonLdProcessor.add_value(
-                        value, '@type', o['value'], {'propertyIsArray': True})
+                        node, '@type', o['value'], {'propertyIsArray': True})
+                    continue
+
+                if object_is_id and o['value'] == RDF_NIL and p != RDF_REST:
+                    # empty list detected
+                    value = {'@list': []}
                 else:
-                    # add property to value as needed
-                    object = self._rdf_to_object(o, options['useNativeTypes'])
-                    JsonLdProcessor.add_value(
-                        value, p, object, {'propertyIsArray': True})
+                    value = self._rdf_to_object(o, options['useNativeTypes'])
+                JsonLdProcessor.add_value(
+                    node, p, value, {'propertyIsArray': True})
 
-                    # bnode might be the start of a list, so add it to list map
-                    if o['type'] == 'blank node':
-                        id_ = object['@id']
-                        # create list entry as needed
-                        list_map = graph['listMap']
-                        entry = list_map.setdefault(id_, {})
-                        entry['head'] = object
+                # object may be the head of an RDF list but we can't know
+                # easily until all triples are read
+                if o['type'] == 'blank node' and p not in [RDF_FIRST, RDF_REST]:
+                    object = node_map[o['value']]
+                    if 'listHeadFor' not in object:
+                        object['listHeadFor'] = value
+                    # can't be a list head if referenced more than once
+                    else:
+                        object['listHeadFor'] = None
 
-        # build @lists
-        for name, graph in graphs.items():
-            # find list head
-            list_map = graph['listMap']
-            for subject, entry in list_map.items():
-                # head found, build lists
-                if 'head' in entry and 'first' in entry:
-                    # replace bnode @id with @list
-                    value = entry['head']
-                    del value['@id']
-                    list_ = value['@list'] = [entry['first']]
-                    while 'rest' in entry:
-                        rest = entry['rest']
-                        entry = list_map[rest]
-                        if 'first' not in entry:
-                            raise JsonLdError(
-                                'Invalid RDF list entry.',
-                                'jsonld.RdfError', {'bnode': rest})
-                        list_.append(entry['first'])
+        # convert linked lists to @list arrays
+        for name, graph_object in graph_map.items():
+            for subject, node in sorted(graph_object.items()):
+                # if subject not in graph_object, it has been removed as it
+                # was part of an RDF list, continue
+                if subject not in graph_object:
+                    continue
+                # if value is not an object, it can't be a list head, continue
+                value = node.get('listHeadFor')
+                if not _is_object(value):
+                    continue
 
-        # build default graph in subject @id order
-        output = []
-        for id_, subject in sorted(default_graph['subjects'].items()):
-            # add subject to default graph
-            output.append(subject)
+                list = []
+                eliminated_nodes = set()
+                while subject != RDF_NIL and list != None:
+                    # ensure node is a valid list node; node must:
+                    # 1. Be a blank node.
+                    # 2. Have no keys other than:
+                    #   @id, listHeadFor, rdf:first, rdf:rest
+                    # 3. Have an array for rdf:first that has 1 item
+                    # 4. Have an array for rdf:rest that has 1 object w/@id.
+                    # 5. Not already be in a list (it is in eliminated_nodes)
+                    node = node or {}
+                    node_key_count = len(node.keys())
+                    rdf_first = node.get(RDF_FIRST)
+                    rdf_rest = node.get(RDF_REST)
+                    if not (_is_object(node) and
+                        node['@id'].startswith('_:') and
+                        (node_key_count == 3 or
+                         node_key_count == 4 and 'listHeadFor' in node) and
+                        _is_array(rdf_first) and len(rdf_first) == 1 and
+                        _is_array(rdf_rest) and len(rdf_rest) == 1 and
+                        _is_object(rdf_rest[0]) and '@id' in rdf_rest[0] and
+                        subject not in eliminated_nodes):
+                        list = None
+                        break
 
-            # output named graph in subject @id order
-            if id_ in graphs:
-                graph = subject['@graph'] = []
-                for id_, subject in sorted(graphs[id_]['subjects'].items()):
-                    graph.append(subject)
-        return output
+                    list.append(rdf_first[0])
+                    eliminated_nodes.add(node['@id'])
+                    subject = rdf_rest[0]['@id']
+                    node = graph_object.get(subject)
+
+                # bad list detected, skip it
+                if list is None:
+                    continue
+
+                del value['@id']
+                value['@list'] = list
+                for id in eliminated_nodes:
+                    del graph_object[id]
+
+        result = []
+        for subject, node in sorted(default_graph.items()):
+            if subject in graph_map:
+                graph = node['@graph'] = []
+                for s, n in sorted(graph_map[subject].items()):
+                    n.pop('listHeadFor', None)
+                    graph.append(n)
+            node.pop('listHeadFor', None)
+            result.append(node)
+
+        return result
 
     def _process_context(self, active_ctx, local_ctx, options):
         """
@@ -2373,10 +2382,6 @@ class JsonLdProcessor:
 
         :return: the JSON-LD object.
         """
-        # convert empty list
-        if o['type'] == 'IRI' and o['value'] == RDF_NIL:
-            return {'@list': []}
-
         # convert IRI/BlankNode object to JSON-LD
         if o['type'] == 'IRI' or o['type'] == 'blank node':
             return {'@id': o['value']}
