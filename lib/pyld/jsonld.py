@@ -269,6 +269,10 @@ def prepend_base(base, iri):
     if add_slash:
         path += '/'
 
+    # do not include '.' path for fragments
+    if path == '.' and rel.fragment != '':
+        path = ''
+
     return urlparse.urlunsplit((
         base.scheme,
         rel.netloc or base.netloc,
