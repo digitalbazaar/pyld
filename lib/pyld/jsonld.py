@@ -741,7 +741,7 @@ class JsonLdProcessor:
         # output RDF dataset
         namer = UniqueNamer('_:b')
         dataset = {}
-        for graph_name, graph in node_map.items():
+        for graph_name, graph in sorted(node_map.items()):
             if graph_name.startswith('_:'):
                 graph_name = namer.get_name(graph_name)
             dataset[graph_name] = self._graph_to_rdf(graph, namer)
@@ -1186,18 +1186,28 @@ class JsonLdProcessor:
 
         quad = ''
 
-        # subject is an IRI or bnode
+        # subject is an IRI
         if s['type'] == 'IRI':
             quad += '<' + s['value'] + '>'
-        # normalization mode
+        # bnode normalization mode
         elif bnode is not None:
             quad += '_:a' if s['value'] == bnode else '_:z'
-        # normal mode
+        # bnode normal mode
         else:
             quad += s['value']
+        quad += ' '
 
-        # property is always an IRI
-        quad += ' <' + p['value'] + '> '
+        # property is an IRI
+        if p['type'] == 'IRI':
+            quad += '<' + p['value'] + '>'
+        # FIXME: TBD what to do with bnode predicates during normalization
+        # bnode normalization mode
+        elif bnode is not None:
+            quad += '_:p'
+        # bnode normal mode
+        else:
+            quad += p['value']
+        quad += ' '
 
         # object is IRI, bnode, or literal
         if o['type'] == 'IRI':
@@ -2110,7 +2120,7 @@ class JsonLdProcessor:
             if '@base' in ctx:
                 base = ctx['@base']
                 if base is None:
-                    base = options['base']
+                    base = None
                 elif not _is_string(base):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; the value of "@base" in a '
@@ -2121,7 +2131,7 @@ class JsonLdProcessor:
                         'Invalid JSON-LD syntax; the value of "@base" in a '
                         '@context must be an absolute IRI or the empty string.',
                         'jsonld.SyntaxError', {'context': ctx})
-                rval['@base'] = base
+                rval['@base'] = base or ''
                 defined['@base'] = True
 
             # handle @vocab
@@ -2251,8 +2261,8 @@ class JsonLdProcessor:
         :return: the array of RDF triples for the given graph.
         """
         rval = []
-        for id_, node in graph.items():
-            for property, items in node.items():
+        for id_, node in sorted(graph.items()):
+            for property, items in sorted(node.items()):
                 if property == '@type':
                     property = RDF_TYPE
                 elif _is_keyword(property):
@@ -2269,7 +2279,13 @@ class JsonLdProcessor:
                         subject['value'] = id_
 
                     # RDF predicate
-                    predicate = {'type': 'IRI', 'value': property}
+                    predicate = {}
+                    if property.startswith('_:'):
+                        predicate['type'] = 'blank node'
+                        predicate['value'] = namer.get_name(property)
+                    else:
+                        predicate['type'] = 'IRI'
+                        predicate['value'] = property
 
                     # convert @list to triples
                     if _is_list(item):
@@ -2346,7 +2362,7 @@ class JsonLdProcessor:
             if _is_bool(value):
                 object['value'] = 'true' if value else 'false'
                 object['datatype'] = datatype or XSD_BOOLEAN
-            elif _is_double(value):
+            elif _is_double(value) or datatype == XSD_DOUBLE:
                 # canonical double representation
                 object['value'] = re.sub(r'(\d)0*E\+?0*(\d)', r'\1E\2',
                     ('%1.15E' % value))
