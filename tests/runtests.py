@@ -188,7 +188,9 @@ class TestRunner:
                 # JSON-LD options
                 options = {
                     'base': 'http://json-ld.org/test-suite/tests/' +
-                        test['input']}
+                        test['input'],
+                    'useNativeTypes': True
+                }
 
                 success = False
                 try:
