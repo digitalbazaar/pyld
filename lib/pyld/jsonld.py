@@ -231,32 +231,6 @@ def unregister_rdf_parser(content_type):
     if content_type in _rdf_parsers:
         del _rdf_parsers[content_type]
 
-# FIXME: remove me if unused
-def parse_url(url):
-    """
-    Parses a URL into its component parts.
-    
-    :param url: the URL to parse.
-    
-    :return: the parsed URL as an object.
-    """
-    parsed = urlparse.urlsplit(url)
-
-    rval = {
-        'href': url,
-        'scheme': parsed.scheme,
-        'host': parsed.netloc,
-        'path': parsed.path,
-        'fragment': parsed.fragment or '',
-        'auth': ((parsed.username or '') +
-            (':' + parsed.password if parsed.password else '')),
-        'authority': ((rval['auth'] + '@' if rval['auth'] else '') +
-            parsed.netloc),
-        'normalizedPath': posixpath.normpath(parsed.path)
-    }
-
-    return rval
-
 
 def prepend_base(base, iri):
     """
@@ -339,12 +313,6 @@ def remove_base(base, iri):
 
 # The default JSON-LD context loader.
 _default_context_loader = load_context
-
-# Shared in-memory caches.
-_cache = {
-    # FIXME: 'activeCtx': ActiveContextCache()
-    'activeCtx': None
-}
 
 # Registered global RDF parsers hashed by content-type.
 _rdf_parsers = {}
@@ -674,7 +642,7 @@ class JsonLdProcessor:
           [useRdfType] True to use rdf:type, False to use @type
             (default: False).
           [useNativeTypes] True to convert XSD types into native types
-            (boolean, integer, double), False not to (default: True).
+            (boolean, integer, double), False not to (default: False).
         
         :return: the JSON-LD output.
         """
@@ -683,7 +651,7 @@ class JsonLdProcessor:
         # set default options
         options = options or {}
         options.setdefault('useRdfType', False)
-        options.setdefault('useNativeTypes', True)
+        options.setdefault('useNativeTypes', False)
 
         if ('format' not in options) and _is_string(dataset):
             options['format'] = 'application/nquads'
@@ -739,11 +707,8 @@ class JsonLdProcessor:
         self._create_node_map(expanded, node_map, '@default', namer)
 
         # output RDF dataset
-        namer = UniqueNamer('_:b')
         dataset = {}
         for graph_name, graph in sorted(node_map.items()):
-            if graph_name.startswith('_:'):
-                graph_name = namer.get_name(graph_name)
             dataset[graph_name] = self._graph_to_rdf(graph, namer)
 
         # convert to output format
@@ -2080,27 +2045,23 @@ class JsonLdProcessor:
         """
         global _cache
 
-        rval = None
-
-        # get context from cache if available
-        if _cache.get('activeCtx') is not None:
-            rval = _cache['activeCtx'].get(active_ctx, local_ctx)
-            if rval:
-                return rval
-
-        # initialize the resulting context
-        rval = self._clone_active_context(active_ctx)
-
         # normalize local context to an array
         if _is_object(local_ctx) and _is_array(local_ctx.get('@context')):
             local_ctx = local_ctx['@context']
         ctxs = JsonLdProcessor.arrayify(local_ctx)
 
+        # no contexts in array, clone existing context
+        if len(ctxs) == 0:
+            return self._clone_active_context(active_ctx)
+
         # process each context in order
+        rval = active_ctx
+        must_clone = True
         for ctx in ctxs:
             # reset to initial context
             if ctx is None:
                 rval = self._get_initial_context(options)
+                must_clone = False
                 continue
 
             # dereference @context key if present
@@ -2112,6 +2073,19 @@ class JsonLdProcessor:
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @context must be an object.',
                     'jsonld.SyntaxError', {'context': ctx})
+
+            # get context from cache if available
+            if _cache.get('activeCtx') is not None:
+                cached = _cache['activeCtx'].get(active_ctx, ctx)
+                if cached:
+                    rval = cached
+                    must_clone = True
+                    continue
+
+            # clone context, if required, before updating
+            if must_clone:
+                rval = self._clone_active_context(active_ctx)
+                must_clone = False
 
             # define context mappings for keys in local context
             defined = {}
@@ -2171,8 +2145,9 @@ class JsonLdProcessor:
             for k, v in ctx.items():
                 self._create_term_definition(rval, ctx, k, defined)
 
-        if _cache.get('activeCtx') is not None:
-            _cache.get('activeCtx').set(active_ctx, local_ctx, rval)
+            # cache result
+            if _cache.get('activeCtx') is not None:
+                _cache.get('activeCtx').set(active_ctx, ctx, rval)
 
         return rval
 
@@ -2273,19 +2248,17 @@ class JsonLdProcessor:
                     subject = {}
                     if id_.startswith('_:'):
                         subject['type'] = 'blank node'
-                        subject['value'] = namer.get_name(id_)
                     else:
                         subject['type'] = 'IRI'
-                        subject['value'] = id_
+                    subject['value'] = id_
 
                     # RDF predicate
                     predicate = {}
                     if property.startswith('_:'):
                         predicate['type'] = 'blank node'
-                        predicate['value'] = namer.get_name(property)
                     else:
                         predicate['type'] = 'IRI'
-                        predicate['value'] = property
+                    predicate['value'] = property
 
                     # convert @list to triples
                     if _is_list(item):
@@ -2293,7 +2266,7 @@ class JsonLdProcessor:
                             item['@list'], namer, subject, predicate, rval)
                     # convert value or node object to triple
                     else:
-                        object = self._object_to_rdf(item, namer)
+                        object = self._object_to_rdf(item)
                         rval.append({
                             'subject': subject,
                             'predicate': predicate,
@@ -2326,7 +2299,7 @@ class JsonLdProcessor:
 
             subject = blank_node
             predicate = first
-            object = self._object_to_rdf(item, namer)
+            object = self._object_to_rdf(item)
             triples.append({
                 'subject': subject,
                 'predicate': predicate,
@@ -2341,13 +2314,12 @@ class JsonLdProcessor:
             'object': nil
         })
 
-    def _object_to_rdf(self, item, namer):
+    def _object_to_rdf(self, item):
         """
         Converts a JSON-LD value object to an RDF literal or a JSON-LD string
         or node object to an RDF resource.
         
         :param item: the JSON-LD value or node object.
-        :param namer: the UniqueNamer for assigning bnode names.
         
         :return: the RDF literal or RDF resource.
         """
@@ -2382,10 +2354,9 @@ class JsonLdProcessor:
             id_ = item['@id'] if _is_object(item) else item
             if id_.startswith('_:'):
                 object['type'] = 'blank node'
-                object['value'] = namer.get_name(id_)
             else:
                 object['type'] = 'IRI'
-                object['value'] = id_
+            object['value'] = id_
 
         return object
 
@@ -2428,7 +2399,7 @@ class JsonLdProcessor:
                 if type_ not in [XSD_BOOLEAN, XSD_INTEGER, XSD_DOUBLE,
                     XSD_STRING]:
                     rval['@type'] = type_
-            else:
+            elif type_ != XSD_STRING:
                 rval['@type'] = type_
         return rval
 
@@ -2470,6 +2441,12 @@ class JsonLdProcessor:
             return
 
         # Note: At this point, input must be a subject.
+
+        # spec requires @type to be named first, so assign names early
+        if '@type' in input_:
+            for type_ in input_['@type']:
+                if type_.startswith('_:'):
+                    namer.get_name(type_)
 
         # get name for subject
         if name is None:
@@ -4286,3 +4263,9 @@ class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
 _trust_root_certificates = None
 if os.path.exists('/etc/ssl/certs/ca-certificates.crt'):
     _trust_root_certificates = '/etc/ssl/certs/ca-certificates.crt'
+
+
+# Shared in-memory caches.
+_cache = {
+    'activeCtx': ActiveContextCache()
+}
