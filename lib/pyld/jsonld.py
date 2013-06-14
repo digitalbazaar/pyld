@@ -4265,8 +4265,17 @@ class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
 
 # the path to the system's default trusted root SSL certificates
 _trust_root_certificates = None
-if os.path.exists('/etc/ssl/certs/ca-certificates.crt'):
-    _trust_root_certificates = '/etc/ssl/certs/ca-certificates.crt'
+_possible_trust_root_certificates = [
+    '/etc/ssl/certs/ca-certificates.crt',
+    '~/Library/OpenSSL/certs/ca-certificates.crt',
+    '/System/Library/OpenSSL/certs/ca-certificates.crt',
+]
+for path in _possible_trust_root_certificates:
+    path = os.path.expanduser(path)
+    if os.path.exists(path):
+        _trust_root_certificates = path
+        break
+# FIXME: warn if not found?  MacOS X uses keychain vs file.
 
 
 # Shared in-memory caches.
