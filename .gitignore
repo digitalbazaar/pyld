@@ -1,4 +1,8 @@
-*~
-*.sw[op]
 *.py[co]
+*.sw[op]
+*~
+.coverage
+MANIFEST
+cover
+dist
 docs/_build
