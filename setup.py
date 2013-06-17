@@ -16,7 +16,7 @@ with open('README.rst') as file:
 
 setup(
     name = 'PyLD',
-    version = '0.1.0',
+    version = '0.1.0-dev',
     description = 'Python implementation of the JSON-LD API',
     long_description=long_description,
     author = 'Digital Bazaar',
