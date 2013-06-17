@@ -18,9 +18,9 @@ API Reference
 .. module:: pyld.jsonld
 .. autofunction:: compact
 .. autofunction:: expand
+.. autofunction:: flatten
 .. autofunction:: frame
 .. autofunction:: normalize
-.. autofunction:: triples
 
 Indices and tables
 ------------------
