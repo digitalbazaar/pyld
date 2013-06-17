@@ -1,25 +1,39 @@
 # -*- coding: utf-8 -*-
 """
-pyld
+PyLD
 ====
-`pyld`_ is a Python `JSON-LD` library.
 
-.. _pyld: http://github.com/digitalbazaar/pyld
+PyLD_ is a Python JSON-LD_ library.
+
+.. _PyLD: http://github.com/digitalbazaar/pyld
 .. _JSON-LD: http://json-ld.org/
 """
-from setuptools import setup
+
+from distutils.core import setup
+
+with open('README.rst') as file:
+    long_description = file.read()
 
 setup(
-    name = 'pyld',
-    version = '0.0.1',
-    license = 'BSD 3-Clause license',
-    url = 'http://github.com/digitalbazaar/pyld',
+    name = 'PyLD',
+    version = '0.1.0',
+    description = 'Python implementation of the JSON-LD API',
+    long_description=long_description,
     author = 'Digital Bazaar',
     author_email = 'support@digitalbazaar.com',
-    platforms = 'any',
-    py_modules = [
-        'pyld',
-    ],
+    url = 'http://github.com/digitalbazaar/pyld',
+    packages = ['pyld'],
+    package_dir = {'': 'lib'},
+    license = 'BSD 3-Clause license',
     classifiers = [
-    ]
+        'Development Status :: 4 - Beta',
+        'Environment :: Console',
+        'Environment :: Web Environment',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: BSD License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Topic :: Internet',
+        'Topic :: Software Development :: Libraries',
+    ],
 )
