@@ -1322,11 +1322,13 @@ class JsonLdProcessor:
                     for compacted_property, value in compacted_value.items():
                         mapping = active_ctx['mappings'].get(compacted_property)
                         if mapping and mapping['reverse']:
-                            if (compacted_property not in rval and
-                                not options['compactArrays']):
-                                rval[compacted_property] = []
+                            container = JsonLdProcessor.get_context_value(
+                                active_ctx, compacted_property, '@container')
+                            use_array = (container == '@set' or
+                                not options['compactArrays'])
                             JsonLdProcessor.add_value(
-                                rval, compacted_property, value)
+                                rval, compacted_property, value,
+                                {'propertyIsArray': use_array})
                             del compacted_value[compacted_property]
 
                     if len(compacted_value.keys()) > 0:
@@ -3398,10 +3400,10 @@ class JsonLdProcessor:
         mapping = active_ctx['mappings'][term] = {'reverse': False}
 
         if '@reverse' in value:
-            if '@id' in value or '@type' in value or '@language' in value:
+            if '@id' in value:
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; an @reverse term definition must '
-                    'not contain @id, @type, or @language.',
+                    'not contain @id.',
                     'jsonld.SyntaxError', {'context': local_ctx})
             reverse = value['@reverse']
             if not _is_string(reverse):
@@ -3410,11 +3412,10 @@ class JsonLdProcessor:
                     'a string.',
                     'jsonld.SyntaxError', {'context': local_ctx})
 
-            # expand and add @id mapping, set @type to @id
+            # expand and add @id mapping
             mapping['@id'] = self._expand_iri(
                 active_ctx, reverse, vocab=True, base=False,
                 local_ctx=local_ctx, defined=defined)
-            mapping['@type'] = '@id'
             mapping['reverse'] = True
         elif '@id' in value:
             id_ = value['@id']
@@ -3480,10 +3481,11 @@ class JsonLdProcessor:
                     'must be one of the following: @list, @set, @index, or '
                     '@language.',
                     'jsonld.SyntaxError', {'context': local_ctx})
-            if mapping['reverse'] and container != '@index':
+            if (mapping['reverse'] and container != '@index' and
+                container != '@set' and container is not None):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @context @container value for '
-                    'an @reverse type definition must be @index.',
+                    'an @reverse type definition must be @index or @set.',
                     'jsonld.SyntaxError', {'context': local_ctx})
 
             # add @container to mapping
