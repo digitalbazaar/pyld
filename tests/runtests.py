@@ -237,7 +237,7 @@ class TestRunner:
                     'earl:assertedBy': EARL['doap:developer']['@id'],
                     'earl:mode': 'earl:automatic',
                     'earl:test': ('http://json-ld.org/test-suite/tests/' +
-                        os.path.basename(manifest_file) + test['@id']),
+                        os.path.basename(manifest_file) + test.get('@id', '')),
                     'earl:result': {
                         '@type': 'earl:TestResult',
                         'dc:date': datetime.datetime.utcnow().isoformat(),

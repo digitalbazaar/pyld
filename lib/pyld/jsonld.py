@@ -17,7 +17,7 @@ __license__ = 'New BSD license'
 __version__ = '0.1.0'
 
 __all__ = ['compact', 'expand', 'flatten', 'frame', 'from_rdf', 'to_rdf',
-    'normalize', 'set_context_loader', 'load_context',
+    'normalize', 'set_document_loader', 'load_document',
     'register_rdf_parser', 'unregister_rdf_parser',
     'JsonLdProcessor', 'ContextCache']
 
@@ -71,7 +71,7 @@ def compact(input_, ctx, options=None):
     """
     Performs JSON-LD compaction.
 
-    :param input_: input the JSON-LD input to compact.
+    :param input_: the JSON-LD input to compact.
     :param ctx: the JSON-LD context to compact with.
     :param [options]: the options to use.
       [base] the base IRI to use.
@@ -79,7 +79,9 @@ def compact(input_, ctx, options=None):
       [compactArrays] True to compact arrays to single values when
         appropriate, False not to (default: True).
       [graph] True to always output a top-level graph (default: False).
-      [loadContext(url)] the context loader (default: _default_context_loader).
+      [expandContext] a context to expand with.
+      [loadDocument(url)] the document loader
+        (default: _default_document_loader).
 
     :return: the compacted JSON-LD output.
     """
@@ -90,10 +92,12 @@ def expand(input_, options=None):
     """
     Performs JSON-LD expansion.
 
-    :param input_: the JSON-LD object to expand.
+    :param input_: the JSON-LD input to expand.
     :param [options]: the options to use.
       [base] the base IRI to use.
-      [loadContext(url)] the context loader (default: _default_context_loader).
+      [expandContext] a context to expand with.
+      [loadDocument(url)] the document loader
+        (default: _default_document_loader).
 
     :return: the expanded JSON-LD output.
     """
@@ -104,11 +108,13 @@ def flatten(input_, ctx=None, options=None):
     """
     Performs JSON-LD flattening.
 
-    :param input_: the JSON-LD object to flatten.
+    :param input_: the JSON-LD input to flatten.
     :param ctx: the JSON-LD context to compact with (default: None).
     :param [options]: the options to use.
       [base] the base IRI to use.
-      [loadContext(url)] the context loader (default: _default_context_loader).
+      [expandContext] a context to expand with.
+      [loadDocument(url)] the document loader
+        (default: _default_document_loader).
 
     :return: the flattened JSON-LD output.
     """
@@ -119,14 +125,16 @@ def frame(input_, frame, options=None):
     """
     Performs JSON-LD framing.
 
-    :param input_: the JSON-LD object to frame.
+    :param input_: the JSON-LD input to frame.
     :param frame: the JSON-LD frame to use.
     :param [options]: the options to use.
       [base] the base IRI to use.
+      [expandContext] a context to expand with.
       [embed] default @embed flag (default: True).
       [explicit] default @explicit flag (default: False).
       [omitDefault] default @omitDefault flag (default: False).
-      [loadContext(url)] the context loader (default: _default_context_loader).
+      [loadDocument(url)] the document loader
+        (default: _default_document_loader).
 
     :return: the framed JSON-LD output.
     """
@@ -137,12 +145,13 @@ def normalize(input_, options=None):
     """
     Performs JSON-LD normalization.
 
-    :param input_: the JSON-LD object to normalize.
+    :param input_: the JSON-LD input to normalize.
     :param [options]: the options to use.
       [base] the base IRI to use.
       [format] the format if output is a string:
         'application/nquads' for N-Quads (default: 'application/nquads')
-      [loadContext(url)] the context loader (default: _default_context_loader).
+      [loadDocument(url)] the document loader
+        (default: _default_document_loader).
 
     :return: the normalized JSON-LD output.
     """
@@ -171,40 +180,45 @@ def to_rdf(input_, options=None):
     """
     Outputs the RDF dataset found in the given JSON-LD object.
 
-    :param input_: the JSON-LD object.
+    :param input_: the JSON-LD input.
     :param [options]: the options to use.
       [base] the base IRI to use.
       [format] the format to use to output a string:
         'application/nquads' for N-Quads (default: 'application/nquads').
-      [loadContext(url)] the context loader (default: _default_context_loader).
+      [loadDocument(url)] the document loader
+        (default: _default_document_loader).
 
     :return: the resulting RDF dataset (or a serialization of it).
     """
     return JsonLdProcessor().to_rdf(input_, options)
 
 
-def set_context_loader(load_context):
+def set_document_loader(load_document):
     """
-    Sets the default JSON-LD context loader.
+    Sets the default JSON-LD document loader.
 
-    :param load_context(url): the context loader to use.
+    :param load_document(url): the document loader to use.
     """
-    _default_context_loader = load_context
+    _default_document_loader = load_document
 
 
-def load_context(url):
+def load_document(url):
     """
     Retrieves JSON-LD at the given URL.
 
     :param url: the URL to retrieve.
 
-    :return: the JSON-LD.
+    :return: the RemoteDocument.
     """
     https_handler = VerifiedHTTPSHandler()
     url_opener = urllib2.build_opener(https_handler)
     with closing(url_opener.open(url)) as handle:
-        ctx = handle.read()
-    return ctx
+        doc = {
+            'contextUrl': None,
+            'documentUrl': url,
+            'document': handle.read()
+        }
+    return doc
 
 
 def register_rdf_parser(content_type, parser):
@@ -315,8 +329,8 @@ def remove_base(base, iri):
         '', '', path, rel.query, rel.fragment)) or './'
 
 
-# The default JSON-LD context loader.
-_default_context_loader = load_context
+# The default JSON-LD document loader.
+_default_document_loader = load_document
 
 # Registered global RDF parsers hashed by content-type.
 _rdf_parsers = {}
@@ -346,11 +360,12 @@ class JsonLdProcessor:
           [compactArrays] True to compact arrays to single values when
             appropriate, False not to (default: True).
           [graph] True to always output a top-level graph (default: False).
+          [expandContext] a context to expand with.
           [skipExpansion] True to assume the input is expanded and skip
             expansion, False not to, (default: False).
           [activeCtx] True to also return the active context used.
-          [loadContext(url)] the context loader
-            (default: _default_context_loader).
+          [loadDocument(url)] the document loader
+            (default: _default_document_loader).
 
         :return: the compacted JSON-LD output.
         """
@@ -365,13 +380,13 @@ class JsonLdProcessor:
 
         # set default options
         options = options or {}
-        options.setdefault('base', '')
+        options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('strict', True)
         options.setdefault('compactArrays', True)
         options.setdefault('graph', False)
         options.setdefault('skipExpansion', False)
         options.setdefault('activeCtx', False)
-        options.setdefault('loadContext', _default_context_loader)
+        options.setdefault('loadDocument', _default_document_loader)
 
         if options['skipExpansion']:
             expanded = input_
@@ -453,34 +468,60 @@ class JsonLdProcessor:
         """
         Performs JSON-LD expansion.
 
-        :param input_: the JSON-LD object to expand.
+        :param input_: the JSON-LD input to expand.
         :param options: the options to use.
           [base] the base IRI to use.
+          [expandContext] a context to expand with.
           [keepFreeFloatingNodes] True to keep free-floating nodes,
             False not to (default: False).
-          [loadContext(url)] the context loader
-            (default: _default_context_loader).
+          [loadDocument(url)] the document loader
+            (default: _default_document_loader).
 
         :return: the expanded JSON-LD output.
         """
         # set default options
         options = options or {}
-        options.setdefault('base', '')
+        options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('keepFreeFloatingNodes', False)
-        options.setdefault('loadContext', _default_context_loader)
+        options.setdefault('loadDocument', _default_document_loader)
 
-        # retrieve all @context URLs in the input
-        input_ = copy.deepcopy(input_)
+        # if input is a string, attempt to dereference remote document
+        if _is_string(input_):
+            remote_doc = options['loadDocument'](input_)
+        else:
+            remote_doc = {
+                'contextUrl': None,
+                'documentUrl': None,
+                'document': input_
+            }
+
+        # build meta-object and retrieve all @context urls
+        input_ = {
+            'document': copy.deepcopy(input_),
+            'remoteContext': {'@context': remote_doc['contextUrl']}
+        }
+
         try:
             self._retrieve_context_urls(
-                input_, {}, options['loadContext'], options['base'])
+                input_, {}, options['loadDocument'], options['base'])
         except Exception as cause:
             raise JsonLdError('Could not perform JSON-LD expansion.',
                 'jsonld.ExpandError', None, cause)
 
-        # do expansion
         active_ctx = self._get_initial_context(options)
-        expanded = self._expand(active_ctx, None, input_, options, False)
+        document = input_['document']
+        remote_context = input_['remoteContext']['@context']
+
+        # process optional expandContext
+        if 'expandContext' in options:
+            self.process_context(active_ctx, options['expandContext'], options)
+
+        # process remote context from HTTP Link Header
+        if remote_context is not None:
+            self.process_context(active_ctx, remote_context, options)
+
+        # do expansion
+        expanded = self._expand(active_ctx, None, document, options, False)
 
         # optimize away @graph with no other properties
         if (_is_object(expanded) and '@graph' in expanded and
@@ -496,18 +537,19 @@ class JsonLdProcessor:
         """
         Performs JSON-LD flattening.
     
-        :param input_: the JSON-LD object to flatten.
+        :param input_: the JSON-LD input to flatten.
         :param ctx: the JSON-LD context to compact with (default: None).
         :param options: the options to use.
           [base] the base IRI to use.
-          [loadContext(url)] the context loader
-            (default: _default_context_loader).
+          [expandContext] a context to expand with.
+          [loadDocument(url)] the document loader
+            (default: _default_document_loader).
     
         :return: the flattened JSON-LD output.
         """
         options = options or {}
-        options.setdefault('base', '')
-        options.setdefault('loadContext', _default_context_loader)
+        options.setdefault('base', input_ if _is_string(input_) else '')
+        options.setdefault('loadDocument', _default_document_loader)
 
         try:
             # expand input
@@ -542,25 +584,45 @@ class JsonLdProcessor:
         :param frame: the JSON-LD frame to use.
         :param options: the options to use.
           [base] the base IRI to use.
+          [expandContext] a context to expand with.
           [embed] default @embed flag (default: True).
           [explicit] default @explicit flag (default: False).
           [omitDefault] default @omitDefault flag (default: False).
-          [loadContext(url)] the context loader
-            (default: _default_context_loader).
+          [loadDocument(url)] the document loader
+            (default: _default_document_loader).
 
         :return: the framed JSON-LD output.
         """
         # set default options
         options = options or {}
-        options.setdefault('base', '')
+        options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('compactArrays', True)
         options.setdefault('embed', True)
         options.setdefault('explicit', False)
         options.setdefault('omitDefault', False)
-        options.setdefault('loadContext', _default_context_loader)
+        options.setdefault('loadDocument', _default_document_loader)
+
+        # if frame is a string, attempt to dereference remote document
+        if _is_string(frame):
+            remote_frame = options['loadDocument'](frame)
+        else:
+            remote_frame = {
+                'contextUrl': None,
+                'documentUrl': None,
+                'document': frame
+            }
 
         # preserve frame context
-        ctx = frame.get('@context', {})
+        frame = remote_frame['document']
+        if frame is not None:
+            ctx = frame.get('@context', {})
+            if remote_frame['contextUrl'] is not None:
+                if ctx is not None:
+                    ctx = remote_frame['contextUrl']
+                else:
+                    ctx = JsonLdProcessor.arrayify(ctx)
+                    ctx.append(remote_frame['contextUrl'])
+                frame['@context'] = ctx
 
         try:
             # expand input
@@ -605,20 +667,20 @@ class JsonLdProcessor:
         """
         Performs RDF normalization on the given JSON-LD input.
 
-        :param input_: the JSON-LD object to normalize.
+        :param input_: the JSON-LD input to normalize.
         :param options: the options to use.
           [base] the base IRI to use.
           [format] the format if output is a string:
             'application/nquads' for N-Quads.
-          [loadContext(url)] the context loader
-            (default: _default_context_loader).
+          [loadDocument(url)] the document loader
+            (default: _default_document_loader).
 
         :return: the normalized output.
         """
         # set default options
         options = options or {}
-        options.setdefault('base', '')
-        options.setdefault('loadContext', _default_context_loader)
+        options.setdefault('base', input_ if _is_string(input_) else '')
+        options.setdefault('loadDocument', _default_document_loader)
 
         try:
             # convert to RDF dataset then do normalization
@@ -683,20 +745,20 @@ class JsonLdProcessor:
         """
         Outputs the RDF dataset found in the given JSON-LD object.
 
-        :param input_: the JSON-LD object.
+        :param input_: the JSON-LD input.
         :param options: the options to use.
           [base] the base IRI to use.
           [format] the format if input is a string:
             'application/nquads' for N-Quads (default: 'application/nquads').
-          [loadContext(url)] the context loader
-            (default: _default_context_loader).
+          [loadDocument(url)] the document loader
+            (default: _default_document_loader).
 
         :return: the resulting RDF dataset (or a serialization of it).
         """
         # set default options
         options = options or {}
-        options.setdefault('base', '')
-        options.setdefault('loadContext', _default_context_loader)
+        options.setdefault('base', input_ if _is_string(input_) else '')
+        options.setdefault('loadDocument', _default_document_loader)
 
         try:
             # expand input
@@ -731,8 +793,8 @@ class JsonLdProcessor:
         :param active_ctx: the current active context.
         :param local_ctx: the local context to process.
         :param options: the options to use.
-          [loadContext(url)] the context loader
-            (default: _default_context_loader).
+          [loadDocument(url)] the document loader
+            (default: _default_document_loader).
 
         :return: the new active context.
         """
@@ -743,7 +805,7 @@ class JsonLdProcessor:
         # set default options
         options = options or {}
         options.setdefault('base', '')
-        options.setdefault('loadContext', _default_context_loader)
+        options.setdefault('loadDocument', _default_document_loader)
 
         # retrieve URLs in local_ctx
         local_ctx = copy.deepcopy(local_ctx)
@@ -752,7 +814,7 @@ class JsonLdProcessor:
             local_ctx = {'@context': local_ctx}
         try:
             self._retrieve_context_urls(
-                local_ctx, {}, options['loadContext'], options['base'])
+                local_ctx, {}, options['loadDocument'], options['base'])
         except Exception as cause:
             raise JsonLdError(
                 'Could not process JSON-LD context.',
@@ -3637,15 +3699,15 @@ class JsonLdProcessor:
                     elif v not in urls:
                         urls[v] = False
 
-    def _retrieve_context_urls(self, input_, cycles, load_context, base=''):
+    def _retrieve_context_urls(self, input_, cycles, load_document, base=''):
         """
-        Retrieves external @context URLs using the given context loader. Each
+        Retrieves external @context URLs using the given document loader. Each
         instance of @context in the input that refers to a URL will be
         replaced with the JSON @context found at that URL.
 
         :param input_: the JSON-LD input with possible contexts.
         :param cycles: an object for tracking context cycles.
-        :param load_context(url): the context loader.
+        :param load_document(url): the document loader.
         :param base: the base URL to resolve relative URLs against.
 
         :return: the result.
@@ -3687,7 +3749,8 @@ class JsonLdProcessor:
             _cycles[url] = True
 
             # retrieve URL
-            ctx = load_context(url)
+            remote_doc = load_document(url)
+            ctx = remote_doc['document'];
 
             # parse string context as JSON
             if _is_string(ctx):
@@ -3708,9 +3771,16 @@ class JsonLdProcessor:
             # use empty context if no @context key is present
             if '@context' not in ctx:
                 ctx = {'@context': {}}
+            else:
+                ctx = {'@context': ctx['@context']}
+
+            # append context URL to context if given
+            if remote_doc['contextUrl'] is not None:
+                ctx['@context'] = JsonLdProcessor.arrayify(ctx['@context'])
+                ctx['@context'].append(remote_doc['contextUrl'])
 
             # recurse
-            self._retrieve_context_urls(ctx, cycles, load_context, url)
+            self._retrieve_context_urls(ctx, cycles, load_document, url)
             urls[url] = ctx['@context']
 
         # replace all URLs in the input
