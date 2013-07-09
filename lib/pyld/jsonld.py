@@ -25,8 +25,8 @@ import copy, hashlib, json, os, re, string, sys, time, traceback
 import urllib2, urlparse, posixpath, socket, ssl
 from contextlib import closing
 from collections import deque
-from functools import cmp_to_key
 from numbers import Integral, Real
+from operator import itemgetter
 from httplib import HTTPSConnection
 
 # XSD constants
@@ -1948,8 +1948,8 @@ class JsonLdProcessor:
                     bnode, bnodes, namer, path_namer))
 
             # name bnodes in hash order
-            cmp_hashes = cmp_to_key(lambda x, y: cmp(x['hash'], y['hash']))
-            for result in sorted(results, key=cmp_hashes):
+            key_hashes = itemgetter('hash')
+            for result in sorted(results, key=key_hashes):
                 # name all bnodes in path namer in key-entry order
                 for bnode in result['pathNamer'].order:
                     namer.get_name(bnode)
