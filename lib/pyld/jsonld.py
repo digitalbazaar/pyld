@@ -3823,7 +3823,7 @@ class JsonLdProcessor:
         # shortest and then lexicographically least
         for term, mapping in sorted(
             active_ctx['mappings'].items(),
-            key=cmp_to_key(_compare_shortest_least)):
+            key=_compare_shortest_least):
             if mapping is None:
                 continue
 
@@ -4007,19 +4007,15 @@ def permutations(elements):
                 left[elements[i]] = not left[elements[i]]
 
 
-def _compare_shortest_least(a, b):
+def _compare_shortest_least(s):
     """
-    Compares two strings first based on length and then lexicographically.
+    Key to compare strings first based on length and then lexicographically.
 
-    :param a: the first string.
-    :param b: the second string.
+    :param s: a string
 
-    :return: -1 if a < b, 1 if a > b, 0 if a == b.
+    :return: (len(s), s)
     """
-    rval = cmp(len(a), len(b))
-    if rval == 0:
-        rval = cmp(a, b)
-    return rval
+    return (len(s), s)
 
 
 def _is_keyword(v):
