@@ -1259,7 +1259,8 @@ class JsonLdProcessor:
                 .replace('\"', '\\"'))
             quad += '"' + escaped + '"'
             if o['datatype'] == RDF_LANGSTRING:
-                quad += '@' + o['language']
+                if o['language']:
+                    quad += '@' + o['language']
             elif o['datatype'] != XSD_STRING:
                 quad += '^^<' + o['datatype'] + '>'
 
