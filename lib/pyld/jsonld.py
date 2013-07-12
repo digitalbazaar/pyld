@@ -482,6 +482,9 @@ def remove_base(base, iri):
 
     path = posixpath.relpath(rel.path, base.path) if rel.path else ''
     path = posixpath.normpath(path)
+    # workaround a relpath bug in Python 2.6 (http://bugs.python.org/issue5117)
+    if base.path == "/" and path.startswith("../"):
+        path = path[3:]
     if path == '.' and not rel.path.endswith('/') and not (
             rel.query or rel.fragment):
         path = posixpath.basename(rel.path)
