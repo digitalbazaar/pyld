@@ -3311,7 +3311,8 @@ class JsonLdProcessor:
             # select curie if it is shorter or the same length but
             # lexicographically less than the current choice
             if (is_usable_curie and (candidate is None or
-                _compare_shortest_least(curie, candidate) < 0)):
+                (_compare_shortest_least(curie) <
+                 _compare_shortest_least(candidate)))):
                 candidate = curie
 
         # return curie candidate
