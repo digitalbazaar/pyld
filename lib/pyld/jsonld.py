@@ -75,7 +75,6 @@ def compact(input_, ctx, options=None):
     :param ctx: the JSON-LD context to compact with.
     :param [options]: the options to use.
       [base] the base IRI to use.
-      [strict] use strict mode (default: True).
       [compactArrays] True to compact arrays to single values when
         appropriate, False not to (default: True).
       [graph] True to always output a top-level graph (default: False).
@@ -356,7 +355,6 @@ class JsonLdProcessor:
         :param ctx: the context to compact with.
         :param options: the options to use.
           [base] the base IRI to use.
-          [strict] use strict mode (default: True).
           [compactArrays] True to compact arrays to single values when
             appropriate, False not to (default: True).
           [graph] True to always output a top-level graph (default: False).
@@ -381,7 +379,6 @@ class JsonLdProcessor:
         # set default options
         options = options or {}
         options.setdefault('base', input_ if _is_string(input_) else '')
-        options.setdefault('strict', True)
         options.setdefault('compactArrays', True)
         options.setdefault('graph', False)
         options.setdefault('skipExpansion', False)
