@@ -19,7 +19,7 @@ __version__ = '0.2.0'
 __all__ = ['compact', 'expand', 'flatten', 'frame', 'from_rdf', 'to_rdf',
     'normalize', 'set_document_loader', 'load_document',
     'register_rdf_parser', 'unregister_rdf_parser',
-    'JsonLdProcessor', 'ContextCache']
+    'JsonLdProcessor', 'ActiveContextCache']
 
 import copy, hashlib, json, os, re, string, sys, time, traceback
 import urllib2, urlparse, posixpath, socket, ssl
@@ -4250,33 +4250,6 @@ def _is_absolute_iri(v):
     """
     return ':' in v
 
-
-class ContextCache:
-    """
-    A simple JSON-LD context cache.
-    """
-
-    def __init__(self, size=50):
-        self.order = deque()
-        self.cache = {}
-        self.size = size
-        self.expires = 30 * 60 * 1000
-
-    def get(self, url):
-        if url in self.cache:
-            entry = self.cache[url]
-            if entry['expires'] >= time.time():
-                return entry['ctx']
-            del self.cache[url]
-            self.order.remove(url)
-        return None
-
-    def set(self, url, ctx):
-        if(len(self.order) == self.size):
-            del self.cache[self.order.popleft()]
-        self.order.append(url)
-        self.cache[url] = {
-            'ctx': ctx, 'expires': (time.time() + self.expires)}
 
 class ActiveContextCache:
     """
