@@ -2757,7 +2757,8 @@ class JsonLdProcessor:
 
     def _validate_frame(self, state, frame):
         """
-        Validates a JSON-LD frame, throwing an exception if the frame is invalid.
+        Validates a JSON-LD frame, throwing an exception if the frame is
+        invalid.
 
         :param state: the current frame state.
         :param frame: the frame to validate.
@@ -2918,7 +2919,8 @@ class JsonLdProcessor:
 
     def _remove_preserve(self, ctx, input_, options):
         """
-        Removes the @preserve keywords as the last step of the framing algorithm.
+        Removes the @preserve keywords as the last step of the framing
+        algorithm.
 
         :param ctx: the active context used to compact the input.
         :param input_: the framed, compacted output.
@@ -2996,8 +2998,8 @@ class JsonLdProcessor:
         """
         Produces a hash for the paths of adjacent bnodes for a bnode,
         incorporating all information about its subgraph of bnodes. This
-        method will recursively pick adjacent bnode permutations that produce the
-        lexicographically-least 'path' serializations.
+        method will recursively pick adjacent bnode permutations that produce
+        the lexicographically-least 'path' serializations.
 
         :param id_: the ID of the bnode to hash paths for.
         :param bnodes: the map of bnode quads.
