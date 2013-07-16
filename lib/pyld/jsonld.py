@@ -497,6 +497,12 @@ class JsonLdProcessor:
             'document': copy.deepcopy(input_),
             'remoteContext': {'@context': remote_doc['contextUrl']}
         }
+        if 'expandContext' in options:
+            expandContext = options['expandContext']
+            if _is_object(expandContext) and '@context' in expandContext:
+                input_['expandContext'] = copy.deepcopy(expandContext)
+            else:
+                input_['expandContext'] = {'@context': expandContext}
 
         try:
             self._retrieve_context_urls(
@@ -510,12 +516,14 @@ class JsonLdProcessor:
         remote_context = input_['remoteContext']['@context']
 
         # process optional expandContext
-        if 'expandContext' in options:
-            self.process_context(active_ctx, options['expandContext'], options)
+        if 'expandContext' in input_:
+            active_ctx = self.process_context(
+                active_ctx, input_['expandContext']['@context'], options)
 
         # process remote context from HTTP Link Header
         if remote_context is not None:
-            self.process_context(active_ctx, remote_context, options)
+            active_ctx = self.process_context(
+                active_ctx, remote_context, options)
 
         # do expansion
         expanded = self._expand(active_ctx, None, document, options, False)
