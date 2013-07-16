@@ -498,9 +498,9 @@ class JsonLdProcessor:
             'remoteContext': {'@context': remote_doc['contextUrl']}
         }
         if 'expandContext' in options:
-            expand_context = options['expandContext']
+            expand_context = copy.deepcopy(options['expandContext'])
             if _is_object(expand_context) and '@context' in expand_context:
-                input_['expandContext'] = copy.deepcopy(expand_context)
+                input_['expandContext'] = expand_context
             else:
                 input_['expandContext'] = {'@context': expand_context}
 
