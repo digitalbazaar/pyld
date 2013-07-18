@@ -148,7 +148,7 @@ def normalize(input_, options=None):
     :param [options]: the options to use.
       [base] the base IRI to use.
       [format] the format if output is a string:
-        'application/nquads' for N-Quads (default: 'application/nquads')
+        'application/nquads' for N-Quads.
       [loadDocument(url)] the document loader
         (default: _default_document_loader).
 
@@ -183,7 +183,7 @@ def to_rdf(input_, options=None):
     :param [options]: the options to use.
       [base] the base IRI to use.
       [format] the format to use to output a string:
-        'application/nquads' for N-Quads (default: 'application/nquads').
+        'application/nquads' for N-Quads.
       [loadDocument(url)] the document loader
         (default: _default_document_loader).
 
@@ -754,7 +754,7 @@ class JsonLdProcessor:
         :param options: the options to use.
           [base] the base IRI to use.
           [format] the format if input is a string:
-            'application/nquads' for N-Quads (default: 'application/nquads').
+            'application/nquads' for N-Quads.
           [loadDocument(url)] the document loader
             (default: _default_document_loader).
 
