@@ -14,7 +14,7 @@ JSON-LD.
 
 __copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 
 __all__ = ['compact', 'expand', 'flatten', 'frame', 'from_rdf', 'to_rdf',
     'normalize', 'set_document_loader', 'load_document',
@@ -383,7 +383,7 @@ class JsonLdProcessor:
         options.setdefault('graph', False)
         options.setdefault('skipExpansion', False)
         options.setdefault('activeCtx', False)
-        options.setdefault('loadDocument', _default_document_loader)
+        options.setdefault('documentLoader', _default_document_loader)
 
         if options['skipExpansion']:
             expanded = input_
@@ -480,11 +480,11 @@ class JsonLdProcessor:
         options = options or {}
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('keepFreeFloatingNodes', False)
-        options.setdefault('loadDocument', _default_document_loader)
+        options.setdefault('documentLoader', _default_document_loader)
 
         # if input is a string, attempt to dereference remote document
         if _is_string(input_):
-            remote_doc = options['loadDocument'](input_)
+            remote_doc = options['documentLoader'](input_)
         else:
             remote_doc = {
                 'contextUrl': None,
@@ -506,7 +506,7 @@ class JsonLdProcessor:
 
         try:
             self._retrieve_context_urls(
-                input_, {}, options['loadDocument'], options['base'])
+                input_, {}, options['documentLoader'], options['base'])
         except Exception as cause:
             raise JsonLdError('Could not perform JSON-LD expansion.',
                 'jsonld.ExpandError', None, cause)
@@ -554,7 +554,7 @@ class JsonLdProcessor:
         """
         options = options or {}
         options.setdefault('base', input_ if _is_string(input_) else '')
-        options.setdefault('loadDocument', _default_document_loader)
+        options.setdefault('documentLoader', _default_document_loader)
 
         try:
             # expand input
@@ -605,11 +605,11 @@ class JsonLdProcessor:
         options.setdefault('embed', True)
         options.setdefault('explicit', False)
         options.setdefault('omitDefault', False)
-        options.setdefault('loadDocument', _default_document_loader)
+        options.setdefault('documentLoader', _default_document_loader)
 
         # if frame is a string, attempt to dereference remote document
         if _is_string(frame):
-            remote_frame = options['loadDocument'](frame)
+            remote_frame = options['documentLoader'](frame)
         else:
             remote_frame = {
                 'contextUrl': None,
@@ -685,7 +685,7 @@ class JsonLdProcessor:
         # set default options
         options = options or {}
         options.setdefault('base', input_ if _is_string(input_) else '')
-        options.setdefault('loadDocument', _default_document_loader)
+        options.setdefault('documentLoader', _default_document_loader)
 
         try:
             # convert to RDF dataset then do normalization
@@ -763,7 +763,7 @@ class JsonLdProcessor:
         # set default options
         options = options or {}
         options.setdefault('base', input_ if _is_string(input_) else '')
-        options.setdefault('loadDocument', _default_document_loader)
+        options.setdefault('documentLoader', _default_document_loader)
 
         try:
             # expand input
@@ -810,7 +810,7 @@ class JsonLdProcessor:
         # set default options
         options = options or {}
         options.setdefault('base', '')
-        options.setdefault('loadDocument', _default_document_loader)
+        options.setdefault('documentLoader', _default_document_loader)
 
         # retrieve URLs in local_ctx
         local_ctx = copy.deepcopy(local_ctx)
@@ -819,7 +819,7 @@ class JsonLdProcessor:
             local_ctx = {'@context': local_ctx}
         try:
             self._retrieve_context_urls(
-                local_ctx, {}, options['loadDocument'], options['base'])
+                local_ctx, {}, options['documentLoader'], options['base'])
         except Exception as cause:
             raise JsonLdError(
                 'Could not process JSON-LD context.',
