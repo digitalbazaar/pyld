@@ -7,14 +7,14 @@ JSON-LD.
 .. module:: jsonld
   :synopsis: Python implementation of JSON-LD
 
-.. moduleauthor:: Dave Longley 
+.. moduleauthor:: Dave Longley
 .. moduleauthor:: Mike Johnson
 .. moduleauthor:: Tim McNamara <tim.mcnamara@okfn.org>
 """
 
 __copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 
 __all__ = ['compact', 'expand', 'flatten', 'frame', 'from_rdf', 'to_rdf',
     'normalize', 'set_document_loader', 'load_document',
@@ -248,10 +248,10 @@ def unregister_rdf_parser(content_type):
 def prepend_base(base, iri):
     """
     Prepends a base IRI to the given relative IRI.
-    
+
     :param base: the base IRI.
     :param iri: the relative IRI.
-    
+
     :return: the absolute IRI.
     """
     # already an absolute iri
@@ -298,10 +298,10 @@ def prepend_base(base, iri):
 def remove_base(base, iri):
     """
     Removes a base IRI from the given absolute IRI.
-    
+
     :param base: the base IRI.
     :param iri: the absolute IRI.
-    
+
     :return: the relative IRI if relative to base, otherwise the absolute IRI.
     """
     base = urlparse.urlsplit(base)
@@ -541,7 +541,7 @@ class JsonLdProcessor:
     def flatten(self, input_, ctx, options):
         """
         Performs JSON-LD flattening.
-    
+
         :param input_: the JSON-LD input to flatten.
         :param ctx: the JSON-LD context to compact with (default: None).
         :param options: the options to use.
@@ -549,7 +549,7 @@ class JsonLdProcessor:
           [expandContext] a context to expand with.
           [loadDocument(url)] the document loader
             (default: _default_document_loader).
-    
+
         :return: the flattened JSON-LD output.
         """
         options = options or {}
@@ -704,7 +704,7 @@ class JsonLdProcessor:
     def from_rdf(self, dataset, options):
         """
         Converts an RDF dataset to JSON-LD.
-        
+
         :param dataset: a serialized string of RDF in a format specified by
           the format option or an RDF dataset to convert.
         :param options: the options to use.
@@ -714,7 +714,7 @@ class JsonLdProcessor:
             (default: False).
           [useNativeTypes] True to convert XSD types into native types
             (boolean, integer, double), False not to (default: False).
-        
+
         :return: the JSON-LD output.
         """
         global _rdf_parsers
@@ -832,7 +832,7 @@ class JsonLdProcessor:
         """
         Registers a processor-specific RDF parser by content-type.
         Global parsers will no longer be used by this processor.
-    
+
         :param content_type: the content-type for the parser.
         :param parser(input): the parser function (takes a string as
                  a parameter and returns an RDF dataset).
@@ -846,7 +846,7 @@ class JsonLdProcessor:
         Unregisters a process-specific RDF parser by content-type.
         If there are no remaining processor-specific parsers, then the global
         parsers will be re-enabled.
-    
+
         :param content_type: the content-type for the parser.
         """
         if (self.rdf_parsers is not None and
@@ -1187,9 +1187,9 @@ class JsonLdProcessor:
     def to_nquads(dataset):
         """
         Converts an RDF dataset to N-Quads.
-        
+
         :param dataset: the RDF dataset to convert.
-        
+
         :return: the N-Quads string.
         """
         quads = []
@@ -1297,10 +1297,10 @@ class JsonLdProcessor:
     def _compare_rdf_triples(t1, t2):
         """
         Compares two RDF triples for equality.
-        
+
         :param t1: the first triple.
         :param t2: the second triple.
-        
+
         :return: True if the triples are the same, False if not.
         """
         for attr in ['subject', 'predicate', 'object']:
@@ -1820,9 +1820,9 @@ class JsonLdProcessor:
     def _flatten(self, input):
         """
         Performs JSON-LD flattening.
-    
+
         :param input_: the expanded JSON-LD to flatten.
-    
+
         :return: the flattened JSON-LD output.
         """
         # produce a map of all subjects and name each bnode
@@ -1994,10 +1994,10 @@ class JsonLdProcessor:
     def _from_rdf(self, dataset, options):
         """
         Converts an RDF dataset to JSON-LD.
-        
+
         :param dataset: the RDF dataset.
         :param options: the RDF conversion options.
-        
+
         :return: the JSON-LD output.
         """
         default_graph = {}
@@ -2228,9 +2228,9 @@ class JsonLdProcessor:
     def _expand_language_map(self, language_map):
         """
         Expands a language map.
-        
+
         :param language_map: the language map to expand.
-        
+
         :return: the expanded language map.
         """
         rval = []
@@ -2303,10 +2303,10 @@ class JsonLdProcessor:
     def _graph_to_rdf(self, graph, namer):
         """
         Creates an array of RDF triples for the given graph.
-        
+
         :param graph: the graph to create RDF triples for.
         :param namer: the UniqueNamer for assigning blank node names.
-        
+
         :return: the array of RDF triples for the given graph.
         """
         rval = []
@@ -2352,7 +2352,7 @@ class JsonLdProcessor:
         """
         Converts a @list value into a linked list of blank node RDF triples
         (and RDF collection).
-        
+
         :param list: the @list value.
         :param namer: the UniqueNamer for assigning blank node names.
         :param subject: the subject for the head of the list.
@@ -2392,9 +2392,9 @@ class JsonLdProcessor:
         """
         Converts a JSON-LD value object to an RDF literal or a JSON-LD string
         or node object to an RDF resource.
-        
+
         :param item: the JSON-LD value or node object.
-        
+
         :return: the RDF literal or RDF resource.
         """
         object = {}
@@ -2482,7 +2482,7 @@ class JsonLdProcessor:
         """
         Recursively flattens the subjects in the given JSON-LD expanded
         input into a node map.
-        
+
         :param input_: the JSON-LD expanded input.
         :param graphs: a map of graph name to subject map.
         :param graph: the name of the current graph.
@@ -3114,10 +3114,10 @@ class JsonLdProcessor:
         A helper function that gets the blank node name from an RDF quad
         node (subject or object). If the node is not a blank node or its
         value does not match the given blank node ID, it will be returned.
-    
+
         :param node: the RDF quad node.
         :param id_: the ID of the blank node to look next to.
-    
+
         :return: the adjacent blank node name or None if none was found.
         """
         if node['type'] == 'blank node' and node['value'] != id_:
@@ -3129,7 +3129,7 @@ class JsonLdProcessor:
         type_or_language, type_or_language_value):
         """
         Picks the preferred compaction term from the inverse context entry.
-        
+
         :param active_ctx: the active context.
         :param iri: the IRI to pick the term for.
         :param value: the value to pick the term for.
@@ -3137,7 +3137,7 @@ class JsonLdProcessor:
         :param type_or_language: either '@type' or '@language'.
         :param type_or_language_value: the preferred value for '@type' or
           '@language'
-        
+
         :return: the preferred term.
         """
         if type_or_language_value is None:
@@ -3337,7 +3337,7 @@ class JsonLdProcessor:
         """
         Performs value compaction on an object with @value or @id as the only
         property.
-        
+
         :param active_ctx: the active context.
         :param active_property: the active property that points to the value.
         :param value: the value to compact.
@@ -3797,7 +3797,7 @@ class JsonLdProcessor:
     def _get_initial_context(self, options):
         """
         Gets the initial context.
-        
+
         :param options: the options to use.
           [base] the document base IRI.
 
@@ -3813,9 +3813,9 @@ class JsonLdProcessor:
         """
         Generates an inverse context for use in the compaction algorithm, if
         not already generated for the given active context.
-        
+
         :param active_ctx: the active context to use.
-        
+
         :return: the inverse context.
         """
         # inverse context already generated
@@ -3871,10 +3871,10 @@ class JsonLdProcessor:
     def _clone_active_context(self, active_ctx):
         """
         Clones an active context, creating a child active context.
-        
+
         :param active_ctx: the active context to clone.
-        
-        :return: a clone (child) of the active context. 
+
+        :return: a clone (child) of the active context.
         """
         child = {
             '@base': active_ctx['@base'],
@@ -4150,9 +4150,9 @@ def _is_double(v):
 def _is_numeric(v):
     """
     Returns True if the given value is numeric.
-    
+
     :param v: the value to check.
-    
+
     :return: True if the value is numeric, False if not.
     """
     try:
