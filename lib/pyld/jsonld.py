@@ -2710,7 +2710,8 @@ class JsonLdProcessor:
                                 # recurse into subject reference
                                 if _is_subject_reference(o):
                                     self._match_frame(
-                                        state, [o['@id']], frame[prop],
+                                        state, [o['@id']],
+                                        frame[prop][0]['@list'],
                                         list_, '@list')
                                 # include other values automatically
                                 else:
