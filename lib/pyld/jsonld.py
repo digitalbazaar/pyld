@@ -29,6 +29,8 @@ from functools import cmp_to_key
 from numbers import Integral, Real
 from httplib import HTTPSConnection
 
+from __future__ import with_statement
+
 # XSD constants
 XSD_BOOLEAN = 'http://www.w3.org/2001/XMLSchema#boolean'
 XSD_DOUBLE = 'http://www.w3.org/2001/XMLSchema#double'

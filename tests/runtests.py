@@ -16,6 +16,8 @@ import os, sys, json, datetime
 from os.path import join
 from optparse import OptionParser
 
+from __future__ import with_statement
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from pyld import jsonld
 
