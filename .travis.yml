@@ -8,4 +8,4 @@ python:
 # command to download test suite and run tests
 script: 
   - git clone https://github.com/json-ld/json-ld.org.git spec
-	- python tests/runtests.py -d spec/test-suite/tests
+  - python tests/runtests.py -d spec/test-suite/tests
