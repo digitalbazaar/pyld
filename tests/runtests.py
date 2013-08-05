@@ -9,12 +9,15 @@ Runs json-ld.org unit tests for JSON-LD.
 .. moduleauthor:: Mike Johnson
 """
 
+from __future__ import with_statement
+
 __copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
 
 import os, sys, json, datetime
 from os.path import join
 from optparse import OptionParser
+
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from pyld import jsonld

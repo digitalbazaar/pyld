@@ -1,6 +1,9 @@
 PyLD
 ====
 
+.. image:: https://travis-ci.org/bollwyvl/pyld.png?branch=travis
+   :target: https://travis-ci.org/bollwyvl/pyld
+
 Introduction
 ------------
 
