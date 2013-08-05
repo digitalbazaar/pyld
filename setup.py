@@ -9,9 +9,9 @@ PyLD_ is a Python JSON-LD_ library.
 .. _JSON-LD: http://json-ld.org/
 """
 
-from distutils.core import setup
-
 from __future__ import with_statement
+
+from distutils.core import setup
 
 with open('README.rst') as file:
     long_description = file.read()
