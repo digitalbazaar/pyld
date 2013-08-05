@@ -6,3 +6,7 @@ MANIFEST
 cover
 dist
 docs/_build
+.project
+.settings
+.pydevproject
+build
