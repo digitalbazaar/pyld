@@ -771,7 +771,7 @@ class JsonLdProcessor:
             # expand input
             expanded = self.expand(input_, options)
         except JsonLdError as cause:
-            raise JsonLdError('Could not expand input before conversion to '
+            raise JsonLdError('Could not expand input before serialization to '
                 'RDF.', 'jsonld.RdfError', None, cause)
 
         # create node map for default graph (and any named graphs)
@@ -782,7 +782,7 @@ class JsonLdProcessor:
         # output RDF dataset
         dataset = {}
         for graph_name, graph in sorted(node_map.items()):
-            dataset[graph_name] = self._graph_to_rdf(graph, namer)
+            dataset[graph_name] = self._graph_to_rdf(graph, namer, options)
 
         # convert to output format
         if 'format' in options:
@@ -1998,7 +1998,7 @@ class JsonLdProcessor:
         Converts an RDF dataset to JSON-LD.
 
         :param dataset: the RDF dataset.
-        :param options: the RDF conversion options.
+        :param options: the RDF serialization options.
 
         :return: the JSON-LD output.
         """
@@ -2312,6 +2312,7 @@ class JsonLdProcessor:
 
         :param graph: the graph to create RDF triples for.
         :param namer: the UniqueNamer for assigning blank node names.
+        :param options: the RDF serialization options.
 
         :return: the array of RDF triples for the given graph.
         """
@@ -2335,6 +2336,9 @@ class JsonLdProcessor:
                     # RDF predicate
                     predicate = {}
                     if property.startswith('_:'):
+                        # skip bnode predicates unless producing generalized RDF
+                        if not options['produceGeneralizedRdf']:
+                            continue
                         predicate['type'] = 'blank node'
                     else:
                         predicate['type'] = 'IRI'
