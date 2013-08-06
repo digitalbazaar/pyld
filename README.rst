@@ -44,7 +44,7 @@ Commercial support for this library is available upon request from
 Requirements
 ------------
 
-- Python_ (2.6 or later)
+- Python_ (2.7 or later)
 
 Source
 ------
