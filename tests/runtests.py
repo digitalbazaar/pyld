@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Runs json-ld.org unit tests for JSON-LD.
- 
+
 .. module:: runtests
   :synopsis: Test harness for pyld
 
