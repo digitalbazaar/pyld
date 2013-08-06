@@ -9,6 +9,8 @@ Runs json-ld.org unit tests for JSON-LD.
 .. moduleauthor:: Mike Johnson
 """
 
+from __future__ import print_function
+
 __copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
 
@@ -18,6 +20,7 @@ from optparse import OptionParser
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from pyld import jsonld
+
 
 # supported test types
 TEST_TYPES = [
@@ -91,8 +94,8 @@ class TestRunner:
         self.manifest_files = []
 
     def main(self):
-        print 'PyLD Unit Tests'
-        print 'Use -h or --help to view options.'
+        print('PyLD Unit Tests')
+        print('Use -h or --help to view options.')
 
         # add program options
         self.parser.add_option('-f', '--file', dest='file',
@@ -165,8 +168,8 @@ class TestRunner:
                     # print 'Skipping test: "%s" ...' % test['name']
                     continue
 
-                print 'JSON-LD/%s %04d/%s...' % (
-                    manifest['name'], count, test['name']),
+                print('JSON-LD/%s %04d/%s...' % (
+                    manifest['name'], count, test['name']), end=' ')
 
                 total += 1
                 count += 1
@@ -218,18 +221,18 @@ class TestRunner:
 
                     if success:
                         passed += 1
-                        print 'PASS'
+                        print('PASS')
                     else:
                         failed += 1
-                        print 'FAIL'
+                        print('FAIL')
 
                     if not success or self.options.verbose:
-                        print 'Expect:', json.dumps(expect, indent=2)
-                        print 'Result:', json.dumps(result, indent=2)
+                        print('Expect:', json.dumps(expect, indent=2))
+                        print('Result:', json.dumps(result, indent=2))
                 except jsonld.JsonLdError as e:
-                    print '\nError: ', e
+                    print('\nError: ', e)
                     failed += 1
-                    print 'FAIL'
+                    print('FAIL')
 
                 # add EARL report assertion
                 EARL['subjectOf'].append({
@@ -251,7 +254,7 @@ class TestRunner:
             f.write(json.dumps(EARL, indent=2))
             f.close()
 
-        print 'Done. Total:%d Passed:%d Failed:%d' % (total, passed, failed)
+        print('Done. Total:%d Passed:%d Failed:%d' % (total, passed, failed))
 
 def deep_compare(expect, result):
     if isinstance(expect, list):
