@@ -1,4 +1,4 @@
 """ The PyLD module is used to process JSON-LD. """
-import jsonld
+from . import jsonld
 
 __all__ = ['jsonld']
