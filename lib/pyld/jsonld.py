@@ -694,6 +694,7 @@ class JsonLdProcessor:
             opts = copy.deepcopy(options)
             if 'format' in opts:
                 del opts['format']
+            opts['produceGeneralizedRdf'] = False
             dataset = self.to_rdf(input_, opts)
         except JsonLdError as cause:
             raise JsonLdError(
@@ -757,6 +758,8 @@ class JsonLdProcessor:
           [base] the base IRI to use.
           [format] the format if input is a string:
             'application/nquads' for N-Quads.
+          [produceGeneralizedRdf] true to output generalized RDF, false
+            to produce only standard RDF (default: false).
           [documentLoader(url)] the document loader
             (default: _default_document_loader).
 
@@ -765,6 +768,7 @@ class JsonLdProcessor:
         # set default options
         options = options or {}
         options.setdefault('base', input_ if _is_string(input_) else '')
+        options.setdefault('produceGeneralizedRdf', False)
         options.setdefault('documentLoader', _default_document_loader)
 
         try:
@@ -2306,7 +2310,7 @@ class JsonLdProcessor:
 
         return rval
 
-    def _graph_to_rdf(self, graph, namer):
+    def _graph_to_rdf(self, graph, namer, options):
         """
         Creates an array of RDF triples for the given graph.
 
