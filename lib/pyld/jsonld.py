@@ -2101,9 +2101,13 @@ class JsonLdProcessor:
                 graph = node['@graph'] = []
                 for s, n in sorted(graph_map[subject].items()):
                     n.pop('listHeadFor', None)
-                    graph.append(n)
+                    # only add full subjects to top-level
+                    if not _is_subject_reference(n):
+                        graph.append(n)
             node.pop('listHeadFor', None)
-            result.append(node)
+            # only add full subjects to top-level
+            if not _is_subject_reference(node):
+              result.append(node)
 
         return result
 
