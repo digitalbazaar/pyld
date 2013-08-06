@@ -14,7 +14,7 @@ JSON-LD.
 
 __copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
-__version__ = '0.3.1'
+__version__ = '0.4.0'
 
 __all__ = ['compact', 'expand', 'flatten', 'frame', 'from_rdf', 'to_rdf',
     'normalize', 'set_document_loader', 'load_document',
@@ -79,7 +79,7 @@ def compact(input_, ctx, options=None):
         appropriate, False not to (default: True).
       [graph] True to always output a top-level graph (default: False).
       [expandContext] a context to expand with.
-      [loadDocument(url)] the document loader
+      [documentLoader(url)] the document loader
         (default: _default_document_loader).
 
     :return: the compacted JSON-LD output.
@@ -95,7 +95,7 @@ def expand(input_, options=None):
     :param [options]: the options to use.
       [base] the base IRI to use.
       [expandContext] a context to expand with.
-      [loadDocument(url)] the document loader
+      [documentLoader(url)] the document loader
         (default: _default_document_loader).
 
     :return: the expanded JSON-LD output.
@@ -112,7 +112,7 @@ def flatten(input_, ctx=None, options=None):
     :param [options]: the options to use.
       [base] the base IRI to use.
       [expandContext] a context to expand with.
-      [loadDocument(url)] the document loader
+      [documentLoader(url)] the document loader
         (default: _default_document_loader).
 
     :return: the flattened JSON-LD output.
@@ -132,7 +132,7 @@ def frame(input_, frame, options=None):
       [embed] default @embed flag (default: True).
       [explicit] default @explicit flag (default: False).
       [omitDefault] default @omitDefault flag (default: False).
-      [loadDocument(url)] the document loader
+      [documentLoader(url)] the document loader
         (default: _default_document_loader).
 
     :return: the framed JSON-LD output.
@@ -149,7 +149,7 @@ def normalize(input_, options=None):
       [base] the base IRI to use.
       [format] the format if output is a string:
         'application/nquads' for N-Quads.
-      [loadDocument(url)] the document loader
+      [documentLoader(url)] the document loader
         (default: _default_document_loader).
 
     :return: the normalized JSON-LD output.
@@ -184,7 +184,9 @@ def to_rdf(input_, options=None):
       [base] the base IRI to use.
       [format] the format to use to output a string:
         'application/nquads' for N-Quads.
-      [loadDocument(url)] the document loader
+      [produceGeneralizedRdf] true to output generalized RDF, false
+        to produce only standard RDF (default: false).
+      [documentLoader(url)] the document loader
         (default: _default_document_loader).
 
     :return: the resulting RDF dataset (or a serialization of it).
@@ -362,7 +364,7 @@ class JsonLdProcessor:
           [skipExpansion] True to assume the input is expanded and skip
             expansion, False not to, (default: False).
           [activeCtx] True to also return the active context used.
-          [loadDocument(url)] the document loader
+          [documentLoader(url)] the document loader
             (default: _default_document_loader).
 
         :return: the compacted JSON-LD output.
@@ -471,7 +473,7 @@ class JsonLdProcessor:
           [expandContext] a context to expand with.
           [keepFreeFloatingNodes] True to keep free-floating nodes,
             False not to (default: False).
-          [loadDocument(url)] the document loader
+          [documentLoader(url)] the document loader
             (default: _default_document_loader).
 
         :return: the expanded JSON-LD output.
@@ -547,7 +549,7 @@ class JsonLdProcessor:
         :param options: the options to use.
           [base] the base IRI to use.
           [expandContext] a context to expand with.
-          [loadDocument(url)] the document loader
+          [documentLoader(url)] the document loader
             (default: _default_document_loader).
 
         :return: the flattened JSON-LD output.
@@ -593,7 +595,7 @@ class JsonLdProcessor:
           [embed] default @embed flag (default: True).
           [explicit] default @explicit flag (default: False).
           [omitDefault] default @omitDefault flag (default: False).
-          [loadDocument(url)] the document loader
+          [documentLoader(url)] the document loader
             (default: _default_document_loader).
 
         :return: the framed JSON-LD output.
@@ -677,7 +679,7 @@ class JsonLdProcessor:
           [base] the base IRI to use.
           [format] the format if output is a string:
             'application/nquads' for N-Quads.
-          [loadDocument(url)] the document loader
+          [documentLoader(url)] the document loader
             (default: _default_document_loader).
 
         :return: the normalized output.
@@ -755,7 +757,7 @@ class JsonLdProcessor:
           [base] the base IRI to use.
           [format] the format if input is a string:
             'application/nquads' for N-Quads.
-          [loadDocument(url)] the document loader
+          [documentLoader(url)] the document loader
             (default: _default_document_loader).
 
         :return: the resulting RDF dataset (or a serialization of it).
@@ -798,7 +800,7 @@ class JsonLdProcessor:
         :param active_ctx: the current active context.
         :param local_ctx: the local context to process.
         :param options: the options to use.
-          [loadDocument(url)] the document loader
+          [documentLoader(url)] the document loader
             (default: _default_document_loader).
 
         :return: the new active context.
