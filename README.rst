@@ -1,6 +1,9 @@
 PyLD
 ====
 
+.. image:: https://travis-ci.org/digitalbazaar/pyld.png
+   :target: https://travis-ci.org/digitalbazaar/pyld
+
 Introduction
 ------------
 
@@ -41,7 +44,7 @@ Commercial support for this library is available upon request from
 Requirements
 ------------
 
-- Python_ (2.5 or later)
+- Python_ (2.6 or later)
 
 Source
 ------

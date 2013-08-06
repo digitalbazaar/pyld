@@ -2,7 +2,11 @@
 *.sw[op]
 *~
 .coverage
+.project
+.pydevproject
+.settings
 MANIFEST
+build
 cover
 dist
 docs/_build
