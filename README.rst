@@ -1,8 +1,9 @@
 PyLD
 ====
 
-.. image:: https://travis-ci.org/digitalbazaar/pyld.png
+.. image:: https://travis-ci.org/digitalbazaar/pyld.png?branch=master
    :target: https://travis-ci.org/digitalbazaar/pyld
+   :alt: Build Status
 
 Introduction
 ------------
