@@ -178,12 +178,16 @@ class TestRunner:
                 with open(join(test_dir, test['input'])) as f:
                     if test['input'].endswith('.jsonld'):
                         input = json.load(f)
+                    elif sys.version_info.major >= 3:
+                        input = f.read()
                     else:
                         input = f.read().decode('utf8')
                 # read expect file
                 with open(join(test_dir, test['expect'])) as f:
                     if test['expect'].endswith('.jsonld'):
                         expect = json.load(f)
+                    elif sys.version_info.major >= 3:
+                        expect = f.read()
                     else:
                         expect = f.read().decode('utf8')
                 result = None

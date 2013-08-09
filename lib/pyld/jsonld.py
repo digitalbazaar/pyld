@@ -22,12 +22,26 @@ __all__ = ['compact', 'expand', 'flatten', 'frame', 'from_rdf', 'to_rdf',
     'JsonLdProcessor', 'ActiveContextCache']
 
 import copy, hashlib, json, os, re, string, sys, time, traceback
-import urllib2, urlparse, posixpath, socket, ssl
+import posixpath, socket, ssl
 from contextlib import closing
 from collections import deque
 from functools import cmp_to_key
 from numbers import Integral, Real
-from httplib import HTTPSConnection
+
+# support python 2
+if sys.version_info.major >= 3:
+    from urllib.request import build_opener as urllib_build_opener
+    from urllib.request import HTTPSHandler
+    import urllib.parse as urllib_parse
+    from http.client import HTTPSConnection
+    basestring = str
+    def cmp(a, b):
+        return (a > b) - (a < b)
+else:
+    from urllib2 import build_opener as urllib_build_opener
+    from urllib2 import HTTPSHandler
+    import urlparse as urllib_parse
+    from httplib import HTTPSConnection
 
 # XSD constants
 XSD_BOOLEAN = 'http://www.w3.org/2001/XMLSchema#boolean'
@@ -214,7 +228,7 @@ def load_document(url):
     :return: the RemoteDocument.
     """
     https_handler = VerifiedHTTPSHandler()
-    url_opener = urllib2.build_opener(https_handler)
+    url_opener = urllib_build_opener(https_handler)
     with closing(url_opener.open(url)) as handle:
         doc = {
             'contextUrl': None,
@@ -263,8 +277,8 @@ def prepend_base(base, iri):
         return iri
 
     # parse IRIs
-    base = urlparse.urlsplit(base)
-    rel = urlparse.urlsplit(iri)
+    base = urllib_parse.urlsplit(base)
+    rel = urllib_parse.urlsplit(iri)
 
     # IRI represents an absolute path
     if rel.path.startswith('/'):
@@ -290,7 +304,7 @@ def prepend_base(base, iri):
     if path == '.' and rel.fragment != '':
         path = ''
 
-    return urlparse.urlunsplit((
+    return urllib_parse.urlunsplit((
         base.scheme,
         rel.netloc or base.netloc,
         path,
@@ -308,8 +322,8 @@ def remove_base(base, iri):
 
     :return: the relative IRI if relative to base, otherwise the absolute IRI.
     """
-    base = urlparse.urlsplit(base)
-    rel = urlparse.urlsplit(iri)
+    base = urllib_parse.urlsplit(base)
+    rel = urllib_parse.urlsplit(iri)
 
     # schemes and network locations don't match, don't alter IRI
     if not (base.scheme == rel.scheme and base.netloc == rel.netloc):
@@ -328,7 +342,7 @@ def remove_base(base, iri):
         elif path.startswith('.'):
             path = path[1:]
 
-    return urlparse.urlunsplit((
+    return urllib_parse.urlunsplit((
         '', '', path, rel.query, rel.fragment)) or './'
 
 
@@ -1395,7 +1409,8 @@ class JsonLdProcessor:
                         active_ctx, '@reverse', expanded_value, options)
 
                     # handle double-reversed properties
-                    for compacted_property, value in compacted_value.items():
+                    for compacted_property, value in \
+                        list(compacted_value.items()):
                         mapping = active_ctx['mappings'].get(compacted_property)
                         if mapping and mapping['reverse']:
                             container = JsonLdProcessor.get_context_value(
@@ -3068,7 +3083,7 @@ class JsonLdProcessor:
 
                 # hash direction, property, and bnode name/hash
                 group_md = hashlib.sha1()
-                group_md.update(direction)
+                group_md.update(direction.encode('utf-8'))
                 group_md.update(quad['predicate']['value'].encode('utf-8'))
                 group_md.update(name.encode('utf-8'))
                 group_hash = group_md.hexdigest()
@@ -3079,7 +3094,7 @@ class JsonLdProcessor:
         # iterate over groups in sorted hash order
         for group_hash, group in sorted(groups.items()):
             # digest group hash
-            md.update(group_hash)
+            md.update(group_hash.encode('utf8'))
 
             # choose a path and namer from the permutations
             chosen_path = None
@@ -3762,7 +3777,7 @@ class JsonLdProcessor:
         for url, ctx in urls.items():
             if ctx == False:
                 # validate URL
-                pieces = urlparse.urlparse(url)
+                pieces = urllib_parse.urlparse(url)
                 if (not all([pieces.scheme, pieces.netloc]) or
                     pieces.scheme not in ['http', 'https'] or
                     set(pieces.netloc) > set(
@@ -4329,14 +4344,14 @@ class VerifiedHTTPSConnection(HTTPSConnection):
             ca_certs=_trust_root_certificates)
 
 
-class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
+class VerifiedHTTPSHandler(HTTPSHandler):
     """
     Wraps urllib2 HTTPS connections enabling SSL certificate verification.
     """
 
     def __init__(self, connection_class=VerifiedHTTPSConnection):
         self.specialized_conn_class = connection_class
-        urllib2.HTTPSHandler.__init__(self)
+        HTTPSHandler.__init__(self)
 
     def https_open(self, req):
         return self.do_open(self.specialized_conn_class, req)
