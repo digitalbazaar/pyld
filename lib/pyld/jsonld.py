@@ -36,11 +36,13 @@ XSD_INTEGER = 'http://www.w3.org/2001/XMLSchema#integer'
 XSD_STRING = 'http://www.w3.org/2001/XMLSchema#string'
 
 # RDF constants
-RDF_FIRST = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#first'
-RDF_REST = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'
-RDF_NIL = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#nil'
-RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
-RDF_LANGSTRING = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString'
+RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
+RDF_LIST = RDF + 'List'
+RDF_FIRST = RDF + 'first'
+RDF_REST = RDF + 'rest'
+RDF_NIL = RDF + 'nil'
+RDF_TYPE = RDF + 'type'
+RDF_LANGSTRING = RDF + 'langString'
 
 # JSON-LD keywords
 KEYWORDS = [
@@ -1316,7 +1318,7 @@ class JsonLdProcessor:
 
         if t1['object'].get('language') != t2['object'].get('language'):
             return False
-        if t1['object']['datatype'] != t2['object']['datatype']:
+        if t1['object'].get('datatype') != t2['object'].get('datatype'):
             return False
 
         return True
@@ -1844,10 +1846,12 @@ class JsonLdProcessor:
             graph_subject = default_graph.setdefault(
                 graph_name, {'@id': graph_name, '@graph': []})
             graph_subject.setdefault('@graph', []).extend(
-                [v for k, v in sorted(node_map.items())])
+                [v for k, v in sorted(node_map.items())
+                    if not _is_subject_reference(v)])
 
         # produce flattened output
-        return [value for key, value in sorted(default_graph.items())]
+        return [value for key, value in sorted(default_graph.items())
+            if not _is_subject_reference(value)]
 
     def _frame(self, input_, frame, options):
         """
@@ -2023,8 +2027,7 @@ class JsonLdProcessor:
                 node = node_map.setdefault(s, {'@id': s})
 
                 object_is_id = (o['type'] == 'IRI' or o['type'] == 'blank node')
-                if (object_is_id and o['value'] != RDF_NIL and
-                    o['value'] not in node_map):
+                if object_is_id and o['value'] not in node_map:
                     node_map[o['value']] = {'@id': o['value']}
 
                 if p == RDF_TYPE and object_is_id:
@@ -2032,85 +2035,94 @@ class JsonLdProcessor:
                         node, '@type', o['value'], {'propertyIsArray': True})
                     continue
 
-                if object_is_id and o['value'] == RDF_NIL and p != RDF_REST:
-                    # empty list detected
-                    value = {'@list': []}
-                else:
-                    value = self._rdf_to_object(o, options['useNativeTypes'])
+                value = self._rdf_to_object(o, options['useNativeTypes'])
                 JsonLdProcessor.add_value(
                     node, p, value, {'propertyIsArray': True})
 
-                # object may be the head of an RDF list but we can't know
-                # easily until all triples are read
-                if o['type'] == 'blank node' and p not in [RDF_FIRST, RDF_REST]:
+                # object may be an RDF list/partial list node but we
+                # can't know easily until all triples are read
+                if object_is_id:
                     object = node_map[o['value']]
-                    if 'listHeadFor' not in object:
-                        object['listHeadFor'] = value
-                    # can't be a list head if referenced more than once
-                    else:
-                        object['listHeadFor'] = None
+                    if 'usages' not in object:
+                        object['usages'] = []
+                    object['usages'].append({
+                        'node': node,
+                        'property': p,
+                        'value': value
+                    })
 
         # convert linked lists to @list arrays
         for name, graph_object in graph_map.items():
-            for subject, node in sorted(graph_object.items()):
-                # if subject not in graph_object, it has been removed as it
-                # was part of an RDF list, continue
-                if subject not in graph_object:
-                    continue
-                # if value is not an object, it can't be a list head, continue
-                value = node.get('listHeadFor')
-                if not _is_object(value):
-                    continue
+            # no @lists to be converted, continue
+            if RDF_NIL not in graph_object:
+                continue
 
-                list = []
-                eliminated_nodes = set()
-                while subject != RDF_NIL and list != None:
-                    # ensure node is a valid list node; node must:
-                    # 1. Be a blank node.
-                    # 2. Have no keys other than:
-                    #   @id, listHeadFor, rdf:first, rdf:rest
-                    # 3. Have an array for rdf:first that has 1 item
-                    # 4. Have an array for rdf:rest that has 1 object w/@id.
-                    # 5. Not already be in a list (it is in eliminated_nodes)
-                    node = node or {}
+            # iterate backwards through each RDF list
+            nil = graph_object[RDF_NIL]
+            for usage in nil['usages']:
+                node = usage['node']
+                property = usage['property']
+                head = usage['value']
+                list_ = []
+                list_nodes = []
+
+                # ensure node is a well-formed list node; it must:
+                # 1. Be used only once in a list.
+                # 2. Have an array for rdf:first that has 1 item.
+                # 3. Have an array for rdf:rest that has 1 item
+                # 4. Have no keys other than: @id, usages, rdf:first, rdf:rest
+                #   and, optionally, @type where the value is rdf:List.
+                node_key_count = len(node.keys())
+                while(property == RDF_REST and len(node['usages']) and
+                    _is_array(node[RDF_FIRST]) and len(node[RDF_FIRST]) == 1 and
+                    _is_array(node[RDF_REST]) and len(node[RDF_REST]) == 1 and
+                    (node_key_count == 4 or (node_key_count == 5 and
+                        _is_array(node.get('@type')) and
+                        len(node['@type']) == 1 and
+                        node['@type'][0] == RDF_LIST))):
+                    list_.append(node[RDF_FIRST][0])
+                    list_nodes.append(node['@id'])
+
+                    # get next node, moving backwards through list
+                    usage = node['usages'][0]
+                    node = usage['node']
+                    property = usage['property']
+                    head = usage['value']
                     node_key_count = len(node.keys())
-                    rdf_first = node.get(RDF_FIRST)
-                    rdf_rest = node.get(RDF_REST)
-                    if not (_is_object(node) and
-                        node['@id'].startswith('_:') and
-                        (node_key_count == 3 or
-                         (node_key_count == 4 and 'listHeadFor' in node)) and
-                        _is_array(rdf_first) and len(rdf_first) == 1 and
-                        _is_array(rdf_rest) and len(rdf_rest) == 1 and
-                        _is_object(rdf_rest[0]) and '@id' in rdf_rest[0] and
-                        subject not in eliminated_nodes):
-                        list = None
+
+                    # if node is not a blank node, then list head found
+                    if not node['@id'].startswith('_:'):
                         break
 
-                    list.append(rdf_first[0])
-                    eliminated_nodes.add(node['@id'])
-                    subject = rdf_rest[0]['@id']
-                    node = graph_object.get(subject)
+                # the list is nested in another list
+                if property == RDF_FIRST:
+                    # empty list
+                    if node['@id'] == RDF_NIL:
+                        # can't convert rdf:nil to a @list object because it
+                        # would result in a list of lists which isn't supported
+                        continue
 
-                # bad list detected, skip it
-                if list is None:
-                    continue
+                    # preserve list head
+                    head = graph_object[head['@id']][RDF_REST][0]
+                    list_.pop()
+                    list_nodes.pop()
 
-                del value['@id']
-                value['@list'] = list
-                for id_ in eliminated_nodes:
-                    del graph_object[id_]
+                # transform list into @list object
+                del head['@id']
+                head['@list'] = list_.reverse()
+                for node in list_nodes:
+                    graph_object.pop(node, None)
 
         result = []
         for subject, node in sorted(default_graph.items()):
             if subject in graph_map:
                 graph = node['@graph'] = []
                 for s, n in sorted(graph_map[subject].items()):
-                    n.pop('listHeadFor', None)
+                    n.pop('usages', None)
                     # only add full subjects to top-level
                     if not _is_subject_reference(n):
                         graph.append(n)
-            node.pop('listHeadFor', None)
+            node.pop('usages', None)
             # only add full subjects to top-level
             if not _is_subject_reference(node):
               result.append(node)
