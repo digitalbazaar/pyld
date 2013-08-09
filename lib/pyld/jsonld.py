@@ -2109,7 +2109,8 @@ class JsonLdProcessor:
 
                 # transform list into @list object
                 del head['@id']
-                head['@list'] = list_.reverse()
+                list_.reverse()
+                head['@list'] = list_
                 for node in list_nodes:
                     graph_object.pop(node, None)
 
@@ -2535,7 +2536,6 @@ class JsonLdProcessor:
                 # rename @type blank node
                 if type_.startswith('_:'):
                     type_ = input_['@type'] = namer.get_name(type_)
-                graphs[graph].setdefault(type_, {'@id': type_})
             if list_ is not None:
                 list_.append(input_)
             return
@@ -2609,7 +2609,6 @@ class JsonLdProcessor:
                 if property == '@type':
                     # rename @type blank nodes
                     o = namer.get_name(o) if o.startswith('_:') else o
-                    graphs[graph].setdefault(o, {'@id': o})
 
                 # handle embedded subject or subject reference
                 if _is_subject(o) or _is_subject_reference(o):
