@@ -860,7 +860,9 @@ class JsonLdProcessor:
         # output RDF dataset
         dataset = {}
         for graph_name, graph in sorted(node_map.items()):
-            dataset[graph_name] = self._graph_to_rdf(graph, namer, options)
+            # skip relative IRIs
+            if graph_name == '@default' or _is_absolute_iri(graph_name):
+                dataset[graph_name] = self._graph_to_rdf(graph, namer, options)
 
         # convert to output format
         if 'format' in options:
@@ -2415,6 +2417,11 @@ class JsonLdProcessor:
                     continue
 
                 for item in items:
+                    # skip relative IRI subjects and predicates
+                    if not (_is_absolute_iri(id_) and
+                        _is_absolute_iri(property)):
+                        continue
+
                     # RDF subject
                     subject = {}
                     if id_.startswith('_:'):
@@ -2441,11 +2448,13 @@ class JsonLdProcessor:
                     # convert value or node object to triple
                     else:
                         object = self._object_to_rdf(item)
-                        rval.append({
-                            'subject': subject,
-                            'predicate': predicate,
-                            'object': object
-                        })
+                        # skip None objects (they are relative IRIs)
+                        if object is not None:
+                            rval.append({
+                                'subject': subject,
+                                'predicate': predicate,
+                                'object': object
+                            })
         return rval
 
     def _list_to_rdf(self, list, namer, subject, predicate, triples):
@@ -2474,11 +2483,13 @@ class JsonLdProcessor:
             subject = blank_node
             predicate = first
             object = self._object_to_rdf(item)
-            triples.append({
-                'subject': subject,
-                'predicate': predicate,
-                'object': object
-            })
+            # skip None objects (they are relative IRIs)
+            if object is not None:
+                triples.append({
+                    'subject': subject,
+                    'predicate': predicate,
+                    'object': object
+                })
 
             predicate = rest
 
@@ -2531,6 +2542,10 @@ class JsonLdProcessor:
             else:
                 object['type'] = 'IRI'
             object['value'] = id_
+
+        # skip relative IRIs
+        if object['type'] == 'IRI' and not _is_absolute_iri(object['value']):
+            return None
 
         return object
 
