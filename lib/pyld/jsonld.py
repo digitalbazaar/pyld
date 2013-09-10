@@ -293,7 +293,7 @@ def load_document(url):
             doc = {
                 'contextUrl': None,
                 'documentUrl': url,
-                'document': handle.read()
+                'document': handle.read().decode('utf8')
             }
             doc['documentUrl'] = handle.geturl()
             headers = dict(handle.info())
