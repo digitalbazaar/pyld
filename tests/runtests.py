@@ -172,7 +172,7 @@ class Test(unittest.TestCase):
             expect = data['expect']
 
         try:
-            result = apply(getattr(jsonld, fn), params)
+            result = getattr(jsonld, fn)(*params)
             if self.is_negative:
                 raise AssertionError('Expected an error; one was not raised')
             self.assertEqual(result, expect)
