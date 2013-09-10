@@ -292,9 +292,9 @@ def create_document_loader(test):
 
     def local_loader(url):
         # always load remote-doc and non-base tests remotely
-        #if (not url.startswith(base) or
-        #    test.manifest.data.get('name') == 'Remote document'):
-        #    return loader(url)
+        if (not url.startswith(base) or
+            test.manifest.data.get('name') == 'Remote document'):
+            return loader(url)
 
         # attempt to load locally
         return load_locally(url)
