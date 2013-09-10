@@ -574,7 +574,7 @@ class JsonLdProcessor:
             }
 
         try:
-            if not remote_doc['document']:
+            if remote_doc['document'] is None:
                 raise JsonLdError(
                     'No remote document found at the given URL.',
                     'jsonld.NullRemoteDocument')
