@@ -251,22 +251,21 @@ def parse_link_header(header):
     """
     rval = {}
     # split on unbracketed/unquoted commas
-    entries = re.search(r'(?:<[^>]*?>|"[^"]*?"|[^,])+/g', header)
+    entries = re.findall(r'(?:<[^>]*?>|"[^"]*?"|[^,])+', header)
     if not entries:
         return rval
-    entries = entries.groups()
     r_link_header = r'\s*<([^>]*?)>\s*(?:;\s*(.*))?'
     for entry in entries:
         match = re.search(r_link_header, entry)
         if not match:
             continue
         match = match.groups()
-        result = {target: match[1]}
-        params = match[2]
-        r_params = r'(.*?)=(?:(?:"([^"]*?)")|([^"]*?))\s*(?:(?:;\s*)|$)/g'
+        result = {'target': match[0]}
+        params = match[1]
+        r_params = r'(.*?)=(?:(?:"([^"]*?)")|([^"]*?))\s*(?:(?:;\s*)|$)'
         matches = re.findall(r_params, params)
         for match in matches:
-            result[match[1]] = match[3] if match[2] is None else match[2]
+            result[match[0]] = match[2] if match[1] is None else match[1]
         rel = result.get('rel', '')
         if isinstance(rval.get(rel), list):
             rval[rel].append(result)
@@ -1189,7 +1188,7 @@ class JsonLdProcessor:
         literal = '(?:' + plain + '(?:' + datatype + '|' + language + ')?)'
         ws = '[ \\t]+'
         wso = '[ \\t]*'
-        eoln = r'(?:\r\n)|(?:\n)|(?:\r)/g'
+        eoln = r'(?:\r\n)|(?:\n)|(?:\r)'
         empty = r'^' + wso + '$'
 
         # define quad part regexes
