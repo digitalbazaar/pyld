@@ -264,7 +264,7 @@ def create_document_loader(test):
         options = test.data.get('option')
         if options and url == test.base:
             if ('redirectTo' in options and
-                options.get('httpStatus', '').startswith('3')):
+                options.get('httpStatus') >= 300):
                 doc['documentUrl'] = (test.manifest.data['baseIri'] +
                     options['redirectTo'])
             elif 'httpLink' in options:
