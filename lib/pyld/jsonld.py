@@ -253,7 +253,7 @@ def parse_link_header(header):
     # split on unbracketed/unquoted commas
     entries = re.search(r'(?:<[^>]*?>|"[^"]*?"|[^,])+/g', header)
     if not entries:
-        return
+        return rval
     entries = entries.groups()
     r_link_header = r'\s*<([^>]*?)>\s*(?:;\s*(.*))?'
     for entry in entries:
