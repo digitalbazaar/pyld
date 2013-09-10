@@ -269,9 +269,11 @@ def create_document_loader(test):
                     options['redirectTo'])
             elif 'httpLink' in options:
                 content_type = options.get('contentType')
+                if not content_type and url.endswith('.jsonld'):
+                    content_type = 'application/ld+json'
                 link_header = options.get('httpLink', '')
                 if isinstance(link_header, list):
-                    ','.join(link_header)
+                    link_header = ','.join(link_header)
                 link_header = jsonld.parse_link_header(
                     link_header).get('http://www.w3.org/ns/json-ld#context')
                 if link_header and content_type != 'application/ld+json':
@@ -290,8 +292,9 @@ def create_document_loader(test):
 
     def local_loader(url):
         # always load remote-doc and non-base tests remotely
-        if 'remote-doc' in url or not url.startswith(base):
-            return loader(url)
+        #if (not url.startswith(base) or
+        #    test.manifest.data.get('name') == 'Remote document'):
+        #    return loader(url)
 
         # attempt to load locally
         return load_locally(url)
