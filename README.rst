@@ -68,7 +68,7 @@ containing the tests.
 
 ::
 
-    python tests/runtests.py -d {PATH_TO_JSON_LD_ORG/test-suite/tests}
+    python tests/runtests.py -d {PATH_TO_JSON_LD_ORG/test-suite}
 
 .. _JSON-LD: http://json-ld.org/
 .. _Python: http://www.python.org/
