@@ -212,10 +212,11 @@ def read_json(filename):
 
 
 def read_file(filename):
-    if sys.version_info.major >= 3:
-        return f.read()
-    else:
-        return  f.read().decode('utf8')
+    with open(filename) as f:
+        if sys.version_info.major >= 3:
+            return f.read()
+        else:
+            return  f.read().decode('utf8')
 
 
 def read_test_url(property):
