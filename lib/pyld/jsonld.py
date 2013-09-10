@@ -3977,7 +3977,7 @@ class JsonLdProcessor:
                 if (not all([pieces.scheme, pieces.netloc]) or
                     pieces.scheme not in ['http', 'https'] or
                     set(pieces.netloc) > set(
-                        string.letters + string.digits + '-.:')):
+                        string.ascii_letters + string.digits + '-.:')):
                     raise JsonLdError(
                         'Malformed or unsupported URL.',
                         'jsonld.InvalidUrl', {'url': url},
