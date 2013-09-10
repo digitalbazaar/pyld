@@ -395,32 +395,6 @@ class EarlReport():
             f.write(json.dumps(self.report, indent=2))
             f.close()
 
-# remove?
-def deep_compare(expect, result):
-    if isinstance(expect, list):
-        if not isinstance(result, list):
-            return False
-        if len(expect) != len(result):
-            return False
-        for a, b in zip(expect, result):
-            if not deep_compare(a, b):
-                return False
-        return True
-
-    if isinstance(expect, dict):
-        if not isinstance(result, dict):
-            return False
-        if len(expect) != len(result):
-            return False
-        for k, v in expect.items():
-            if k not in result:
-                return False
-            if not deep_compare(v, result[k]):
-                return False
-        return True
-
-    return expect == result
-
 
 # supported test types
 TEST_TYPES = {
