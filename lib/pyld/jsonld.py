@@ -559,7 +559,6 @@ class JsonLdProcessor:
         """
         # set default options
         options = options or {}
-        options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('keepFreeFloatingNodes', False)
         options.setdefault('documentLoader', _default_document_loader)
 
@@ -586,6 +585,9 @@ class JsonLdProcessor:
                 'derefencing not implemented.', 'jsonld.LoadDocumentError',
                  {'remoteDoc': remote_doc}, code='loading document failed',
                  cause=cause)
+
+        # set default base
+        options.setdefault('base', remote_doc['documentUrl'] or '')
 
         # build meta-object and retrieve all @context urls
         input_ = {
