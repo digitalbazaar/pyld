@@ -190,11 +190,11 @@ def get_jsonld_values(node, property):
 
 
 def get_jsonld_error_code(err):
-    if isinstance(err, jsonld.JsonLdError) and err.details:
-        if 'code' in err.details:
-            return err.details['code']
-        elif 'cause' in err.details:
-            get_jsonld_error_code(err.details['cause'])
+    if isinstance(err, jsonld.JsonLdError):
+        if err.code:
+            return err.code
+        elif err.cause:
+            get_jsonld_error_code(err.cause)
     return err.msg
 
 
