@@ -158,20 +158,28 @@ class Test(unittest.TestCase):
         fn = test_info['fn']
         params = test_info['params']
         params = [param(self) for param in params]
+        result = None
+        if self.is_positive:
+            expect = read_test_property('expect')(self)
+        else:
+            expect = data['expect']
 
         try:
             result = apply(getattr(jsonld, fn), params)
             if self.is_negative:
                 raise AssertionError('Expected an error; one was not raised')
-            expect = read_test_property('expect')(self)
             self.assertEqual(result, expect)
         except Exception as e:
             if not self.is_negative:
-                print('\nEXPECTED: ', json.dumps(expect, indent=2))
-                print('ACTUAL: ', json.dumps(result, indent=2))
+                if not isinstance(e, AssertionError):
+                    print('\n')
+                    traceback.print_exc(file=sys.stdout)
+                else:
+                    print('\nEXPECTED: ', json.dumps(expect, indent=2))
+                    print('ACTUAL: ', json.dumps(result, indent=2))
                 raise e
             result = get_jsonld_error_code(e)
-            self.assertEqual(result, data['expect'])
+            self.assertEqual(result, expect)
 
 
 def is_jsonld_type(node, type_):
