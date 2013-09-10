@@ -580,8 +580,8 @@ class JsonLdProcessor:
                 remote_doc['document'] = json.loads(remote_doc['document'])
         except Exception as cause:
             raise JsonLdError(
-                'Could not retrieve a JSON-LD document from the URL. URL '
-                'derefencing not implemented.', 'jsonld.LoadDocumentError',
+                'Could not retrieve a JSON-LD document from the URL.',
+                'jsonld.LoadDocumentError',
                  {'remoteDoc': remote_doc}, code='loading document failed',
                  cause=cause)
 
@@ -712,6 +712,20 @@ class JsonLdProcessor:
                 'documentUrl': None,
                 'document': frame
             }
+
+        try:
+            if remote_frame['document'] is None:
+                raise JsonLdError(
+                    'No remote document found at the given URL.',
+                    'jsonld.NullRemoteDocument')
+            if _is_string(remote_frame['document']):
+                remote_frame['document'] = json.loads(remote_frame['document'])
+        except Exception as cause:
+            raise JsonLdError(
+                'Could not retrieve a JSON-LD document from the URL.',
+                'jsonld.LoadDocumentError',
+                 {'remoteDoc': remote_doc}, code='loading document failed',
+                 cause=cause)
 
         # preserve frame context
         frame = remote_frame['document']
