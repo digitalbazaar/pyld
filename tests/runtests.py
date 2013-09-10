@@ -78,13 +78,13 @@ class TestRunner(unittest.TextTestRunner):
         suite = Manifest(root_manifest, filename).load()
 
         # run tests
-        self.run(suite)
+        result = self.run(suite)
 
         # output earl report if specified
         if self.options.earl:
             filename = os.path.abspath(self.options.earl)
             print('Writing EARL report to: %s' % filename)
-            earl.write(filename)
+            result.writeReport(filename)
 
 
 class Manifest:
@@ -318,6 +318,9 @@ class EarlTestResult(unittest.TextTestResult):
     def addSuccess(self, test):
         unittest.TextTestResult.addSuccess(self, test)
         self.report.add_assertion(test, True)
+
+    def writeReport(self, filename):
+        self.report.write(filename)
 
 
 class EarlReport():
