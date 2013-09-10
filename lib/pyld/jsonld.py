@@ -285,15 +285,20 @@ def load_document(url):
 
     :return: the RemoteDocument.
     """
-    https_handler = VerifiedHTTPSHandler()
-    url_opener = urllib_build_opener(https_handler)
-    with closing(url_opener.open(url)) as handle:
-        doc = {
-            'contextUrl': None,
-            'documentUrl': url,
-            'document': handle.read()
-        }
-    return doc
+    try:
+        https_handler = VerifiedHTTPSHandler()
+        url_opener = urllib_build_opener(https_handler)
+        with closing(url_opener.open(url)) as handle:
+            doc = {
+                'contextUrl': None,
+                'documentUrl': url,
+                'document': handle.read()
+            }
+        return doc
+    except Exception as cause:
+        raise JsonLdError('Could not retrieve a JSON-LD document from the URL. '
+            'jsonld.LoadDocumentError',
+            {'code': 'loading document failed'}, cause)
 
 
 def register_rdf_parser(content_type, parser):
@@ -446,7 +451,7 @@ class JsonLdProcessor:
         if ctx is None:
             raise JsonLdError(
                 'The compaction context must not be null.',
-                'jsonld.CompactError')
+                'jsonld.CompactError', {'code': 'invalid local context'})
 
         # nothing to compact
         if input_ is None:
@@ -1560,7 +1565,8 @@ class JsonLdProcessor:
                                 'than a single @list that matches the '
                                 'compacted term in the document. Compaction '
                                 'might mix unwanted items into the list.',
-                                'jsonld.SyntaxError')
+                                'jsonld.SyntaxError',
+                                {'code': 'compaction to list of lists'})
 
                     # handle language and index maps
                     if container == '@language' or container == '@index':
@@ -2288,7 +2294,8 @@ class JsonLdProcessor:
             if not _is_object(ctx):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @context must be an object.',
-                    'jsonld.SyntaxError', {'context': ctx})
+                    'jsonld.SyntaxError',
+                    {'code': 'invalid local context', 'context': ctx})
 
             # get context from cache if available
             if _cache.get('activeCtx') is not None:
@@ -2315,12 +2322,14 @@ class JsonLdProcessor:
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; the value of "@base" in a '
                         '@context must be a string or null.',
-                        'jsonld.SyntaxError', {'context': ctx})
+                        'jsonld.SyntaxError',
+                        {'code': 'invalid base IRI', 'context': ctx})
                 elif base != '' and not _is_absolute_iri(base):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; the value of "@base" in a '
                         '@context must be an absolute IRI or the empty string.',
-                        'jsonld.SyntaxError', {'context': ctx})
+                        'jsonld.SyntaxError',
+                        {'code': 'invalid base IRI', 'context': ctx})
                 rval['@base'] = base or ''
                 defined['@base'] = True
 
@@ -2333,12 +2342,14 @@ class JsonLdProcessor:
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; the value of "@vocab" in a '
                         '@context must be a string or null.',
-                        'jsonld.SyntaxError', {'context': ctx})
+                        'jsonld.SyntaxError',
+                        {'code': 'invalid vocab mapping', 'context': ctx})
                 elif not _is_absolute_iri(value):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; the value of "@vocab" in a '
                         '@context must be an absolute IRI.',
-                        'jsonld.SyntaxError', {'context': ctx})
+                        'jsonld.SyntaxError',
+                        {'code': 'invalid vocab mapping', 'context': ctx})
                 else:
                     rval['@vocab'] = value
                 defined['@vocab'] = True
@@ -2352,7 +2363,8 @@ class JsonLdProcessor:
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; the value of "@language" in a '
                         '@context must be a string or null.',
-                        'jsonld.SyntaxError', {'context': ctx})
+                        'jsonld.SyntaxError',
+                        {'code': 'invalid default language', 'context': ctx})
                 else:
                     rval['@language'] = value.lower()
                 defined['@language'] = True
@@ -2382,8 +2394,10 @@ class JsonLdProcessor:
                 if not _is_string(item):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; language map values must be '
-                        'strings.', 'jsonld.SyntaxError',
-                        {'languageMap': language_map})
+                        'strings.', 'jsonld.SyntaxError', {
+                            'code': 'invalid language map value',
+                            'languageMap': language_map
+                        })
                 rval.append({'@value': item, '@language': key.lower()})
         return rval
 
@@ -2723,7 +2737,7 @@ class JsonLdProcessor:
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; conflicting @index property '
                         ' detected.', 'jsonld.SyntaxError',
-                        {'subject': subject})
+                        {'code': 'conflicting indexes', 'subject': subject})
                 subject[property] = input_[property]
                 continue
 
@@ -3915,7 +3929,10 @@ class JsonLdProcessor:
         if len(cycles) > MAX_CONTEXT_URLS:
             raise JsonLdError(
                 'Maximum number of @context URLs exceeded.',
-                'jsonld.ContextUrlError', {'max': MAX_CONTEXT_URLS})
+                'jsonld.ContextUrlError', {
+                    'code': 'loading remote context failed',
+                    'max': MAX_CONTEXT_URLS
+                })
 
         # for tracking URLs to retrieve
         urls = {}
@@ -3935,7 +3952,10 @@ class JsonLdProcessor:
                         string.letters + string.digits + '-.:')):
                     raise JsonLdError(
                         'Malformed or unsupported URL.',
-                        'jsonld.InvalidUrl', {'url': url})
+                        'jsonld.InvalidUrl', {
+                            'code': 'loading remote context failed',
+                            'url': url
+                        })
                 queue.append(url)
 
         # retrieve URLs in queue
@@ -3944,7 +3964,10 @@ class JsonLdProcessor:
             if url in cycles:
                 raise JsonLdError(
                     'Cyclical @context URLs detected.',
-                    'jsonld.ContextUrlError', {'url': url})
+                    'jsonld.ContextUrlError', {
+                        'code': 'recursive context inclusion',
+                        'url': url
+                    })
             _cycles = copy.deepcopy(cycles)
             _cycles[url] = True
 
@@ -3959,14 +3982,20 @@ class JsonLdProcessor:
                 except Exception as cause:
                     raise JsonLdError(
                         'Could not parse JSON from URL.',
-                        'jsonld.ParseError', {'url': url}, cause)
+                        'jsonld.ParseError', {
+                            'code': 'loading remote context failed',
+                            'url': url
+                        }, cause)
 
             # ensure ctx is an object
             if not _is_object(ctx):
                 raise JsonLdError(
                     'Dereferencing a URL did not result in a valid JSON-LD '
                     'object.',
-                    'jsonld.InvalidUrl', {'url': url})
+                    'jsonld.InvalidUrl', {
+                        'code': 'invalid remote context',
+                        'url': url
+                    })
 
             # use empty context if no @context key is present
             if '@context' not in ctx:
@@ -4303,7 +4332,7 @@ def _validate_type_value(v):
         raise JsonLdError(
             'Invalid JSON-LD syntax; "@type" value must a string, an array of '
             'strings, or an empty object.',
-            'jsonld.SyntaxError', {'value': v})
+            'jsonld.SyntaxError', {'code': 'invalid type value', 'value': v})
 
 
 def _is_bool(v):
