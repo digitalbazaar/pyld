@@ -210,7 +210,7 @@ def get_jsonld_error_code(err):
             return err.code
         elif err.cause:
             return get_jsonld_error_code(err.cause)
-    return err.message
+    return str(err)
 
 
 def read_json(filename):
