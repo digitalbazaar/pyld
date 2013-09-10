@@ -474,7 +474,7 @@ class JsonLdProcessor:
                 expanded = self.expand(input_, options)
             except JsonLdError as cause:
                 raise JsonLdError('Could not expand input before compaction.',
-                    'jsonld.CompactError', None, cause)
+                    'jsonld.CompactError', cause=cause)
 
         # process context
         active_ctx = self._get_initial_context(options)
@@ -482,7 +482,7 @@ class JsonLdProcessor:
             active_ctx = self.process_context(active_ctx, ctx, options)
         except JsonLdError as cause:
             raise JsonLdError('Could not process context before compaction.',
-                'jsonld.CompactError', None, cause)
+                'jsonld.CompactError', cause=cause)
 
         # do compaction
         compacted = self._compact(active_ctx, None, expanded, options)
@@ -604,7 +604,7 @@ class JsonLdProcessor:
                 input_, {}, options['documentLoader'], options['base'])
         except Exception as cause:
             raise JsonLdError('Could not perform JSON-LD expansion.',
-                'jsonld.ExpandError', None, cause)
+                'jsonld.ExpandError', cause=cause)
 
         active_ctx = self._get_initial_context(options)
         document = input_['document']
@@ -656,7 +656,7 @@ class JsonLdProcessor:
             expanded = self.expand(input_, options)
         except Exception as cause:
             raise JsonLdError('Could not expand input before flattening.',
-                'jsonld.FlattenError', None, cause)
+                'jsonld.FlattenError', cause=cause)
 
         # do flattening
         flattened = self._flatten(expanded)
@@ -671,7 +671,7 @@ class JsonLdProcessor:
             compacted = self.compact(flattened, ctx, options)
         except Exception as cause:
             raise JsonLdError('Could not compact flattened output.',
-                'jsonld.FlattenError', None, cause)
+                'jsonld.FlattenError', cause=cause)
 
         return compacted
 
@@ -729,7 +729,7 @@ class JsonLdProcessor:
             expanded = self.expand(input_, options)
         except JsonLdError as cause:
             raise JsonLdError('Could not expand input before framing.',
-                'jsonld.FrameError', None, cause)
+                'jsonld.FrameError', cause=cause)
 
         try:
             # expand frame
@@ -738,7 +738,7 @@ class JsonLdProcessor:
             expanded_frame = self.expand(frame, opts)
         except JsonLdError as cause:
             raise JsonLdError('Could not expand frame before framing.',
-                'jsonld.FrameError', None, cause)
+                'jsonld.FrameError', cause=cause)
 
         # do framing
         framed = self._frame(expanded, expanded_frame, options)
@@ -751,7 +751,7 @@ class JsonLdProcessor:
             result = self.compact(framed, ctx, options)
         except JsonLdError as cause:
             raise JsonLdError('Could not compact framed output.',
-                'jsonld.FrameError', None, cause)
+                'jsonld.FrameError', cause=cause)
 
         compacted = result['compacted']
         active_ctx = result['activeCtx']
@@ -792,7 +792,7 @@ class JsonLdProcessor:
         except JsonLdError as cause:
             raise JsonLdError(
                 'Could not convert input to RDF dataset before normalization.',
-                'jsonld.NormalizeError', None, cause)
+                'jsonld.NormalizeError', cause=cause)
 
         # do normalization
         return self._normalize(dataset, options)
@@ -869,7 +869,7 @@ class JsonLdProcessor:
             expanded = self.expand(input_, options)
         except JsonLdError as cause:
             raise JsonLdError('Could not expand input before serialization to '
-                'RDF.', 'jsonld.RdfError', None, cause)
+                'RDF.', 'jsonld.RdfError', cause=cause)
 
         # create node map for default graph (and any named graphs)
         namer = UniqueNamer('_:b')
@@ -924,7 +924,7 @@ class JsonLdProcessor:
         except Exception as cause:
             raise JsonLdError(
                 'Could not process JSON-LD context.',
-                'jsonld.ContextError', None, cause)
+                'jsonld.ContextError', cause=cause)
 
         # process context
         return self._process_context(active_ctx, local_ctx, options)
@@ -3616,7 +3616,7 @@ class JsonLdProcessor:
             raise JsonLdError(
                 'Invalid JSON-LD syntax; keywords cannot be overridden.',
                 'jsonld.SyntaxError', {'context': local_ctx},
-                code='keyword definition')
+                code='keyword redefinition')
 
         # remove old mapping
         if term in active_ctx['mappings']:
