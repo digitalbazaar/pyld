@@ -203,7 +203,7 @@ def get_jsonld_error_code(err):
             return err.code
         elif err.cause:
             return get_jsonld_error_code(err.cause)
-    return err.msg
+    return err.message
 
 
 def read_json(filename):
@@ -249,7 +249,7 @@ def create_test_options(opts=None):
         options.update(opts or {})
         if 'expandContext' in options:
             filename = os.path.join(test.dirname, options['expandContext'])
-            options['expandContext'] = readJson(filename)
+            options['expandContext'] = read_json(filename)
         return options
     return create
 

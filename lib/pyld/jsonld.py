@@ -1924,7 +1924,7 @@ class JsonLdProcessor:
             rval['@type'] = [rval['@type']]
         # handle @set and @list
         elif '@set' in rval or '@list' in rval:
-            if count > 1 and (count != 2 and '@index' in rval):
+            if count > 1 and not (count == 2 and '@index' in rval):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; if an element has the '
                     'property "@set" or "@list", then it can have at most '
@@ -3732,7 +3732,7 @@ class JsonLdProcessor:
             if type_ != '@id' and type_ != '@vocab':
                 # expand @type to full IRI
                 type_ = self._expand_iri(
-                    active_ctx, type_, vocab=True, base=True,
+                    active_ctx, type_, vocab=True,
                     local_ctx=local_ctx, defined=defined)
                 if not _is_absolute_iri(type_):
                     raise JsonLdError(
@@ -3955,8 +3955,8 @@ class JsonLdProcessor:
                     'Cyclical @context URLs detected.',
                     'jsonld.ContextUrlError', {'url': url},
                     code='recursive context inclusion')
-            _cycles = copy.deepcopy(cycles)
-            _cycles[url] = True
+            cycles_ = copy.deepcopy(cycles)
+            cycles_[url] = True
 
             # retrieve URL
             remote_doc = load_document(url)
@@ -3992,7 +3992,7 @@ class JsonLdProcessor:
                 ctx['@context'].append(remote_doc['contextUrl'])
 
             # recurse
-            self._retrieve_context_urls(ctx, cycles, load_document, url)
+            self._retrieve_context_urls(ctx, cycles_, load_document, url)
             urls[url] = ctx['@context']
 
         # replace all URLs in the input
