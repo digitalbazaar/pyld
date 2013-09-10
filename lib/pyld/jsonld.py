@@ -573,9 +573,23 @@ class JsonLdProcessor:
                 'document': input_
             }
 
+        try:
+            if not remote_doc['document']:
+                raise JsonLdError(
+                    'No remote document found at the given URL.',
+                    'jsonld.NullRemoteDocument')
+            if _is_string(remote_doc['document']):
+                remote_doc['document'] = json.loads(remote_doc['document'])
+        except Exception as cause:
+            raise JsonLdError(
+                'Could not retrieve a JSON-LD document from the URL. URL '
+                'derefencing not implemented.', 'jsonld.LoadDocumentError',
+                 {'remoteDoc': remote_doc}, code='loading document failed',
+                 cause=cause)
+
         # build meta-object and retrieve all @context urls
         input_ = {
-            'document': copy.deepcopy(input_),
+            'document': copy.deepcopy(remote_doc['document']),
             'remoteContext': {'@context': remote_doc['contextUrl']}
         }
         if 'expandContext' in options:
@@ -1898,8 +1912,8 @@ class JsonLdProcessor:
                     'Invalid JSON-LD syntax; only strings may be '
                     'language-tagged.', 'jsonld.SyntaxError',
                     {'element': rval}, code='invalid language-tagged value')
-            elif ('@type' in rval and not _is_absolute_iri(rval['@type']) or
-                rval['@type'].startswith('_:')):
+            elif ('@type' in rval and (not _is_absolute_iri(rval['@type']) or
+                rval['@type'].startswith('_:'))):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; an element containing "@value" '
                     'and "@type" must have an absolute IRI for the value '
