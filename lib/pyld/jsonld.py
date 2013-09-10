@@ -14,12 +14,13 @@ JSON-LD.
 
 __copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
-__version__ = '0.4.0'
+__version__ = '0.4.1'
 
 __all__ = ['compact', 'expand', 'flatten', 'frame', 'from_rdf', 'to_rdf',
-    'normalize', 'set_document_loader', 'load_document',
+    'normalize', 'set_document_loader', 'get_document_loader',
+    'parse_link_header', 'load_document',
     'register_rdf_parser', 'unregister_rdf_parser',
-    'JsonLdProcessor', 'ActiveContextCache']
+    'JsonLdProcessor', 'JsonLdError', 'ActiveContextCache']
 
 import copy, hashlib, json, os, re, string, sys, time, traceback
 import posixpath, socket, ssl
@@ -217,6 +218,63 @@ def set_document_loader(load_document):
     :param load_document(url): the document loader to use.
     """
     _default_document_loader = load_document
+
+
+def get_document_loader():
+    """
+    Gets the default JSON-LD document loader.
+
+    :return: the default document loader.
+    """
+    return _default_document_loader
+
+
+def parse_link_header(header):
+    """
+    Parses a link header. The results will be key'd by the value of "rel".
+
+    Link: <http://json-ld.org/contexts/person.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"
+
+    Parses as: {
+      'http://www.w3.org/ns/json-ld#context': {
+        target: http://json-ld.org/contexts/person.jsonld,
+        type: 'application/ld+json'
+      }
+    }
+
+    If there is more than one "rel" with the same IRI, then entries in the
+    resulting map for that "rel" will be lists.
+
+    :param header: the link header to parse.
+
+    :return: the parsed result.
+    """
+    rval = {}
+    # split on unbracketed/unquoted commas
+    entries = re.search(r'(?:<[^>]*?>|"[^"]*?"|[^,])+/g', header)
+    if not entries:
+        return
+    entries = entries.groups()
+    r_link_header = r'\s*<([^>]*?)>\s*(?:;\s*(.*))?'
+    for entry in entries:
+        match = re.search(r_link_header, entry)
+        if not match:
+            continue
+        match = match.groups()
+        result = {target: match[1]}
+        params = match[2]
+        r_params = r'(.*?)=(?:(?:"([^"]*?)")|([^"]*?))\s*(?:(?:;\s*)|$)/g'
+        matches = re.findall(r_params, params)
+        for match in matches:
+            result[match[1]] = match[3] if match[2] is None else match[2]
+        rel = result.get('rel', '')
+        if isinstance(rval.get(rel), list):
+            rval[rel].append(result)
+        elif rel in rval:
+            rval[rel] = [rval[rel], result]
+        else:
+            rval[rel] = result
+    return rval
 
 
 def load_document(url):
@@ -1137,11 +1195,11 @@ class JsonLdProcessor:
             line_number += 1
 
             # skip empty lines
-            if re.match(empty, line) is not None:
+            if re.search(empty, line) is not None:
                 continue
 
             # parse quad
-            match = re.match(quad, line)
+            match = re.search(quad, line)
             if match is None:
                 raise JsonLdError(
                     'Error while parsing N-Quads invalid quad.',
