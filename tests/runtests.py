@@ -20,6 +20,10 @@ from optparse import OptionParser
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from pyld import jsonld
 
+# support python 2
+if sys.version_info.major >= 3:
+    basestring = str
+
 ROOT_MANIFEST_DIR = None
 SKIP_TESTS = []
 
