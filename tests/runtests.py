@@ -202,7 +202,7 @@ def get_jsonld_error_code(err):
         if err.code:
             return err.code
         elif err.cause:
-            get_jsonld_error_code(err.cause)
+            return get_jsonld_error_code(err.cause)
     return err.msg
 
 
