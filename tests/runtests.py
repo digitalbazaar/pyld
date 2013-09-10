@@ -90,6 +90,9 @@ class TestRunner(unittest.TextTestRunner):
             print('Writing EARL report to: %s' % filename)
             result.writeReport(filename)
 
+        if not result.wasSuccessful():
+            exit(1)
+
 
 class Manifest:
     def __init__(self, data, filename):
