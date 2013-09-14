@@ -317,7 +317,7 @@ def load_document(url):
         raise e
     except Exception as cause:
         raise JsonLdError(
-            'Could not retrieve a JSON-LD document from the URL. ',
+            'Could not retrieve a JSON-LD document from the URL.',
             'jsonld.LoadDocumentError', code='loading document failed',
             cause=cause)
 
