@@ -40,6 +40,7 @@ Quick Examples
 --------------
 
 .. code-block::
+
     import json
     from pyld import jsonld
 
