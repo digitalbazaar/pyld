@@ -40,6 +40,8 @@ Quick Examples
 --------------
 
 .. code-block::
+    import json
+    from pyld import jsonld
 
     doc = {
         "http://schema.org/name": "Manu Sporny",
