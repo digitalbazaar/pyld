@@ -41,8 +41,8 @@ Quick Examples
 
 .. code-block::
 
-    import json
     from pyld import jsonld
+    import json
 
     doc = {
         "http://schema.org/name": "Manu Sporny",
@@ -75,7 +75,7 @@ Quick Examples
     # see: http://json-ld.org/spec/latest/json-ld/#expanded-document-form
     expanded = jsonld.expand(compacted)
 
-    print(json.dumps(compacted, indent=2))
+    print(json.dumps(expanded, indent=2))
     # Output:
     # {
     #   "http://schema.org/image": [{"@id": "http://manu.sporny.org/images/manu.png"}],
