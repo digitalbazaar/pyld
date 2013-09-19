@@ -4523,7 +4523,7 @@ class ActiveContextCache:
         key1 = json.dumps(active_ctx)
         key2 = json.dumps(local_ctx)
         self.order.append({'activeCtx': key1, 'localCtx': key2})
-        self.cache.setdefault(key1, {})[key2] = result
+        self.cache.setdefault(key1, {})[key2] = json.loads(json.dumps(result))
 
 
 class VerifiedHTTPSConnection(HTTPSConnection):
