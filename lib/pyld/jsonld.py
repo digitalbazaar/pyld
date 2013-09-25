@@ -1623,9 +1623,9 @@ class JsonLdProcessor:
 
                             # include @index from expanded @list, if any
                             if '@index' in expanded_item:
-                                compacted_item[self._compact_iri(
-                                    active_ctx, '@index')] = (
-                                        expanded_item['@index'])
+                                alias = self._compact_iri(active_ctx, '@index')
+                                compacted_item[alias] = (
+                                    expanded_item['@index'])
                         # can't use @list container for more than 1 list
                         elif item_active_property in rval:
                             raise JsonLdError(
