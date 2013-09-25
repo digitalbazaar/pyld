@@ -231,6 +231,7 @@ def set_document_loader(load_document):
 
     :param load_document(url): the document loader to use.
     """
+    global _default_document_loader
     _default_document_loader = load_document
 
 
