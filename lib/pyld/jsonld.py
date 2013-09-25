@@ -23,10 +23,19 @@ __all__ = [
     'register_rdf_parser', 'unregister_rdf_parser',
     'JsonLdProcessor', 'JsonLdError', 'ActiveContextCache']
 
-import copy, hashlib, json, os, re, string, sys, traceback
-import posixpath, socket, ssl
-from contextlib import closing
+import copy
+import hashlib
+import json
+import os
+import posixpath
+import re
+import socket
+import ssl
+import string
+import sys
+import traceback
 from collections import deque
+from contextlib import closing
 from functools import cmp_to_key
 from numbers import Integral, Real
 
