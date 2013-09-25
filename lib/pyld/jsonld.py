@@ -248,7 +248,8 @@ def parse_link_header(header):
     """
     Parses a link header. The results will be key'd by the value of "rel".
 
-    Link: <http://json-ld.org/contexts/person.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"
+    Link: <http://json-ld.org/contexts/person.jsonld>; \
+      rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"
 
     Parses as: {
       'http://www.w3.org/ns/json-ld#context': {
@@ -1542,7 +1543,8 @@ class JsonLdProcessor:
                     # handle double-reversed properties
                     for compacted_property, value in \
                             list(compacted_value.items()):
-                        mapping = active_ctx['mappings'].get(compacted_property)
+                        mapping = active_ctx['mappings'].get(
+                            compacted_property)
                         if mapping and mapping['reverse']:
                             container = JsonLdProcessor.get_context_value(
                                 active_ctx, compacted_property, '@container')
@@ -1555,7 +1557,8 @@ class JsonLdProcessor:
 
                     if len(compacted_value.keys()) > 0:
                         # use keyword alias and add value
-                        alias = self._compact_iri(active_ctx, expanded_property)
+                        alias = self._compact_iri(
+                            active_ctx, expanded_property)
                         JsonLdProcessor.add_value(rval, alias, compacted_value)
 
                     continue
@@ -1825,7 +1828,8 @@ class JsonLdProcessor:
 
                 # properties double-reversed
                 if '@reverse' in expanded_value:
-                    for rproperty, rvalue in expanded_value['@reverse'].items():
+                    for rproperty, rvalue in (
+                        expanded_value['@reverse'].items()):
                         JsonLdProcessor.add_value(
                             rval, rproperty, rvalue,
                             {'propertyIsArray': True})
@@ -1845,7 +1849,8 @@ class JsonLdProcessor:
                             raise JsonLdError(
                                 'Invalid JSON-LD syntax; "@reverse" '
                                 'value must not be an @value or an @list',
-                                'jsonld.SyntaxError', {'value': expanded_value},
+                                'jsonld.SyntaxError',
+                                {'value': expanded_value},
                                 code='invalid reverse property value')
                         JsonLdProcessor.add_value(
                             reverse_map, property, item,
@@ -1913,9 +1918,9 @@ class JsonLdProcessor:
                 for item in expanded_value:
                     if _is_value(item) or _is_list(item):
                         raise JsonLdError(
-                            'Invalid JSON-LD syntax; "@reverse" value must not '
-                            'be an @value or an @list.', 'jsonld.SyntaxError',
-                            {'value': expanded_value},
+                            'Invalid JSON-LD syntax; "@reverse" value must '
+                            'not be an @value or an @list.',
+                            'jsonld.SyntaxError', {'value': expanded_value},
                             code='invalid reverse property value')
                     JsonLdProcessor.add_value(
                         reverse_map, expanded_property, item,
@@ -2204,7 +2209,8 @@ class JsonLdProcessor:
 
                 node = node_map.setdefault(s, {'@id': s})
 
-                object_is_id = (o['type'] == 'IRI' or o['type'] == 'blank node')
+                object_is_id = (o['type'] == 'IRI' or
+                    o['type'] == 'blank node')
                 if object_is_id and o['value'] not in node_map:
                     node_map[o['value']] = {'@id': o['value']}
 
@@ -2252,8 +2258,10 @@ class JsonLdProcessor:
                 #   and, optionally, @type where the value is rdf:List.
                 node_key_count = len(node.keys())
                 while(property == RDF_REST and len(node['usages']) and
-                    _is_array(node[RDF_FIRST]) and len(node[RDF_FIRST]) == 1 and
-                    _is_array(node[RDF_REST]) and len(node[RDF_REST]) == 1 and
+                    _is_array(node[RDF_FIRST]) and
+                    len(node[RDF_FIRST]) == 1 and
+                    _is_array(node[RDF_REST]) and
+                    len(node[RDF_REST]) == 1 and
                     (node_key_count == 4 or (node_key_count == 5 and
                         _is_array(node.get('@type')) and
                         len(node['@type']) == 1 and
@@ -2343,7 +2351,7 @@ class JsonLdProcessor:
             if _is_object(ctx) and '@context' in ctx:
                 ctx = ctx['@context']
 
-            # context must be an object by now, all URLs retrieved prior to call
+            # context must be an object now, all URLs retrieved prior to call
             if not _is_object(ctx):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @context must be an object.',
@@ -2380,8 +2388,8 @@ class JsonLdProcessor:
                 elif base != '' and not _is_absolute_iri(base):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; the value of "@base" in a '
-                        '@context must be an absolute IRI or the empty string.',
-                        'jsonld.SyntaxError', {'context': ctx},
+                        '@context must be an absolute IRI or the empty '
+                        'string.', 'jsonld.SyntaxError', {'context': ctx},
                         code='invalid base IRI')
                 rval['@base'] = base or ''
                 defined['@base'] = True
@@ -2414,8 +2422,8 @@ class JsonLdProcessor:
                     del rval['@language']
                 elif not _is_string(value):
                     raise JsonLdError(
-                        'Invalid JSON-LD syntax; the value of "@language" in a '
-                        '@context must be a string or null.',
+                        'Invalid JSON-LD syntax; the value of "@language" in '
+                        'a @context must be a string or null.',
                         'jsonld.SyntaxError', {'context': ctx},
                         code='invalid default language')
                 else:
@@ -2543,7 +2551,8 @@ class JsonLdProcessor:
                     # RDF predicate
                     predicate = {}
                     if property.startswith('_:'):
-                        # skip bnode predicates unless producing generalized RDF
+                        # skip bnode predicates unless producing
+                        # generalized RDF
                         if not options['produceGeneralizedRdf']:
                             continue
                         predicate['type'] = 'blank node'
@@ -2939,7 +2948,8 @@ class JsonLdProcessor:
                                 # include other values automatically
                                 else:
                                     self._add_frame_output(
-                                        state, list_, '@list', copy.deepcopy(o))
+                                        state, list_, '@list',
+                                        copy.deepcopy(o))
                             continue
 
                         # recurse into subject reference
@@ -3372,7 +3382,7 @@ class JsonLdProcessor:
         # preferred options for the value of @type or language
         prefs = []
 
-        # determine prefs for @id based on whether or not value compacts to term
+        # determine prefs for @id based on whether value compacts to term
         if ((type_or_language_value == '@id' or
                 type_or_language_value == '@reverse') and
                 _is_subject_reference(value)):
@@ -3380,7 +3390,8 @@ class JsonLdProcessor:
             if type_or_language_value == '@reverse':
                 prefs.append('@reverse')
             # try to compact value to a term
-            term = self._compact_iri(active_ctx, value['@id'], None, vocab=True)
+            term = self._compact_iri(
+                active_ctx, value['@id'], None, vocab=True)
             mapping = active_ctx['mappings'].get(term)
             if term is not None and mapping and mapping['@id'] == value['@id']:
                 # prefer @vocab
@@ -3739,10 +3750,10 @@ class JsonLdProcessor:
                     local_ctx=local_ctx, defined=defined)
                 if not _is_absolute_iri(id_) and not _is_keyword(id_):
                     raise JsonLdError(
-                        'Invalid JSON-LD syntax; @context @id value must be an '
-                        'absolute IRI, a blank node identifier, or a keyword.',
-                        'jsonld.SyntaxError', {'context': local_ctx},
-                        code='invalid IRI mapping')
+                        'Invalid JSON-LD syntax; @context @id value must be '
+                        'an absolute IRI, a blank node identifier, or a '
+                        'keyword.', 'jsonld.SyntaxError',
+                        {'context': local_ctx}, code='invalid IRI mapping')
                 mapping['@id'] = id_
         if '@id' not in mapping:
             # see if the term has a prefix
@@ -3796,8 +3807,8 @@ class JsonLdProcessor:
                         {'context': local_ctx}, code='invalid type mapping')
                 if type_.startswith('_:'):
                     raise JsonLdError(
-                        'Invalid JSON-LD syntax; an @context @type values must '
-                        'be an IRI, not a blank node identifier.',
+                        'Invalid JSON-LD syntax; an @context @type values '
+                        'must be an IRI, not a blank node identifier.',
                         'jsonld.SyntaxError', {'context': local_ctx},
                         code='invalid type mapping')
             # add @type to mapping
@@ -4547,7 +4558,8 @@ class ActiveContextCache:
 class VerifiedHTTPSConnection(HTTPSConnection):
     """
     Used to verify SSL certificates when resolving URLs.
-    Taken from: http://thejosephturner.com/blog/2011/03/19/https-certificate-verification-in-python-with-urllib2/
+    Taken from: http://thejosephturner.com/blog/2011/03/19/https-\
+      certificate-verification-in-python-with-urllib2/
     """
 
     def connect(self):
