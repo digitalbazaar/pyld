@@ -695,7 +695,8 @@ class JsonLdProcessor:
             # expand input
             expanded = self.expand(input_, options)
         except Exception as cause:
-            raise JsonLdError('Could not expand input before flattening.',
+            raise JsonLdError(
+                'Could not expand input before flattening.',
                 'jsonld.FlattenError', cause=cause)
 
         # do flattening
@@ -710,7 +711,8 @@ class JsonLdProcessor:
         try:
             compacted = self.compact(flattened, ctx, options)
         except Exception as cause:
-            raise JsonLdError('Could not compact flattened output.',
+            raise JsonLdError(
+                'Could not compact flattened output.',
                 'jsonld.FlattenError', cause=cause)
 
         return compacted
@@ -781,7 +783,8 @@ class JsonLdProcessor:
             # expand input
             expanded = self.expand(input_, options)
         except JsonLdError as cause:
-            raise JsonLdError('Could not expand input before framing.',
+            raise JsonLdError(
+                'Could not expand input before framing.',
                 'jsonld.FrameError', cause=cause)
 
         try:
@@ -790,7 +793,8 @@ class JsonLdProcessor:
             opts['keepFreeFloatingNodes'] = True
             expanded_frame = self.expand(frame, opts)
         except JsonLdError as cause:
-            raise JsonLdError('Could not expand frame before framing.',
+            raise JsonLdError(
+                'Could not expand frame before framing.',
                 'jsonld.FrameError', cause=cause)
 
         # do framing
@@ -803,7 +807,8 @@ class JsonLdProcessor:
             options['activeCtx'] = True
             result = self.compact(framed, ctx, options)
         except JsonLdError as cause:
-            raise JsonLdError('Could not compact framed output.',
+            raise JsonLdError(
+                'Could not compact framed output.',
                 'jsonld.FrameError', cause=cause)
 
         compacted = result['compacted']
@@ -880,10 +885,11 @@ class JsonLdProcessor:
         if 'format' in options:
             # supported formats (processor-specific and global)
             if ((self.rdf_parsers is not None and
-                    not options['format'] in self.rdf_parsers) or
-                    (self.rdf_parsers is None and
-                    not options['format'] in _rdf_parsers)):
-                raise JsonLdError('Unknown input format.',
+                not options['format'] in self.rdf_parsers) or
+                (self.rdf_parsers is None and
+                not options['format'] in _rdf_parsers)):
+                raise JsonLdError(
+                    'Unknown input format.',
                     'jsonld.UnknownFormat', {'format': options['format']})
 
             if self.rdf_parsers is not None:
@@ -921,7 +927,8 @@ class JsonLdProcessor:
             # expand input
             expanded = self.expand(input_, options)
         except JsonLdError as cause:
-            raise JsonLdError('Could not expand input before serialization to '
+            raise JsonLdError(
+                'Could not expand input before serialization to '
                 'RDF.', 'jsonld.RdfError', cause=cause)
 
         # create node map for default graph (and any named graphs)
@@ -940,7 +947,8 @@ class JsonLdProcessor:
         if 'format' in options:
             if options['format'] == 'application/nquads':
                 return self.to_nquads(dataset)
-            raise JsonLdError('Unknown output format.',
+            raise JsonLdError(
+                'Unknown output format.',
                 'jsonld.UnknownFormat', {'format': options['format']})
         return dataset
 
@@ -2178,7 +2186,8 @@ class JsonLdProcessor:
         if 'format' in options:
             if options['format'] == 'application/nquads':
                 return ''.join(normalized)
-            raise JsonLdError('Unknown output format.',
+            raise JsonLdError(
+                'Unknown output format.',
                 'jsonld.UnknownFormat', {'format': options['format']})
 
         # return parsed RDF dataset
