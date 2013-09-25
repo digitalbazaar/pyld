@@ -762,7 +762,7 @@ class JsonLdProcessor:
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
                 'jsonld.LoadDocumentError',
-                {'remoteDoc': remote_doc}, code='loading document failed',
+                {'remoteDoc': remote_frame}, code='loading document failed',
                 cause=cause)
 
         # preserve frame context
