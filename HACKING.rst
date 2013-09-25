@@ -1,7 +1,7 @@
-Hacking on payswarm.js
-======================
+Hacking on PyLD
+===============
 
-Want to hack on payswarm.js? Great! Here are a few notes:
+Want to hack on PyLD? Great! Here are a few notes:
 
 Code
 ----
