@@ -887,7 +887,7 @@ class JsonLdProcessor:
             if ((self.rdf_parsers is not None and
                 not options['format'] in self.rdf_parsers) or
                 (self.rdf_parsers is None and
-                not options['format'] in _rdf_parsers)):
+                    not options['format'] in _rdf_parsers)):
                 raise JsonLdError(
                     'Unknown input format.',
                     'jsonld.UnknownFormat', {'format': options['format']})
@@ -1078,18 +1078,18 @@ class JsonLdProcessor:
 
         if _is_array(value):
             if (len(value) == 0 and options['propertyIsArray'] and
-                    property not in subject):
+                property not in subject):
                 subject[property] = []
             for v in value:
                 JsonLdProcessor.add_value(subject, property, v, options)
         elif property in subject:
             # check if subject already has value if duplicates not allowed
-            has_value = (not options['allowDuplicate'] and
-                    JsonLdProcessor.has_value(subject, property, value))
+            has_value = not options['allowDuplicate'] and (
+                JsonLdProcessor.has_value(subject, property, value))
 
             # make property an array if value not present or always an array
-            if (not _is_array(subject[property]) and
-                    (not has_value or options['propertyIsArray'])):
+            if not _is_array(subject[property]) and (
+                not has_value or options['propertyIsArray']):
                 subject[property] = [subject[property]]
 
             # add new value
@@ -1307,7 +1307,8 @@ class JsonLdProcessor:
                 triple['object'] = {'type': 'blank node', 'value': match[4]}
             else:
                 triple['object'] = {'type': 'literal'}
-                unescaped = (match[5]
+                unescaped = (
+                    match[5]
                     .replace('\\"', '\"')
                     .replace('\\t', '\t')
                     .replace('\\n', '\n')
@@ -1410,7 +1411,7 @@ class JsonLdProcessor:
         # object is IRI, bnode, or literal
         if o['type'] == 'IRI':
             quad += '<' + o['value'] + '>'
-        elif(o['type'] == 'blank node'):
+        elif (o['type'] == 'blank node'):
             # normalization mode
             if bnode is not None:
                 quad += '_:a' if o['value'] == bnode else '_:z'
@@ -1418,7 +1419,8 @@ class JsonLdProcessor:
             else:
                 quad += o['value']
         else:
-            escaped = (o['value']
+            escaped = (
+                o['value']
                 .replace('\\', '\\\\')
                 .replace('\t', '\\t')
                 .replace('\n', '\\n')
@@ -1466,7 +1468,7 @@ class JsonLdProcessor:
         :return: True if the triples are the same, False if not.
         """
         for attr in ['subject', 'predicate', 'object']:
-            if(t1[attr]['type'] != t2[attr]['type'] or
+            if (t1[attr]['type'] != t2[attr]['type'] or
                     t1[attr]['value'] != t2[attr]['value']):
                 return False
 
@@ -1535,8 +1537,9 @@ class JsonLdProcessor:
 
                     # use keyword alias and add value
                     alias = self._compact_iri(active_ctx, expanded_property)
-                    is_array = (_is_array(compacted_value) and
-                            len(compacted_value) == 0)
+                    is_array = (
+                        _is_array(compacted_value) and
+                        len(compacted_value) == 0)
                     JsonLdProcessor.add_value(
                         rval, alias, compacted_value,
                         {'propertyIsArray': is_array})
@@ -1556,8 +1559,8 @@ class JsonLdProcessor:
                         if mapping and mapping['reverse']:
                             container = JsonLdProcessor.get_context_value(
                                 active_ctx, compacted_property, '@container')
-                            use_array = (container == '@set' or
-                                    not options['compactArrays'])
+                            use_array = (container == '@set' or (
+                                not options['compactArrays']))
                             JsonLdProcessor.add_value(
                                 rval, compacted_property, value,
                                 {'propertyIsArray': use_array})
@@ -1653,7 +1656,7 @@ class JsonLdProcessor:
                         # if container is a language map, simplify compacted
                         # value to a simple string
                         if (container == '@language' and
-                                _is_value(compacted_item)):
+                            _is_value(compacted_item)):
                             compacted_item = compacted_item['@value']
 
                         # add compact value to map object using key from
@@ -1665,12 +1668,13 @@ class JsonLdProcessor:
                         # use an array if compactArrays flag is false,
                         # @container is @set or @list, value is an empty
                         # array, or key is @graph
-                        is_array = (not options['compactArrays'] or
-                                container == '@set' or container == '@list' or
-                                (_is_array(compacted_item) and
-                                len(compacted_item) == 0) or
-                                expanded_property == '@list' or
-                                expanded_property == '@graph')
+                        is_array = (
+                            not options['compactArrays'] or
+                            container == '@set' or container == '@list' or
+                            (_is_array(compacted_item) and (
+                                len(compacted_item) == 0)) or
+                            expanded_property == '@list' or
+                            expanded_property == '@graph')
 
                         # add compact value
                         JsonLdProcessor.add_value(
@@ -1757,7 +1761,7 @@ class JsonLdProcessor:
 
             # drop non-absolute IRI keys that aren't keywords
             if (expanded_property is None or not
-                    (_is_absolute_iri(expanded_property) or
+                (_is_absolute_iri(expanded_property) or
                     _is_keyword(expanded_property))):
                 continue
 
@@ -1800,7 +1804,7 @@ class JsonLdProcessor:
 
             # @value must not be an object or an array
             if (expanded_property == '@value' and
-                    (_is_object(value) or _is_array(value))):
+                (_is_object(value) or _is_array(value))):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; "@value" value must not be an '
                     'object or an array.', 'jsonld.SyntaxError',
@@ -1937,8 +1941,8 @@ class JsonLdProcessor:
 
             # add value for property, use an array exception for certain
             # key words
-            use_array = (expanded_property not in ['@index', '@id', '@type',
-                '@value', '@language'])
+            use_array = (expanded_property not in [
+                '@index', '@id', '@type', '@value', '@language'])
             JsonLdProcessor.add_value(
                 rval, expanded_property, expanded_value,
                 {'propertyIsArray': use_array})
@@ -1977,8 +1981,8 @@ class JsonLdProcessor:
                     'Invalid JSON-LD syntax; only strings may be '
                     'language-tagged.', 'jsonld.SyntaxError',
                     {'element': rval}, code='invalid language-tagged value')
-            elif ('@type' in rval and (not _is_absolute_iri(rval['@type']) or
-                    rval['@type'].startswith('_:'))):
+            elif '@type' in rval and (not _is_absolute_iri(rval['@type']) or (
+                rval['@type'].startswith('_:'))):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; an element containing "@value" '
                     'and "@type" must have an absolute IRI for the value '
@@ -2006,12 +2010,12 @@ class JsonLdProcessor:
 
         # drop certain top-level objects that do not occur in lists
         if (_is_object(rval) and not options.get('keepFreeFloatingNodes') and
-                not inside_list and (active_property is None or
-                expanded_active_property == '@graph')):
+            not inside_list and (active_property is None or (
+                expanded_active_property == '@graph'))):
             # drop empty object or top-level @value/@list,
             # or object with only @id
             if (count == 0 or '@value' in rval or '@list' in rval or
-                    (count == 1 and '@id' in rval)):
+                (count == 1 and '@id' in rval)):
                 rval = None
 
         return rval
@@ -2041,8 +2045,8 @@ class JsonLdProcessor:
                     if not _is_subject_reference(v)])
 
         # produce flattened output
-        return [value for key, value in sorted(default_graph.items())
-            if not _is_subject_reference(value)]
+        return [value for key, value in sorted(default_graph.items()) if not (
+            _is_subject_reference(value))]
 
     def _frame(self, input_, frame, options):
         """
@@ -2173,8 +2177,8 @@ class JsonLdProcessor:
         for quad in quads:
             for attr in ['subject', 'object', 'name']:
                 if (attr in quad and
-                        quad[attr]['type'] == 'blank node' and
-                        not quad[attr]['value'].startswith('_:c14n')):
+                    quad[attr]['type'] == 'blank node' and
+                    not quad[attr]['value'].startswith('_:c14n')):
                     quad[attr]['value'] = namer.get_name(quad[attr]['value'])
             normalized.append(JsonLdProcessor.to_nquad(
                 quad, quad['name']['value'] if 'name' in quad else None))
@@ -2218,8 +2222,8 @@ class JsonLdProcessor:
 
                 node = node_map.setdefault(s, {'@id': s})
 
-                object_is_id = (o['type'] == 'IRI' or
-                    o['type'] == 'blank node')
+                object_is_id = (
+                    o['type'] == 'IRI' or o['type'] == 'blank node')
                 if object_is_id and o['value'] not in node_map:
                     node_map[o['value']] = {'@id': o['value']}
 
@@ -2266,12 +2270,14 @@ class JsonLdProcessor:
                 # 4. Have no keys other than: @id, usages, rdf:first, rdf:rest
                 #   and, optionally, @type where the value is rdf:List.
                 node_key_count = len(node.keys())
-                while(property == RDF_REST and len(node['usages']) and
+                while(
+                    property == RDF_REST and len(node['usages']) and
                     _is_array(node[RDF_FIRST]) and
                     len(node[RDF_FIRST]) == 1 and
                     _is_array(node[RDF_REST]) and
                     len(node[RDF_REST]) == 1 and
-                    (node_key_count == 4 or (node_key_count == 5 and
+                    (node_key_count == 4 or (
+                        node_key_count == 5 and
                         _is_array(node.get('@type')) and
                         len(node['@type']) == 1 and
                         node['@type'][0] == RDF_LIST))):
@@ -2498,8 +2504,8 @@ class JsonLdProcessor:
             active_ctx, active_property, '@type')
 
         # do @id expansion (automatic for @graph)
-        if (type_ == '@id' or (expanded_property == '@graph'
-                and _is_string(value))):
+        if (type_ == '@id' or (
+                expanded_property == '@graph' and _is_string(value))):
             return {'@id': self._expand_iri(active_ctx, value, base=True)}
         # do @id expansion w/vocab
         if type_ == '@vocab':
@@ -2649,8 +2655,8 @@ class JsonLdProcessor:
                 object['datatype'] = datatype or XSD_BOOLEAN
             elif _is_double(value) or datatype == XSD_DOUBLE:
                 # canonical double representation
-                object['value'] = re.sub(r'(\d)0*E\+?0*(\d)', r'\1E\2',
-                    ('%1.15E' % value))
+                object['value'] = re.sub(r'(\d)0*E\+?0*(\d)', r'\1E\2', (
+                    '%1.15E' % value))
                 object['datatype'] = datatype or XSD_DOUBLE
             elif _is_integer(value):
                 object['value'] = str(value)
@@ -2713,8 +2719,8 @@ class JsonLdProcessor:
                     elif type_ == XSD_DOUBLE:
                         rval['@value'] = float(rval['@value'])
                 # do not add native type
-                if type_ not in [XSD_BOOLEAN, XSD_INTEGER, XSD_DOUBLE,
-                        XSD_STRING]:
+                if type_ not in [
+                    XSD_BOOLEAN, XSD_INTEGER, XSD_DOUBLE, XSD_STRING]:
                     rval['@type'] = type_
             elif type_ != XSD_STRING:
                 rval['@type'] = type_
@@ -3012,7 +3018,7 @@ class JsonLdProcessor:
         :param frame: the frame to validate.
         """
         if (not _is_array(frame) or len(frame) != 1 or
-                not _is_object(frame[0])):
+            not _is_object(frame[0])):
             raise JsonLdError(
                 'Invalid JSON-LD syntax; a JSON-LD frame must be a single '
                 'object.', 'jsonld.SyntaxError', {'frame': frame})
@@ -3045,9 +3051,8 @@ class JsonLdProcessor:
         """
         # check @type (object value means 'any' type, fall through to
         # ducktyping)
-        if ('@type' in frame and
-                not (len(frame['@type']) == 1 and
-                _is_object(frame['@type'][0]))):
+        if '@type' in frame and not (len(frame['@type']) == 1 and (
+            _is_object(frame['@type'][0]))):
             types = frame['@type']
             for t in types:
                 # any matching @type is a match
@@ -3145,8 +3150,8 @@ class JsonLdProcessor:
             ids = embeds.keys()
             for next in ids:
                 if (next in embeds and
-                        _is_object(embeds[next]['parent']) and
-                        embeds[next]['parent']['@id'] == id_):
+                    _is_object(embeds[next]['parent']) and
+                    embeds[next]['parent']['@id'] == id_):
                     del embeds[next]
                     remove_dependents(next)
         remove_dependents(id_)
@@ -3209,8 +3214,8 @@ class JsonLdProcessor:
                 container = JsonLdProcessor.get_context_value(
                     ctx, prop, '@container')
                 if (options['compactArrays'] and
-                        _is_array(result) and len(result) == 1 and
-                        container != '@set' and container != '@list'):
+                    _is_array(result) and len(result) == 1 and
+                    container != '@set' and container != '@list'):
                     result = result[0]
                 input_[prop] = result
         return input_
@@ -3321,8 +3326,8 @@ class JsonLdProcessor:
 
                     # skip permutation if path is already >= chosen path
                     if (chosen_path is not None and
-                            len(path) >= len(chosen_path) and
-                            path > chosen_path):
+                        len(path) >= len(chosen_path) and
+                        path > chosen_path):
                         skipped = True
                         break
 
@@ -3337,13 +3342,13 @@ class JsonLdProcessor:
 
                         # skip permutation if path is already >= chosen path
                         if (chosen_path is not None and
-                                len(path) >= len(chosen_path) and
-                                path > chosen_path):
+                            len(path) >= len(chosen_path) and
+                            path > chosen_path):
                             skipped = True
                             break
 
                 if (not skipped and
-                        (chosen_path is None or path < chosen_path)):
+                    (chosen_path is None or path < chosen_path)):
                     chosen_path = path
                     chosen_namer = path_namer_copy
 
@@ -3392,9 +3397,9 @@ class JsonLdProcessor:
         prefs = []
 
         # determine prefs for @id based on whether value compacts to term
-        if ((type_or_language_value == '@id' or
-                type_or_language_value == '@reverse') and
-                _is_subject_reference(value)):
+        if (_is_subject_reference(value) and (
+                type_or_language_value == '@id' or
+                type_or_language_value == '@reverse')):
             # prefer @reverse first
             if type_or_language_value == '@reverse':
                 prefs.append('@reverse')
@@ -3549,7 +3554,7 @@ class JsonLdProcessor:
                 continue
             # skip entries with @ids that are not partial matches
             if (definition is None or definition['@id'] == iri or
-                    not iri.startswith(definition['@id'])):
+                not iri.startswith(definition['@id'])):
                 continue
 
             # a CURIE is usable if:
@@ -3564,8 +3569,9 @@ class JsonLdProcessor:
 
             # select curie if it is shorter or the same length but
             # lexicographically less than the current choice
-            if (is_usable_curie and (candidate is None or
-                    _compare_shortest_least(curie, candidate) < 0)):
+            if (is_usable_curie and (
+                candidate is None or _compare_shortest_least(
+                    curie, candidate) < 0)):
                 candidate = curie
 
         # return curie candidate
@@ -3604,8 +3610,7 @@ class JsonLdProcessor:
             if not preserve_index:
                 # matching @type or @language specified in context, compact
                 if (('@type' in value and value['@type'] == type_) or
-                        ('@language' in value and
-                        value['@language'] == language)):
+                    ('@language' in value and value['@language'] == language)):
                     return value['@value']
 
             # return just the value of @value if all are true:
@@ -3613,8 +3618,8 @@ class JsonLdProcessor:
             # 2. there is no default language or @value is not a string or
             #  the key has a mapping with a null @language
             key_count = len(value)
-            is_value_only_key = (key_count == 1 or (key_count == 2 and
-                '@index' in value and not preserve_index))
+            is_value_only_key = (key_count == 1 or (
+                key_count == 2 and '@index' in value and not preserve_index))
             has_default_language = '@language' in active_ctx
             is_value_string = _is_string(value['@value'])
             has_null_mapping = (
@@ -3701,8 +3706,8 @@ class JsonLdProcessor:
         value = local_ctx[term]
 
         # clear context entry
-        if (value is None or (_is_object(value) and '@id' in value and
-                value['@id'] is None)):
+        if (value is None or (
+            _is_object(value) and '@id' in value and value['@id'] is None)):
             active_ctx['mappings'][term] = None
             defined[term] = True
             return
@@ -3777,8 +3782,8 @@ class JsonLdProcessor:
                 # set @id based on prefix parent
                 if active_ctx['mappings'].get(prefix) is not None:
                     suffix = term[colon + 1:]
-                    mapping['@id'] = (active_ctx['mappings'][prefix]['@id'] +
-                        suffix)
+                    mapping['@id'] = (
+                        active_ctx['mappings'][prefix]['@id'] + suffix)
                 # term is an absolute IRI
                 else:
                     mapping['@id'] = term
@@ -3832,7 +3837,7 @@ class JsonLdProcessor:
                     '@language.', 'jsonld.SyntaxError',
                     {'context': local_ctx}, code='invalid container mapping')
             if (mapping['reverse'] and container != '@index' and
-                    container != '@set' and container is not None):
+                container != '@set' and container is not None):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @context @container value for '
                     'an @reverse type definition must be @index or @set.',
@@ -3887,7 +3892,7 @@ class JsonLdProcessor:
 
         # define dependency not if defined
         if (local_ctx and value in local_ctx and
-                defined.get(value) is not True):
+            defined.get(value) is not True):
             self._create_term_definition(active_ctx, local_ctx, value, defined)
 
         if vocab and value in active_ctx['mappings']:
@@ -4278,9 +4283,9 @@ def permutations(elements):
         for i in range(length):
             e = elements[i]
             is_left = left[e]
-            if((k is None or e > k) and
-                    ((is_left and i > 0 and e > elements[i - 1]) or
-                    (not is_left and i < last and e > elements[i + 1]))):
+            if ((k is None or e > k) and
+                ((is_left and i > 0 and e > elements[i - 1]) or (
+                    not is_left and i < last and e > elements[i + 1]))):
                 k, pos = e, i
 
         # no more permutations
@@ -4376,7 +4381,7 @@ def _validate_type_value(v):
     :param v: the value to check.
     """
     # must be a string or empty object
-    if (_is_string(v) or _is_empty_object(v)):
+    if _is_string(v) or _is_empty_object(v):
         return
 
     # must be an array
@@ -4522,8 +4527,8 @@ def _is_bnode(v):
         if '@id' in v:
             rval = v['@id'].startswith('_:')
         else:
-            rval = (len(v) == 0 or not
-                ('@value' in v or '@set' in v or '@list' in v))
+            rval = (len(v) == 0 or not (
+                '@value' in v or '@set' in v or '@list' in v))
     return rval
 
 
@@ -4579,11 +4584,12 @@ class VerifiedHTTPSConnection(HTTPSConnection):
             self.sock = sock
             self._tunnel()
         # wrap the socket using verification with trusted_root_certs
-        self.sock = ssl.wrap_socket(sock,
-                self.key_file,
-                self.cert_file,
-                cert_reqs=ssl.CERT_REQUIRED,
-                ca_certs=_trust_root_certificates)
+        self.sock = ssl.wrap_socket(
+            sock,
+            self.key_file,
+            self.cert_file,
+            cert_reqs=ssl.CERT_REQUIRED,
+            ca_certs=_trust_root_certificates)
 
 
 class VerifiedHTTPSHandler(HTTPSHandler):
