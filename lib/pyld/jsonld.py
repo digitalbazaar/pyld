@@ -2223,7 +2223,8 @@ class JsonLdProcessor:
                 if object_is_id and o['value'] not in node_map:
                     node_map[o['value']] = {'@id': o['value']}
 
-                if p == RDF_TYPE and object_is_id:
+                if (p == RDF_TYPE and not options.get('useRdfType', False) and
+                        object_is_id):
                     JsonLdProcessor.add_value(
                         node, '@type', o['value'], {'propertyIsArray': True})
                     continue
