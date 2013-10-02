@@ -14,7 +14,7 @@ JSON-LD.
 
 __copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
-__version__ = '0.4.5'
+__version__ = '0.4.6-dev'
 
 __all__ = [
     'compact', 'expand', 'flatten', 'frame', 'from_rdf', 'to_rdf',
