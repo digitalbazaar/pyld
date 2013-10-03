@@ -427,7 +427,8 @@ def remove_base(base, iri):
     if not (base.scheme == rel.scheme and base.netloc == rel.netloc):
         return iri
 
-    path = posixpath.normpath(posixpath.relpath(rel.path, base.path))
+    path = posixpath.relpath(rel.path, base.path) if rel.path else ''
+    path = posixpath.normpath(path)
     if rel.path.endswith('/') and not path.endswith('/'):
         path += '/'
 
