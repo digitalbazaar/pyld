@@ -395,7 +395,7 @@ def prepend_base(base, iri):
 
     # normalize path
     path = posixpath.normpath(path)
-    if add_slash:
+    if not path.endswith('/') and add_slash:
         path += '/'
 
     # do not include '.' path for fragments
