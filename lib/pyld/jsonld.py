@@ -429,6 +429,9 @@ def remove_base(base, iri):
 
     path = posixpath.relpath(rel.path, base.path) if rel.path else ''
     path = posixpath.normpath(path)
+    if path == '.' and not rel.path.endswith('/') and not (
+            rel.query or rel.fragment):
+        path = posixpath.basename(rel.path)
     if rel.path.endswith('/') and not path.endswith('/'):
         path += '/'
 
