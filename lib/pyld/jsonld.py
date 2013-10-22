@@ -2792,10 +2792,15 @@ class JsonLdProcessor:
                 reverse_map = input_['@reverse']
                 for reverse_property, items in reverse_map.items():
                     for item in items:
+                        item_name = item.get('@id')
+                        if _is_bnode(item):
+                            item_name = namer.get_name(item_name)
+                        self._create_node_map(
+                            item, graphs, graph, namer, item_name)
                         JsonLdProcessor.add_value(
-                            item, reverse_property, referenced_node,
+                            graphs[graph][item_name], reverse_property,
+                            referenced_node,
                             {'propertyIsArray': True, 'allowDuplicate': False})
-                        self._create_node_map(item, graphs, graph, namer)
                 continue
 
             # recurse into graph
