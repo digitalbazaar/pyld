@@ -370,6 +370,10 @@ def prepend_base(base, iri):
 
     :return: the absolute IRI.
     """
+    # skip IRI processing
+    if base is None:
+        return iri
+
     # already an absolute iri
     if _is_absolute_iri(iri):
         return iri
@@ -420,6 +424,10 @@ def remove_base(base, iri):
 
     :return: the relative IRI if relative to base, otherwise the absolute IRI.
     """
+    # skip IRI processing
+    if base is None:
+        return iri
+
     base = urllib_parse.urlsplit(base)
     rel = urllib_parse.urlsplit(iri)
 
@@ -2405,7 +2413,7 @@ class JsonLdProcessor:
                         '@context must be an absolute IRI or the empty '
                         'string.', 'jsonld.SyntaxError', {'context': ctx},
                         code='invalid base IRI')
-                rval['@base'] = base or ''
+                rval['@base'] = base
                 defined['@base'] = True
 
             # handle @vocab
