@@ -39,7 +39,7 @@ require a very small memory footprint in order to operate.
 Quick Examples
 --------------
 
-.. code-block::
+.. code-block:: Python
 
     from pyld import jsonld
     import json
