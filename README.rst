@@ -36,6 +36,15 @@ added semantics. Finally, the format is intended to be fast to parse, fast
 to generate, stream-based and document-based processing compatible, and
 require a very small memory footprint in order to operate.
 
+Installation
+------------
+
+PyLD can be installed with pip_:
+
+.. code-block:: bash
+
+    $ pip install PyLD
+
 Quick Examples
 --------------
 
@@ -128,14 +137,17 @@ the ``json-ld.org`` hosted on GitHub:
 
 https://github.com/json-ld/json-ld.org
 
-Then run the test application using the directory containing the tests::
+Then run the test application using the directory containing the tests:
 
-    python tests/runtests.py -d {PATH_TO_JSON_LD_ORG/test-suite}
+.. code-block:: bash
 
-.. _JSON-LD: http://json-ld.org/
-.. _Python: http://www.python.org/
+    $ python tests/runtests.py -d {PATH_TO_JSON_LD_ORG/test-suite}
+
 .. _Digital Bazaar: http://digitalbazaar.com/
-.. _RDFa: http://www.w3.org/TR/rdfa-core/
-.. _Microformats: http://microformats.org/
+.. _JSON-LD: http://json-ld.org/
 .. _Microdata: http://www.w3.org/TR/microdata/
+.. _Microformats: http://microformats.org/
+.. _Python: http://www.python.org/
+.. _RDFa: http://www.w3.org/TR/rdfa-core/
 .. _RFC4627: http://www.ietf.org/rfc/rfc4627.txt
+.. _pip: http://www.pip-installer.org/
