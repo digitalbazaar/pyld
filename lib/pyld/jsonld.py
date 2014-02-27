@@ -76,7 +76,7 @@ except ImportError:
         return K
 
 # support python 2
-if sys.version_info.major >= 3:
+if sys.version_info[0] >= 3:
     from urllib.request import build_opener as urllib_build_opener
     from urllib.request import HTTPSHandler
     import urllib.parse as urllib_parse
