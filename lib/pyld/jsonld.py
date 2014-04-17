@@ -303,6 +303,8 @@ def load_document(url):
     try:
         https_handler = VerifiedHTTPSHandler()
         url_opener = urllib_build_opener(https_handler)
+        url_opener.addheaders = [
+            ('Accept', 'application/ld+json, application/json')]
         with closing(url_opener.open(url)) as handle:
             doc = {
                 'contextUrl': None,
