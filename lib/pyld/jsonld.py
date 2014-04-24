@@ -12,7 +12,7 @@ JSON-LD.
 .. moduleauthor:: Tim McNamara <tim.mcnamara@okfn.org>
 """
 
-__copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
+__copyright__ = 'Copyright (c) 2011-2014 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
 __version__ = '0.5.1-dev'
 
