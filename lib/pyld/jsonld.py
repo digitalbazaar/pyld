@@ -24,7 +24,9 @@ __all__ = [
     'JsonLdProcessor', 'JsonLdError', 'ActiveContextCache']
 
 import copy
+import gzip
 import hashlib
+import io
 import json
 import os
 import posixpath
@@ -304,12 +306,19 @@ def load_document(url):
         https_handler = VerifiedHTTPSHandler()
         url_opener = urllib_build_opener(https_handler)
         url_opener.addheaders = [
-            ('Accept', 'application/ld+json, application/json')]
+            ('Accept', 'application/ld+json, application/json'),
+            ('Accept-Encoding', 'deflate')]
         with closing(url_opener.open(url)) as handle:
+            if handle.info().get('Content-Encoding') == 'gzip':
+                buf = io.BytesIO(handle.read())
+                f = gzip.GzipFile(fileobj=buf, mode='rb')
+                data = f.read()
+            else:
+                data = handle.read()
             doc = {
                 'contextUrl': None,
                 'documentUrl': url,
-                'document': handle.read().decode('utf8')
+                'document': data.decode('utf8')
             }
             doc['documentUrl'] = handle.geturl()
             headers = dict(handle.info())
