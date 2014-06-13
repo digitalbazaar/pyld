@@ -20,8 +20,13 @@ from optparse import OptionParser
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from pyld import jsonld
 
+try:
+    from unittest import TextTestResult
+except ImportError:
+    from unittest import _TextTestResult as TextTestResult
+
 # support python 2
-if sys.version_info.major >= 3:
+if sys.version_info[0] >= 3:
     basestring = str
 
 ROOT_MANIFEST_DIR = None
@@ -34,11 +39,14 @@ class TestRunner(unittest.TextTestRunner):
 
     def __init__(self, stream=sys.stderr, descriptions=True, verbosity=1):
         unittest.TextTestRunner.__init__(
-            self, stream, descriptions, verbosity, resultclass=EarlTestResult)
+            self, stream, descriptions, verbosity)
 
         # command line options
         self.options = {}
         self.parser = OptionParser()
+
+    def _makeResult(self):
+        return EarlTestResult(self.stream, self.descriptions, self.verbosity)
 
     def main(self):
         print('PyLD Tests')
@@ -220,7 +228,7 @@ def read_json(filename):
 
 def read_file(filename):
     with open(filename) as f:
-        if sys.version_info.major >= 3:
+        if sys.version_info[0] >= 3:
             return f.read()
         else:
             return  f.read().decode('utf8')
@@ -250,9 +258,10 @@ def create_test_options(opts=None):
     def create(test):
         http_options = ['contentType', 'httpLink', 'httpStatus', 'redirectTo']
         test_options = test.data.get('option', {})
-        options = {
-            k: v for k, v in test_options.items() if k not in http_options
-        }
+        options = {}
+        for k, v in test_options.items():
+            if k not in http_options:
+                options[k] = v
         options['documentLoader'] = create_document_loader(test)
         options.update(opts or {})
         if 'expandContext' in options:
@@ -309,21 +318,21 @@ def create_document_loader(test):
     return local_loader
 
 
-class EarlTestResult(unittest.TextTestResult):
+class EarlTestResult(TextTestResult):
     def __init__(self, stream, descriptions, verbosity):
-        unittest.TextTestResult.__init__(self, stream, descriptions, verbosity)
+        TextTestResult.__init__(self, stream, descriptions, verbosity)
         self.report = EarlReport()
 
     def addError(self, test, err):
-        unittest.TextTestResult.addError(self, test, err)
+        TextTestResult.addError(self, test, err)
         self.report.add_assertion(test, False)
 
     def addFailure(self, test, err):
-        unittest.TextTestResult.addFailure(self, test, err)
+        TextTestResult.addFailure(self, test, err)
         self.report.add_assertion(test, False)
 
     def addSuccess(self, test):
-        unittest.TextTestResult.addSuccess(self, test)
+        TextTestResult.addSuccess(self, test)
         self.report.add_assertion(test, True)
 
     def writeReport(self, filename):

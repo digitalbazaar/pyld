@@ -38,11 +38,45 @@ import sys
 import traceback
 from collections import deque
 from contextlib import closing
-from functools import cmp_to_key
 from numbers import Integral, Real
 
+try:
+    from functools import cmp_to_key
+except ImportError:
+    def cmp_to_key(mycmp):
+        """
+        Convert a cmp= function into a key= function
+
+        Source: http://hg.python.org/cpython/file/default/Lib/functools.py
+        """
+        class K(object):
+            __slots__ = ['obj']
+
+            def __init__(self, obj):
+                self.obj = obj
+
+            def __lt__(self, other):
+                return mycmp(self.obj, other.obj) < 0
+
+            def __gt__(self, other):
+                return mycmp(self.obj, other.obj) > 0
+
+            def __eq__(self, other):
+                return mycmp(self.obj, other.obj) == 0
+
+            def __le__(self, other):
+                return mycmp(self.obj, other.obj) <= 0
+
+            def __ge__(self, other):
+                return mycmp(self.obj, other.obj) >= 0
+
+            def __ne__(self, other):
+                return mycmp(self.obj, other.obj) != 0
+            __hash__ = None
+        return K
+
 # support python 2
-if sys.version_info.major >= 3:
+if sys.version_info[0] >= 3:
     from urllib.request import build_opener as urllib_build_opener
     from urllib.request import HTTPSHandler
     import urllib.parse as urllib_parse
@@ -448,6 +482,9 @@ def remove_base(base, iri):
 
     path = posixpath.relpath(rel.path, base.path) if rel.path else ''
     path = posixpath.normpath(path)
+    # workaround a relpath bug in Python 2.6 (http://bugs.python.org/issue5117)
+    if base.path == "/" and path.startswith("../"):
+        path = path[3:]
     if path == '.' and not rel.path.endswith('/') and not (
             rel.query or rel.fragment):
         path = posixpath.basename(rel.path)
