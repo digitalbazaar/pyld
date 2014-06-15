@@ -3759,6 +3759,12 @@ class JsonLdProcessor:
                 'jsonld.SyntaxError', {'context': local_ctx},
                 code='keyword redefinition')
 
+        if term == '':
+            raise JsonLdError(
+                'Invalid JSON-LD syntax; a term cannot be an empty string.',
+                'jsonld.SyntaxError', {'context': local_ctx},
+                code='invalid term definition')
+
         # remove old mapping
         if term in active_ctx['mappings']:
             del active_ctx['mappings'][term]
