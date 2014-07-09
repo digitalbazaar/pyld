@@ -2407,13 +2407,13 @@ class JsonLdProcessor:
         if len(ctxs) == 0:
             return self._clone_active_context(active_ctx)
 
-        # process each context in order
+        # process each context in order, update active context on each
+        # iteration to ensure proper caching
         rval = active_ctx
-        must_clone = True
         for ctx in ctxs:
             # reset to initial context
             if ctx is None:
-                rval = self._get_initial_context(options)
+                rval = active_ctx = self._get_initial_context(options)
                 must_clone = False
                 continue
 
@@ -2432,14 +2432,12 @@ class JsonLdProcessor:
             if _cache.get('activeCtx') is not None:
                 cached = _cache['activeCtx'].get(active_ctx, ctx)
                 if cached:
-                    rval = cached
-                    must_clone = True
+                    rval = active_ctx = cached
                     continue
 
-            # clone context, if required, before updating
-            if must_clone:
-                rval = self._clone_active_context(active_ctx)
-                must_clone = False
+            # update active context and clone new one before updating
+            active_ctx = rval
+            rval = self._clone_active_context(active_ctx)
 
             # define context mappings for keys in local context
             defined = {}
@@ -3756,7 +3754,7 @@ class JsonLdProcessor:
         if _is_keyword(term):
             raise JsonLdError(
                 'Invalid JSON-LD syntax; keywords cannot be overridden.',
-                'jsonld.SyntaxError', {'context': local_ctx},
+                'jsonld.SyntaxError', {'context': local_ctx, 'term': term},
                 code='keyword redefinition')
 
         if term == '':
