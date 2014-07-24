@@ -832,11 +832,11 @@ class JsonLdProcessor:
         if frame is not None:
             ctx = frame.get('@context', {})
             if remote_frame['contextUrl'] is not None:
-                if ctx is not None:
-                    ctx = remote_frame['contextUrl']
-                else:
+                if ctx:
                     ctx = JsonLdProcessor.arrayify(ctx)
                     ctx.append(remote_frame['contextUrl'])
+                else:
+                    ctx = remote_frame['contextUrl']
                 frame['@context'] = ctx
 
         try:
@@ -1036,8 +1036,7 @@ class JsonLdProcessor:
 
         # retrieve URLs in local_ctx
         local_ctx = copy.deepcopy(local_ctx)
-        if (_is_string(local_ctx) or (
-                _is_object(local_ctx) and '@context' not in local_ctx)):
+        if not (_is_object(local_ctx) and '@context' in local_ctx):
             local_ctx = {'@context': local_ctx}
         try:
             self._retrieve_context_urls(
