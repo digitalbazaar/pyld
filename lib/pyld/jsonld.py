@@ -3187,7 +3187,7 @@ class JsonLdProcessor:
         # remove existing embed
         if _is_array(embed['parent']):
             # replace subject with reference
-            for i, parent in embed['parent']:
+            for i, parent in enumerate(embed['parent']):
                 if JsonLdProcessor.compare_values(parent, subject):
                     embed['parent'][i] = subject
                     break
