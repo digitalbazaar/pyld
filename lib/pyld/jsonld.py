@@ -121,6 +121,7 @@ KEYWORDS = [
     '@list',
     '@omitDefault',
     '@preserve',
+    '@requireAll',
     '@reverse',
     '@set',
     '@type',
@@ -198,6 +199,7 @@ def frame(input_, frame, options=None):
       [expandContext] a context to expand with.
       [embed] default @embed flag (default: True).
       [explicit] default @explicit flag (default: False).
+      [requireAll] default @requireAll flag (default: True).
       [omitDefault] default @omitDefault flag (default: False).
       [documentLoader(url)] the document loader
         (default: _default_document_loader).
@@ -788,6 +790,7 @@ class JsonLdProcessor:
           [expandContext] a context to expand with.
           [embed] default @embed flag (default: True).
           [explicit] default @explicit flag (default: False).
+          [requireAll] default @requireAll flag (default: True).
           [omitDefault] default @omitDefault flag (default: False).
           [documentLoader(url)] the document loader
             (default: _default_document_loader).
@@ -800,6 +803,7 @@ class JsonLdProcessor:
         options.setdefault('compactArrays', True)
         options.setdefault('embed', True)
         options.setdefault('explicit', False)
+        options.setdefault('requireAll', True)
         options.setdefault('omitDefault', False)
         options.setdefault('documentLoader', _default_document_loader)
 
@@ -2940,13 +2944,19 @@ class JsonLdProcessor:
         self._validate_frame(state, frame)
         frame = frame[0]
 
-        # filter out subjects that match the frame
-        matches = self._filter_subjects(state, subjects, frame)
-
         # get flags for current frame
         options = state['options']
         embed_on = self._get_frame_flag(frame, options, 'embed')
         explicit_on = self._get_frame_flag(frame, options, 'explicit')
+        require_all_on = self._get_frame_flag(frame, options, 'requireAll')
+        flags = {
+            'embed': embed_on,
+            'explicit': explicit_on,
+            'requireAll': require_all_on
+        }
+
+        # filter out subjects that match the frame
+        matches = self._filter_subjects(state, subjects, frame, flags)
 
         # add matches to output
         for id_, subject in sorted(matches.items()):
@@ -3089,29 +3099,31 @@ class JsonLdProcessor:
                 'Invalid JSON-LD syntax; a JSON-LD frame must be a single '
                 'object.', 'jsonld.SyntaxError', {'frame': frame})
 
-    def _filter_subjects(self, state, subjects, frame):
+    def _filter_subjects(self, state, subjects, frame, flags):
         """
         Returns a map of all of the subjects that match a parsed frame.
 
         :param state: the current framing state.
         :param subjects: the set of subjects to filter.
         :param frame: the parsed frame.
+        :param flags: the frame flags.
 
         :return: all of the matched subjects.
         """
         rval = {}
         for id_ in subjects:
             subject = state['subjects'][id_]
-            if self._filter_subject(subject, frame):
+            if self._filter_subject(subject, frame, flags):
                 rval[id_] = subject
         return rval
 
-    def _filter_subject(self, subject, frame):
+    def _filter_subject(self, subject, frame, flags):
         """
         Returns True if the given subject matches the given frame.
 
         :param subject: the subject to check.
         :param frame: the frame to check.
+        :param flags: the frame flags.
 
         :return: True if the subject matches, False if not.
         """
@@ -3128,11 +3140,42 @@ class JsonLdProcessor:
             return False
 
         # check ducktype
+        wildcard = True
+        matches_some = False
         for k, v in frame.items():
-            # only not a duck if @id or non-keyword isn't in subject
-            if (k == '@id' or not _is_keyword(k)) and k not in subject:
+            if _is_keyword(k):
+                # skip non-@id and non-@type
+                if k != '@id' and k != '@type':
+                    continue
+                wildcard = True
+
+                # check @id for a specific @id value
+                if k == '@id' and _is_string(v):
+                    if subject.get(k) != v:
+                        return False
+
+                matches_some = True
+                continue
+
+            wildcard = False
+
+            if k in subject:
+                # v === [] means do not match if property is present
+                if _is_array(v) and len(v) == 0:
+                    return False
+
+                matches_some = True
+                continue
+
+            # all properties must match to be a duck unless a @default is
+            # specified
+            has_default = (_is_array(v) and len(v) == 1 and
+                _is_object(v[0]) and '@default' in v[0])
+            if flags['requireAll'] and not has_default:
                 return False
-        return True
+
+        # return true if wildcard or subject matches some properties
+        return wildcard or matches_some
 
     def _embed_values(self, state, subject, property, output):
         """
