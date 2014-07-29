@@ -2264,6 +2264,8 @@ class JsonLdProcessor:
         """
         default_graph = {}
         graph_map = {'@default': default_graph}
+        # TODO: seems like 'usages' could be replaced by this single map
+        node_references = {}
 
         for name, graph in dataset.items():
             graph_map.setdefault(name, {})
@@ -2296,6 +2298,9 @@ class JsonLdProcessor:
                 # object may be an RDF list/partial list node but we
                 # can't know easily until all triples are read
                 if object_is_id:
+                    JsonLdProcessor.add_value(
+                        node_references, o['value'], node['@id'],
+                        {'propertyIsArray': True})
                     object = node_map[o['value']]
                     if 'usages' not in object:
                         object['usages'] = []
@@ -2321,13 +2326,16 @@ class JsonLdProcessor:
                 list_nodes = []
 
                 # ensure node is a well-formed list node; it must:
-                # 1. Be used only once in a list.
+                # 1. Be referenced only once and used only once in a list.
                 # 2. Have an array for rdf:first that has 1 item.
                 # 3. Have an array for rdf:rest that has 1 item
                 # 4. Have no keys other than: @id, usages, rdf:first, rdf:rest
                 #   and, optionally, @type where the value is rdf:List.
                 node_key_count = len(node.keys())
-                while(property == RDF_REST and len(node['usages']) and
+                while(property == RDF_REST and
+                    _is_array(node_references[node['@id']]) and
+                    len(node_references[node['@id']]) == 1 and
+                    len(node['usages']) and
                     _is_array(node[RDF_FIRST]) and
                     len(node[RDF_FIRST]) == 1 and
                     _is_array(node[RDF_REST]) and
