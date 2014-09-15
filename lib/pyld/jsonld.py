@@ -2268,8 +2268,7 @@ class JsonLdProcessor:
         """
         default_graph = {}
         graph_map = {'@default': default_graph}
-        # TODO: seems like 'usages' could be replaced by this single map
-        node_references = {}
+        referenced_once = {}
 
         for name, graph in dataset.items():
             graph_map.setdefault(name, {})
@@ -2302,17 +2301,26 @@ class JsonLdProcessor:
                 # object may be an RDF list/partial list node but we
                 # can't know easily until all triples are read
                 if object_is_id:
-                    JsonLdProcessor.add_value(
-                        node_references, o['value'], node['@id'],
-                        {'propertyIsArray': True})
-                    object = node_map[o['value']]
-                    if 'usages' not in object:
-                        object['usages'] = []
-                    object['usages'].append({
-                        'node': node,
-                        'property': p,
-                        'value': value
-                    })
+                    # track rdf:nil uniquely per graph
+                    if o['value'] == RDF_NIL:
+                        object = node_map[o['value']]
+                        if 'usages' not in object:
+                            object['usages'] = []
+                        object['usages'].append({
+                            'node': node,
+                            'property': p,
+                            'value': value
+                        })
+                    # object referenced more than once
+                    elif o['value'] in referenced_once:
+                      referenced_once[o['value']] = False
+                    # track single reference
+                    else:
+                      referenced_once[o['value']] = {
+                          'node': node,
+                          'property': p,
+                          'value': value
+                      }
 
         # convert linked lists to @list arrays
         for name, graph_object in graph_map.items():
@@ -2337,14 +2345,12 @@ class JsonLdProcessor:
                 #   and, optionally, @type where the value is rdf:List.
                 node_key_count = len(node.keys())
                 while(property == RDF_REST and
-                    _is_array(node_references[node['@id']]) and
-                    len(node_references[node['@id']]) == 1 and
-                    len(node['usages']) and
+                    _is_object(referenced_once.get(node['@id'])) and
                     _is_array(node[RDF_FIRST]) and
                     len(node[RDF_FIRST]) == 1 and
                     _is_array(node[RDF_REST]) and
                     len(node[RDF_REST]) == 1 and
-                    (node_key_count == 4 or (node_key_count == 5 and
+                    (node_key_count == 3 or (node_key_count == 4 and
                         _is_array(node.get('@type')) and
                         len(node['@type']) == 1 and
                         node['@type'][0] == RDF_LIST))):
@@ -2352,7 +2358,7 @@ class JsonLdProcessor:
                     list_nodes.append(node['@id'])
 
                     # get next node, moving backwards through list
-                    usage = node['usages'][0]
+                    usage = referenced_once[node['@id']]
                     node = usage['node']
                     property = usage['property']
                     head = usage['value']
@@ -2382,16 +2388,16 @@ class JsonLdProcessor:
                 for node in list_nodes:
                     graph_object.pop(node, None)
 
+            nil.pop('usages', None)
+
         result = []
         for subject, node in sorted(default_graph.items()):
             if subject in graph_map:
                 graph = node['@graph'] = []
                 for s, n in sorted(graph_map[subject].items()):
-                    n.pop('usages', None)
                     # only add full subjects to top-level
                     if not _is_subject_reference(n):
                         graph.append(n)
-            node.pop('usages', None)
             # only add full subjects to top-level
             if not _is_subject_reference(node):
                 result.append(node)
