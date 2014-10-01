@@ -1648,6 +1648,15 @@ class JsonLdProcessor:
                     JsonLdProcessor.add_value(rval, alias, expanded_value)
                     continue
 
+                # skip array processing for keywords that aren't @graph or @list
+                if(expanded_property != '@graph' and
+                        expanded_property != '@list' and
+                        _is_keyword(expanded_property)):
+                    # use keyword alias and add value as is
+                    alias = self._compact_iri(active_ctx, expanded_property)
+                    JsonLdProcessor.add_value(rval, alias, expanded_value)
+                    continue
+
                 # Note: expanded value must be an array due to expansion
                 # algorithm.
 
