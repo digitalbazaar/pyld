@@ -513,7 +513,7 @@ _default_document_loader = load_document
 _rdf_parsers = {}
 
 
-class JsonLdProcessor:
+class JsonLdProcessor(object):
     """
     A JSON-LD processor.
     """
@@ -4333,7 +4333,7 @@ class JsonLdError(Exception):
         return rval
 
 
-class UniqueNamer:
+class UniqueNamer(object):
     """
     A UniqueNamer issues unique names, keeping track of any previously issued
     names.
@@ -4674,7 +4674,7 @@ def _is_absolute_iri(v):
     return ':' in v
 
 
-class ActiveContextCache:
+class ActiveContextCache(object):
     """
     An ActiveContextCache caches active contexts so they can be reused without
     the overhead of recomputing them.
