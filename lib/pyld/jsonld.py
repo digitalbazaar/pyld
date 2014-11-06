@@ -339,6 +339,17 @@ def load_document(url):
     :return: the RemoteDocument.
     """
     try:
+        # validate URL
+        pieces = urllib_parse.urlparse(url)
+        if (not all([pieces.scheme, pieces.netloc]) or
+            pieces.scheme not in ['http', 'https'] or
+            set(pieces.netloc) > set(
+                string.ascii_letters + string.digits + '-.:')):
+            raise JsonLdError(
+                'URL could not be dereferenced; only "http" and "https" '
+                'URLs are supported.',
+                'jsonld.InvalidUrl', {'url': url},
+                code='loading document failed')
         https_handler = VerifiedHTTPSHandler()
         url_opener = urllib_build_opener(https_handler)
         url_opener.addheaders = [
@@ -4146,16 +4157,6 @@ class JsonLdProcessor(object):
         queue = []
         for url, ctx in urls.items():
             if ctx is False:
-                # validate URL
-                pieces = urllib_parse.urlparse(url)
-                if (not all([pieces.scheme, pieces.netloc]) or
-                    pieces.scheme not in ['http', 'https'] or
-                    set(pieces.netloc) > set(
-                        string.ascii_letters + string.digits + '-.:')):
-                    raise JsonLdError(
-                        'Malformed or unsupported URL.',
-                        'jsonld.InvalidUrl', {'url': url},
-                        code='loading remote context failed')
                 queue.append(url)
 
         # retrieve URLs in queue
@@ -4170,8 +4171,15 @@ class JsonLdProcessor(object):
             cycles_[url] = True
 
             # retrieve URL
-            remote_doc = load_document(url)
-            ctx = remote_doc['document']
+            try:
+                remote_doc = load_document(url)
+                ctx = remote_doc['document']
+            except Exception as cause:
+                raise JsonLdError(
+                    'Dereferencing a URL did not result in a valid JSON-LD '
+                    'context.',
+                    'jsonld.ContextUrlError',  {'url': url},
+                    code='loading remote context failed', cause=cause)
 
             # parse string context as JSON
             if _is_string(ctx):
