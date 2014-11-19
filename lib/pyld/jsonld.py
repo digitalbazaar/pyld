@@ -2201,7 +2201,7 @@ class JsonLdProcessor(object):
             unique = {}
             for bnode in unnamed:
                 # hash quads for each unnamed bnode
-                hash = self._hash_quads(bnode, bnodes, namer)
+                hash = self._hash_quads(bnode, bnodes)
 
                 # store hash as unique or a duplicate
                 if hash in duplicates:
@@ -3356,7 +3356,7 @@ class JsonLdProcessor(object):
                 input_[prop] = result
         return input_
 
-    def _hash_quads(self, id_, bnodes, namer):
+    def _hash_quads(self, id_, bnodes):
         """
         Hashes all of the quads about a blank node.
 
@@ -3423,7 +3423,7 @@ class JsonLdProcessor(object):
                 elif path_namer.is_named(bnode):
                     name = path_namer.get_name(bnode)
                 else:
-                    name = self._hash_quads(bnode, bnodes, namer)
+                    name = self._hash_quads(bnode, bnodes)
 
                 # hash direction, property, and bnode name/hash
                 group_md = hashlib.sha1()
