@@ -36,7 +36,7 @@ import ssl
 import string
 import sys
 import traceback
-from collections import deque
+from collections import deque, namedtuple
 from contextlib import closing
 from numbers import Integral, Real
 
@@ -437,40 +437,67 @@ def prepend_base(base, iri):
         return iri
 
     # parse IRIs
-    base = urllib_parse.urlsplit(base)
-    rel = urllib_parse.urlsplit(iri)
+    base = parse_url(base)
+    rel = parse_url(iri)
 
-    # IRI represents an absolute path
-    if rel.path.startswith('/'):
-        path = rel.path
+    # per RFC3986 5.2.2
+    transform = {
+        'scheme': base.scheme
+    };
+
+    if rel.authority is not None:
+        transform['authority'] = rel.authority
+        transform['path'] = rel.path
+        transform['query'] = rel.query
     else:
-        path = base.path
+        transform['authority'] = base.authority
 
-        # append relative path to the end of the last directory from base
-        if rel.path != '':
-            path = path[0:path.rfind('/') + 1]
-            if len(path) > 0 and not path.endswith('/'):
-                path += '/'
-            path += rel.path
+        if rel.path == '':
+            transform['path'] = base.path
+            if rel.query != None:
+                transform['query'] = rel.query
+            else:
+                transform['query'] = base.query
+        else:
+            if rel.path.startswith('/'):
+                # IRI represents an absolute path
+                transform['path'] = rel.path
+            else:
+                # merge paths
+                path = base.path
 
-    add_slash = path.endswith('/')
+                # append relative path to the end of the last directory from base
+                if rel.path != '':
+                    path = path[0:path.rfind('/') + 1]
+                    if len(path) > 0 and not path.endswith('/'):
+                        path += '/'
+                    path += rel.path
+
+                transform['path'] = path
+
+            transform['query'] = rel.query
 
     # normalize path
+    path = transform['path']
+    add_slash = path.endswith('/')
     path = posixpath.normpath(path)
     if not path.endswith('/') and add_slash:
         path += '/'
-
-    # do not include '.' path for fragments
-    if path == '.' and rel.fragment != '':
+    # do not include '.' path
+    if path == '.':
         path = ''
+    transform['path'] = path
 
-    return urllib_parse.urlunsplit((
-        base.scheme,
-        rel.netloc or base.netloc,
-        path,
-        rel.query,
-        rel.fragment
-    ))
+    transform['fragment'] = rel.fragment
+
+    # construct URL
+    rval = unparse_url(transform)
+
+    # handle empty base case
+    if rval == '':
+        rval = './'
+
+    return rval
 
 
 def remove_base(base, iri):
@@ -486,11 +513,11 @@ def remove_base(base, iri):
     if base is None:
         return iri
 
-    base = urllib_parse.urlsplit(base)
-    rel = urllib_parse.urlsplit(iri)
+    base = parse_url(base)
+    rel = parse_url(iri)
 
-    # schemes and network locations don't match, don't alter IRI
-    if not (base.scheme == rel.scheme and base.netloc == rel.netloc):
+    # schemes and network locations (authorities) don't match, don't alter IRI
+    if not (base.scheme == rel.scheme and base.authority == rel.authority):
         return iri
 
     path = posixpath.relpath(rel.path, base.path) if rel.path else ''
@@ -513,8 +540,35 @@ def remove_base(base, iri):
         elif path.startswith('.'):
             path = path[1:]
 
-    return urllib_parse.urlunsplit((
-        '', '', path, rel.query, rel.fragment)) or './'
+    return unparse_url((None, None, path, rel.query, rel.fragment)) or './'
+
+
+ParsedUrl = namedtuple(
+    'ParsedUrl', ['scheme', 'authority', 'path', 'query', 'fragment'])
+
+def parse_url(url):
+    # regex from RFC 3986
+    p = r'^(?:([^:/?#]+):)?(?://([^/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?'
+    m = re.match(p, url)
+    return ParsedUrl(*m.groups())
+
+
+def unparse_url(parsed):
+    if isinstance(parsed, dict):
+        parsed = ParsedUrl(**parsed)
+    elif isinstance(parsed, list) or isinstance(parsed, tuple):
+        parsed = ParsedUrl(*parsed)
+    rval = ''
+    if parsed.scheme:
+        rval += parsed.scheme + ':'
+    if parsed.authority is not None:
+        rval += '//' + parsed.authority
+    rval += parsed.path
+    if parsed.query is not None:
+        rval += '?' + parsed.query
+    if parsed.fragment is not None:
+        rval += '#' + parsed.fragment
+    return rval
 
 
 # The default JSON-LD document loader.
