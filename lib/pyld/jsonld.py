@@ -4154,7 +4154,7 @@ class JsonLdProcessor(object):
                 # array @context
                 if _is_array(v):
                     length = len(v)
-                    for i in range(len(v)):
+                    for i in range(length):
                         if _is_string(v[i]):
                             url = prepend_base(base, v[i])
                             # replace w/@context if requested
@@ -4165,8 +4165,8 @@ class JsonLdProcessor(object):
                                     v.pop(i)
                                     for e in reversed(ctx):
                                         v.insert(i, e)
-                                    i += len(ctx)
-                                    length += len(ctx)
+                                    i += len(ctx) - 1
+                                    length = len(v)
                                 else:
                                     v[i] = ctx
                             # @context URL found
