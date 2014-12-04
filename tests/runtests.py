@@ -297,9 +297,13 @@ def create_document_loader(test):
                         raise Exception('multiple context link headers')
                     doc['contextUrl'] = link_header['target']
         global ROOT_MANIFEST_DIR
-        #filename = os.path.join(
-        #    ROOT_MANIFEST_DIR, doc['documentUrl'][len(base):])
-        filename = ROOT_MANIFEST_DIR + doc['documentUrl'][len(base):]
+        if doc['documentUrl'].find(':') == -1:
+            filename = os.path.join(ROOT_MANIFEST_DIR, doc['documentUrl'])
+            doc['documentUrl'] = 'file://' + filename
+        else:
+            #filename = os.path.join(
+            #    ROOT_MANIFEST_DIR, doc['documentUrl'][len(base):])
+            filename = ROOT_MANIFEST_DIR + doc['documentUrl'][len(base):]
         try:
             doc['document'] = read_json(filename)
         except:
@@ -308,7 +312,7 @@ def create_document_loader(test):
 
     def local_loader(url):
         # always load remote-doc and non-base tests remotely
-        if (not url.startswith(base) or
+        if ((not url.startswith(base) and url.find(':') != -1) or
             test.manifest.data.get('name') == 'Remote document'):
             return loader(url)
 
