@@ -17,7 +17,7 @@ __license__ = 'New BSD license'
 __version__ = '0.6.6-dev'
 
 __all__ = [
-    'compact', 'expand', 'flatten', 'frame', 'from_rdf', 'to_rdf',
+    'compact', 'expand', 'flatten', 'frame', 'link', 'from_rdf', 'to_rdf',
     'normalize', 'set_document_loader', 'get_document_loader',
     'parse_link_header', 'load_document',
     'register_rdf_parser', 'unregister_rdf_parser',
@@ -207,6 +207,31 @@ def frame(input_, frame, options=None):
     :return: the framed JSON-LD output.
     """
     return JsonLdProcessor().frame(input_, frame, options)
+
+
+def link(input_, ctx, options=None):
+    """
+    **Experimental**
+
+    Links a JSON-LD document's nodes in memory.
+
+    :param input_: the JSON-LD document to link.
+    :param ctx: the JSON-LD context to apply or None.
+    :param [options]: the options to use.
+      [base] the base IRI to use.
+      [expandContext] a context to expand with.
+      [documentLoader(url)] the document loader
+        (default: _default_document_loader).
+
+    :return: the linked JSON-LD output.
+    """
+    # API matches running frame with a wildcard frame and embed: '@link'
+    # get arguments
+    frame = {'@embed': '@link'}
+    if ctx:
+        frame['@context'] = ctx
+    frame['@embed'] = '@link'
+    return frame(input, frame, options)
 
 
 def normalize(input_, options=None):
@@ -627,6 +652,11 @@ class JsonLdProcessor(object):
         options.setdefault('skipExpansion', False)
         options.setdefault('activeCtx', False)
         options.setdefault('documentLoader', _default_document_loader)
+        options.setdefault('link', False);
+        if options['link']:
+            # force skip expansion when linking, "link" is not part of the
+            # public API, it should only be called from framing
+            options['skipExpansion'] = True
 
         if options['skipExpansion']:
             expanded = input_
@@ -853,7 +883,8 @@ class JsonLdProcessor(object):
         :param options: the options to use.
           [base] the base IRI to use.
           [expandContext] a context to expand with.
-          [embed] default @embed flag (default: True).
+          [embed] default @embed flag: '@last', '@always', '@never', '@link'
+            (default: '@last').
           [explicit] default @explicit flag (default: False).
           [requireAll] default @requireAll flag (default: True).
           [omitDefault] default @omitDefault flag (default: False).
@@ -866,7 +897,7 @@ class JsonLdProcessor(object):
         options = options or {}
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('compactArrays', True)
-        options.setdefault('embed', True)
+        options.setdefault('embed', '@last')
         options.setdefault('explicit', False)
         options.setdefault('requireAll', True)
         options.setdefault('omitDefault', False)
@@ -930,9 +961,11 @@ class JsonLdProcessor(object):
         framed = self._frame(expanded, expanded_frame, options)
 
         try:
-            # compact result (force @graph option to True)
+            # compact result (force @graph option to True, skip expansion,
+            # check for linked embeds)
             options['graph'] = True
             options['skipExpansion'] = True
+            options['link'] = {}
             options['activeCtx'] = True
             result = self.compact(framed, ctx, options)
         except JsonLdError as cause:
@@ -1637,16 +1670,35 @@ class JsonLdProcessor(object):
 
         # recursively compact object
         if _is_object(element):
+            if(options['link'] and '@id' in element and
+                    element['@id'] in options['link']):
+                # check for a linked element to reuse
+                linked = options['link'][element['@id']]
+                for link in linked:
+                    if link['expanded'] == element:
+                        return link['compacted']
+
             # do value compaction on @values and subject references
             if _is_value(element) or _is_subject_reference(element):
-                return self._compact_value(
+                rval = self._compact_value(
                     active_ctx, active_property, element)
+                if options['link'] and _is_subject_reference(element):
+                    # store linked element
+                    options['link'].setdefault(element['@id'], []).append(
+                        {'expanded': element, 'compacted': rval})
+                return rval
 
             # FIXME: avoid misuse of active property as an expanded property?
             inside_reverse = (active_property == '@reverse')
 
-            # recursively process element keys in order
             rval = {}
+
+            if options['link'] and '@id' in element:
+                # store linked element
+                options['link'].setdefault(element['@id'], []).append(
+                    {'expanded': element, 'compacted': rval})
+
+            # recursively process element keys in order
             for expanded_property, expanded_value in sorted(element.items()):
                 # compact @id and @type(s)
                 if expanded_property == '@id' or expanded_property == '@type':
@@ -2195,7 +2247,9 @@ class JsonLdProcessor(object):
         # create framing state
         state = {
             'options': options,
-            'graphs': {'@default': {}, '@merged': {}}
+            'graphs': {'@default': {}, '@merged': {}},
+            'subjectStack': [],
+            'link': {}
         }
 
         # produce a map of all graphs and name each bnode
@@ -3021,18 +3075,15 @@ class JsonLdProcessor(object):
         :param property: the parent property, initialized to None.
         """
         # validate the frame
-        self._validate_frame(state, frame)
+        self._validate_frame(frame)
         frame = frame[0]
 
         # get flags for current frame
         options = state['options']
-        embed_on = self._get_frame_flag(frame, options, 'embed')
-        explicit_on = self._get_frame_flag(frame, options, 'explicit')
-        require_all_on = self._get_frame_flag(frame, options, 'requireAll')
         flags = {
-            'embed': embed_on,
-            'explicit': explicit_on,
-            'requireAll': require_all_on
+            'embed': self._get_frame_flag(frame, options, 'embed'),
+            'explicit': self._get_frame_flag(frame, options, 'explicit'),
+            'requireAll': self._get_frame_flag(frame, options, 'requireAll')
         }
 
         # filter out subjects that match the frame
@@ -3040,118 +3091,154 @@ class JsonLdProcessor(object):
 
         # add matches to output
         for id_, subject in sorted(matches.items()):
+            if flags['embed'] == '@link' and id_ in state['link']:
+                # TODO: may want to also match an existing linked subject
+                # against the current frame ... so different frames could
+                # produce different subjects that are only shared in-memory
+                # when the frames are the same
+
+                # add existing linked subject
+                self._add_frame_output(parent, property, state['link'][id_])
+                continue
+
             # Note: In order to treat each top-level match as a
-            # compartmentalized result, create an independent copy of the
-            # embedded subjects map when the property is None, which only
-            # occurs at the top-level.
+            # compartmentalized result, clear the unique embedded subjects map
+            # when the property is None, which only occurs at the top-level.
             if property is None:
-                state['embeds'] = {}
+                state['uniqueEmbeds'] = {}
 
-            # start output
+            # start output for subject
             output = {'@id': id_}
+            state['link'][id_] = output
 
-            # prepare embed meta info
-            embed = {'parent': parent, 'property': property}
+            # if embed is @never or if a circular reference would be created
+            # by an embed, the subject cannot be embedded, just add the
+            # reference; note that a circular reference won't occur when the
+            # embed flag is `@link` as the above check will short-circuit
+            # before reaching this point
+            if(flags['embed'] == '@never' or self._creates_circular_reference(
+                    subject, state['subjectStack'])):
+                self._add_frame_output(parent, property, output)
+                continue
 
-            # if embed is on and there is an existing embed
-            if embed_on and id_ in state['embeds']:
-                # only overwrite an existing embed if it has already been
-                # added to its parent -- otherwise its parent is somewhere up
-                # the tree from this embed and the embed would occur twice
-                # once the tree is added
-                embed_on = False
-
-                # existing embed's parent is an array
-                existing = state['embeds'][id_]
-                if _is_array(existing['parent']):
-                    for p in existing['parent']:
-                        if JsonLdProcessor.compare_values(output, p):
-                            embed_on = True
-                            break
-                # existing embed's parent is an object
-                elif JsonLdProcessor.has_value(
-                        existing['parent'], existing['property'], output):
-                    embed_on = True
-
-                # existing embed has already been added, so allow an overwrite
-                if embed_on:
+            # if only the last match should be embedded
+            if flags['embed'] == '@last':
+                # remove any existing embed
+                if id_ in state['uniqueEmbeds']:
                     self._remove_embed(state, id_)
+                state['uniqueEmbeds'][id_] = {
+                    'parent': parent,
+                    'property': property
+                }
 
-            # not embedding, add output without any other properties
-            if not embed_on:
-                self._add_frame_output(state, parent, property, output)
-            else:
-                # add embed meta info
-                state['embeds'][id_] = embed
+            # push matching subject onto stack to enable circular embed checks
+            state['subjectStack'].append(subject)
 
-                # iterate over subject properties in order
-                for prop, objects in sorted(subject.items()):
-                    # copy keywords to output
-                    if _is_keyword(prop):
-                        output[prop] = copy.deepcopy(subject[prop])
-                        continue
+            # iterate over subject properties in order
+            for prop, objects in sorted(subject.items()):
+                # copy keywords to output
+                if _is_keyword(prop):
+                    output[prop] = copy.deepcopy(subject[prop])
+                    continue
 
-                    # if property isn't in the frame
-                    if prop not in frame:
-                        # if explicit is off, embed values
-                        if not explicit_on:
-                            self._embed_values(state, subject, prop, output)
-                        continue
+                # explicit is on and property isn't in frame, skip processing
+                if flags['explicit'] and prop not in frame:
+                    continue
 
-                    # add objects
-                    objects = subject[prop]
-                    for o in objects:
-                        # recurse into list
-                        if _is_list(o):
-                            # add empty list
-                            list_ = {'@list': []}
-                            self._add_frame_output(state, output, prop, list_)
+                # add objects
+                objects = subject[prop]
+                for o in objects:
+                    # recurse into list
+                    if _is_list(o):
+                        # add empty list
+                        list_ = {'@list': []}
+                        self._add_frame_output(output, prop, list_)
 
-                            # add list objects
-                            src = o['@list']
-                            for o in src:
+                        # add list objects
+                        src = o['@list']
+                        for o in src:
+                            if _is_subject_reference(o):
                                 # recurse into subject reference
-                                if _is_subject_reference(o):
-                                    self._match_frame(
-                                        state, [o['@id']],
-                                        frame[prop][0]['@list'],
-                                        list_, '@list')
-                                # include other values automatically
+                                if prop in frame:
+                                    subframe = frame[prop][0]['@list']
                                 else:
-                                    self._add_frame_output(
-                                        state, list_, '@list',
-                                        copy.deepcopy(o))
-                            continue
-
-                        # recurse into subject reference
-                        if _is_subject_reference(o):
-                            self._match_frame(
-                                state, [o['@id']], frame[prop], output, prop)
-                        # include other values automatically
-                        else:
-                            self._add_frame_output(
-                                state, output, prop, copy.deepcopy(o))
-
-                # handle defaults in order
-                for prop in sorted(frame.keys()):
-                    # skip keywords
-                    if _is_keyword(prop):
+                                    subframe = self._create_implicit_frame(
+                                        flags)
+                                self._match_frame(
+                                    state, [o['@id']],
+                                    subframe, list_, '@list')
+                            else:
+                                # include other values automatically
+                                self._add_frame_output(
+                                    list_, '@list', copy.deepcopy(o))
                         continue
-                    # if omit default is off, then include default values for
-                    # properties that appear in the next frame but are not in
-                    # the matching subject
-                    next = frame[prop][0]
-                    omit_default_on = self._get_frame_flag(
-                        next, options, 'omitDefault')
-                    if not omit_default_on and prop not in output:
-                        preserve = '@null'
-                        if '@default' in next:
-                            preserve = copy.deepcopy(next['@default'])
-                        preserve = JsonLdProcessor.arrayify(preserve)
-                        output[prop] = [{'@preserve': preserve}]
 
-                # add output to parent
-                self._add_frame_output(state, parent, property, output)
+                    if _is_subject_reference(o):
+                        # recurse into subject reference
+                        if prop in frame:
+                            subframe = frame[prop]
+                        else:
+                            subframe = self._create_implicit_frame(flags)
+                        self._match_frame(
+                            state, [o['@id']], subframe, output, prop)
+                    else:
+                        # include other values automatically
+                        self._add_frame_output(output, prop, copy.deepcopy(o))
+
+            # handle defaults in order
+            for prop in sorted(frame.keys()):
+                # skip keywords
+                if _is_keyword(prop):
+                    continue
+                # if omit default is off, then include default values for
+                # properties that appear in the next frame but are not in
+                # the matching subject
+                next = frame[prop][0]
+                omit_default_on = self._get_frame_flag(
+                    next, options, 'omitDefault')
+                if not omit_default_on and prop not in output:
+                    preserve = '@null'
+                    if '@default' in next:
+                        preserve = copy.deepcopy(next['@default'])
+                    preserve = JsonLdProcessor.arrayify(preserve)
+                    output[prop] = [{'@preserve': preserve}]
+
+            # add output to parent
+            self._add_frame_output(parent, property, output)
+
+            # pop matching subject from circular ref-checking stack
+            state['subjectStack'].pop()
+
+    def _create_implicit_frame(self, flags):
+        """
+        Creates an implicit frame when recursing through subject matches. If
+        a frame doesn't have an explicit frame for a particular property, then
+        a wildcard child frame will be created that uses the same flags that
+        the parent frame used.
+
+        :param flags: the current framing flags.
+
+        :return: the implicit frame.
+        """
+        frame = {}
+        for key in flags:
+            frame['@' + key] = [flags[key]]
+        return [frame]
+
+    def _creates_circular_reference(self, subject_to_embed, subject_stack):
+        """
+        Checks the current subject stack to see if embedding the given subject
+        would cause a circular reference.
+
+        :param subject_to_embed: the subject to embed.
+        :param subject_stack: the current stack of subjects.
+
+        :return: true if a circular reference would be created, false if not.
+        """
+        for subject in reversed(subject_stack[:-1]):
+            if subject['@id'] == subject_to_embed['@id']:
+                return True
+        return False
 
     def _get_frame_flag(self, frame, options, name):
         """
@@ -3163,14 +3250,25 @@ class JsonLdProcessor(object):
 
         :return: the flag value.
         """
-        return frame.get('@' + name, [options[name]])[0]
+        rval = frame.get('@' + name, [options[name]])[0]
+        if name == 'embed':
+            # default is "@last"
+            # backwards-compatibility support for "embed" maps:
+            # true => "@last"
+            # false => "@never"
+            if rval is True:
+                rval = '@last'
+            elif rval is False:
+                rval = '@never'
+            elif rval != '@always' and rval != '@never' and rval != '@link':
+                rval = '@last'
+        return rval
 
-    def _validate_frame(self, state, frame):
+    def _validate_frame(self, frame):
         """
         Validates a JSON-LD frame, throwing an exception if the frame is
         invalid.
 
-        :param state: the current frame state.
         :param frame: the frame to validate.
         """
         if (not _is_array(frame) or len(frame) != 1 or
@@ -3240,7 +3338,7 @@ class JsonLdProcessor(object):
             wildcard = False
 
             if k in subject:
-                # v === [] means do not match if property is present
+                # v == [] means do not match if property is present
                 if _is_array(v) and len(v) == 0:
                     return False
 
@@ -3257,50 +3355,6 @@ class JsonLdProcessor(object):
         # return true if wildcard or subject matches some properties
         return wildcard or matches_some
 
-    def _embed_values(self, state, subject, property, output):
-        """
-        Embeds values for the given subject and property into the given output
-        during the framing algorithm.
-
-        :param state: the current framing state.
-        :param subject: the subject.
-        :param property: the property.
-        :param output: the output.
-        """
-        # embed subject properties in output
-        objects = subject[property]
-        for o in objects:
-            # recurse into @list
-            if _is_list(o):
-                list_ = {'@list': []}
-                self._add_frame_output(state, output, property, list_)
-                self._embed_values(state, o, '@list', list_['@list'])
-                return
-
-            # handle subject reference
-            if _is_subject_reference(o):
-                id_ = o['@id']
-
-                # embed full subject if isn't already embedded
-                if id_ not in state['embeds']:
-                    # add embed
-                    embed = {'parent': output, 'property': property}
-                    state['embeds'][id_] = embed
-                    # recurse into subject
-                    o = {}
-                    s = state['subjects'][id_]
-                    for prop, v in s.items():
-                        # copy keywords
-                        if _is_keyword(prop):
-                            o[prop] = copy.deepcopy(v)
-                            continue
-                        self._embed_values(state, s, prop, o)
-                self._add_frame_output(state, output, property, o)
-            # copy non-subject value
-            else:
-                self._add_frame_output(
-                    state, output, property, copy.deepcopy(o))
-
     def _remove_embed(self, state, id_):
         """
         Removes an existing embed.
@@ -3309,7 +3363,7 @@ class JsonLdProcessor(object):
         :param id_: the @id of the embed to remove.
         """
         # get existing embed
-        embeds = state['embeds']
+        embeds = state['uniqueEmbeds']
         embed = embeds[id_]
         property = embed['property']
 
@@ -3319,9 +3373,10 @@ class JsonLdProcessor(object):
         # remove existing embed
         if _is_array(embed['parent']):
             # replace subject with reference
-            for i, parent in embed['parent']:
+            for i, parent in enumerate(embed['parent']):
                 if JsonLdProcessor.compare_values(parent, subject):
                     embed['parent'][i] = subject
+                    foo = True
                     break
         else:
             # replace subject with reference
@@ -3346,11 +3401,10 @@ class JsonLdProcessor(object):
                     remove_dependents(next)
         remove_dependents(id_)
 
-    def _add_frame_output(self, state, parent, property, output):
+    def _add_frame_output(self, parent, property, output):
         """
         Adds framing output to the given parent.
 
-        :param state: the current framing state.
         :param parent: the parent to add to.
         :param property: the parent property.
         :param output: the output to add.
@@ -3397,6 +3451,22 @@ class JsonLdProcessor(object):
                 input_['@list'] = self._remove_preserve(
                     ctx, input_['@list'], options)
                 return input_
+
+            # handle in-memory linked nodes
+            id_alias = self._compact_iri(ctx, '@id')
+            if id_alias in input_:
+                id_ = input_[id_alias]
+                if id_ in options['link']:
+                    try:
+                        idx = options['link'][id_].index(input_)
+                        # already visited
+                        return options['link'][id_][idx]
+                    except:
+                        # prevent circular visitation
+                        options['link'][id_].append(input_)
+                else:
+                    # prevent circular visitation
+                    options['link'][id_] = [input_]
 
             # recurse through properties
             for prop, v in input_.items():
