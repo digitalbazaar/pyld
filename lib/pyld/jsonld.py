@@ -3536,28 +3536,28 @@ class JsonLdProcessor(object):
                 direction = 'p'
             else:
                 bnode = self._get_adjacent_bnode_name(quad['object'], id_)
-                if bnode is not None:
-                    # reference property
-                    direction = 'r'
+                if bnode is None:
+                    continue
+                # reference property
+                direction = 'r'
 
-            if bnode is not None:
-                # get bnode name (try canonical, path, then hash)
-                if namer.is_named(bnode):
-                    name = namer.get_name(bnode)
-                elif path_namer.is_named(bnode):
-                    name = path_namer.get_name(bnode)
-                else:
-                    name = self._hash_quads(bnode, bnodes)
+            # get bnode name (try canonical, path, then hash)
+            if namer.is_named(bnode):
+                name = namer.get_name(bnode)
+            elif path_namer.is_named(bnode):
+                name = path_namer.get_name(bnode)
+            else:
+                name = self._hash_quads(bnode, bnodes)
 
-                # hash direction, property, and bnode name/hash
-                group_md = hashlib.sha1()
-                group_md.update(direction.encode('utf-8'))
-                group_md.update(quad['predicate']['value'].encode('utf-8'))
-                group_md.update(name.encode('utf-8'))
-                group_hash = group_md.hexdigest()
+            # hash direction, property, and bnode name/hash
+            group_md = hashlib.sha1()
+            group_md.update(direction.encode('utf-8'))
+            group_md.update(quad['predicate']['value'].encode('utf-8'))
+            group_md.update(name.encode('utf-8'))
+            group_hash = group_md.hexdigest()
 
-                # add bnode to hash group
-                groups.setdefault(group_hash, []).append(bnode)
+            # add bnode to hash group
+            groups.setdefault(group_hash, []).append(bnode)
 
         # iterate over groups in sorted hash order
         for group_hash, group in sorted(groups.items()):
