@@ -1998,6 +1998,10 @@ class JsonLdProcessor(object):
 
             # @language must be a string
             if expanded_property == '@language':
+                if value is None:
+                    # drop null @language values, they expand as if they
+                    # didn't exist
+                    continue
                 if not _is_string(value):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; "@language" value must be '
