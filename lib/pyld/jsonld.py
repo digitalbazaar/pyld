@@ -3017,7 +3017,9 @@ class JsonLdProcessor(object):
 
             # copy non-@type keywords
             if property != '@type' and _is_keyword(property):
-                if property == '@index' and '@index' in subject:
+                if property == '@index' and '@index' in subject \
+                    and (input_['@index'] != subject['@index'] or
+                         input_['@index']['@id'] != subject['@index']['@id']):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; conflicting @index property '
                         ' detected.', 'jsonld.SyntaxError',
