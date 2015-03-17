@@ -68,7 +68,8 @@ Quick Examples
     context = {
         "name": "http://schema.org/name",
         "homepage": {"@id": "http://schema.org/url", "@type": "@id"},
-        "image": {"@id": "http://schema.org/image", "@type": "@id"}}
+        "image": {"@id": "http://schema.org/image", "@type": "@id"}
+    }
 
     # compact a document according to a particular context
     # see: http://json-ld.org/spec/latest/json-ld/#compacted-document-form
