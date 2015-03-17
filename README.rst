@@ -93,11 +93,11 @@ Quick Examples
 
     print(json.dumps(expanded, indent=2))
     # Output:
-    # {
+    # [{
     #   "http://schema.org/image": [{"@id": "http://manu.sporny.org/images/manu.png"}],
     #   "http://schema.org/name": [{"@value": "Manu Sporny"}],
     #   "http://schema.org/url": [{"@id": "http://manu.sporny.org/"}]
-    # }
+    # }]
 
     # expand using URLs
     jsonld.expand('http://example.org/doc')
