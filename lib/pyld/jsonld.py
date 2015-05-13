@@ -1302,7 +1302,7 @@ class JsonLdProcessor(object):
         def filter_value(e):
             return not JsonLdProcessor.compare_values(e, value)
         values = JsonLdProcessor.get_values(subject, property)
-        values = filter(filter_value, values)
+        values = list(filter(filter_value, values))
 
         if len(values) == 0:
             JsonLdProcessor.remove_property(subject, property)
@@ -3398,7 +3398,10 @@ class JsonLdProcessor(object):
         def remove_dependents(id_):
             # get embed keys as a separate array to enable deleting keys
             # in map
-            ids = embeds.keys()
+            try:
+                ids = list(embeds.iterkeys())
+            except AttributeError:
+                ids = list(embeds.keys())
             for next in ids:
                 if (next in embeds and
                         _is_object(embeds[next]['parent']) and
