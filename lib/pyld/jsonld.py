@@ -3517,6 +3517,36 @@ class JsonLdProcessor(object):
         hash = bnodes[id_]['hash'] = md.hexdigest()
         return hash
 
+    def _hash_related_bnode(
+        self, related, quad, direction, bnodes, namer, path_namer):
+        """
+        Creates a hash to identify how a blank node, `related`, is related to
+        another one.
+
+        :param related: the related bnode.
+        :param quad: the quad that relates the two bnodes.
+        :param direction: the direction of the relationship.
+        :param bnodes: the mapping of bnodes to quads.
+        :param namer: the canonical bnode namer.
+        :param path_namer: the namer used to assign names to related bnodes.
+
+        :return: the hash.
+        """
+        # get related's name (try canonical, path, then hash)
+        if namer.is_named(related):
+            name = namer.get_name(related)
+        elif path_namer.is_named(related):
+            name = path_namer.get_name(related)
+        else:
+            name = self._hash_quads(related, bnodes)
+
+        # hash direction, property, and related's name/hash
+        md = hashlib.sha1()
+        md.update(direction.encode('utf-8'))
+        md.update(quad['predicate']['value'].encode('utf-8'))
+        md.update(name.encode('utf-8'))
+        return md.hexdigest()
+
     def _hash_paths(self, id_, bnodes, namer, path_namer):
         """
         Produces a hash for the paths of adjacent bnodes for a bnode,
@@ -3539,34 +3569,22 @@ class JsonLdProcessor(object):
         quads = bnodes[id_]['quads']
         for quad in quads:
             # get adjacent bnode
-            bnode = self._get_adjacent_bnode_name(quad['subject'], id_)
-            if bnode is not None:
+            related = self._get_adjacent_bnode_name(quad['subject'], id_)
+            if related is not None:
                 # normal property
                 direction = 'p'
             else:
-                bnode = self._get_adjacent_bnode_name(quad['object'], id_)
-                if bnode is None:
+                related = self._get_adjacent_bnode_name(quad['object'], id_)
+                if related is None:
                     continue
                 # reference property
                 direction = 'r'
 
-            # get bnode name (try canonical, path, then hash)
-            if namer.is_named(bnode):
-                name = namer.get_name(bnode)
-            elif path_namer.is_named(bnode):
-                name = path_namer.get_name(bnode)
-            else:
-                name = self._hash_quads(bnode, bnodes)
-
-            # hash direction, property, and bnode name/hash
-            group_md = hashlib.sha1()
-            group_md.update(direction.encode('utf-8'))
-            group_md.update(quad['predicate']['value'].encode('utf-8'))
-            group_md.update(name.encode('utf-8'))
-            group_hash = group_md.hexdigest()
+            group_hash = self._hash_related_bnode(
+                related, quad, direction, bnodes, namer, path_namer)
 
             # add bnode to hash group
-            groups.setdefault(group_hash, []).append(bnode)
+            groups.setdefault(group_hash, []).append(related)
 
         # iterate over groups in sorted hash order
         for group_hash, group in sorted(groups.items()):
