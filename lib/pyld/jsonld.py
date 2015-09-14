@@ -2670,6 +2670,8 @@ class JsonLdProcessor(object):
         for key, values in sorted(language_map.items()):
             values = JsonLdProcessor.arrayify(values)
             for item in values:
+                if item is None:
+                    continue
                 if not _is_string(item):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; language map values must be '
