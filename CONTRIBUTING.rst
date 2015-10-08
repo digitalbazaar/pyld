@@ -1,13 +1,13 @@
-Hacking on PyLD
-===============
+Contributing to PyLD
+====================
 
-Want to hack on PyLD? Great! Here are a few notes:
+Want to contribute to PyLD? Great! Here are a few notes:
 
 Code
 ----
 
-* In general, follow the common [PEP 8 Style Guide][].
-* Try to make the code pass [flake8][] checks.
+* In general, follow the common `PEP 8 Style Guide`_.
+* Try to make the code pass flake8_ checks.
   * `flake8 lib/pyld/jsonld.py`
 * Use version X.Y.Z-dev in dev mode.
 * Use version X.Y.Z for releases.
@@ -15,7 +15,7 @@ Code
 Versioning
 ----------
 
-* Follow the [Semantic Versioning][] guidelines.
+* Follow the `Semantic Versioning`_ guidelines.
 
 Release Process
 ---------------
@@ -34,6 +34,6 @@ To ensure a clean upload, use a clean checkout, and run the following:
 * `git checkout {version}`
 * `python setup.py sdist upload`
 
-[PEP 8 Style Guide]: http://www.python.org/dev/peps/pep-0008/
-[flake8]: https://pypi.python.org/pypi/flake8
-[Semantic Versioning]: http://semver.org/
+.. _PEP 8 Style Guide: http://www.python.org/dev/peps/pep-0008/
+.. _flake8: https://pypi.python.org/pypi/flake8
+.. _Semantic Versioning: http://semver.org/
