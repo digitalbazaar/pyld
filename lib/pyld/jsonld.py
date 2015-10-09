@@ -2578,7 +2578,6 @@ class JsonLdProcessor(object):
             # reset to initial context
             if ctx is None:
                 rval = active_ctx = self._get_initial_context(options)
-                must_clone = False
                 continue
 
             # dereference @context key if present
