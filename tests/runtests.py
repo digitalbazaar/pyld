@@ -115,8 +115,17 @@ class Manifest:
         self.dirname = os.path.dirname(self.filename)
 
     def load(self):
-        sequence = get_jsonld_values(self.data, 'sequence')
-        for entry in sequence:
+        entries = []
+        # get entries and sequence (alias for entries)
+        entries.extend(get_jsonld_values(self.data, 'entries'))
+        entries.extend(get_jsonld_values(self.data, 'sequence'))
+
+        # add includes to entries as jsonld files
+        includes = get_jsonld_values(self.data, 'include')
+        for filename in includes:
+            entries.append(filename + '.jsonld')
+
+        for entry in entries:
             if isinstance(entry, basestring):
                 filename = os.path.join(self.dirname, entry)
                 entry = read_json(filename)
@@ -151,11 +160,22 @@ class Test(unittest.TestCase):
                 break
 
     def __str__(self):
-        number = self.data['@id'][2:]
-        return ('%s %s %s' %
-            (self.manifest.data.get('name'),
-            number,
-            self.data.get('purpose', self.data.get('name'))))
+        manifest = self.manifest.data.get(
+                'name', self.manifest.data.get('label'))
+        test_id = self.data.get('id', self.data.get('@id'))
+        label = self.data.get(
+                'purpose', self.data.get('name', self.data.get('label')))
+
+        return ('%s: %s: %s' % (manifest, test_id, label))
+
+    def _get_expect_property(self):
+        '''Find the expected output property or raise error.'''
+        if 'expect' in self.data:
+            return 'expect'
+        elif 'result' in self.data:
+            return 'result'
+        else:
+            raise Exception('No expected output property found')
 
     def setUp(self):
         data = self.data
@@ -163,13 +183,19 @@ class Test(unittest.TestCase):
 
         # skip unknown and explicitly skipped test types
         global SKIP_TESTS
+        types = []
+        types.extend(get_jsonld_values(data, '@type'))
+        types.extend(get_jsonld_values(data, 'type'))
         if self.test_type is None or self.test_type in SKIP_TESTS:
-            skipTest('Test type of %s' % get_jsonld_values(data, '@type'))
+            # FIXME
+            skipTest('Test type of %s' % types)
 
         # expand @id and input base
-        data['@id'] = (manifest.data['baseIri'] +
-            os.path.basename(manifest.filename) + data['@id'])
-        self.base = self.manifest.data['baseIri'] + data['input']
+        if 'baseIri' in manifest.data:
+            data['@id'] = (
+                manifest.data['baseIri'] +
+                os.path.basename(manifest.filename) + data['@id'])
+            self.base = self.manifest.data['baseIri'] + data['input']
 
     def runTest(self):
         data = self.data
@@ -179,10 +205,10 @@ class Test(unittest.TestCase):
         params = test_info['params']
         params = [param(self) for param in params]
         result = None
-        if self.is_positive:
-            expect = read_test_property('expect')(self)
+        if self.is_negative:
+            expect = data[self._get_expect_property()]
         else:
-            expect = data['expect']
+            expect = read_test_property(self._get_expect_property())(self)
 
         try:
             result = getattr(jsonld, fn)(*params)
@@ -203,13 +229,15 @@ class Test(unittest.TestCase):
 
 
 def is_jsonld_type(node, type_):
-    node_type = get_jsonld_values(node, '@type')
+    node_types = []
+    node_types.extend(get_jsonld_values(node, '@type'))
+    node_types.extend(get_jsonld_values(node, 'type'))
     types = type_ if isinstance(type_, list) else [type_]
-    return len(set(node_type).intersection(set(types))) > 0
+    return len(set(node_types).intersection(set(types))) > 0
 
 
 def get_jsonld_values(node, property):
-    rval = None
+    rval = []
     if property in node:
         rval = node[property]
         if not isinstance(rval, list):
@@ -243,7 +271,10 @@ def read_test_url(property):
     def read(test):
         if property not in test.data:
             return None
-        return test.manifest.data['baseIri'] + test.data[property]
+        if 'baseIri' in test.manifest.data:
+            return test.manifest.data['baseIri'] + test.data[property]
+        else:
+            return test.data[property]
     return read
 
 
@@ -284,8 +315,7 @@ def create_document_loader(test):
         doc = {'contextUrl': None, 'documentUrl': url, 'document': None}
         options = test.data.get('option')
         if options and url == test.base:
-            if ('redirectTo' in options and
-                options.get('httpStatus') >= 300):
+            if ('redirectTo' in options and options.get('httpStatus') >= 300):
                 doc['documentUrl'] = (
                         test.manifest.data['baseIri'] + options['redirectTo'])
             elif 'httpLink' in options:
@@ -406,7 +436,7 @@ class EarlReport():
             '@type': 'earl:Assertion',
             'earl:assertedBy': self.report['doap:developer']['@id'],
             'earl:mode': 'earl:automatic',
-            'earl:test': test.data['@id'],
+            'earl:test': test.data.get('id', test.data.get('@id')),
             'earl:result': {
                 '@type': 'earl:TestResult',
                 'dc:date': datetime.datetime.utcnow().isoformat(),
@@ -426,53 +456,75 @@ TEST_TYPES = {
     'jld:CompactTest': {
         'fn': 'compact',
         'params': [
-          read_test_url('input'),
-          read_test_property('context'),
-          create_test_options()
-        ]
-    },
+            read_test_url('input'),
+            read_test_property('context'),
+            create_test_options()
+            ]
+        },
     'jld:ExpandTest': {
         'fn': 'expand',
         'params': [
-          read_test_url('input'),
-          create_test_options()
+            read_test_url('input'),
+            create_test_options()
         ]
     },
     'jld:FlattenTest': {
         'fn': 'flatten',
         'params': [
-          read_test_url('input'),
-          read_test_property('context'),
-          create_test_options()
+            read_test_url('input'),
+            read_test_property('context'),
+            create_test_options()
         ]
     },
     'jld:FrameTest': {
         'fn': 'frame',
         'params': [
-          read_test_url('input'),
-          read_test_property('frame'),
-          create_test_options()
+            read_test_url('input'),
+            read_test_property('frame'),
+            create_test_options()
         ]
     },
     'jld:FromRDFTest': {
         'fn': 'from_rdf',
         'params': [
-          read_test_property('input'),
-          create_test_options({'format': 'application/nquads'})
+            read_test_property('input'),
+            create_test_options({'format': 'application/nquads'})
         ]
     },
     'jld:NormalizeTest': {
         'fn': 'normalize',
         'params': [
-          read_test_property('input'),
-          create_test_options({'format': 'application/nquads'})
+            read_test_property('input'),
+            create_test_options({'format': 'application/nquads'})
         ]
     },
     'jld:ToRDFTest': {
         'fn': 'to_rdf',
         'params': [
-          read_test_url('input'),
-          create_test_options({'format': 'application/nquads'})
+            read_test_url('input'),
+            create_test_options({'format': 'application/nquads'})
+        ]
+    },
+    'rdfn:Urgna2012EvalTest': {
+        'fn': 'normalize',
+        'params': [
+            read_test_property('action'),
+            create_test_options({
+                'algorithm': 'URGNA2012',
+                'inputFormat': 'application/nquads',
+                'format': 'application/nquads'
+            })
+        ]
+    },
+    'rdfn:Urdna2015EvalTest': {
+        'fn': 'normalize',
+        'params': [
+            read_test_property('action'),
+            create_test_options({
+                'algorithm': 'URDNA2015',
+                'inputFormat': 'application/nquads',
+                'format': 'application/nquads'
+            })
         ]
     }
 }
