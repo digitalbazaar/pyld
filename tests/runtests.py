@@ -10,11 +10,12 @@ Test runner for JSON-LD.
 
 from __future__ import print_function
 
-__copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
-__license__ = 'New BSD license'
-
-import os, sys, json, datetime, unittest, traceback
-from os.path import join
+import datetime
+import json
+import os
+import sys
+import traceback
+import unittest
 from optparse import OptionParser
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
@@ -25,12 +26,16 @@ try:
 except ImportError:
     from unittest import _TextTestResult as TextTestResult
 
+__copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
+__license__ = 'New BSD license'
+
 # support python 2
 if sys.version_info[0] >= 3:
     basestring = str
 
 ROOT_MANIFEST_DIR = None
 SKIP_TESTS = []
+
 
 class TestRunner(unittest.TextTestRunner):
     """
@@ -70,7 +75,7 @@ class TestRunner(unittest.TextTestRunner):
         (self.options, args) = self.parser.parse_args()
 
         # ensure a manifest or a directory was specified
-        if self.options.manifest == None and self.options.directory == None:
+        if self.options.manifest is None and self.options.directory is None:
             raise Exception('No test manifest or directory specified.')
 
         # config runner
@@ -231,7 +236,7 @@ def read_file(filename):
         if sys.version_info[0] >= 3:
             return f.read()
         else:
-            return  f.read().decode('utf8')
+            return f.read().decode('utf8')
 
 
 def read_test_url(property):
@@ -281,8 +286,8 @@ def create_document_loader(test):
         if options and url == test.base:
             if ('redirectTo' in options and
                 options.get('httpStatus') >= 300):
-                doc['documentUrl'] = (test.manifest.data['baseIri'] +
-                    options['redirectTo'])
+                doc['documentUrl'] = (
+                        test.manifest.data['baseIri'] + options['redirectTo'])
             elif 'httpLink' in options:
                 content_type = options.get('contentType')
                 if not content_type and url.endswith('.jsonld'):
@@ -313,7 +318,7 @@ def create_document_loader(test):
     def local_loader(url):
         # always load remote-doc and non-base tests remotely
         if ((not url.startswith(base) and url.find(':') != -1) or
-            test.manifest.data.get('name') == 'Remote document'):
+                test.manifest.data.get('name') == 'Remote document'):
             return loader(url)
 
         # attempt to load locally
