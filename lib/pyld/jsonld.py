@@ -236,17 +236,21 @@ def link(input_, ctx, options=None):
 
 def normalize(input_, options=None):
     """
-    Performs JSON-LD normalization.
+    Performs RDF dataset normalization on the given input. The input is
+    JSON-LD unless the 'inputFormat' option is used. The output is an RDF
+    dataset unless the 'format' option is used'.
 
     :param input_: the JSON-LD input to normalize.
     :param [options]: the options to use.
       [base] the base IRI to use.
+      [inputFormat] the format if input is not JSON-LD:
+        'application/nquads' for N-Quads.
       [format] the format if output is a string:
         'application/nquads' for N-Quads.
       [documentLoader(url)] the document loader
         (default: _default_document_loader).
 
-    :return: the normalized JSON-LD output.
+    :return: the normalized output.
     """
     return JsonLdProcessor().normalize(input_, options)
 
@@ -987,11 +991,15 @@ class JsonLdProcessor(object):
 
     def normalize(self, input_, options):
         """
-        Performs RDF normalization on the given JSON-LD input.
+        Performs RDF dataset normalization on the given input. The input is
+        JSON-LD unless the 'inputFormat' option is used. The output is an RDF
+        dataset unless the 'format' option is used'.
 
         :param input_: the JSON-LD input to normalize.
         :param options: the options to use.
           [base] the base IRI to use.
+          [inputFormat] the format if input is not JSON-LD:
+            'application/nquads' for N-Quads.
           [format] the format if output is a string:
             'application/nquads' for N-Quads.
           [documentLoader(url)] the document loader
@@ -1005,12 +1013,19 @@ class JsonLdProcessor(object):
         options.setdefault('documentLoader', _default_document_loader)
 
         try:
-            # convert to RDF dataset then do normalization
-            opts = copy.deepcopy(options)
-            if 'format' in opts:
-                del opts['format']
-            opts['produceGeneralizedRdf'] = False
-            dataset = self.to_rdf(input_, opts)
+            if 'inputFormat' in options:
+                if options['inputFormat'] != 'application/nquads':
+                    raise JsonLdError(
+                        'Unknown normalization input format.',
+                        'jsonld.NormalizeError')
+                dataset = JsonLdProcessor.parse_nquads(input_)
+            else:
+                # convert to RDF dataset then do normalization
+                opts = copy.deepcopy(options)
+                if 'format' in opts:
+                    del opts['format']
+                opts['produceGeneralizedRdf'] = False
+                dataset = self.to_rdf(input_, opts)
         except JsonLdError as cause:
             raise JsonLdError(
                 'Could not convert input to RDF dataset before normalization.',
