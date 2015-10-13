@@ -16,7 +16,7 @@ script:
   - git clone https://github.com/json-ld/json-ld.org.git _json-ld.org
   - python tests/runtests.py -d ./_json-ld.org/test-suite
   - git clone https://github.com/json-ld/normalization.git _normalization
-  - python test/runtests.py -d ./_normalization/tests
+  - python tests/runtests.py -d ./_normalization/tests
 notifications:
   email:
     on_success: change
