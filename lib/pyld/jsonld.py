@@ -4433,10 +4433,9 @@ class URDNA2015(object):
         # 7) For each quad, quad, in input dataset:
         normalized = []
         for quad in self.quads:
-            # 7.1) Create a copy, quad copy, of quad and replace any existing blank
-            # node identifiers using the canonical identifiers previously issued by
-            # canonical issuer.
-            # Note: We optimize away the copy here.
+            # 7.1) Create a copy, quad copy, of quad and replace any existing
+            # blank node identifiers using the canonical identifiers previously
+            # issued by canonical issuer. Note: We optimize away the copy here.
             for key, component in quad.items():
                 if key == 'predicate':
                     continue
@@ -4495,8 +4494,8 @@ class URDNA2015(object):
         # 4) Sort nquads in lexicographical order.
         nquads.sort()
 
-        # 5) Return the hash that results from passing the sorted, joined nquads
-        # through the hash algorithm.
+        # 5) Return the hash that results from passing the sorted, joined
+        # nquads through the hash algorithm.
         info['hash'] = self.hash_nquads(nquads)
         return info['hash']
 
@@ -4603,7 +4602,8 @@ class URDNA2015(object):
                     # path and path is lexicographically greater than chosen
                     # path, then skip to the next permutation.
                     if(len(chosen_path) != 0 and
-                        len(path) >= len(chosen_path) and path > chosen_path):
+                            len(path) >= len(chosen_path) and
+                            path > chosen_path):
                         skip_to_next_permutation = True
                         break
 
@@ -4634,7 +4634,8 @@ class URDNA2015(object):
                     # path and path is lexicographically greater than chosen
                     # path, then skip to the next permutation.
                     if(len(chosen_path) != 0 and
-                        len(path) >= len(chosen_path) and path > chosen_path):
+                            len(path) >= len(chosen_path) and
+                            path > chosen_path):
                         skip_to_next_permutation = True
                         break
 
@@ -4675,8 +4676,8 @@ class URDNA2015(object):
             # identified by identifier:
             for key, component in quad.items():
                 if(key != 'predicate' and
-                    component['type'] == 'blank node' and
-                    component['value'] != id_):
+                        component['type'] == 'blank node' and
+                        component['value'] != id_):
                     # 3.1.1) Set hash to the result of the Hash Related Blank
                     # Node algorithm, passing the blank node identifier for
                     # component as related, quad, path identifier issuer as
@@ -4748,7 +4749,7 @@ class URGNA2012(URDNA2015):
             # related, quad, path identifier issuer as issuer, and p as
             # position.
             if(quad['subject']['type'] == 'blank node' and
-                quad['subject']['value'] != id_):
+                    quad['subject']['value'] != id_):
                 related = quad['subject']['value']
                 position = 'p'
             # 3.2) Otherwise, if quad's object is a blank node that does
@@ -4757,7 +4758,7 @@ class URGNA2012(URDNA2015):
             # as related, quad, path identifier issuer as issuer, and r
             # as position.
             elif(quad['object']['type'] == 'blank node' and
-                quad['object']['value'] != id_):
+                    quad['object']['value'] != id_):
                 related = quad['object']['value']
                 position = 'r'
             # 3.3) Otherwise, continue to the next quad.
