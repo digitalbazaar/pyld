@@ -138,15 +138,17 @@ This library includes a sample testing utility which may be used to verify
 that changes to the processor maintain the correct output.
 
 To run the sample tests you will need to get the test suite files by cloning
-the ``json-ld.org`` repository hosted on GitHub:
+the ``json-ld.org`` and ``normalization`` repositories hosted on GitHub:
 
-https://github.com/json-ld/json-ld.org
+- https://github.com/json-ld/json-ld.org
+- https://github.com/json-ld/normalization
 
-Then run the test application using the directory containing the tests:
+Then run the test application using the directories containing the tests:
 
 .. code-block:: bash
 
     python tests/runtests.py -d {PATH_TO_JSON_LD_ORG/test-suite}
+    python tests/runtests.py -d {PATH_TO_NORMALIZATION/tests}
 
 .. _Digital Bazaar: http://digitalbazaar.com/
 .. _JSON-LD: http://json-ld.org/
