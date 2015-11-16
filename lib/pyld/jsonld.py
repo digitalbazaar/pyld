@@ -5089,7 +5089,12 @@ class ActiveContextCache(object):
             del self.cache[entry['activeCtx']][entry['localCtx']]
         key1 = json.dumps(active_ctx)
         key2 = json.dumps(local_ctx)
-        self.order.append({'activeCtx': key1, 'localCtx': key2})
+        # if we haven't seen this key combination before, add it to the deque.
+        # (if it already exists -- i.e., if we're overwriting an existing
+        # value -- then it's already contained in the deque, and we shouldn't
+        # do anything)
+        if key1 not in self.cache or key2 not in self.cache[key1]:
+            self.order.append({'activeCtx': key1, 'localCtx': key2})
         self.cache.setdefault(key1, {})[key2] = json.loads(json.dumps(result))
 
 
