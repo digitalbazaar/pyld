@@ -4220,7 +4220,7 @@ class JsonLdError(Exception):
         self.causeTrace = traceback.extract_tb(*sys.exc_info()[2:])
 
     def __str__(self):
-        rval = repr(self.message)
+        rval = str(self.args)
         rval += '\nType: ' + self.type
         if self.code:
             rval += '\nCode: ' + self.code
