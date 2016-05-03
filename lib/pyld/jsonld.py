@@ -388,7 +388,7 @@ def load_document(url):
             ('Accept', 'application/ld+json, application/json'),
             ('Accept-Encoding', 'deflate')]
         with closing(url_opener.open(url)) as handle:
-            content_encoding = handle.info().get('Content-Encoding', '') 
+            content_encoding = handle.info().get('Content-Encoding', '')
             if content_encoding == 'gzip':
                 buf = io.BytesIO(handle.read())
                 f = gzip.GzipFile(fileobj=buf, mode='rb')
