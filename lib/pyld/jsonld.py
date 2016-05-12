@@ -14,6 +14,7 @@ JSON-LD.
 
 import copy
 import gzip
+import zlib
 import hashlib
 import io
 import json
@@ -82,7 +83,7 @@ else:
 
 __copyright__ = 'Copyright (c) 2011-2016 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
-__version__ = '0.7.1-dev'
+__version__ = '0.7.2-dev'
 
 __all__ = [
     'compact', 'expand', 'flatten', 'frame', 'link', 'from_rdf', 'to_rdf',
@@ -387,10 +388,13 @@ def load_document(url):
             ('Accept', 'application/ld+json, application/json'),
             ('Accept-Encoding', 'deflate')]
         with closing(url_opener.open(url)) as handle:
-            if handle.info().get('Content-Encoding') == 'gzip':
+            content_encoding = handle.info().get('Content-Encoding', '')
+            if content_encoding == 'gzip':
                 buf = io.BytesIO(handle.read())
                 f = gzip.GzipFile(fileobj=buf, mode='rb')
                 data = f.read()
+            elif content_encoding == 'deflate':
+                data = zlib.decompress(handle.read())
             else:
                 data = handle.read()
             doc = {
