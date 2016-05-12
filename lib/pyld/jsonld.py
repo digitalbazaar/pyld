@@ -390,6 +390,7 @@ def load_document(url):
         with closing(url_opener.open(url)) as handle:
             content_encoding = handle.info().get('Content-Encoding', '')
             if content_encoding == 'gzip':
+                # NOTE: Python 3.2+: gzip.decompress(handle.read())
                 buf = io.BytesIO(handle.read())
                 f = gzip.GzipFile(fileobj=buf, mode='rb')
                 data = f.read()
