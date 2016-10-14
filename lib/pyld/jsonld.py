@@ -768,6 +768,8 @@ class JsonLdProcessor(object):
         options = options or {}
         options.setdefault('keepFreeFloatingNodes', False)
         options.setdefault('documentLoader', _default_document_loader)
+        options.setdefault('strict', False)
+        options.setdefault('droppedKeys', None)
 
         # if input is a string, attempt to dereference remote document
         if _is_string(input_):
@@ -1966,6 +1968,7 @@ class JsonLdProcessor(object):
             active_ctx, active_property, vocab=True)
 
         rval = {}
+        droppedKeys = options['droppedKeys']
         for key, value in sorted(element.items()):
             if key == '@context':
                 continue
@@ -1979,6 +1982,10 @@ class JsonLdProcessor(object):
                 not (
                     _is_absolute_iri(expanded_property) or
                     _is_keyword(expanded_property))):
+                if options['strict']:
+                    raise ValueError("Unrecognized key %s" % key)
+                elif droppedKeys is not None:
+                    droppedKeys.add(key)
                 continue
 
             if _is_keyword(expanded_property):
