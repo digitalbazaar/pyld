@@ -3316,8 +3316,6 @@ class JsonLdProcessor(object):
             except AttributeError:
                 ids = list(embeds.keys())
             for next in ids:
-                print next
-
                 if (next in embeds and
                         _is_object(embeds[next]['parent']) and
                         '@id' in embeds[next]['parent'] and # could be @list
