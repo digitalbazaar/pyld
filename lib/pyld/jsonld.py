@@ -81,9 +81,9 @@ else:
     import urlparse as urllib_parse
     from httplib import HTTPSConnection
 
-__copyright__ = 'Copyright (c) 2011-2016 Digital Bazaar, Inc.'
+__copyright__ = 'Copyright (c) 2011-2017 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
-__version__ = '0.7.2-dev'
+__version__ = '0.7.2'
 
 __all__ = [
     'compact', 'expand', 'flatten', 'frame', 'link', 'from_rdf', 'to_rdf',
