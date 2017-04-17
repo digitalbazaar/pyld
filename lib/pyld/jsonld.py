@@ -1454,7 +1454,7 @@ class JsonLdProcessor(object):
         subject = '(?:' + iri + '|' + bnode + ')' + ws
         property = iri + ws
         object = '(?:' + iri + '|' + bnode + '|' + literal + ')' + wso
-        graph = '(?:\\.|(?:(?:' + iri + '|' + bnode + ')' + wso + '\\.))'
+        graph = '(?:\\.|(?:(?:' + iri + '|' + bnode + '|' + literal + ')' + wso + '\\.))'
 
         # Note: Notice that the graph position does not include literals
         # even though they are specified as a possible value in the
