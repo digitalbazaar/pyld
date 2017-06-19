@@ -14,7 +14,6 @@ JSON-LD.
 
 import copy
 import gzip
-import zlib
 import hashlib
 import io
 import json
@@ -26,6 +25,7 @@ import ssl
 import string
 import sys
 import traceback
+import zlib
 from collections import deque, namedtuple
 from contextlib import closing
 from numbers import Integral, Real
@@ -658,7 +658,7 @@ class JsonLdProcessor(object):
             return None
 
         # set default options
-        options = options or {}
+        options = options.copy() if options else {}
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('compactArrays', True)
         options.setdefault('graph', False)
@@ -765,7 +765,7 @@ class JsonLdProcessor(object):
         :return: the expanded JSON-LD output.
         """
         # set default options
-        options = options or {}
+        options = options.copy() if options else {}
         options.setdefault('keepFreeFloatingNodes', False)
         options.setdefault('documentLoader', _default_document_loader)
 
@@ -857,7 +857,7 @@ class JsonLdProcessor(object):
 
         :return: the flattened JSON-LD output.
         """
-        options = options or {}
+        options = options.copy() if options else {}
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('documentLoader', _default_document_loader)
 
@@ -907,7 +907,7 @@ class JsonLdProcessor(object):
         :return: the framed JSON-LD output.
         """
         # set default options
-        options = options or {}
+        options = options.copy() if options else {}
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('compactArrays', True)
         options.setdefault('embed', '@last')
@@ -1017,7 +1017,7 @@ class JsonLdProcessor(object):
         :return: the normalized output.
         """
         # set default options
-        options = options or {}
+        options = options.copy() if options else {}
         options.setdefault('algorithm', 'URGNA2012')
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('documentLoader', _default_document_loader)
@@ -1071,7 +1071,7 @@ class JsonLdProcessor(object):
         global _rdf_parsers
 
         # set default options
-        options = options or {}
+        options = options.copy() if options else {}
         options.setdefault('useRdfType', False)
         options.setdefault('useNativeTypes', False)
 
@@ -1115,7 +1115,7 @@ class JsonLdProcessor(object):
         :return: the resulting RDF dataset (or a serialization of it).
         """
         # set default options
-        options = options or {}
+        options = options.copy() if options else {}
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('produceGeneralizedRdf', False)
         options.setdefault('documentLoader', _default_document_loader)
@@ -1168,7 +1168,7 @@ class JsonLdProcessor(object):
             return self._get_initial_context(options)
 
         # set default options
-        options = options or {}
+        options = options.copy() if options else {}
         options.setdefault('base', '')
         options.setdefault('documentLoader', _default_document_loader)
 
