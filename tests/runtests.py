@@ -187,8 +187,14 @@ class Test(unittest.TestCase):
         types.extend(get_jsonld_values(data, '@type'))
         types.extend(get_jsonld_values(data, 'type'))
         if self.test_type is None or self.test_type in SKIP_TESTS:
-            # FIXME
-            skipTest('Test type of %s' % types)
+            self.skipTest('Test type of %s' % types)
+
+        global TEST_TYPES
+        test_info = TEST_TYPES[self.test_type]
+        skip_pm = test_info.get('skip', {}).get('processingMode', [])
+        data_pm = data.get('option', {}).get('processingMode', None)
+        if data_pm in skip_pm:
+            self.skipTest('Test with processingMode %s' % data_pm)
 
         # expand @id and input base
         if 'baseIri' in manifest.data:
@@ -454,14 +460,20 @@ class EarlReport():
 # supported test types
 TEST_TYPES = {
     'jld:CompactTest': {
+        'skip': {
+            'processingMode': ['json-ld-1.1']
+        },
         'fn': 'compact',
         'params': [
             read_test_url('input'),
             read_test_property('context'),
             create_test_options()
-            ]
-        },
+        ]
+    },
     'jld:ExpandTest': {
+        'skip': {
+            'processingMode': ['json-ld-1.1']
+        },
         'fn': 'expand',
         'params': [
             read_test_url('input'),
@@ -469,6 +481,9 @@ TEST_TYPES = {
         ]
     },
     'jld:FlattenTest': {
+        'skip': {
+            'processingMode': ['json-ld-1.1']
+        },
         'fn': 'flatten',
         'params': [
             read_test_url('input'),
@@ -477,6 +492,9 @@ TEST_TYPES = {
         ]
     },
     'jld:FrameTest': {
+        'skip': {
+            'type': True
+        },
         'fn': 'frame',
         'params': [
             read_test_url('input'),
@@ -499,6 +517,9 @@ TEST_TYPES = {
         ]
     },
     'jld:ToRDFTest': {
+        'skip': {
+            #'regex': [/RFC3986/]
+        },
         'fn': 'to_rdf',
         'params': [
             read_test_url('input'),
