@@ -4,6 +4,7 @@ python:
   - "pypy"
   - "3.4"
   - "3.5"
+  - "3.6"
   - "pypy3"
 sudo: false
 # no requirements, but simulate what a user would see
