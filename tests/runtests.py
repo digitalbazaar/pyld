@@ -191,10 +191,18 @@ class Test(unittest.TestCase):
 
         global TEST_TYPES
         test_info = TEST_TYPES[self.test_type]
+
+        # skip based on processingMode
         skip_pm = test_info.get('skip', {}).get('processingMode', [])
         data_pm = data.get('option', {}).get('processingMode', None)
         if data_pm in skip_pm:
             self.skipTest('Test with processingMode %s' % data_pm)
+
+        # skip based on specVersion
+        skip_sv = test_info.get('skip', {}).get('specVersion', [])
+        data_sv = data.get('option', {}).get('specVersion', None)
+        if data_sv in skip_sv:
+            self.skipTest('Test with specVersion %s' % data_sv)
 
         # expand @id and input base
         if 'baseIri' in manifest.data:
@@ -461,7 +469,7 @@ class EarlReport():
 TEST_TYPES = {
     'jld:CompactTest': {
         'skip': {
-            'processingMode': ['json-ld-1.1']
+            'specVersion': ['json-ld-1.1']
         },
         'fn': 'compact',
         'params': [
@@ -472,7 +480,7 @@ TEST_TYPES = {
     },
     'jld:ExpandTest': {
         'skip': {
-            'processingMode': ['json-ld-1.1']
+            'specVersion': ['json-ld-1.1']
         },
         'fn': 'expand',
         'params': [
@@ -482,7 +490,7 @@ TEST_TYPES = {
     },
     'jld:FlattenTest': {
         'skip': {
-            'processingMode': ['json-ld-1.1']
+            'specVersion': ['json-ld-1.1']
         },
         'fn': 'flatten',
         'params': [
@@ -493,7 +501,7 @@ TEST_TYPES = {
     },
     'jld:FrameTest': {
         'skip': {
-            'type': True
+            'specVersion': ['json-ld-1.1']
         },
         'fn': 'frame',
         'params': [
