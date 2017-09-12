@@ -228,11 +228,11 @@ def link(input_, ctx, options=None):
     """
     # API matches running frame with a wildcard frame and embed: '@link'
     # get arguments
-    frame = {'@embed': '@link'}
+    frame_ = {'@embed': '@link'}
     if ctx:
-        frame['@context'] = ctx
-    frame['@embed'] = '@link'
-    return frame(input, frame, options)
+        frame_['@context'] = ctx
+    frame_['@embed'] = '@link'
+    return frame(input_, frame_, options)
 
 
 def normalize(input_, options=None):
