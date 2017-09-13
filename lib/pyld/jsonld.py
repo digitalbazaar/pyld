@@ -65,7 +65,7 @@ except ImportError:
             __hash__ = None
         return K
 
-# support python 2
+# support python 2 and 3
 if sys.version_info[0] >= 3:
     from urllib.request import build_opener as urllib_build_opener
     from urllib.request import HTTPSHandler
@@ -83,7 +83,7 @@ else:
 
 __copyright__ = 'Copyright (c) 2011-2017 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
-__version__ = '0.7.3'
+__version__ = '0.7.4-dev'
 
 __all__ = [
     'compact', 'expand', 'flatten', 'frame', 'link', 'from_rdf', 'to_rdf',
@@ -383,10 +383,13 @@ def load_document(url):
                 'jsonld.InvalidUrl', {'url': url},
                 code='loading document failed')
         https_handler = VerifiedHTTPSHandler()
+        #https_handler = HTTPSHandler()
         url_opener = urllib_build_opener(https_handler)
         url_opener.addheaders = [
             ('Accept', 'application/ld+json, application/json'),
             ('Accept-Encoding', 'deflate')]
+
+        print('URLGO', url)
         with closing(url_opener.open(url)) as handle:
             content_encoding = handle.info().get('Content-Encoding', '')
             if content_encoding == 'gzip':
@@ -424,6 +427,7 @@ def load_document(url):
     except JsonLdError as e:
         raise e
     except Exception as cause:
+        print('URLERR', url)
         raise JsonLdError(
             'Could not retrieve a JSON-LD document from the URL.',
             'jsonld.LoadDocumentError', code='loading document failed',
