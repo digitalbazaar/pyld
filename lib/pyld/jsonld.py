@@ -712,7 +712,7 @@ class JsonLdProcessor(object):
         options.setdefault('activeCtx', False)
         options.setdefault('documentLoader', _default_document_loader)
         options.setdefault('link', False)
-        if options['link']:
+        if isinstance(options['link'], dict):
             # force skip expansion when linking, "link" is not part of the
             # public API, it should only be called from framing
             options['skipExpansion'] = True
@@ -1752,7 +1752,7 @@ class JsonLdProcessor(object):
             if _is_value(element) or _is_subject_reference(element):
                 rval = self._compact_value(
                     active_ctx, active_property, element)
-                if options['link'] and _is_subject_reference(element):
+                if isinstance(options['link'], dict) and _is_subject_reference(element):
                     # store linked element
                     options['link'].setdefault(element['@id'], []).append(
                         {'expanded': element, 'compacted': rval})
@@ -1763,7 +1763,7 @@ class JsonLdProcessor(object):
 
             rval = {}
 
-            if options['link'] and '@id' in element:
+            if isinstance(options['link'], dict) and '@id' in element:
                 # store linked element
                 options['link'].setdefault(element['@id'], []).append(
                     {'expanded': element, 'compacted': rval})
