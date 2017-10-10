@@ -7,8 +7,6 @@ python:
   - "3.6"
   - "pypy3"
 sudo: false
-# no requirements, but simulate what a user would see
-install: pip install .
 # download test suite and run tests... submodule? meta testing project with
 # all of the reference implementations?
 script: 
