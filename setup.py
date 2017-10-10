@@ -41,4 +41,7 @@ setup(
         'Topic :: Internet',
         'Topic :: Software Development :: Libraries',
     ],
+    install_requires = [
+        'requests'
+    ],
 )
