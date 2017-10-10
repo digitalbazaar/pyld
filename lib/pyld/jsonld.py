@@ -506,11 +506,10 @@ def prepend_base(base, iri):
 
                 # append relative path to the end of the last directory from
                 # base
-                if rel.path != '':
-                    path = path[0:path.rfind('/') + 1]
-                    if len(path) > 0 and not path.endswith('/'):
-                        path += '/'
-                    path += rel.path
+                path = path[0:path.rfind('/') + 1]
+                if len(path) > 0 and not path.endswith('/'):
+                    path += '/'
+                path += rel.path
 
                 transform['path'] = path
 
