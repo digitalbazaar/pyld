@@ -20,6 +20,7 @@ import json
 import os
 import posixpath
 import re
+import requests
 import socket
 import ssl
 import string
@@ -27,7 +28,6 @@ import sys
 import traceback
 import zlib
 from collections import deque, namedtuple
-from contextlib import closing
 from numbers import Integral, Real
 
 try:
@@ -67,19 +67,13 @@ except ImportError:
 
 # support python 2 and 3
 if sys.version_info[0] >= 3:
-    from urllib.request import build_opener as urllib_build_opener
-    from urllib.request import HTTPSHandler
     import urllib.parse as urllib_parse
-    from http.client import HTTPSConnection
     basestring = str
 
     def cmp(a, b):
         return (a > b) - (a < b)
 else:
-    from urllib2 import build_opener as urllib_build_opener
-    from urllib2 import HTTPSHandler
     import urlparse as urllib_parse
-    from httplib import HTTPSConnection
 
 __copyright__ = 'Copyright (c) 2011-2017 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
@@ -88,7 +82,7 @@ __version__ = '0.7.4-dev'
 __all__ = [
     'compact', 'expand', 'flatten', 'frame', 'link', 'from_rdf', 'to_rdf',
     'normalize', 'set_document_loader', 'get_document_loader',
-    'parse_link_header', 'load_document',
+    'parse_link_header', 'requests_document_loader',
     'register_rdf_parser', 'unregister_rdf_parser',
     'JsonLdProcessor', 'JsonLdError', 'ActiveContextCache']
 
@@ -362,53 +356,57 @@ def parse_link_header(header):
     return rval
 
 
-def load_document(url):
+def requests_document_loader(secure=False, **kwargs):
     """
-    Retrieves JSON-LD at the given URL.
+    Create a Requests document loader.
 
-    :param url: the URL to retrieve.
+    Can be used to setup extra Requests args such as verify, cert, timeout,
+    or others.
+
+    :param secure: require all requests to use HTTPS (default: False).
+    :param **kwargs: extra keyword args for Requests get() call.
 
     :return: the RemoteDocument.
     """
-    try:
-        # validate URL
-        pieces = urllib_parse.urlparse(url)
-        if (not all([pieces.scheme, pieces.netloc]) or
-            pieces.scheme not in ['http', 'https'] or
-            set(pieces.netloc) > set(
-                string.ascii_letters + string.digits + '-.:')):
-            raise JsonLdError(
-                'URL could not be dereferenced; only "http" and "https" '
-                'URLs are supported.',
-                'jsonld.InvalidUrl', {'url': url},
-                code='loading document failed')
-        https_handler = VerifiedHTTPSHandler()
-        #https_handler = HTTPSHandler()
-        url_opener = urllib_build_opener(https_handler)
-        url_opener.addheaders = [
-            ('Accept', 'application/ld+json, application/json'),
-            ('Accept-Encoding', 'deflate')]
 
-        with closing(url_opener.open(url)) as handle:
-            content_encoding = handle.info().get('Content-Encoding', '')
-            if content_encoding == 'gzip':
-                # NOTE: Python 3.2+: gzip.decompress(handle.read())
-                buf = io.BytesIO(handle.read())
-                f = gzip.GzipFile(fileobj=buf, mode='rb')
-                data = f.read()
-            elif content_encoding == 'deflate':
-                data = zlib.decompress(handle.read())
-            else:
-                data = handle.read()
+    def loader(url):
+        """
+        Retrieves JSON-LD at the given URL.
+
+        :param url: the URL to retrieve.
+
+        :return: the RemoteDocument.
+        """
+        try:
+            # validate URL
+            pieces = urllib_parse.urlparse(url)
+            if (not all([pieces.scheme, pieces.netloc]) or
+                pieces.scheme not in ['http', 'https'] or
+                set(pieces.netloc) > set(
+                    string.ascii_letters + string.digits + '-.:')):
+                raise JsonLdError(
+                    'URL could not be dereferenced; only "http" and "https" '
+                    'URLs are supported.',
+                    'jsonld.InvalidUrl', {'url': url},
+                    code='loading document failed')
+            if secure and pieces.scheme != 'https':
+                raise JsonLdError(
+                    'URL could not be dereferenced; secure mode enabled and '
+                    'the URL\'s scheme is not "https".',
+                    'jsonld.InvalidUrl', {'url': url},
+                    code='loading document failed')
+            headers = {
+                'Accept': 'application/ld+json, application/json'
+            }
+            response = requests.get(url, headers=headers, **kwargs)
+
             doc = {
                 'contextUrl': None,
-                'documentUrl': url,
-                'document': data.decode('utf8')
+                'documentUrl': response.url,
+                'document': response.json()
             }
-            doc['documentUrl'] = handle.geturl()
-            headers = dict(handle.info())
-            content_type = headers.get('content-type')
-            link_header = headers.get('link')
+            content_type = response.headers.get('content-type')
+            link_header = response.headers.get('link')
             if link_header and content_type != 'application/ld+json':
                 link_header = parse_link_header(link_header).get(
                     LINK_HEADER_REL)
@@ -422,14 +420,15 @@ def load_document(url):
                         code='multiple context link headers')
                 if link_header:
                     doc['contextUrl'] = link_header['target']
-        return doc
-    except JsonLdError as e:
-        raise e
-    except Exception as cause:
-        raise JsonLdError(
-            'Could not retrieve a JSON-LD document from the URL.',
-            'jsonld.LoadDocumentError', code='loading document failed',
-            cause=cause)
+            return doc
+        except JsonLdError as e:
+            raise e
+        except Exception as cause:
+            raise JsonLdError(
+                'Could not retrieve a JSON-LD document from the URL.',
+                'jsonld.LoadDocumentError', code='loading document failed',
+                cause=cause)
+    return loader
 
 
 def register_rdf_parser(content_type, parser):
@@ -656,7 +655,7 @@ def unparse_url(parsed):
 
 
 # The default JSON-LD document loader.
-_default_document_loader = load_document
+_default_document_loader = requests_document_loader()
 
 # Registered global RDF parsers hashed by content-type.
 _rdf_parsers = {}
@@ -5143,57 +5142,6 @@ class ActiveContextCache(object):
         key2 = json.dumps(local_ctx)
         self.order.append({'activeCtx': key1, 'localCtx': key2})
         self.cache.setdefault(key1, {})[key2] = json.loads(json.dumps(result))
-
-
-class VerifiedHTTPSConnection(HTTPSConnection):
-    """
-    Used to verify SSL certificates when resolving URLs.
-    Taken from: http://thejosephturner.com/blog/2011/03/19/https-\
-      certificate-verification-in-python-with-urllib2/
-    """
-
-    def connect(self):
-        global _trust_root_certificates
-        # overrides the version in httplib to do certificate verification
-        sock = socket.create_connection((self.host, self.port), self.timeout)
-        if self._tunnel_host:
-            self.sock = sock
-            self._tunnel()
-        # wrap the socket using verification with trusted_root_certs
-        self.sock = ssl.wrap_socket(
-                sock,
-                self.key_file,
-                self.cert_file,
-                cert_reqs=ssl.CERT_REQUIRED,
-                ca_certs=_trust_root_certificates)
-
-
-class VerifiedHTTPSHandler(HTTPSHandler):
-    """
-    Wraps urllib2 HTTPS connections enabling SSL certificate verification.
-    """
-
-    def __init__(self, connection_class=VerifiedHTTPSConnection):
-        self.specialized_conn_class = connection_class
-        HTTPSHandler.__init__(self)
-
-    def https_open(self, req):
-        return self.do_open(self.specialized_conn_class, req)
-
-
-# the path to the system's default trusted root SSL certificates
-_trust_root_certificates = None
-_possible_trust_root_certificates = [
-    '/etc/ssl/certs/ca-certificates.crt',
-    '~/Library/OpenSSL/certs/ca-certificates.crt',
-    '/System/Library/OpenSSL/certs/ca-certificates.crt',
-]
-for path in _possible_trust_root_certificates:
-    path = os.path.expanduser(path)
-    if os.path.exists(path):
-        _trust_root_certificates = path
-        break
-# FIXME: warn if not found?  MacOS X uses keychain vs file.
 
 
 # Shared in-memory caches.
