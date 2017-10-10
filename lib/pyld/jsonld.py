@@ -515,16 +515,9 @@ def prepend_base(base, iri):
 
             transform['query'] = rel.query
 
-    # normalize path
-    path = transform['path']
-    add_slash = path.endswith('/')
-    path = posixpath.normpath(path)
-    if not path.endswith('/') and add_slash:
-        path += '/'
-    # do not include '.' path
-    if path == '.':
-        path = ''
-    transform['path'] = path
+    if rel.path != '':
+        # normalize path
+        transform['path'] = remove_dot_segments(transform['path'])
 
     transform['fragment'] = rel.fragment
 
@@ -579,6 +572,53 @@ def remove_base(base, iri):
             path = path[1:]
 
     return unparse_url((None, None, path, rel.query, rel.fragment)) or './'
+
+
+def remove_dot_segments(path):
+    """
+    Removes dot segments from a URL path.
+
+    :param path: the path to remove dot segments from.
+
+    :return: a path with normalized dot segments.
+    """
+
+    # RFC 3984 5.2.4 (reworked)
+
+    # empty path shortcut
+    if len(path) == 0:
+        return ''
+
+    input = path.split('/')
+    output = []
+
+    while len(input) > 0:
+        next = input.pop(0)
+        done = len(input) == 0
+
+        if next == '.':
+            if done:
+                # ensure output has trailing /
+                output.append('')
+            continue
+
+        if next == '..':
+            if len(output) > 0:
+                output.pop()
+            if done:
+                # ensure output has trailing /
+                output.append('')
+            continue
+
+        output.append(next)
+
+    # ensure output has leading /
+    if len(output) > 0 and output[0] != '':
+        output.insert(0, '')
+    if len(output) is 1 and output[0] == '':
+        return '/'
+
+    return '/'.join(output)
 
 
 ParsedUrl = namedtuple(
