@@ -389,7 +389,6 @@ def load_document(url):
             ('Accept', 'application/ld+json, application/json'),
             ('Accept-Encoding', 'deflate')]
 
-        print('URLGO', url)
         with closing(url_opener.open(url)) as handle:
             content_encoding = handle.info().get('Content-Encoding', '')
             if content_encoding == 'gzip':
@@ -427,7 +426,6 @@ def load_document(url):
     except JsonLdError as e:
         raise e
     except Exception as cause:
-        print('URLERR', url)
         raise JsonLdError(
             'Could not retrieve a JSON-LD document from the URL.',
             'jsonld.LoadDocumentError', code='loading document failed',
