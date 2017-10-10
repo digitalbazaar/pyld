@@ -537,9 +537,6 @@ TEST_TYPES = {
         ]
     },
     'jld:ToRDFTest': {
-        'skip': {
-            #'regex': [/RFC3986/]
-        },
         'fn': 'to_rdf',
         'params': [
             read_test_url('input'),
