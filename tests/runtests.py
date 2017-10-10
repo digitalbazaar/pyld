@@ -322,8 +322,20 @@ def create_test_options(opts=None):
 
 
 def create_document_loader(test):
-    base = 'http://json-ld.org/test-suite'
+    httpBase = 'http://json-ld.org/test-suite'
+    httpsBase = 'https://json-ld.org/test-suite'
     loader = jsonld.get_document_loader()
+
+    def is_test_suite_url(url):
+        return url.startswith(httpBase) or url.startswith(httpsBase)
+
+    def strip_base(url):
+        if url.startswith(httpBase):
+            return url[len(httpBase):]
+        elif url.startswith(httpsBase):
+            return url[len(httpsBase):]
+        else:
+            raise Exception('unkonwn base')
 
     def load_locally(url):
         doc = {'contextUrl': None, 'documentUrl': url, 'document': None}
@@ -352,7 +364,7 @@ def create_document_loader(test):
         else:
             #filename = os.path.join(
             #    ROOT_MANIFEST_DIR, doc['documentUrl'][len(base):])
-            filename = ROOT_MANIFEST_DIR + doc['documentUrl'][len(base):]
+            filename = ROOT_MANIFEST_DIR + strip_base(doc['documentUrl'])
         try:
             doc['document'] = read_json(filename)
         except:
@@ -361,7 +373,7 @@ def create_document_loader(test):
 
     def local_loader(url):
         # always load remote-doc and non-base tests remotely
-        if ((not url.startswith(base) and url.find(':') != -1) or
+        if ((not is_test_suite_url(url) and url.find(':') != -1) or
                 test.manifest.data.get('name') == 'Remote document'):
             return loader(url)
 
