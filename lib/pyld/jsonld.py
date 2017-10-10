@@ -589,7 +589,12 @@ def parse_url(url):
     # regex from RFC 3986
     p = r'^(?:([^:/?#]+):)?(?://([^/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?'
     m = re.match(p, url)
-    return ParsedUrl(*m.groups())
+    # remove default http and https ports
+    g = list(m.groups())
+    if ((g[0] == 'https' and g[1].endswith(':443')) or
+            (g[0] == 'http' and g[1].endswith(':80'))):
+        g[1] = g[1][:g[1].rfind(':')]
+    return ParsedUrl(*g)
 
 
 def unparse_url(parsed):
