@@ -3546,42 +3546,52 @@ class JsonLdProcessor(object):
                 if '@index' not in value:
                     containers.append('@list')
                 list_ = value['@list']
-                common_language = default_language if len(list_) == 0 else None
-                common_type = None
-                for item in list_:
-                    item_language = '@none'
-                    item_type = '@none'
-                    if _is_value(item):
-                        if '@language' in item:
-                            item_language = item['@language']
-                        elif '@type' in item:
-                            item_type = item['@type']
-                        # plain literal
+                if len(list_) == 0:
+                    # any empty list can be matched against any term that uses
+                    # the @list container regardless of @type or @language
+                    type_or_language = '@any'
+                    type_or_language_value = '@none'
+                else:
+                    common_language = (
+                            default_language if len(list_) == 0 else None)
+                    common_type = None
+                    for item in list_:
+                        item_language = '@none'
+                        item_type = '@none'
+                        if _is_value(item):
+                            if '@language' in item:
+                                item_language = item['@language']
+                            elif '@type' in item:
+                                item_type = item['@type']
+                            # plain literal
+                            else:
+                                item_language = '@null'
                         else:
-                            item_language = '@null'
-                    else:
-                        item_type = '@id'
+                            item_type = '@id'
+                        if common_language is None:
+                            common_language = item_language
+                        elif item_language != common_language and \
+                                _is_value(item):
+                            common_language = '@none'
+                        if common_type is None:
+                            common_type = item_type
+                        elif item_type != common_type:
+                            common_type = '@none'
+                        # there are different languages and types in the list,
+                        # so choose the most generic term, no need to keep
+                        # iterating
+                        if common_language == '@none' and \
+                                common_type == '@none':
+                            break
                     if common_language is None:
-                        common_language = item_language
-                    elif item_language != common_language and _is_value(item):
                         common_language = '@none'
                     if common_type is None:
-                        common_type = item_type
-                    elif item_type != common_type:
                         common_type = '@none'
-                    # there are different languages and types in the list, so
-                    # choose the most generic term, no need to keep iterating
-                    if common_language == '@none' and common_type == '@none':
-                        break
-                if common_language is None:
-                    common_language = '@none'
-                if common_type is None:
-                    common_type = '@none'
-                if common_type != '@none':
-                    type_or_language = '@type'
-                    type_or_language_value = common_type
-                else:
-                    type_or_language_value = common_language
+                    if common_type != '@none':
+                        type_or_language = '@type'
+                        type_or_language_value = common_type
+                    else:
+                        type_or_language_value = common_language
             # non-@list
             else:
                 if _is_value(value):
@@ -4203,7 +4213,11 @@ class JsonLdProcessor(object):
             for iri in iris:
                 container_map = inverse.setdefault(iri, {})
                 entry = container_map.setdefault(
-                    container, {'@language': {}, '@type': {}})
+                    container, {
+                        '@language': {},
+                        '@type': {},
+                        '@any': {}})
+                entry['@any'].setdefault('@none', term)
 
                 # term is preferred for values using @reverse
                 if mapping['reverse']:
