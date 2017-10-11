@@ -13,20 +13,14 @@ JSON-LD.
 """
 
 import copy
-import gzip
 import hashlib
-import io
 import json
-import os
 import posixpath
 import re
 import requests
-import socket
-import ssl
 import string
 import sys
 import traceback
-import zlib
 from collections import deque, namedtuple
 from numbers import Integral, Real
 
