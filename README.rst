@@ -41,6 +41,7 @@ Requirements
 ------------
 
 - Python_ (2.7 or later)
+- Requests_
 
 Installation
 ------------
@@ -157,6 +158,7 @@ Then run the test application using the directories containing the tests:
 .. _Microdata: http://www.w3.org/TR/microdata/
 .. _Microformats: http://microformats.org/
 .. _Python: http://www.python.org/
+.. _Requests: http://docs.python-requests.org/
 .. _RDFa: http://www.w3.org/TR/rdfa-core/
 .. _RFC7159: http://tools.ietf.org/html/rfc7159
 .. _pip: http://www.pip-installer.org/
