@@ -15,7 +15,6 @@ JSON-LD.
 import copy
 import hashlib
 import json
-import posixpath
 import re
 import requests
 import string
@@ -533,6 +532,7 @@ def remove_base(base, iri):
 
     :return: the relative IRI if relative to base, otherwise the absolute IRI.
     """
+    # TODO: better sync with jsonld.js version
     # skip IRI processing
     if base is None:
         return iri
@@ -544,27 +544,28 @@ def remove_base(base, iri):
     if not (base.scheme == rel.scheme and base.authority == rel.authority):
         return iri
 
-    path = posixpath.relpath(rel.path, base.path) if rel.path else ''
-    path = posixpath.normpath(path)
-    # workaround a relpath bug in Python 2.6 (http://bugs.python.org/issue5117)
-    if base.path == '/' and path.startswith('../'):
-        path = path[3:]
-    if path == '.' and not rel.path.endswith('/') and not (
-            rel.query or rel.fragment):
-        path = posixpath.basename(rel.path)
-    if rel.path.endswith('/') and not path.endswith('/'):
-        path += '/'
+    # remove path segments that match (do not remove last segment unless there
+    # is a hash or query
+    base_segments = remove_dot_segments(base.path).split('/')
+    iri_segments = remove_dot_segments(rel.path).split('/')
+    last = 0 if (rel.fragment or rel.query) else 1
+    while (len(base_segments) and len(iri_segments) > last and
+            base_segments[0] == iri_segments[0]):
+        base_segments.pop(0)
+        iri_segments.pop(0)
 
-    # adjustments for base that is not a directory
-    if not base.path.endswith('/'):
-        if path.startswith('../'):
-            path = path[3:]
-        elif path.startswith('./'):
-            path = path[2:]
-        elif path.startswith('.'):
-            path = path[1:]
+    # use '../' for each non-matching base segment
+    rval = ''
+    if len(base_segments):
+        # don't count the last segment (if it ends with '/' last path doesn't
+        # count and if it doesn't end with '/' it isn't a path)
+        base_segments.pop()
+        rval += '../' * len(base_segments)
 
-    return unparse_url((None, None, path, rel.query, rel.fragment)) or './'
+    # prepend remaining segments
+    rval += '/'.join(iri_segments)
+
+    return unparse_url((None, None, rval, rel.query, rel.fragment)) or './'
 
 
 def remove_dot_segments(path):
