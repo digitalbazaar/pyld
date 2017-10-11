@@ -5,6 +5,8 @@
   matches test suite behavior and other processing libs such as [jsonld.js][].
 - **BREAKING**: Fix path normalization to pass test suite RFC 3984 tests. This
   could change output for various relative URL edge cases.
+- Allow empty lists to be compacted to any @list container term. (Port from
+  [jsonld.js][])
 
 ### Changed
 - **BREAKING**: Remove older document loader code. SSL/SNI support wasn't
