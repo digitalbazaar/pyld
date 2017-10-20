@@ -22,8 +22,8 @@ Versioning
 Release Process
 ---------------
 
-* commit changes
 * ``$EDITOR CHANGELOG.md``: update CHANGELOG with new notes, version, and date.
+* commit changes
 * ``$EDITOR lib/pyld/jsonld.py``: update to release version and remove ``-dev``
   suffix.
 * ``git commit lib/pyld/jsonld.py -m "Release {version}."``
