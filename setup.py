@@ -30,6 +30,10 @@ setup(
     packages = ['pyld'],
     package_dir = {'': 'lib'},
     license = 'BSD 3-Clause license',
+    entry_points = """
+    [console_scripts]
+    pyld = pyld.cli:main
+    """,
     classifiers = [
         'Development Status :: 4 - Beta',
         'Environment :: Console',
