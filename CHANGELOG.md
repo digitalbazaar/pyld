@@ -1,5 +1,7 @@
 # pyld ChangeLog
 
+## 0.8.0 - 2017-10-20
+
 ### Fixed
 - **BREAKING**: Default http (80) and https (443) ports removed from URLs. This
   matches test suite behavior and other processing libs such as [jsonld.js][].
@@ -23,7 +25,7 @@
   `timeout` to fail on timeouts (important for production use!). See
   [Requests][] docs for more info.
 
-## Before 0.7.4
+## Before 0.8.0
 
 - See git history for changes.
 
