@@ -120,6 +120,18 @@ Quick Examples
     # normalized is a string that is a canonical representation of the document
     # that can be used for hashing, comparison, etc.
 
+Document Loader
+---------------
+
+The default document loader for PyLD uses Requests_. In a production
+environment you may want to setup a custom loader that, at a minimum, sets a
+timeout value. You can also force requests to use https, set client certs,
+disable verification, or set other Requests_ parameters.
+
+.. code-block:: Python
+
+    jsonld.set_document_loader(jsonld.requests_document_loader(timeout=...))
+
 Commercial Support
 ------------------
 
