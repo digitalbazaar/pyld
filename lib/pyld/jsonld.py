@@ -70,7 +70,7 @@ else:
 
 __copyright__ = 'Copyright (c) 2011-2017 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
-__version__ = '0.8.0'
+__version__ = '0.8.1-dev'
 
 __all__ = [
     'compact', 'expand', 'flatten', 'frame', 'link', 'from_rdf', 'to_rdf',
