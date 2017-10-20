@@ -26,7 +26,7 @@ Release Process
 * commit changes
 * ``$EDITOR lib/pyld/jsonld.py``: update to release version and remove ``-dev``
   suffix.
-* ``git commit lib/pyld/jsonld.py -m "Release {version}."``
+* ``git commit CHANGELOG.md lib/pyld/jsonld.py -m "Release {version}."``
 * ``git tag {version}``
 * ``$EDITOR lib/pyld/jsonld.py``: update to next version and add ``-dev`` suffix.
 * ``git commit lib/pyld/jsonld.py -m "Start {next-version}."``
