@@ -18,7 +18,7 @@ import traceback
 import unittest
 from optparse import OptionParser
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from pyld import jsonld
 
 try:
