@@ -24,11 +24,11 @@ Release Process
 
 * ``$EDITOR CHANGELOG.md``: update CHANGELOG with new notes, version, and date.
 * commit changes
-* ``$EDITOR lib/pyld/jsonld.py``: update to release version and remove ``-dev``
+* ``$EDITOR lib/pyld/__about__.py``: update to release version and remove ``-dev``
   suffix.
 * ``git commit CHANGELOG.md lib/pyld/jsonld.py -m "Release {version}."``
 * ``git tag {version}``
-* ``$EDITOR lib/pyld/jsonld.py``: update to next version and add ``-dev`` suffix.
+* ``$EDITOR lib/pyld/__about__.py``: update to next version and add ``-dev`` suffix.
 * ``git commit lib/pyld/jsonld.py -m "Start {next-version}."``
 * ``git push --tags``
 

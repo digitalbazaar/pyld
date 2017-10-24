@@ -11,17 +11,19 @@ PyLD_ is a Python JSON-LD_ library.
 
 from distutils.core import setup
 import os
-import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'lib'))
-from pyld import jsonld
+# get meta data
+about = {}
+with open(os.path.join(
+        os.path.dirname(__file__), 'lib', 'pyld', '__about__.py')) as fp:
+    exec(fp.read(), about)
 
-with open('README.rst') as file:
-    long_description = file.read()
+with open('README.rst') as fp:
+    long_description = fp.read()
 
 setup(
     name = 'PyLD',
-    version = jsonld.__version__,
+    version = about['__version__'],
     description = 'Python implementation of the JSON-LD API',
     long_description=long_description,
     author = 'Digital Bazaar',

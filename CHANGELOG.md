@@ -1,5 +1,9 @@
 # pyld ChangeLog
 
+### Fixed
+- Use `__about__.py` to hold versioning and other meta data. Load file in
+  `setup.py` and `jsonld.py`. Fixes testing and installation issues.
+
 ## 0.8.0 - 2017-10-20
 
 ### Fixed

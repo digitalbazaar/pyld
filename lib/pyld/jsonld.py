@@ -22,6 +22,7 @@ import sys
 import traceback
 from collections import deque, namedtuple
 from numbers import Integral, Real
+from pyld.__about__ import (__copyright__, __license__, __version__)
 
 try:
     from functools import cmp_to_key
@@ -68,16 +69,14 @@ if sys.version_info[0] >= 3:
 else:
     import urlparse as urllib_parse
 
-__copyright__ = 'Copyright (c) 2011-2017 Digital Bazaar, Inc.'
-__license__ = 'New BSD license'
-__version__ = '0.8.1-dev'
-
 __all__ = [
+    '__copyright__', '__license__', '__version__',
     'compact', 'expand', 'flatten', 'frame', 'link', 'from_rdf', 'to_rdf',
     'normalize', 'set_document_loader', 'get_document_loader',
     'parse_link_header', 'requests_document_loader',
     'register_rdf_parser', 'unregister_rdf_parser',
-    'JsonLdProcessor', 'JsonLdError', 'ActiveContextCache']
+    'JsonLdProcessor', 'JsonLdError', 'ActiveContextCache'
+]
 
 # XSD constants
 XSD_BOOLEAN = 'http://www.w3.org/2001/XMLSchema#boolean'
