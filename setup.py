@@ -22,17 +22,17 @@ with open('README.rst') as fp:
     long_description = fp.read()
 
 setup(
-    name = 'PyLD',
-    version = about['__version__'],
-    description = 'Python implementation of the JSON-LD API',
+    name='PyLD',
+    version=about['__version__'],
+    description='Python implementation of the JSON-LD API',
     long_description=long_description,
-    author = 'Digital Bazaar',
-    author_email = 'support@digitalbazaar.com',
-    url = 'http://github.com/digitalbazaar/pyld',
-    packages = ['pyld'],
-    package_dir = {'': 'lib'},
-    license = 'BSD 3-Clause license',
-    classifiers = [
+    author='Digital Bazaar',
+    author_email='support@digitalbazaar.com',
+    url='http://github.com/digitalbazaar/pyld',
+    packages=['pyld'],
+    package_dir={'': 'lib'},
+    license='BSD 3-Clause license',
+    classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Environment :: Web Environment',
@@ -43,7 +43,7 @@ setup(
         'Topic :: Internet',
         'Topic :: Software Development :: Libraries',
     ],
-    install_requires = [
+    install_requires=[
         'requests'
     ],
 )
