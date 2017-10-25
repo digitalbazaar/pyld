@@ -1,5 +1,8 @@
 # pyld ChangeLog
 
+### Fixed
+- Use default document loader for older exposed `load_document` API.
+
 ## 0.8.1 - 2017-10-24
 
 ### Fixed

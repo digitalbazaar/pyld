@@ -73,7 +73,7 @@ __all__ = [
     '__copyright__', '__license__', '__version__',
     'compact', 'expand', 'flatten', 'frame', 'link', 'from_rdf', 'to_rdf',
     'normalize', 'set_document_loader', 'get_document_loader',
-    'parse_link_header', 'requests_document_loader',
+    'parse_link_header', 'load_document', 'requests_document_loader',
     'register_rdf_parser', 'unregister_rdf_parser',
     'JsonLdProcessor', 'JsonLdError', 'ActiveContextCache'
 ]
@@ -650,6 +650,9 @@ def unparse_url(parsed):
 
 # The default JSON-LD document loader.
 _default_document_loader = requests_document_loader()
+
+# Use default document loader for older exposed load_document API
+load_document = _default_document_loader
 
 # Registered global RDF parsers hashed by content-type.
 _rdf_parsers = {}
