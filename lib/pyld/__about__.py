@@ -6,4 +6,4 @@ __all__ = [
 
 __copyright__ = 'Copyright (c) 2011-2017 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
-__version__ = '0.8.2'
+__version__ = '0.8.3-dev'
