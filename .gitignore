@@ -10,3 +10,4 @@ build
 cover
 dist
 docs/_build
+lib/PyLD.egg-info

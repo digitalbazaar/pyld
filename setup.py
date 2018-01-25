@@ -43,7 +43,9 @@ setup(
         'Topic :: Internet',
         'Topic :: Software Development :: Libraries',
     ],
-    install_requires=[
-        'requests'
-    ],
+    install_requires=[],
+    extras_require= {
+        'requests': ['requests'],
+        'aiohttp': ['aiohttp'],
+    }
 )
