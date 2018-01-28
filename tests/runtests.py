@@ -6,6 +6,7 @@ Test runner for JSON-LD.
   :synopsis: Test harness for pyld
 
 .. moduleauthor:: Dave Longley
+.. moduleauthor:: Olaf Conradi <olaf@conradi.org>
 """
 
 from __future__ import print_function

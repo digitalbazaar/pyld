@@ -14,9 +14,9 @@
   One needs to define a dependency to `pyld[requests]` or create an
   explicit dependency on `requests` seperately. Use `pyld[aiohttp]` for
   [aiohttp][].
-- The default document loader is set to `request_document_loader`. When
-  [Requests][] is not available, `aiohttp_document_loader` is tried. When
-  [aiohttp][] is not availabke, `dummy_document_loader` is set.
+- The default document loader is set to `request_document_loader`. If
+  [Requests][] is not available, `aiohttp_document_loader` is used. When
+  [aiohttp][] is not availabke, a `dummy_document_loader` is used.
 
 ## 0.8.2 - 2017-10-24
 
