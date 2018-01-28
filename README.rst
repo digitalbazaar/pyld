@@ -41,7 +41,8 @@ Requirements
 ------------
 
 - Python_ (2.7 or later)
-- Requests_
+- Requests_ (optional)
+- aiohttp_ (optional, Python 3.5 or later)
 
 Installation
 ------------
@@ -51,6 +52,10 @@ PyLD can be installed with pip_:
 .. code-block:: bash
 
     pip install PyLD
+
+Defining a dependency on pyld will not pull in Requests_ anymore. Either
+depend on the external library directly or define the requirement as
+``PyLD[requests]`` or ``PyLD[aiohttp]``.
 
 Quick Examples
 --------------
@@ -132,6 +137,19 @@ disable verification, or set other Requests_ parameters.
 
     jsonld.set_document_loader(jsonld.requests_document_loader(timeout=...))
 
+An asynchronous document loader using aiohttp_ is also available. Please note
+that this document loader limits asynchronicity to fetching documents only.
+The processing loops remain synchronous.
+
+.. code-block:: Python
+
+    jsonld.set_document_loader(jsonld.aiohttp_document_loader(timeout=...))
+
+When no document loader is specified, the default loader is set to Requests_.
+If Requests_ is not available, the loader is set to aiohttp_. The fallback
+document loader is a dummy document loader that raises an exception on every
+invocation.
+
 Commercial Support
 ------------------
 
@@ -165,12 +183,17 @@ Then run the test application using the directories containing the tests:
     python tests/runtests.py -d {PATH_TO_JSON_LD_ORG/test-suite}
     python tests/runtests.py -d {PATH_TO_NORMALIZATION/tests}
 
+The test runner supports different document loaders by setting
+``-l requests`` or ``-l aiohttp``. The default document loader is set
+to Requests_.
+
 .. _Digital Bazaar: http://digitalbazaar.com/
 .. _JSON-LD: http://json-ld.org/
 .. _Microdata: http://www.w3.org/TR/microdata/
 .. _Microformats: http://microformats.org/
 .. _Python: http://www.python.org/
 .. _Requests: http://docs.python-requests.org/
+.. _aiohttp: https://aiohttp.readthedocs.io/
 .. _RDFa: http://www.w3.org/TR/rdfa-core/
 .. _RFC7159: http://tools.ietf.org/html/rfc7159
 .. _pip: http://www.pip-installer.org/
