@@ -113,6 +113,7 @@ KEYWORDS = [
     '@set',
     '@type',
     '@value',
+    '@version',
     '@vocab']
 
 # JSON-LD link header rel
@@ -2545,22 +2546,41 @@ class JsonLdProcessor(object):
             # define context mappings for keys in local context
             defined = {}
 
+            # handle @version
+            if '@version' in ctx:
+                if ctx['@version'] != 1.1:
+                    raise JsonLdError(
+                        'Unsupported JSON-LD version: ' + ctx['@version'],
+                        'jsonld.UnsupportedVersion', {'context': ctx},
+                        code='invalid @version value')
+                if active_ctx['processingMode'] and active_ctx['processing_mode'] == 'json-ld-1.0':
+                    raise JsonLdError(
+                        '@version: ' + ctx['@version'] +
+                        ' not compatible with ' + active_ctx['processingMode'],
+                        'jsonld.ProcessingModeConflict', {'context': ctx},
+                        code='processing mode conflict')
+                rval['processingMode'] = ctx['processingMode']
+                rval['@version'] = ctx['@version']
+                defined['@version'] = true
+
+            # if not set explicitly, set processingMode to "json-ld-1.0"
+            rval['processingMode'] = rval.get(
+                'processingMode', active_ctx.get('processingMode', 'json-ld-1.0'))
+
             # handle @base
             if '@base' in ctx:
                 base = ctx['@base']
                 if base is None:
                     base = None
-                elif not _is_string(base):
+                elif _is_absolute_iri(base):
+                    base = base
+                elif _is_relative_iri(base):
+                    base = prepend_base(active_ctx['@base'], base)
+                else:
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; the value of "@base" in a '
                         '@context must be a string or null.',
                         'jsonld.SyntaxError', {'context': ctx},
-                        code='invalid base IRI')
-                elif base != '' and not _is_absolute_iri(base):
-                    raise JsonLdError(
-                        'Invalid JSON-LD syntax; the value of "@base" in a '
-                        '@context must be an absolute IRI or the empty '
-                        'string.', 'jsonld.SyntaxError', {'context': ctx},
                         code='invalid base IRI')
                 rval['@base'] = base
                 defined['@base'] = True
@@ -2610,6 +2630,20 @@ class JsonLdProcessor(object):
                 _cache.get('activeCtx').set(active_ctx, ctx, rval)
 
         return rval
+
+    def _processing_mode(self, active_ctx, version):
+        """
+        Processing Mode check.
+
+        :param active_ctx: the current active context.
+        :param version: the string or numeric version to check.
+
+        :return: True if the check matches.
+        """
+        if str(version) >= '1.1':
+            return str(active_ctx['processingMode']) >= ('json-ld-' + str(version))
+        else:
+            return not active_ctx['processingMode'] or active_ctx['processingMode'] == 'json-ld-1.0'
 
     def _expand_language_map(self, language_map):
         """
@@ -4177,6 +4211,7 @@ class JsonLdProcessor(object):
         """
         return {
             '@base': options['base'],
+            'processingMode': options.get('processingMode', None),
             'mappings': {},
             'inverse': None
         }
@@ -5126,7 +5161,18 @@ def _is_absolute_iri(v):
 
     :return: True if the value is an absolute IRI, False if not.
     """
-    return ':' in v
+    return _is_string(v) and ':' in v
+
+def _is_relative_iri(v):
+    """
+    Returns true if the given value is a relative IRI, false if not.
+    Note: this is a weak check.
+
+    :param v: the value to check.
+
+    :return: True if the value is an absolute IRI, False if not.
+    """
+    return _is_string(v)
 
 
 class ActiveContextCache(object):

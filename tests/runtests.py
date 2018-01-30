@@ -16,6 +16,7 @@ import os
 import sys
 import traceback
 import unittest
+import re
 from optparse import OptionParser
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
@@ -197,6 +198,12 @@ class Test(unittest.TestCase):
 
         global TEST_TYPES
         test_info = TEST_TYPES[self.test_type]
+
+        # skip based on regular expression
+        skip_re = test_info.get('skip', {}).get('regex', [])
+        for regex in skip_re:
+            if re.match(regex, data.get('@id', '')):
+                self.skipTest('Test with regex %s' % regex)
 
         # skip based on processingMode
         skip_pm = test_info.get('skip', {}).get('processingMode', [])
@@ -500,7 +507,7 @@ TEST_TYPES = {
     },
     'jld:ExpandTest': {
         'skip': {
-            'specVersion': ['json-ld-1.1']
+            'regex': ['#t0079', '#t008[0-8]', '#t[cmnp]']
         },
         'fn': 'expand',
         'params': [
@@ -531,6 +538,9 @@ TEST_TYPES = {
         ]
     },
     'jld:FromRDFTest': {
+        'skip': {
+            'regex': ['#t0023']
+        },
         'fn': 'from_rdf',
         'params': [
             read_test_property('input'),
