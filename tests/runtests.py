@@ -36,6 +36,8 @@ if sys.version_info[0] >= 3:
 ROOT_MANIFEST_DIR = None
 SKIP_TESTS = []
 
+HTTP_BASE = 'http://json-ld.org/test-suite'
+HTTPS_BASE = 'https://json-ld.org/test-suite'
 
 class TestRunner(unittest.TextTestRunner):
     """
@@ -83,6 +85,10 @@ class TestRunner(unittest.TextTestRunner):
 
         # get root manifest filename
         if self.options.manifest:
+            global HTTP_BASE
+            global HTTPS_BASE
+            HTTP_BASE = 'http://json-ld.org/test-suite/tests'
+            HTTPS_BASE = 'https://json-ld.org/test-suite/tests'
             filename = os.path.abspath(self.options.manifest)
         else:
             filename = os.path.abspath(
@@ -322,18 +328,20 @@ def create_test_options(opts=None):
 
 
 def create_document_loader(test):
-    httpBase = 'http://json-ld.org/test-suite'
-    httpsBase = 'https://json-ld.org/test-suite'
     loader = jsonld.get_document_loader()
 
     def is_test_suite_url(url):
-        return url.startswith(httpBase) or url.startswith(httpsBase)
+        global HTTP_BASE
+        global HTTPS_BASE
+        return url.startswith(HTTP_BASE) or url.startswith(HTTPS_BASE)
 
     def strip_base(url):
-        if url.startswith(httpBase):
-            return url[len(httpBase):]
-        elif url.startswith(httpsBase):
-            return url[len(httpsBase):]
+        global HTTP_BASE
+        global HTTPS_BASE
+        if url.startswith(HTTP_BASE):
+            return url[len(HTTP_BASE):]
+        elif url.startswith(HTTPS_BASE):
+            return url[len(HTTPS_BASE):]
         else:
             raise Exception('unkonwn base')
 
