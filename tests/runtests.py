@@ -507,7 +507,7 @@ TEST_TYPES = {
     },
     'jld:ExpandTest': {
         'skip': {
-            'regex': ['#t0079', '#t008[0-8]', '#t[mp]']
+            'regex': ['#t0079', '#t008[0-8]', '#t[p]']
         },
         'fn': 'expand',
         'params': [

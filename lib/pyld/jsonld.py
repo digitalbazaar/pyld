@@ -2269,21 +2269,14 @@ class JsonLdProcessor(object):
 
             # handle language map container (skip if value is not an object)
             if '@language' in container and _is_object(value):
-                expanded_value = self._expand_language_map(value)
+                expanded_value = self._expand_language_map(term_ctx, value)
             # handle index container (skip if value is not an object)
             elif '@index' in container and _is_object(value):
-                def expand_index_map(active_property):
-                    rval = []
-                    for k, v in sorted(value.items()):
-                        v = self._expand(
-                            term_ctx, active_property,
-                            JsonLdProcessor.arrayify(v),
-                            options, inside_list=False)
-                        for item in v:
-                            item.setdefault('@index', k)
-                            rval.append(item)
-                    return rval
-                expanded_value = expand_index_map(key)
+                expanded_value = self._expand_index_map(term_ctx, key, value, '@index', '@graph' in container, options)
+            elif '@id' in container and _is_object(value):
+                expanded_value = self._expand_index_map(term_ctx, key, value, '@id', '@graph' in container, options)
+            elif '@type' in container and _is_object(value):
+                expanded_value = self._expand_index_map(term_ctx, key, value, '@type', False, options)
             else:
                 # recurse into @list or @set
                 is_list = (expanded_property == '@list')
@@ -2715,16 +2708,18 @@ class JsonLdProcessor(object):
         else:
             return not active_ctx['processingMode'] or active_ctx['processingMode'] == 'json-ld-1.0'
 
-    def _expand_language_map(self, language_map):
+    def _expand_language_map(self, active_ctx, language_map):
         """
         Expands a language map.
 
+        :param active_ctx: the current active context.
         :param language_map: the language map to expand.
 
         :return: the expanded language map.
         """
         rval = []
         for key, values in sorted(language_map.items()):
+            expanded_key = self._expand_iri(active_ctx, key, vocab=True)
             values = JsonLdProcessor.arrayify(values)
             for item in values:
                 if item is None:
@@ -2735,7 +2730,58 @@ class JsonLdProcessor(object):
                         'strings.', 'jsonld.SyntaxError',
                         {'languageMap': language_map},
                         code='invalid language map value')
-                rval.append({'@value': item, '@language': key.lower()})
+                val = {'@value': item}
+                if expanded_key != '@none':
+                    val['@language'] = key.lower()
+                rval.append(val)
+        return rval
+
+
+    def _expand_index_map(self, active_ctx, active_property, value, index_key, as_graph, options):
+        """
+        Expands in index, id or type map.
+
+        :param active_ctx: the current active context.
+        :param active_property: the property for the element, None for none.
+        :param value: the object containing indexed values
+        :param index_key: the key value used to index
+        :param as_graph: contents should form a named graph
+        """
+        rval = []
+        for k, v in sorted(value.items()):
+            ctx = JsonLdProcessor.get_context_value(
+                active_ctx, k, '@context')
+            if ctx:
+                active_ctx = self._process_context(active_ctx, ctx, options)
+
+            expanded_key = self._expand_iri(active_ctx, k, vocab=True)
+            if index_key == '@id':
+                # expand document relative
+                k = self._expand_iri(active_ctx, k, base=True)
+            elif index_key == '@type':
+                k = expanded_key
+
+            v = self._expand(
+                active_ctx, active_property,
+                JsonLdProcessor.arrayify(v),
+                options, inside_list=False)
+            for item in v:
+                if as_graph and not _is_graph(item):
+                    item = {'@graph': [item]}
+                if index_key == '@type':
+                    if expanded_key == '@none':
+                        # ignore @none
+                        item
+                    elif item.get('@type'):
+                        types = [k]
+                        types.extend(item['@type'])
+                        item['@type'] = types
+                    else:
+                        item['@type'] = [k]
+                elif expanded_key != '@none' and index_key not in item:
+                    item[index_key] = k
+
+                rval.append(item)
         return rval
 
     def _expand_value(self, active_ctx, active_property, value):
