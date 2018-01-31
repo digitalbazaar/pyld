@@ -1977,6 +1977,20 @@ class JsonLdProcessor(object):
             active_ctx = self._process_context(
                 active_ctx, element['@context'], options)
 
+        # look for scoped context on @type
+        for key, value in sorted(element.items()):
+            expanded_property = self._expand_iri(
+                active_ctx, key, vocab=True)
+            if expanded_property == '@type':
+                # set scoped contexts from @type
+                types = [t for t in JsonLdProcessor.arrayify(element[key]) if _is_string(t)]
+                for type_ in types:
+                    ctx = JsonLdProcessor.get_context_value(
+                        active_ctx, type_, '@context')
+                    if ctx:
+                        active_ctx = self._process_context(
+                            active_ctx, ctx, options)
+
         # expand the active property
         expanded_active_property = self._expand_iri(
             active_ctx, active_property, vocab=True)
@@ -2106,6 +2120,12 @@ class JsonLdProcessor(object):
 
                 continue
 
+            # use potential scoped context for key
+            term_ctx = active_ctx
+            ctx = JsonLdProcessor.get_context_value(active_ctx, key, '@context')
+            if ctx:
+                term_ctx = self._process_context(active_ctx, ctx, options)
+
             container = JsonLdProcessor.arrayify(
                 JsonLdProcessor.get_context_value(
                     active_ctx, key, '@container'))
@@ -2119,7 +2139,7 @@ class JsonLdProcessor(object):
                     rval = []
                     for k, v in sorted(value.items()):
                         v = self._expand(
-                            active_ctx, active_property,
+                            term_ctx, active_property,
                             JsonLdProcessor.arrayify(v),
                             options, inside_list=False)
                         for item in v:
@@ -2135,7 +2155,7 @@ class JsonLdProcessor(object):
                     if is_list and expanded_active_property == '@graph':
                         next_active_property = None
                     expanded_value = self._expand(
-                        active_ctx, next_active_property, value, options,
+                        term_ctx, next_active_property, value, options,
                         is_list)
                     if is_list and _is_list(expanded_value):
                         raise JsonLdError(
@@ -2145,7 +2165,7 @@ class JsonLdProcessor(object):
                 else:
                     # recursively expand value w/key as new active property
                     expanded_value = self._expand(
-                        active_ctx, key, value, options, inside_list=False)
+                        term_ctx, key, value, options, inside_list=False)
 
             # drop None values if property is not @value (dropped below)
             if expanded_value is None and expanded_property != '@value':
@@ -2161,7 +2181,7 @@ class JsonLdProcessor(object):
                 }
 
             # merge in reverse properties
-            mapping = active_ctx['mappings'].get(key)
+            mapping = term_ctx['mappings'].get(key)
             if mapping and mapping['reverse']:
                 reverse_map = rval.setdefault('@reverse', {})
                 expanded_value = JsonLdProcessor.arrayify(expanded_value)
@@ -4016,6 +4036,31 @@ class JsonLdProcessor(object):
                 language = language.lower()
             mapping['@language'] = language
 
+        # term may be used as prefix
+        if '@prefix' in value:
+            if _term_has_colon:
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; @context @prefix used on a compact IRI term.',
+                    'jsonld.SyntaxError',
+                    {'context': local_ctx}, code='invalid term definition')
+            if not _is_bool(value['@prefix']):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; @context value for @prefix must be boolean.',
+                    'jsonld.SyntaxError',
+                    {'context': local_ctx}, code='invalid @prefix value')
+            mapping['_prefix'] = value['@prefix']
+
+        # nesting
+        if '@nest' in value:
+            nest = value['@nest']
+            if not _is_string(nest) or (nest != '@nest' and nest[0] == '@'):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; @context @nest value must be ' +
+                    'a string which is not a keyword other than @nest.',
+                    'jsonld.SyntaxError',
+                    {'context': local_ctx}, code='invalid @nest value')
+            mapping['@nest'] = nest
+
         # disallow aliasing @context and @preserve
         id_ = mapping['@id']
         if id_ == '@context' or id_ == '@preserve':
@@ -5170,6 +5215,32 @@ def _is_list(v):
     # 1. It is an Object.
     # 2. It has the @list property.
     return _is_object(v) and '@list' in v
+
+
+def _is_graph(v):
+    """
+    Note: A value is a graph if all of these hold true:
+    1. It is an object.
+    2. It has an `@graph` key.
+    3. It may have '@id' or '@index'
+
+    :param v: the value to check.
+
+    :return: True if the value is a graph object
+    """
+    return (_is_object(v) and '@graph' in v and
+        len([k for k, vv in v.items() if (k != '@id' and k != '@index')]) == 1)
+
+
+def _is_simple_graph(v):
+    """
+    Returns true if the given value is a simple @graph
+
+    :param v: the value to check.
+
+    :return: True if the value is a simple graph object
+    """
+    return _is_graph(v) and '@id' not in v
 
 
 def _is_bnode(v):
