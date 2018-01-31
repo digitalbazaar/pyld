@@ -2029,215 +2029,11 @@ class JsonLdProcessor(object):
         expanded_active_property = self._expand_iri(
             active_ctx, active_property, vocab=True)
 
+        # process each key and value in element, ignoring @nest content
         rval = {}
-        for key, value in sorted(element.items()):
-            if key == '@context':
-                continue
-
-            # expand key to IRI
-            expanded_property = self._expand_iri(
-                active_ctx, key, vocab=True)
-
-            # drop non-absolute IRI keys that aren't keywords
-            if (expanded_property is None or
-                not (
-                    _is_absolute_iri(expanded_property) or
-                    _is_keyword(expanded_property))):
-                continue
-
-            if _is_keyword(expanded_property):
-                if expanded_active_property == '@reverse':
-                    raise JsonLdError(
-                        'Invalid JSON-LD syntax; a keyword cannot be used as '
-                        'a @reverse property.',
-                        'jsonld.SyntaxError', {'value': value},
-                        code='invalid reverse property map')
-                if expanded_property in rval:
-                    raise JsonLdError(
-                        'Invalid JSON-LD syntax; colliding keywords detected.',
-                        'jsonld.SyntaxError', {'keyword': expanded_property},
-                        code='colliding keywords')
-
-            # syntax error if @id is not a string
-            if expanded_property == '@id' and not _is_string(value):
-                if not options.get('isFrame'):
-                    raise JsonLdError(
-                        'Invalid JSON-LD syntax; "@id" value must a string.',
-                        'jsonld.SyntaxError', {'value': value},
-                        code='invalid @id value')
-                if not _is_object(value):
-                    raise JsonLdError(
-                        'Invalid JSON-LD syntax; "@id" value must be a '
-                        'string or an object.', 'jsonld.SyntaxError',
-                        {'value': value}, code='invalid @id value')
-
-            if expanded_property == '@type':
-                _validate_type_value(value)
-
-            # @graph must be an array or an object
-            if (expanded_property == '@graph' and
-                    not (_is_object(value) or _is_array(value))):
-                raise JsonLdError(
-                    'Invalid JSON-LD syntax; "@graph" must not be an '
-                    'object or an array.', 'jsonld.SyntaxError',
-                    {'value': value}, code='invalid @graph value')
-
-            # @value must not be an object or an array
-            if (expanded_property == '@value' and
-                    (_is_object(value) or _is_array(value))):
-                raise JsonLdError(
-                    'Invalid JSON-LD syntax; "@value" value must not be an '
-                    'object or an array.', 'jsonld.SyntaxError',
-                    {'value': value}, code='invalid value object value')
-
-            # @language must be a string
-            if expanded_property == '@language':
-                if value is None:
-                    # drop null @language values, they expand as if they
-                    # didn't exist
-                    continue
-                if not _is_string(value):
-                    raise JsonLdError(
-                        'Invalid JSON-LD syntax; "@language" value must be '
-                        'a string.', 'jsonld.SyntaxError', {'value': value},
-                        code='invalid language-tagged string')
-                # ensure language value is lowercase
-                value = value.lower()
-
-            # @index must be a string
-            if expanded_property == '@index' and not _is_string(value):
-                raise JsonLdError(
-                    'Invalid JSON-LD syntax; "@index" value must be '
-                    'a string.', 'jsonld.SyntaxError', {'value': value},
-                    code='invalid @index value')
-
-            # reverse must be an object
-            if expanded_property == '@reverse':
-                if not _is_object(value):
-                    raise JsonLdError(
-                        'Invalid JSON-LD syntax; "@reverse" value must be '
-                        'an object.', 'jsonld.SyntaxError', {'value': value},
-                        code='invalid @reverse value')
-
-                expanded_value = self._expand(
-                    active_ctx, '@reverse', value, options, inside_list)
-
-                # properties double-reversed
-                if '@reverse' in expanded_value:
-                    for rproperty, rvalue in (
-                            expanded_value['@reverse'].items()):
-                        JsonLdProcessor.add_value(
-                            rval, rproperty, rvalue,
-                            {'propertyIsArray': True})
-
-                # merge in all reversed properties
-                reverse_map = rval.get('@reverse')
-                for property, items in expanded_value.items():
-                    if property == '@reverse':
-                        continue
-                    if reverse_map is None:
-                        reverse_map = rval['@reverse'] = {}
-                    JsonLdProcessor.add_value(
-                        reverse_map, property, [],
-                        {'propertyIsArray': True})
-                    for item in items:
-                        if _is_value(item) or _is_list(item):
-                            raise JsonLdError(
-                                'Invalid JSON-LD syntax; "@reverse" '
-                                'value must not be an @value or an @list',
-                                'jsonld.SyntaxError',
-                                {'value': expanded_value},
-                                code='invalid reverse property value')
-                        JsonLdProcessor.add_value(
-                            reverse_map, property, item,
-                            {'propertyIsArray': True})
-
-                continue
-
-            # use potential scoped context for key
-            term_ctx = active_ctx
-            ctx = JsonLdProcessor.get_context_value(active_ctx, key, '@context')
-            if ctx:
-                term_ctx = self._process_context(active_ctx, ctx, options)
-
-            container = JsonLdProcessor.arrayify(
-                JsonLdProcessor.get_context_value(
-                    active_ctx, key, '@container'))
-
-            # handle language map container (skip if value is not an object)
-            if '@language' in container and _is_object(value):
-                expanded_value = self._expand_language_map(value)
-            # handle index container (skip if value is not an object)
-            elif '@index' in container and _is_object(value):
-                def expand_index_map(active_property):
-                    rval = []
-                    for k, v in sorted(value.items()):
-                        v = self._expand(
-                            term_ctx, active_property,
-                            JsonLdProcessor.arrayify(v),
-                            options, inside_list=False)
-                        for item in v:
-                            item.setdefault('@index', k)
-                            rval.append(item)
-                    return rval
-                expanded_value = expand_index_map(key)
-            else:
-                # recurse into @list or @set
-                is_list = (expanded_property == '@list')
-                if is_list or expanded_property == '@set':
-                    next_active_property = active_property
-                    if is_list and expanded_active_property == '@graph':
-                        next_active_property = None
-                    expanded_value = self._expand(
-                        term_ctx, next_active_property, value, options,
-                        is_list)
-                    if is_list and _is_list(expanded_value):
-                        raise JsonLdError(
-                            'Invalid JSON-LD syntax; lists of lists are '
-                            'not permitted.', 'jsonld.SyntaxError',
-                            code='list of lists')
-                else:
-                    # recursively expand value w/key as new active property
-                    expanded_value = self._expand(
-                        term_ctx, key, value, options, inside_list=False)
-
-            # drop None values if property is not @value (dropped below)
-            if expanded_value is None and expanded_property != '@value':
-                continue
-
-            # convert expanded value to @list if container specifies it
-            if (expanded_property != '@list' and
-                    not _is_list(expanded_value) and
-                    '@list' in container):
-                # ensure expanded value is an array
-                expanded_value = {
-                    '@list': JsonLdProcessor.arrayify(expanded_value)
-                }
-
-            # merge in reverse properties
-            mapping = term_ctx['mappings'].get(key)
-            if mapping and mapping['reverse']:
-                reverse_map = rval.setdefault('@reverse', {})
-                expanded_value = JsonLdProcessor.arrayify(expanded_value)
-                for item in expanded_value:
-                    if _is_value(item) or _is_list(item):
-                        raise JsonLdError(
-                            'Invalid JSON-LD syntax; "@reverse" value must '
-                            'not be an @value or an @list.',
-                            'jsonld.SyntaxError', {'value': expanded_value},
-                            code='invalid reverse property value')
-                    JsonLdProcessor.add_value(
-                        reverse_map, expanded_property, item,
-                        {'propertyIsArray': True})
-                continue
-
-            # add value for property, use an array exception for certain
-            # key words
-            use_array = (expanded_property not in [
-                '@index', '@id', '@type', '@value', '@language'])
-            JsonLdProcessor.add_value(
-                rval, expanded_property, expanded_value,
-                {'propertyIsArray': use_array})
+        self._expand_object(
+            active_ctx, active_property, expanded_active_property,
+            element, rval, options, inside_list)
 
         # get property count on expanded output
         count = len(rval)
@@ -2312,6 +2108,252 @@ class JsonLdProcessor(object):
                 rval = None
 
         return rval
+
+
+    def _expand_object(
+            self, active_ctx, active_property, expanded_active_property,
+            element, expanded_parent, options, inside_list):
+        """
+        Expand each key and value of element adding to result.
+
+        :param active_ctx: the context to use.
+        :param active_property: the property for the element, None for none.
+        :param expanded_active_property: the expansion of active_property
+        :param element: the element to expand.
+        :param expanded_parent: the expanded result into which to add values.
+        :param options: the expansion options.
+        :param inside_list: True if the property is a list, False if not.
+
+        :return: the expanded value.
+        """
+
+        nests = []
+        for key, value in sorted(element.items()):
+            if key == '@context':
+                continue
+
+            # expand key to IRI
+            expanded_property = self._expand_iri(
+                active_ctx, key, vocab=True)
+
+            # drop non-absolute IRI keys that aren't keywords
+            if (expanded_property is None or
+                not (
+                    _is_absolute_iri(expanded_property) or
+                    _is_keyword(expanded_property))):
+                continue
+
+            if _is_keyword(expanded_property):
+                if expanded_active_property == '@reverse':
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; a keyword cannot be used as '
+                        'a @reverse property.',
+                        'jsonld.SyntaxError', {'value': value},
+                        code='invalid reverse property map')
+                if expanded_property in expanded_parent:
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; colliding keywords detected.',
+                        'jsonld.SyntaxError', {'keyword': expanded_property},
+                        code='colliding keywords')
+
+            # syntax error if @id is not a string
+            if expanded_property == '@id' and not _is_string(value):
+                if not options.get('isFrame'):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; "@id" value must a string.',
+                        'jsonld.SyntaxError', {'value': value},
+                        code='invalid @id value')
+                if not _is_object(value):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; "@id" value must be a '
+                        'string or an object.', 'jsonld.SyntaxError',
+                        {'value': value}, code='invalid @id value')
+
+            if expanded_property == '@type':
+                _validate_type_value(value)
+
+            # @graph must be an array or an object
+            if (expanded_property == '@graph' and
+                    not (_is_object(value) or _is_array(value))):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; "@graph" must not be an '
+                    'object or an array.', 'jsonld.SyntaxError',
+                    {'value': value}, code='invalid @graph value')
+
+            # @value must not be an object or an array
+            if (expanded_property == '@value' and
+                    (_is_object(value) or _is_array(value))):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; "@value" value must not be an '
+                    'object or an array.', 'jsonld.SyntaxError',
+                    {'value': value}, code='invalid value object value')
+
+            # @language must be a string
+            if expanded_property == '@language':
+                if value is None:
+                    # drop null @language values, they expand as if they
+                    # didn't exist
+                    continue
+                if not _is_string(value):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; "@language" value must be '
+                        'a string.', 'jsonld.SyntaxError', {'value': value},
+                        code='invalid language-tagged string')
+                # ensure language value is lowercase
+                value = value.lower()
+
+            # @index must be a string
+            if expanded_property == '@index' and not _is_string(value):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; "@index" value must be '
+                    'a string.', 'jsonld.SyntaxError', {'value': value},
+                    code='invalid @index value')
+
+            # reverse must be an object
+            if expanded_property == '@reverse':
+                if not _is_object(value):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; "@reverse" value must be '
+                        'an object.', 'jsonld.SyntaxError', {'value': value},
+                        code='invalid @reverse value')
+
+                expanded_value = self._expand(
+                    active_ctx, '@reverse', value, options, inside_list)
+
+                # properties double-reversed
+                if '@reverse' in expanded_value:
+                    for rproperty, rvalue in (
+                            expanded_value['@reverse'].items()):
+                        JsonLdProcessor.add_value(
+                            expanded_parent, rproperty, rvalue,
+                            {'propertyIsArray': True})
+
+                # merge in all reversed properties
+                reverse_map = expanded_parent.get('@reverse')
+                for property, items in expanded_value.items():
+                    if property == '@reverse':
+                        continue
+                    if reverse_map is None:
+                        reverse_map = expanded_parent['@reverse'] = {}
+                    JsonLdProcessor.add_value(
+                        reverse_map, property, [],
+                        {'propertyIsArray': True})
+                    for item in items:
+                        if _is_value(item) or _is_list(item):
+                            raise JsonLdError(
+                                'Invalid JSON-LD syntax; "@reverse" '
+                                'value must not be an @value or an @list',
+                                'jsonld.SyntaxError',
+                                {'value': expanded_value},
+                                code='invalid reverse property value')
+                        JsonLdProcessor.add_value(
+                            reverse_map, property, item,
+                            {'propertyIsArray': True})
+
+                continue
+
+            # nested keys
+            if expanded_property == '@nest':
+                nests.append(key)
+                continue
+
+            # use potential scoped context for key
+            term_ctx = active_ctx
+            ctx = JsonLdProcessor.get_context_value(active_ctx, key, '@context')
+            if ctx:
+                term_ctx = self._process_context(active_ctx, ctx, options)
+
+            container = JsonLdProcessor.arrayify(
+                JsonLdProcessor.get_context_value(
+                    active_ctx, key, '@container'))
+
+            # handle language map container (skip if value is not an object)
+            if '@language' in container and _is_object(value):
+                expanded_value = self._expand_language_map(value)
+            # handle index container (skip if value is not an object)
+            elif '@index' in container and _is_object(value):
+                def expand_index_map(active_property):
+                    rval = []
+                    for k, v in sorted(value.items()):
+                        v = self._expand(
+                            term_ctx, active_property,
+                            JsonLdProcessor.arrayify(v),
+                            options, inside_list=False)
+                        for item in v:
+                            item.setdefault('@index', k)
+                            rval.append(item)
+                    return rval
+                expanded_value = expand_index_map(key)
+            else:
+                # recurse into @list or @set
+                is_list = (expanded_property == '@list')
+                if is_list or expanded_property == '@set':
+                    next_active_property = active_property
+                    if is_list and expanded_active_property == '@graph':
+                        next_active_property = None
+                    expanded_value = self._expand(
+                        term_ctx, next_active_property, value, options,
+                        is_list)
+                    if is_list and _is_list(expanded_value):
+                        raise JsonLdError(
+                            'Invalid JSON-LD syntax; lists of lists are '
+                            'not permitted.', 'jsonld.SyntaxError',
+                            code='list of lists')
+                else:
+                    # recursively expand value w/key as new active property
+                    expanded_value = self._expand(
+                        term_ctx, key, value, options, inside_list=False)
+
+            # drop None values if property is not @value (dropped below)
+            if expanded_value is None and expanded_property != '@value':
+                continue
+
+            # convert expanded value to @list if container specifies it
+            if (expanded_property != '@list' and
+                    not _is_list(expanded_value) and
+                    '@list' in container):
+                # ensure expanded value is an array
+                expanded_value = {
+                    '@list': JsonLdProcessor.arrayify(expanded_value)
+                }
+
+            # merge in reverse properties
+            mapping = term_ctx['mappings'].get(key)
+            if mapping and mapping['reverse']:
+                reverse_map = expanded_parent.setdefault('@reverse', {})
+                expanded_value = JsonLdProcessor.arrayify(expanded_value)
+                for item in expanded_value:
+                    if _is_value(item) or _is_list(item):
+                        raise JsonLdError(
+                            'Invalid JSON-LD syntax; "@reverse" value must '
+                            'not be an @value or an @list.',
+                            'jsonld.SyntaxError', {'value': expanded_value},
+                            code='invalid reverse property value')
+                    JsonLdProcessor.add_value(
+                        reverse_map, expanded_property, item,
+                        {'propertyIsArray': True})
+                continue
+
+            # add value for property, use an array exception for certain
+            # key words
+            use_array = (expanded_property not in [
+                '@index', '@id', '@type', '@value', '@language'])
+            JsonLdProcessor.add_value(
+                expanded_parent, expanded_property, expanded_value,
+                {'propertyIsArray': use_array})
+
+        # expand each nested key
+        for key in nests:
+            for nv in JsonLdProcessor.arrayify(element[key]):
+                if (not _is_object(nv) or
+                    [k for k, v in nv.items() if self._expand_iri(active_ctx, k, vocab=True) == '@value']):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; nested value must be a node object.',
+                        'jsonld.SyntaxError', {'value': nv},
+                        code='invalid @nest value')
+                self._expand_object(
+                    active_ctx, active_property, expanded_active_property,
+                    nv, expanded_parent, options, inside_list)
 
     def _flatten(self, input):
         """
