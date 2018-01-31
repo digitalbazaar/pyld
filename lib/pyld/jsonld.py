@@ -106,6 +106,8 @@ KEYWORDS = [
     '@index',
     '@language',
     '@list',
+    '@nest',
+    '@none',
     '@omitDefault',
     '@preserve',
     '@requireAll',
@@ -1695,9 +1697,10 @@ class JsonLdProcessor(object):
                     rval.append(e)
             if options['compactArrays'] and len(rval) == 1:
                 # use single element if no container is specified
-                container = JsonLdProcessor.get_context_value(
-                    active_ctx, active_property, '@container')
-                if container is None:
+                container = JsonLdProcessor.arrayify(
+                    JsonLdProcessor.get_context_value(
+                        active_ctx, active_property, '@container'))
+                if not container:
                     rval = rval[0]
             return rval
 
@@ -1769,10 +1772,11 @@ class JsonLdProcessor(object):
                         mapping = active_ctx['mappings'].get(
                             compacted_property)
                         if mapping and mapping['reverse']:
-                            container = JsonLdProcessor.get_context_value(
-                                active_ctx, compacted_property, '@container')
+                            container = JsonLdProcessor.arrayify(
+                                JsonLdProcessor.get_context_value(
+                                    active_ctx, compacted_property, '@container'))
                             use_array = (
-                                    container == '@set' or
+                                    '@set' in container or
                                     not options['compactArrays'])
                             JsonLdProcessor.add_value(
                                 rval, compacted_property, value,
@@ -1790,9 +1794,10 @@ class JsonLdProcessor(object):
                 # handle @index
                 if expanded_property == '@index':
                     # drop @index if inside an @index container
-                    container = JsonLdProcessor.get_context_value(
-                        active_ctx, active_property, '@container')
-                    if container == '@index':
+                    container = JsonLdProcessor.arrayify(
+                        JsonLdProcessor.get_context_value(
+                            active_ctx, active_property, '@container'))
+                    if '@index' in container:
                         continue
 
                     # use keyword alias and add value
@@ -1828,8 +1833,9 @@ class JsonLdProcessor(object):
                     item_active_property = self._compact_iri(
                         active_ctx, expanded_property, expanded_item,
                         vocab=True, reverse=inside_reverse)
-                    container = JsonLdProcessor.get_context_value(
-                        active_ctx, item_active_property, '@container')
+                    container = JsonLdProcessor.arrayify(
+                        JsonLdProcessor.get_context_value(
+                            active_ctx, item_active_property, '@container'))
 
                     # get @list value if appropriate
                     is_list = _is_list(expanded_item)
@@ -1848,7 +1854,7 @@ class JsonLdProcessor(object):
                         compacted_item = JsonLdProcessor.arrayify(
                             compacted_item)
 
-                        if container != '@list':
+                        if '@list' not in container:
                             # wrap using @list alias
                             wrapper = {}
                             wrapper[self._compact_iri(
@@ -1872,29 +1878,29 @@ class JsonLdProcessor(object):
                                 code='compaction to list of lists')
 
                     # handle language and index maps
-                    if container == '@language' or container == '@index':
+                    if '@language' in container or '@index' in container:
                         # get or create the map object
                         map_object = rval.setdefault(item_active_property, {})
+                        key = None
 
-                        # if container is a language map, simplify compacted
-                        # value to a simple string
-                        if (container == '@language' and
-                                _is_value(compacted_item)):
-                            compacted_item = compacted_item['@value']
+                        if '@language' in container:
+                            if _is_value(compacted_item):
+                                compacted_item = compacted_item['@value']
+                            key = expanded_item['@language']
+                        elif '@index' in container:
+                            key = expanded_item['@index']
 
                         # add compact value to map object using key from
                         # expanded value based on the container type
-                        JsonLdProcessor.add_value(
-                            map_object, expanded_item[container],
-                            compacted_item)
+                        JsonLdProcessor.add_value(map_object, key, compacted_item)
                     else:
                         # use an array if compactArrays flag is false,
                         # @container is @set or @list, value is an empty
                         # array, or key is @graph
                         is_array = (
                                 not options['compactArrays'] or
-                                container == '@set' or
-                                container == '@list' or
+                                '@set' in container or
+                                '@list' in container or
                                 (_is_array(compacted_item) and
                                     len(compacted_item) == 0) or
                                 expanded_property == '@list' or
@@ -1932,9 +1938,10 @@ class JsonLdProcessor(object):
         # recursively expand array
         if _is_array(element):
             rval = []
-            container = JsonLdProcessor.get_context_value(
-                active_ctx, active_property, '@container')
-            inside_list = inside_list or container == '@list'
+            container = JsonLdProcessor.arrayify(
+                JsonLdProcessor.get_context_value(
+                    active_ctx, active_property, '@container'))
+            inside_list = inside_list or '@list' in container
             for e in element:
                 # expand element
                 e = self._expand(
@@ -2099,14 +2106,15 @@ class JsonLdProcessor(object):
 
                 continue
 
-            container = JsonLdProcessor.get_context_value(
-                active_ctx, key, '@container')
+            container = JsonLdProcessor.arrayify(
+                JsonLdProcessor.get_context_value(
+                    active_ctx, key, '@container'))
 
             # handle language map container (skip if value is not an object)
-            if container == '@language' and _is_object(value):
+            if '@language' in container and _is_object(value):
                 expanded_value = self._expand_language_map(value)
             # handle index container (skip if value is not an object)
-            elif container == '@index' and _is_object(value):
+            elif '@index' in container and _is_object(value):
                 def expand_index_map(active_property):
                     rval = []
                     for k, v in sorted(value.items()):
@@ -2146,7 +2154,7 @@ class JsonLdProcessor(object):
             # convert expanded value to @list if container specifies it
             if (expanded_property != '@list' and
                     not _is_list(expanded_value) and
-                    container == '@list'):
+                    '@list' in container):
                 # ensure expanded value is an array
                 expanded_value = {
                     '@list': JsonLdProcessor.arrayify(expanded_value)
@@ -3436,11 +3444,12 @@ class JsonLdProcessor(object):
             # recurse through properties
             for prop, v in input_.items():
                 result = self._remove_preserve(ctx, v, options)
-                container = JsonLdProcessor.get_context_value(
-                    ctx, prop, '@container')
+                container = JsonLdProcessor.arrayify(
+                    JsonLdProcessor.get_context_value(
+                        ctx, prop, '@container'))
                 if (options['compactArrays'] and
                         _is_array(result) and len(result) == 1 and
-                        container != '@set' and container != '@list'):
+                        '@set' not in container and '@list' not in container):
                     result = result[0]
                 input_[prop] = result
         return input_
@@ -3681,11 +3690,12 @@ class JsonLdProcessor(object):
                 active_ctx, active_property, '@type')
             language = JsonLdProcessor.get_context_value(
                 active_ctx, active_property, '@language')
-            container = JsonLdProcessor.get_context_value(
-                active_ctx, active_property, '@container')
+            container = JsonLdProcessor.arrayify(
+                JsonLdProcessor.get_context_value(
+                    active_ctx, active_property, '@container'))
 
             # whether or not the value has an @index that must be preserved
-            preserve_index = '@index' in value and container != '@index'
+            preserve_index = '@index' in value and '@index' not in container
 
             # if there's no @index to preserve
             if not preserve_index:
@@ -3804,7 +3814,9 @@ class JsonLdProcessor(object):
             return
 
         # convert short-hand value to object w/@id
+        _simple_term = False
         if _is_string(value):
+            _simple_term = True
             value = {'@id': value}
 
         if not _is_object(value):
@@ -3816,11 +3828,30 @@ class JsonLdProcessor(object):
         # create new mapping
         mapping = active_ctx['mappings'][term] = {'reverse': False}
 
+        # make sure term definition only has expected keywords
+        valid_keys = ['@container', '@id', '@language', '@reverse', '@type']
+        if self._processing_mode(active_ctx, 1.1):
+            valid_keys.extend(['@context', '@nest', '@prefix'])
+        for kw in valid_keys:
+            if kw not in valid_keys:
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; a term definition must not contain ' + kw,
+                    'jsonld.SyntaxError',
+                    {'context': local_ctx}, code='invalid term definition')
+
+        # always compute whether term has a colon as an optimization for _compact_iri
+        _term_has_colon = ':' in term
+
         if '@reverse' in value:
             if '@id' in value:
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; an @reverse term definition must '
                     'not contain @id.', 'jsonld.SyntaxError',
+                    {'context': local_ctx}, code='invalid reverse property')
+            if '@nest' in value:
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; an @reverse term definition must '
+                    'not contain @nest.', 'jsonld.SyntaxError',
                     {'context': local_ctx}, code='invalid reverse property')
             reverse = value['@reverse']
             if not _is_string(reverse):
@@ -3860,6 +3891,10 @@ class JsonLdProcessor(object):
                         'keyword.', 'jsonld.SyntaxError',
                         {'context': local_ctx}, code='invalid IRI mapping')
                 mapping['@id'] = id_
+                mapping['_prefix'] = (
+                    not _term_has_colon
+                    and re.match('[:/\?#\[\]@]$', id_)
+                    and (_simple_term or self._processing_mode(active_ctx, 1.0)))
         if '@id' not in mapping:
             # see if the term has a prefix
             colon = term.find(':')
@@ -3920,15 +3955,42 @@ class JsonLdProcessor(object):
             mapping['@type'] = type_
 
         if '@container' in value:
-            container = value['@container']
-            if container not in ['@list', '@set', '@index', '@language']:
+            container = JsonLdProcessor.arrayify(value['@container'])
+            valid_containers = ['@list', '@set', '@index', '@language']
+            is_valid = True
+            has_set = '@set' in container
+
+            if self._processing_mode(active_ctx, 1.1):
+                valid_containers.extend(['@graph', '@id', '@type'])
+                
+                # check container length
+                if '@list' in container:
+                    if len(container) != 1:
+                        raise JsonLdError(
+                            'Invalid JSON-LD syntax; @context @container with @list must have no other values.',
+                            'jsonld.SyntaxError',
+                            {'context': local_ctx}, code='invalid container mapping')
+                elif '@graph' in container:
+                    _extra_keys = [kw for kw in container if kw not in ['@graph', '@id', '@index', '@set']]
+                    if _extra_keys:
+                        raise JsonLdError(
+                            'Invalid JSON-LD syntax; @context @container with @graph must have no other values ' +
+                            'other than @id, @index, and @set',
+                            'jsonld.SyntaxError',
+                            {'context': local_ctx}, code='invalid container mapping')
+                else:
+                    is_valid = is_valid and (len(container) <= (2 if has_set else 1))
+            else: # json-ld-1.0
+                is_valid = is_valid and _is_string(value['@container'])
+
+            if not is_valid:
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @context @container value '
-                    'must be one of the following: @list, @set, @index, or '
-                    '@language.', 'jsonld.SyntaxError',
+                    'must be one of the following: ' + ', '.join(valid_containers) + '.',
+                    'jsonld.SyntaxError',
                     {'context': local_ctx}, code='invalid container mapping')
-            if (mapping['reverse'] and container != '@index' and
-                    container != '@set' and container is not None):
+            _extra_reverse_keys = [kw for kw in container if kw not in ['@index', '@set']]
+            if (mapping['reverse'] and _extra_reverse_keys):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @context @container value for '
                     'an @reverse type definition must be @index or @set.',
@@ -3937,6 +3999,10 @@ class JsonLdProcessor(object):
 
             # add @container to mapping
             mapping['@container'] = container
+
+        # scoped contexts
+        if '@context' in value:
+            mapping['@context'] = value['@context']
 
         if '@language' in value and '@type' not in value:
             language = value['@language']
@@ -4067,6 +4133,11 @@ class JsonLdProcessor(object):
                             # @context URL found
                             elif url not in urls:
                                 urls[url] = False
+                        elif _is_object(v[i]):
+                          # look for scoped context
+                          for kk, vv in v[i].items():
+                              if _is_object(vv):
+                                  self._find_context_urls(vv, urls, replace, base)
                 # string @context
                 elif _is_string(v):
                     v = prepend_base(base, v)
@@ -4076,6 +4147,11 @@ class JsonLdProcessor(object):
                     # @context URL found
                     elif v not in urls:
                         urls[v] = False
+                elif _is_object(v):
+                  # look for soped context
+                  for kk, vv in v.items():
+                      if _is_object(vv):
+                          self._find_context_urls(vv, urls, replace, base)
 
     def _retrieve_context_urls(self, input_, cycles, load_document, base=''):
         """
@@ -4209,7 +4285,7 @@ class JsonLdProcessor(object):
                 continue
 
             # add term selection where it applies
-            container = mapping.get('@container', '@none')
+            container = ''.join(sorted(mapping.get('@container', ['@none'])))
 
             # iterate over every IRI in the mapping
             iris = JsonLdProcessor.arrayify(mapping['@id'])
