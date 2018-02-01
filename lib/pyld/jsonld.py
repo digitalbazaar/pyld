@@ -2310,6 +2310,13 @@ class JsonLdProcessor(object):
                     '@list': JsonLdProcessor.arrayify(expanded_value)
                 }
 
+            # convert expanded value to @graph
+            if ('@graph' in container and
+                    '@id' not in container and
+                    '@index' not in container and
+                    not _is_graph(expanded_value)):
+                expanded_value = {'@graph': JsonLdProcessor.arrayify(expanded_value)}
+
             # merge in reverse properties
             mapping = term_ctx['mappings'].get(key)
             if mapping and mapping['reverse']:
@@ -2613,18 +2620,18 @@ class JsonLdProcessor(object):
             if '@version' in ctx:
                 if ctx['@version'] != 1.1:
                     raise JsonLdError(
-                        'Unsupported JSON-LD version: ' + ctx['@version'],
+                        'Unsupported JSON-LD version: ' + str(ctx['@version']),
                         'jsonld.UnsupportedVersion', {'context': ctx},
                         code='invalid @version value')
-                if active_ctx['processingMode'] and active_ctx['processing_mode'] == 'json-ld-1.0':
+                if active_ctx.get('processingMode') == 'json-ld-1.0':
                     raise JsonLdError(
-                        '@version: ' + ctx['@version'] +
+                        '@version: ' + str(ctx['@version']) +
                         ' not compatible with ' + active_ctx['processingMode'],
                         'jsonld.ProcessingModeConflict', {'context': ctx},
                         code='processing mode conflict')
-                rval['processingMode'] = ctx['processingMode']
+                rval['processingMode'] = 'json-ld-1.1'
                 rval['@version'] = ctx['@version']
-                defined['@version'] = true
+                defined['@version'] = True
 
             # if not set explicitly, set processingMode to "json-ld-1.0"
             rval['processingMode'] = rval.get(
@@ -2704,9 +2711,9 @@ class JsonLdProcessor(object):
         :return: True if the check matches.
         """
         if str(version) >= '1.1':
-            return str(active_ctx['processingMode']) >= ('json-ld-' + str(version))
+            return str(active_ctx.get('processingMode')) >= ('json-ld-' + str(version))
         else:
-            return not active_ctx['processingMode'] or active_ctx['processingMode'] == 'json-ld-1.0'
+            return active_ctx.get('processingMode', 'json-ld-1.0') == 'json-ld-1.0'
 
     def _expand_language_map(self, active_ctx, language_map):
         """
@@ -2812,11 +2819,10 @@ class JsonLdProcessor(object):
             active_ctx, active_property, '@type')
 
         # do @id expansion (automatic for @graph)
-        if type_ == '@id' or (
-                expanded_property == '@graph' and _is_string(value)):
+        if (type_ == '@id' or expanded_property == '@graph') and _is_string(value):
             return {'@id': self._expand_iri(active_ctx, value, base=True)}
         # do @id expansion w/vocab
-        if type_ == '@vocab':
+        if type_ == '@vocab' and _is_string(value):
             return {'@id': self._expand_iri(
                 active_ctx, value, vocab=True, base=True)}
 
@@ -2827,7 +2833,7 @@ class JsonLdProcessor(object):
         rval = {}
 
         # other type
-        if type_ is not None:
+        if type_ is not None and type_ != '@id' and type_ != '@vocab':
             rval['@type'] = type_
         # check for language tagging
         elif _is_string(value):
@@ -2835,8 +2841,12 @@ class JsonLdProcessor(object):
                 active_ctx, active_property, '@language')
             if language is not None:
                 rval['@language'] = language
-        rval['@value'] = value
 
+        # do conversion of values that aren't basic JSON types to strings
+        if not (_is_bool(value) or _is_numeric(value) or _is_string(value)):
+            value = str(value)
+
+        rval['@value'] = value
         return rval
 
     def _graph_to_rdf(self, graph, issuer, options):
@@ -4125,6 +4135,12 @@ class JsonLdProcessor(object):
             else: # json-ld-1.0
                 is_valid = is_valid and _is_string(value['@container'])
 
+            # check against valid containers
+            is_valid = is_valid and not [kw for kw in container if kw not in valid_containers]
+
+            # @set not allowed with @list
+            is_valid = is_valid and not (has_set and '@list' in container)
+
             if not is_valid:
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @context @container value '
@@ -4211,7 +4227,7 @@ class JsonLdProcessor(object):
         :return: the expanded value.
         """
         # already expanded
-        if value is None or _is_keyword(value):
+        if value is None or _is_keyword(value) or not _is_string(value):
             return value
 
         # define dependency not if defined
@@ -4228,7 +4244,7 @@ class JsonLdProcessor(object):
             return mapping['@id']
 
         # split value into prefix:suffix
-        if ':' in value:
+        if ':' in str(value):
             prefix, suffix = value.split(':', 1)
 
             # do not expand blank nodes (prefix of '_') or already-absolute
