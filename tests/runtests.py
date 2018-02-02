@@ -496,7 +496,7 @@ class EarlReport():
 TEST_TYPES = {
     'jld:CompactTest': {
         'skip': {
-            'regex': ['#t0038']
+            'specVersion': ['json-ld-1.0']
         },
         'fn': 'compact',
         'params': [
@@ -506,9 +506,6 @@ TEST_TYPES = {
         ]
     },
     'jld:ExpandTest': {
-        'skip': {
-            'regex': []
-        },
         'fn': 'expand',
         'params': [
             read_test_url('input'),
@@ -516,8 +513,6 @@ TEST_TYPES = {
         ]
     },
     'jld:FlattenTest': {
-        'skip': {
-        },
         'fn': 'flatten',
         'params': [
             read_test_url('input'),
