@@ -1823,8 +1823,15 @@ class JsonLdProcessor(object):
                     item_active_property = self._compact_iri(
                         active_ctx, expanded_property, expanded_value,
                         vocab=True, reverse=inside_reverse)
+                    nest_result = rval
+                    nest_property = active_ctx['mappings'].get(item_active_property, {}).get('@nest')
+                    if nest_property:
+                        self._check_nest_property(active_ctx, nest_property)
+                        if not _is_object(rval.get(nest_property)):
+                            rval[nest_property] = {}
+                        nest_result = rval[nest_property]
                     JsonLdProcessor.add_value(
-                        rval, item_active_property, [],
+                        nest_result, item_active_property, [],
                         {'propertyIsArray': True})
 
                 # recusively process array values
@@ -1833,6 +1840,16 @@ class JsonLdProcessor(object):
                     item_active_property = self._compact_iri(
                         active_ctx, expanded_property, expanded_item,
                         vocab=True, reverse=inside_reverse)
+
+                    # if item_active_property is a @nest property, add values to nestResult, otherwise rval
+                    nest_result = rval
+                    nest_property = active_ctx['mappings'].get(item_active_property, {}).get('@nest')
+                    if nest_property:
+                        self._check_nest_property(active_ctx, nest_property)
+                        if not _is_object(rval.get(nest_property)):
+                            rval[nest_property] = {}
+                        nest_result = rval[nest_property]
+
                     container = JsonLdProcessor.arrayify(
                         JsonLdProcessor.get_context_value(
                             active_ctx, item_active_property, '@container'))
@@ -1867,7 +1884,7 @@ class JsonLdProcessor(object):
                                 compacted_item[alias] = (
                                     expanded_item['@index'])
                         # can't use @list container for more than 1 list
-                        elif item_active_property in rval:
+                        elif item_active_property in nest_result:
                             raise JsonLdError(
                                 'JSON-LD compact error; property has a '
                                 '"@list" @container rule but there is more '
@@ -1880,7 +1897,7 @@ class JsonLdProcessor(object):
                     # handle language and index maps
                     if '@language' in container or '@index' in container:
                         # get or create the map object
-                        map_object = rval.setdefault(item_active_property, {})
+                        map_object = nest_result.setdefault(item_active_property, {})
                         key = None
 
                         if '@language' in container:
@@ -1908,7 +1925,7 @@ class JsonLdProcessor(object):
 
                         # add compact value
                         JsonLdProcessor.add_value(
-                            rval, item_active_property, compacted_item,
+                            nest_result, item_active_property, compacted_item,
                             {'propertyIsArray': is_array})
 
             return rval
@@ -2681,6 +2698,21 @@ class JsonLdProcessor(object):
         else:
             return active_ctx.get('processingMode', 'json-ld-1.0') == 'json-ld-1.0'
 
+
+    def _check_nest_property(self, active_ctx, nest_property):
+        """
+        The value of `@nest` in the term definition must either be `@nest`, or a term
+        which resolves to `@nest`.
+
+        :param active_ctx: the current active context
+        :param nest_property: a term in the active context or `@nest`
+        """
+        if self._expand_iri(active_ctx, nest_property, vocab=True) != '@nest':
+            raise JsonLdError(
+                'JSON-LD compact error; nested property must have an @nest value resolving to @nest.',
+                'jsonld.SyntaxError', {'context': active_ctx},
+                code='invalid @nest value')
+    
     def _expand_language_map(self, active_ctx, language_map):
         """
         Expands a language map.

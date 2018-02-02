@@ -507,7 +507,7 @@ class EarlReport():
 TEST_TYPES = {
     'jld:CompactTest': {
         'skip': {
-            'specVersion': ['json-ld-1.1']
+            'regex': ['#t[acpms]', '#tn00[89]', '#t007[7-9]', '#t008[0-8]']
         },
         'fn': 'compact',
         'params': [
