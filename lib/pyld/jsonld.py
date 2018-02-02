@@ -1888,16 +1888,19 @@ class JsonLdProcessor(object):
                         JsonLdProcessor.get_context_value(
                             active_ctx, item_active_property, '@container'))
 
-                    # get @list value if appropriate
+                    # get simple @graph or @list value if appropriate
+                    is_graph = _is_graph(expanded_item)
                     is_list = _is_list(expanded_item)
-                    list_ = None
+                    inner_ = None
                     if is_list:
-                        list_ = expanded_item['@list']
+                        inner_ = expanded_item['@list']
+                    elif is_graph:
+                        inner_ = expanded_item['@graph']
 
                     # recursively compact expanded item
                     compacted_item = self._compact(
                         active_ctx, item_active_property,
-                        list_ if is_list else expanded_item, options)
+                        inner_ if (is_list or is_graph) else expanded_item, options)
 
                     # handle @list
                     if is_list:
@@ -1928,8 +1931,50 @@ class JsonLdProcessor(object):
                                 'jsonld.SyntaxError',
                                 code='compaction to list of lists')
 
-                    # handle language and index maps
-                    if '@language' in container or '@index' in container:
+                    # graph object compaction
+                    if is_graph:
+                        as_array = not options['compactArrays'] or '@set' in container
+                        if ('@graph' in container and
+                            ('@id' in container or '@index' in container and _is_simple_graph(expanded_item))):
+                            map_object = {}
+                            if item_active_property in nest_result:
+                                map_object = nest_result[item_active_property]
+                            else:
+                                nest_result[item_active_property] = map_object
+
+                            # index on @id or @index or alias of @none
+                            key = expanded_item.get(
+                                ('@id' if '@id' in container else '@index'),
+                                self._compact_iri(active_ctx, '@none'))
+                            # add compactedItem to map, using value of `@id`
+                            # or a new blank node identifier
+                            JsonLdProcessor.add_value(
+                                map_object, key, compacted_item,
+                                {'propertyIsArray': as_array})
+                        elif '@graph' in container and _is_simple_graph(expanded_item):
+                            JsonLdProcessor.add_value(
+                                nest_result, item_active_property, compacted_item,
+                                {'propertyIsArray': as_array})
+                        else:
+                            # wrap using @graph alias
+                            compacted_item = {
+                                self._compact_iri(active_ctx, '@graph'): compacted_item
+                            }
+
+                            # include @id from expanded graph, if any
+                            if '@id' in expanded_item:
+                                compacted_item[self._compact_iri(active_ctx, '@id')] = expanded_item['@id']
+
+                            # include @index from expanded graph, if any
+                            if '@index' in expanded_item:
+                                compacted_item[self._compact_iri(active_ctx, '@index')] = expanded_item['@index']
+
+                            JsonLdProcessor.add_value(
+                                nest_result, item_active_property, compacted_item,
+                                {'propertyIsArray': as_array})
+
+                    # handle language index, id and type maps
+                    elif '@language' in container or '@index' in container:
                         # get or create the map object
                         map_object = nest_result.setdefault(item_active_property, {})
                         key = None
@@ -3714,18 +3759,37 @@ class JsonLdProcessor(object):
         if iri is None:
             return iri
 
+        inverse_context = self._get_inverse_context(active_ctx)
+
         # term is a keyword, force vocab to True
         if _is_keyword(iri):
+            alias = inverse_context.get(iri, {}).get('@none', {}).get('@type', {}).get('@none')
+            if alias:
+                return alias
             vocab = True
 
         # use inverse context to pick a term if iri is relative to vocab
-        if vocab and iri in self._get_inverse_context(active_ctx):
+        if vocab and iri in inverse_context:
             default_language = active_ctx.get('@language', '@none')
 
             # prefer @index if available in value
             containers = []
-            if _is_object(value) and '@index' in value:
-                containers.append('@index')
+            if _is_object(value) and '@index' in value and '@graph' not in value:
+                containers.extend(['@index', '@index@set'])
+
+            # prefer most specific container including @graph
+            if _is_graph(value):
+                if '@index' in value:
+                    containers.extend(['@graph@index', '@graph@index@set', '@index', '@index@set'])
+                if '@id' in value:
+                    containers.extend(['@graph@id', '@graph@id@set'])
+                containers.extend(['@graph', '@graph@set', '@set'])
+                if '@index' not in value:
+                    containers.extend(['@graph@index', '@graph@index@set', '@index', '@index@set'])
+                if '@id' not in value:
+                    containers.extend(['@graph@id', '@graph@id@set'])
+            elif _is_object(value) and not _is_value(value):
+                containers.extend(['@id', '@id@set', '@type','@set@type'])
 
             # defaults for term selection based on type/language
             type_or_language = '@language'
@@ -3791,7 +3855,7 @@ class JsonLdProcessor(object):
             else:
                 if _is_value(value):
                     if '@language' in value and '@index' not in value:
-                        containers.append('@language')
+                        containers.extend(['@language', '@langage@set'])
                         type_or_language_value = value['@language']
                     elif '@type' in value:
                         type_or_language = '@type'
@@ -3803,6 +3867,15 @@ class JsonLdProcessor(object):
 
             # do term selection
             containers.append('@none')
+
+            # an index map can be used to index values using @none, so add as a low priority
+            if _is_object(value) and '@index' not in value:
+                containers.extend(['@index', '@index@set'])
+
+            # values without type or language can use @language map
+            if _is_value(value) and len(value) == 1:
+                containers.extend(['@language', '@language@set'])
+
             term = self._select_term(
                 active_ctx, iri, value, containers,
                 type_or_language, type_or_language_value)
@@ -3837,6 +3910,7 @@ class JsonLdProcessor(object):
             #  the mapping matches the IRI
             curie = term + ':' + iri[len(definition['@id']):]
             is_usable_curie = (
+                active_ctx['mappings'][term].get('_prefix') and
                 curie not in active_ctx['mappings'] or
                 (value is None and
                  active_ctx['mappings'].get(curie, {}).get('@id') == iri))
@@ -4077,7 +4151,7 @@ class JsonLdProcessor(object):
                 mapping['@id'] = id_
                 mapping['_prefix'] = (
                     not _term_has_colon
-                    and re.match('[:/\?#\[\]@]$', id_)
+                    and re.match('.*[:/\?#\[\]@]$', id_)
                     and (_simple_term or self._processing_mode(active_ctx, 1.0)))
         if '@id' not in mapping:
             # see if the term has a prefix
