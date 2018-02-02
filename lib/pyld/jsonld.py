@@ -4056,7 +4056,7 @@ class JsonLdProcessor(object):
         valid_keys = ['@container', '@id', '@language', '@reverse', '@type']
         if self._processing_mode(active_ctx, 1.1):
             valid_keys.extend(['@context', '@nest', '@prefix'])
-        for kw in valid_keys:
+        for kw in value:
             if kw not in valid_keys:
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; a term definition must not contain ' + kw,
