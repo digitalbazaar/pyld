@@ -496,7 +496,7 @@ class EarlReport():
 TEST_TYPES = {
     'jld:CompactTest': {
         'skip': {
-            'regex': ['#t[acpms]', '#t0038', '#tn00[89]']
+            'regex': ['#t0038']
         },
         'fn': 'compact',
         'params': [

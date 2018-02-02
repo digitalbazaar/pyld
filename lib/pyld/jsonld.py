@@ -1738,6 +1738,12 @@ class JsonLdProcessor(object):
                     rval = rval[0]
             return rval
 
+        # use any scoped context on active_property
+        ctx = JsonLdProcessor.get_context_value(active_ctx, active_property, '@context')
+        if ctx:
+            active_ctx = self._process_context(
+                active_ctx, ctx, options)
+
         # recursively compact object
         if _is_object(element):
             if(options['link'] and '@id' in element and
@@ -1781,8 +1787,15 @@ class JsonLdProcessor(object):
                     else:
                         compacted_value = []
                         for ev in expanded_value:
-                            compacted_value.append(self._compact_iri(
-                                active_ctx, ev, vocab=True))
+                            compacted_type = self._compact_iri(active_ctx, ev, vocab=True)
+                            # use any scoped context defined on this value
+                            ctx = JsonLdProcessor.get_context_value(
+                                active_ctx, compacted_type, '@context')
+                            if ctx:
+                                active_ctx = self._process_context(
+                                    active_ctx, ctx, options)
+
+                            compacted_value.append(compacted_type)
 
                     # use keyword alias and add value
                     alias = self._compact_iri(active_ctx, expanded_property)
@@ -1974,7 +1987,8 @@ class JsonLdProcessor(object):
                                 {'propertyIsArray': as_array})
 
                     # handle language index, id and type maps
-                    elif '@language' in container or '@index' in container:
+                    elif ('@language' in container or '@index' in container or
+                            '@id' in container or '@type' in container):
                         # get or create the map object
                         map_object = nest_result.setdefault(item_active_property, {})
                         key = None
@@ -1982,13 +1996,26 @@ class JsonLdProcessor(object):
                         if '@language' in container:
                             if _is_value(compacted_item):
                                 compacted_item = compacted_item['@value']
-                            key = expanded_item['@language']
+                            key = expanded_item.get('@language')
                         elif '@index' in container:
-                            key = expanded_item['@index']
+                            key = expanded_item.get('@index')
+                        elif '@id' in container:
+                            id_key = self._compact_iri(active_ctx, '@id')
+                            key = compacted_item.pop(id_key, None)
+                        elif '@type' in container:
+                            type_key = self._compact_iri(active_ctx, '@type')
+                            types = JsonLdProcessor.arrayify(compacted_item.pop(type_key, []))
+                            key = types.pop(0) if types else None
+                            if types:
+                                JsonLdProcessor.add_value(compacted_item, type_key, types)
+
+                        key = key or self._compact_iri(active_ctx, '@none')
 
                         # add compact value to map object using key from
                         # expanded value based on the container type
-                        JsonLdProcessor.add_value(map_object, key, compacted_item)
+                        JsonLdProcessor.add_value(
+                            map_object, key, compacted_item,
+                            {'propertyIsArray': '@set' in container})
                     else:
                         # use an array if compactArrays flag is false,
                         # @container is @set or @list, value is an empty
@@ -3855,7 +3882,7 @@ class JsonLdProcessor(object):
             else:
                 if _is_value(value):
                     if '@language' in value and '@index' not in value:
-                        containers.extend(['@language', '@langage@set'])
+                        containers.extend(['@language', '@language@set'])
                         type_or_language_value = value['@language']
                     elif '@type' in value:
                         type_or_language = '@type'
