@@ -2040,9 +2040,9 @@ class JsonLdProcessor(object):
             if expanded_property == '@id' and not _is_string(value):
                 if not options.get('isFrame'):
                     raise JsonLdError(
-                        'Invalid JSON-LD syntax; "@id" value must a string.',
-                        'jsonld.SyntaxError', {'value': value},
-                        code='invalid @id value')
+                        'Invalid JSON-LD syntax; "@id" value must be a '
+                        'string.', 'jsonld.SyntaxError',
+                        {'value': value}, code='invalid @id value')
                 if not _is_object(value):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; "@id" value must be a '
@@ -4981,8 +4981,8 @@ def _validate_type_value(v):
 
     if not is_valid:
         raise JsonLdError(
-            'Invalid JSON-LD syntax; "@type" value must a string, an array of '
-            'strings, or an empty object.',
+            'Invalid JSON-LD syntax; "@type" value must be a string, an array '
+            'of strings, or an empty object.',
             'jsonld.SyntaxError', {'value': v}, code='invalid type value')
 
 
