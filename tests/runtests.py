@@ -521,9 +521,6 @@ TEST_TYPES = {
         ]
     },
     'jld:FrameTest': {
-        'skip': {
-            'specVersion': ['json-ld-1.1']
-        },
         'fn': 'frame',
         'params': [
             read_test_url('input'),
