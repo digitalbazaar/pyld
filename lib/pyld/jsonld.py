@@ -3515,7 +3515,6 @@ class JsonLdProcessor(object):
                     continue
 
                 # add objects
-                objects = subject[prop]
                 for o in objects:
                     if prop in frame:
                         subframe = frame[prop]
@@ -3702,7 +3701,7 @@ class JsonLdProcessor(object):
         # check ducktype
         wildcard = True
         matches_some = False
-        for k, v in frame.items():
+        for k, v in sorted(frame.items()):
             match_this = False
             node_values = JsonLdProcessor.get_values(subject, k)
             is_empty = len(v) == 0
