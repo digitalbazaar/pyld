@@ -191,6 +191,7 @@ def frame(input_, frame, options=None):
       [explicit] default @explicit flag (default: False).
       [requireAll] default @requireAll flag (default: True).
       [omitDefault] default @omitDefault flag (default: False).
+      [pruneBlankNodeIdentifiers] remove unnecessary blank node identifiers (default: True)
       [documentLoader(url)] the document loader
         (default: _default_document_loader).
 
@@ -768,6 +769,8 @@ class JsonLdProcessor(object):
         :param options: the options to use.
           [base] the base IRI to use.
           [expandContext] a context to expand with.
+          [isFrame] True to allow framing keywords and interpretation,
+            False not to (default: false).
           [keepFreeFloatingNodes] True to keep free-floating nodes,
             False not to (default: False).
           [documentLoader(url)] the document loader
@@ -777,6 +780,7 @@ class JsonLdProcessor(object):
         """
         # set default options
         options = options.copy() if options else {}
+        options.setdefault('isFrame', False)
         options.setdefault('keepFreeFloatingNodes', False)
         options.setdefault('documentLoader', _default_document_loader)
 
@@ -912,6 +916,7 @@ class JsonLdProcessor(object):
           [explicit] default @explicit flag (default: False).
           [requireAll] default @requireAll flag (default: True).
           [omitDefault] default @omitDefault flag (default: False).
+          [pruneBlankNodeIdentifiers] remove unnecessary blank node identifiers (default: True)
           [documentLoader(url)] the document loader
             (default: _default_document_loader).
 
@@ -925,6 +930,8 @@ class JsonLdProcessor(object):
         options.setdefault('explicit', False)
         options.setdefault('requireAll', True)
         options.setdefault('omitDefault', False)
+        options.setdefault('pruneBlankNodeIdentifiers', True)
+        options.setdefault('bnodesToClear', [])
         options.setdefault('documentLoader', _default_document_loader)
 
         # if frame is a string, attempt to dereference remote document
@@ -974,6 +981,7 @@ class JsonLdProcessor(object):
         try:
             # expand frame
             opts = copy.deepcopy(options)
+            opts['isFrame'] = True
             opts['keepFreeFloatingNodes'] = True
             expanded_frame = self.expand(frame, opts)
         except JsonLdError as cause:
@@ -982,6 +990,8 @@ class JsonLdProcessor(object):
                 'jsonld.FrameError', cause=cause)
 
         # do framing
+        # FIXME should look for aliases of @graph
+        options['merged'] = '@graph' not in frame
         framed = self._frame(expanded, expanded_frame, options)
 
         try:
@@ -1804,6 +1814,14 @@ class JsonLdProcessor(object):
 
                     continue
 
+                if expanded_property == '@preserve':
+                    # compact using active_property
+                    compacted_value = self._compact(
+                        active_ctx, active_property, expanded_value, options)
+                    if not (_is_array(compacted_value) and len(compacted_value) == 0):
+                        JsonLdProcessor.add_value(rval, expanded_property, compacted_value)
+                    continue
+
                 # handle @index
                 if expanded_property == '@index':
                     # drop @index if inside an @index container
@@ -1937,7 +1955,7 @@ class JsonLdProcessor(object):
                         else:
                             # wrap using @graph alias
                             compacted_item = {
-                                self._compact_iri(active_ctx, '@graph'): compacted_item
+                                self._compact_iri(active_ctx, '@graph'): JsonLdProcessor.arrayify(compacted_item)
                             }
 
                             # include @id from expanded graph, if any
@@ -2023,6 +2041,11 @@ class JsonLdProcessor(object):
         # nothing to expand
         if element is None:
             return element
+
+        # disable framing if active_property is @default
+        if active_property == '@default':
+            options = options.copy()
+            options['isFrame'] = False
 
         # recursively expand array
         if _is_array(element):
@@ -2115,17 +2138,24 @@ class JsonLdProcessor(object):
                     'property which can be "@type" or "@language".',
                     'jsonld.SyntaxError', {'element': rval},
                     code='invalid value object')
+
+            values = JsonLdProcessor.get_values(rval, '@value')
+            types = JsonLdProcessor.get_values(rval, '@type')
+
             # drop None @values
             if rval['@value'] is None:
                 rval = None
             # if @language is present, @value must be a string
-            elif '@language' in rval and not _is_string(rval['@value']):
+            elif '@language' in rval and not all(_is_string(val) or _is_empty_object(val) for val in values):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; only strings may be '
                     'language-tagged.', 'jsonld.SyntaxError',
                     {'element': rval}, code='invalid language-tagged value')
-            elif ('@type' in rval and (not _is_absolute_iri(rval['@type']) or
-                  rval['@type'].startswith('_:'))):
+            elif not all(
+                    _is_empty_object(type) or
+                    _is_string(type) and
+                    _is_absolute_iri(type) and
+                    not type.startswith('_:') for type in types):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; an element containing "@value" '
                     'and "@type" must have an absolute IRI for the value '
@@ -2212,20 +2242,50 @@ class JsonLdProcessor(object):
                         code='colliding keywords')
 
             # syntax error if @id is not a string
-            if expanded_property == '@id' and not _is_string(value):
-                if not options.get('isFrame'):
-                    raise JsonLdError(
-                        'Invalid JSON-LD syntax; "@id" value must be a '
-                        'string.', 'jsonld.SyntaxError',
-                        {'value': value}, code='invalid @id value')
-                if not _is_object(value):
-                    raise JsonLdError(
-                        'Invalid JSON-LD syntax; "@id" value must be a '
-                        'string or an object.', 'jsonld.SyntaxError',
-                        {'value': value}, code='invalid @id value')
+            if expanded_property == '@id':
+                if not _is_string(value):
+                    if not options.get('isFrame'):
+                        raise JsonLdError(
+                            'Invalid JSON-LD syntax; "@id" value must be a '
+                            'string.', 'jsonld.SyntaxError',
+                            {'value': value}, code='invalid @id value')
+                    if _is_object(value):
+                        if not _is_empty_object(value):
+                            raise JsonLdError(
+                                'Invalid JSON-LD syntax; "@id" value must be a '
+                                'string or an empty object or array of strings.',
+                                'jsonld.SyntaxError',
+                                {'value': value}, code='invalid @id value')
+                    elif _is_array(value):
+                        if not all(_is_string(v) for v in value):
+                           raise JsonLdError(
+                              'Invalid JSON-LD syntax; "@id" value an empty object or array of strings, if framing',
+                              'jsonld.SyntaxError',
+                              {'value': value}, code='invalid @id value')
+                    else:
+                        raise JsonLdError(
+                          'Invalid JSON-LD syntax; "@id" value an empty object or array of strings, if framing',
+                          'jsonld.SyntaxError',
+                          {'value': value}, code='invalid @id value')
+
+                expanded_values = []
+                for v in JsonLdProcessor.arrayify(value):
+                    expanded_values.append(v if _is_object(v) else self._expand_iri(active_ctx, v, base=True))
+
+                JsonLdProcessor.add_value(
+                    expanded_parent, '@id', expanded_values,
+                    {'propertyIsArray': options['isFrame']})
+                continue
 
             if expanded_property == '@type':
                 _validate_type_value(value)
+                expanded_values = []
+                for v in JsonLdProcessor.arrayify(value):
+                    expanded_values.append(self._expand_iri(active_ctx, v, vocab=True, base=True) if _is_string(v) else v)
+                JsonLdProcessor.add_value(
+                    expanded_parent, '@type', expanded_values,
+                    {'propertyIsArray': options['isFrame']})
+                continue
 
             # @graph must be an array or an object
             if (expanded_property == '@graph' and
@@ -2236,12 +2296,16 @@ class JsonLdProcessor(object):
                     {'value': value}, code='invalid @graph value')
 
             # @value must not be an object or an array
-            if (expanded_property == '@value' and
-                    (_is_object(value) or _is_array(value))):
-                raise JsonLdError(
-                    'Invalid JSON-LD syntax; "@value" value must not be an '
-                    'object or an array.', 'jsonld.SyntaxError',
-                    {'value': value}, code='invalid value object value')
+            if expanded_property == '@value':
+                if (_is_object(value) or _is_array(value)) and not options['isFrame']:
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; "@value" value must not be an '
+                        'object or an array.', 'jsonld.SyntaxError',
+                        {'value': value}, code='invalid value object value')
+                JsonLdProcessor.add_value(
+                    expanded_parent, '@value', value,
+                    {'propertyIsArray': options['isFrame']})
+                continue
 
             # @language must be a string
             if expanded_property == '@language':
@@ -2249,20 +2313,29 @@ class JsonLdProcessor(object):
                     # drop null @language values, they expand as if they
                     # didn't exist
                     continue
-                if not _is_string(value):
+                if not _is_string(value) and not options['isFrame']:
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; "@language" value must be '
                         'a string.', 'jsonld.SyntaxError', {'value': value},
                         code='invalid language-tagged string')
                 # ensure language value is lowercase
-                value = value.lower()
+                expanded_values = []
+                for v in JsonLdProcessor.arrayify(value):
+                    expanded_values.append(v.lower() if _is_string(v) else v)
+                JsonLdProcessor.add_value(
+                    expanded_parent, '@language', expanded_values,
+                    {'propertyIsArray': options['isFrame']})
+                continue
 
             # @index must be a string
-            if expanded_property == '@index' and not _is_string(value):
-                raise JsonLdError(
-                    'Invalid JSON-LD syntax; "@index" value must be '
-                    'a string.', 'jsonld.SyntaxError', {'value': value},
-                    code='invalid @index value')
+            if expanded_property == '@index':
+                if not _is_string(value):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; "@index" value must be '
+                        'a string.', 'jsonld.SyntaxError', {'value': value},
+                        code='invalid @index value')
+                JsonLdProcessor.add_value(expanded_parent, '@index', value)
+                continue
 
             # reverse must be an object
             if expanded_property == '@reverse':
@@ -2451,21 +2524,31 @@ class JsonLdProcessor(object):
         # create framing state
         state = {
             'options': options,
-            'graphs': {'@default': {}, '@merged': {}},
+            'graph': '@default',
+            'graphMap': {'@default': {}},
+            'graphStack': [],
             'subjectStack': [],
-            'link': {}
+            'link': {},
+            'bnodeMap': {}
         }
 
         # produce a map of all graphs and name each bnode
-        # FIXME: currently uses subjects from @merged graph only
         issuer = IdentifierIssuer('_:b')
-        self._create_node_map(input_, state['graphs'], '@merged', issuer)
-        state['subjects'] = state['graphs']['@merged']
+        self._create_node_map(input_, state['graphMap'], '@default', issuer)
+        if options['merged']:
+            state['graphMap']['@merged'] = self._merge_node_map_graphs(state['graphMap'])
+            state['graph'] = '@merged'
+        state['subjects'] = state['graphMap'][state['graph']]
 
         # frame the subjects
         framed = []
         self._match_frame(
             state, sorted(state['subjects'].keys()), frame, framed, None)
+
+        # if pruning blank nodes, find those to prune
+        if options['pruneBlankNodeIdentifiers']:
+            options['bnodesToClear'].extend(
+                [id_ for id_ in state['bnodeMap'].keys() if len(state['bnodeMap'][id_]) == 1])
         return framed
 
     def _from_rdf(self, dataset, options):
@@ -3256,6 +3339,33 @@ class JsonLdProcessor(object):
                         subject, property, o,
                         {'propertyIsArray': True, 'allowDuplicate': False})
 
+    def _merge_node_map_graphs(self, graphs):
+        """
+        Merge separate named graphs into a single merged graph including
+        all nodes from the default graph and named graphs.
+
+        :param graphs: a map of graph name to subject map.
+
+        :return: merged graph map.
+        """
+        merged = {}
+        for name, graph in sorted(graphs.items()):
+            for id_, node in sorted(graph.items()):
+                if id_ not in merged:
+                    merged[id_] = {'@id': id}
+                merged_node = merged[id_]
+                for property, values in sorted(node.items()):
+                    if _is_keyword(property):
+                        # copy keywords
+                        merged_node[property] = copy.deepcopy(values)
+                    else:
+                        # merge objects
+                        for value in values:
+                            JsonLdProcessor.add_value(
+                                merged_node, property, copy.deepcopy(value),
+                                {'propertyIsArray': True, 'allowDuplicate': False})
+        return merged
+
     def _match_frame(self, state, subjects, frame, parent, property):
         """
         Frames subjects according to the given frame.
@@ -3297,10 +3407,17 @@ class JsonLdProcessor(object):
             # compartmentalized result, clear the unique embedded subjects map
             # when the property is None, which only occurs at the top-level.
             if property is None:
-                state['uniqueEmbeds'] = {}
+                state['uniqueEmbeds'] = {state['graph']: {}}
+            elif not state['graph'] in state['uniqueEmbeds']:
+                state['uniqueEmbeds'][state['graph']] = {}
 
             # start output for subject
             output = {'@id': id_}
+            # keep track of objects having blank nodes
+            if id_.startswith('_:'):
+                JsonLdProcessor.add_value(
+                    state['bnodeMap'], id_, output,
+                    {'propertyIsArray': True})
             state['link'][id_] = output
 
             # if embed is @never or if a circular reference would be created
@@ -3309,28 +3426,55 @@ class JsonLdProcessor(object):
             # embed flag is `@link` as the above check will short-circuit
             # before reaching this point
             if(flags['embed'] == '@never' or self._creates_circular_reference(
-                    subject, state['subjectStack'])):
+                    subject, state['graph'], state['subjectStack'])):
                 self._add_frame_output(parent, property, output)
                 continue
 
             # if only the last match should be embedded
             if flags['embed'] == '@last':
                 # remove any existing embed
-                if id_ in state['uniqueEmbeds']:
+                if id_ in state['uniqueEmbeds'][state['graph']]:
                     self._remove_embed(state, id_)
-                state['uniqueEmbeds'][id_] = {
+                state['uniqueEmbeds'][state['graph']][id_] = {
                     'parent': parent,
                     'property': property
                 }
 
             # push matching subject onto stack to enable circular embed checks
-            state['subjectStack'].append(subject)
+            state['subjectStack'].append({'subject': subject, 'graph': state['graph']})
+
+            # subject is also the name of a graph
+            if id_ in state['graphMap']:
+                recurse, subframe = False, None
+                if '@graph' not in frame:
+                    recurse = state['graph'] != '@merged'
+                    subframe = {}
+                else:
+                    subframe = frame['@graph'][0]
+                    if not _is_object(subframe):
+                        subFrame = {}
+                    recurse = not (id_ == '@merged' or id_ == '@default')
+
+                if recurse:
+                    state['graphStack'].append(state['graph'])
+                    state['graph'] = id_
+                    # recurse into graph
+                    self._match_frame(
+                        state, sorted(state['graphMap'][id_].keys()), [subframe], output, '@graph')
 
             # iterate over subject properties in order
             for prop, objects in sorted(subject.items()):
                 # copy keywords to output
                 if _is_keyword(prop):
                     output[prop] = copy.deepcopy(subject[prop])
+
+                    if prop == '@type':
+                        # count bnode values of @type
+                        for type_ in subject['@type']:
+                            if type_.startswith('_:'):
+                                JsonLdProcessor.add_value(
+                                    state['bnodeMap'], type_, output,
+                                    {'propertyIsArray': True})
                     continue
 
                 # explicit is on and property isn't in frame, skip processing
@@ -3340,6 +3484,11 @@ class JsonLdProcessor(object):
                 # add objects
                 objects = subject[prop]
                 for o in objects:
+                    if prop in frame:
+                        subframe = frame[prop]
+                    else:
+                        subframe = self._create_implicit_frame(flags)
+
                     # recurse into list
                     if _is_list(o):
                         # add empty list
@@ -3367,14 +3516,10 @@ class JsonLdProcessor(object):
 
                     if _is_subject_reference(o):
                         # recurse into subject reference
-                        if prop in frame:
-                            subframe = frame[prop]
-                        else:
-                            subframe = self._create_implicit_frame(flags)
                         self._match_frame(
                             state, [o['@id']], subframe, output, prop)
-                    else:
-                        # include other values automatically
+                    elif self._value_match(subframe[0], o):
+                        # include other values automatically, if they match
                         self._add_frame_output(output, prop, copy.deepcopy(o))
 
             # handle defaults in order
@@ -3385,7 +3530,7 @@ class JsonLdProcessor(object):
                 # if omit default is off, then include default values for
                 # properties that appear in the next frame but are not in
                 # the matching subject
-                next = frame[prop][0]
+                next = frame[prop][0] if frame[prop] else {}
                 omit_default_on = self._get_frame_flag(
                     next, options, 'omitDefault')
                 if not omit_default_on and prop not in output:
@@ -3394,6 +3539,20 @@ class JsonLdProcessor(object):
                         preserve = copy.deepcopy(next['@default'])
                     preserve = JsonLdProcessor.arrayify(preserve)
                     output[prop] = [{'@preserve': preserve}]
+
+            # embed reverse values by finding nodes having this subject as a value of the associated property
+            if '@reverse' in frame:
+                for reverse_prop, subframe in sorted(frame['@reverse'].items()):
+                    for subject, subject_value in state['subjects'].items():
+                        node_values = JsonLdProcessor.get_values(subject_value, reverse_prop)
+                        if [v for v in node_values if v['@id'] == id_]:
+                            # node has property referencing this subject, recurse
+                            output['@reverse'] = output['@reverse'] if '@reverse' in output else {}
+                            JsonLdProcessor.add_value(
+                                output['@reverse'], reverse_prop, [],
+                                {'propertyIsArray': True})
+                            self._match_frame(
+                                state, [subject], subframe, output['@reverse'][reverse_prop], property)
 
             # add output to parent
             self._add_frame_output(parent, property, output)
@@ -3417,18 +3576,19 @@ class JsonLdProcessor(object):
             frame['@' + key] = [flags[key]]
         return [frame]
 
-    def _creates_circular_reference(self, subject_to_embed, subject_stack):
+    def _creates_circular_reference(self, subject_to_embed, graph, subject_stack):
         """
         Checks the current subject stack to see if embedding the given subject
         would cause a circular reference.
 
         :param subject_to_embed: the subject to embed.
+        :param graph: the graph the subject to embed is in.
         :param subject_stack: the current stack of subjects.
 
         :return: true if a circular reference would be created, false if not.
         """
         for subject in reversed(subject_stack[:-1]):
-            if subject['@id'] == subject_to_embed['@id']:
+            if subject['graph'] == graph and subject['subject']['@id'] == subject_to_embed['@id']:
                 return True
         return False
 
@@ -3482,36 +3642,38 @@ class JsonLdProcessor(object):
         """
         rval = {}
         for id_ in subjects:
-            subject = state['subjects'][id_]
-            if self._filter_subject(subject, frame, flags):
+            subject = state['graphMap'][state['graph']][id_]
+            if self._filter_subject(state, subject, frame, flags):
                 rval[id_] = subject
         return rval
 
-    def _filter_subject(self, subject, frame, flags):
+    def _filter_subject(self, state, subject, frame, flags):
         """
         Returns True if the given subject matches the given frame.
 
+        Matches either based on explicit type inclusion where the node has any
+        type listed in the frame. If the frame has empty types defined matches
+        nodes not having a @type. If the frame has a type of {} defined matches
+        nodes having any type defined.
+
+        Otherwise, does duck typing, where the node must have all of the
+        properties defined in the frame.
+
+        :param state: the current framing state.
         :param subject: the subject to check.
         :param frame: the frame to check.
         :param flags: the frame flags.
 
         :return: True if the subject matches, False if not.
         """
-        # check @type (object value means 'any' type, fall through to
-        # ducktyping)
-        if ('@type' in frame and not (
-                len(frame['@type']) == 1 and _is_object(frame['@type'][0]))):
-            types = frame['@type']
-            for t in types:
-                # any matching @type is a match
-                if JsonLdProcessor.has_value(subject, '@type', t):
-                    return True
-            return False
-
         # check ducktype
         wildcard = True
         matches_some = False
         for k, v in frame.items():
+            match_this = False
+            node_values = JsonLdProcessor.get_values(subject, k)
+            is_empty = len(v) == 0
+
             if _is_keyword(k):
                 # skip non-@id and non-@type
                 if k != '@id' and k != '@type':
@@ -3519,30 +3681,75 @@ class JsonLdProcessor(object):
                 wildcard = True
 
                 # check @id for a specific @id value
-                if k == '@id' and _is_string(v):
-                    if subject.get(k) != v:
-                        return False
+                if k == '@id':
+                    # if @id is not a wildcard and is not empty, then match or not on specific value
+                    if len(frame['@id']) >= 0 and not _is_empty_object(frame['@id'][0]):
+                        return node_values[0] in frame['@id']
+                    match_this = True
+                    continue
 
-                matches_some = True
-                continue
+                # check @type (object value means 'any' type, fall through to ducktyping)
+                if k == '@type':
+                    if is_empty:
+                        if len(node_values) > 0:
+                            # don't match on no @type
+                            return False
+                        match_this = True
+                    elif _is_empty_object(frame['@type'][0]):
+                        match_this = len(node_values) > 0
+                    else:
+                        # match on a specific @type
+                        return len([tv for tv in node_values if [tf for tf in frame['@type'] if tv == tf]]) > 0
 
+            # force a copy of this frame entry so it can be manipulated
+            this_frame = JsonLdProcessor.get_values(frame, k)
+            this_frame = this_frame[0] if this_frame else None
+            has_default = False
+            if this_frame:
+                self._validate_frame([this_frame])
+                has_default = '@default' in this_frame
+
+            # no longer a wildcard pattern if frame has any non-keyword properties
             wildcard = False
 
-            if k in subject:
-                # v == [] means do not match if property is present
-                if _is_array(v) and len(v) == 0:
-                    return False
-
-                matches_some = True
+            # skip, but allow match if node has no value for property, and frame has a default value
+            if not node_values and has_default:
                 continue
 
-            # all properties must match to be a duck unless a @default is
-            # specified
-            has_default = (
-                _is_array(v) and len(v) == 1 and
-                _is_object(v[0]) and '@default' in v[0])
-            if flags['requireAll'] and not has_default:
+            # if frame value is empty, don't match if subject has any value
+            if node_values and is_empty:
                 return False
+
+            if this_frame == None:
+                # node does not match if values is not empty and the value of property in frame is match none.
+                if node_values:
+                    return False
+                match_this = True
+            elif _is_object(this_frame):
+                # node matches if values is not empty and the value of property in frame is wildcard
+                match_this = len(node_values) > 0
+            else:
+                if _is_value(this_frame):
+                    # match on any matching value
+                    match_this = any(self._value_match(this_frame, nv) for nv in node_values)
+                elif _is_list(this_frame):
+                    list_value = this_frame['@list'][0] if this_frame['@list'] else None
+                    if _is_list(node_values[0] if node_values else None):
+                        node_list_values = node_values[0]['@list']
+
+                        if _is_value(list_value):
+                            match_this = any(
+                                self._value_match(list_value, lv) for lv in node_list_values)
+                        elif _is_subject(list_value) or _is_subject_reference(list_value):
+                            match_this = any(
+                                self._node_match(state, list_value, lv, flags) for lv in node_list_values)
+                    else:
+                        match_this = False
+
+            if not match_this and flags['requireAll']:
+                return False
+
+            matches_some = matches_some or match_this
 
         # return true if wildcard or subject matches some properties
         return wildcard or matches_some
@@ -3555,7 +3762,7 @@ class JsonLdProcessor(object):
         :param id_: the @id of the embed to remove.
         """
         # get existing embed
-        embeds = state['uniqueEmbeds']
+        embeds = state['uniqueEmbeds'][state['graph']]
         embed = embeds[id_]
         property = embed['property']
 
@@ -3610,6 +3817,51 @@ class JsonLdProcessor(object):
         else:
             parent.append(output)
 
+    def _node_match(self, state, pattern, value, flags):
+        """
+        Node matches if it is a node, and matches the pattern as a frame.
+
+        :param state: the current framing state.
+        :param pattern: used to match value.
+        :param value: to check.
+        :param flags: the frame flags.
+        """
+        if '@id' not in value:
+            return False
+        node_object = state['subjects'][value['@id']]
+        return node_object and self._filter_subject(state, node_object, pattern, flags)
+
+    def _value_match(self, pattern, value):
+        """
+        Value matches if it is a value and matches the value pattern
+
+        - `pattern` is empty
+        - @values are the same, or `pattern[@value]` is a wildcard,
+        - @types are the same or `value[@type]` is not None
+          and `pattern[@type]` is `{}` or `value[@type]` is None
+          and `pattern[@type]` is None or `[]`, and
+        - @languages are the same or `value[@language]` is not None
+          and `pattern[@language]` is `{}`, or `value[@language]` is None
+          and `pattern[@language]` is None or `[]`
+
+        :param pattern: used to match value.
+        :param value: to check.
+        """
+        v1, t1, l1 = value.get('@value'), value.get('@type'), value.get('@language')
+        v2 = JsonLdProcessor.get_values(pattern, '@value')
+        t2 = JsonLdProcessor.get_values(pattern, '@type')
+        l2 = JsonLdProcessor.get_values(pattern, '@language')
+
+        if not v2 and not t2 and not l2:
+            return True
+        if not (v1 in v2 or _is_empty_object(v2[0])):
+            return False
+        if not (not t1 and not t2 or t1 in t2 or t1 and t2 and _is_empty_object(t2[0])):
+            return False
+        if not (not l1 and not l2 or l1 in l2 or l1 and l2 and _is_empty_object(l2[0])):
+            return False
+        return True
+
     def _remove_preserve(self, ctx, input_, options):
         """
         Removes the @preserve keywords as the last step of the framing
@@ -3663,7 +3915,12 @@ class JsonLdProcessor(object):
                     # prevent circular visitation
                     options['link'][id_] = [input_]
 
+            # potentially remove the id, if it is an unreference bnode
+            if input_.get(id_alias) in options['bnodesToClear']:
+                input_.pop(id_alias)
+
             # recurse through properties
+            graph_alias = self._compact_iri(ctx, '@graph')
             for prop, v in input_.items():
                 result = self._remove_preserve(ctx, v, options)
                 container = JsonLdProcessor.arrayify(
@@ -3671,7 +3928,8 @@ class JsonLdProcessor(object):
                         ctx, prop, '@container'))
                 if (options['compactArrays'] and
                         _is_array(result) and len(result) == 1 and
-                        '@set' not in container and '@list' not in container):
+                        '@set' not in container and '@list' not in container and
+                        prop != graph_alias):
                     result = result[0]
                 input_[prop] = result
         return input_
@@ -3769,6 +4027,10 @@ class JsonLdProcessor(object):
             containers = []
             if _is_object(value) and '@index' in value and '@graph' not in value:
                 containers.extend(['@index', '@index@set'])
+
+            # if value is a preserve object, use its value
+            if _is_object(value) and '@preserve' in value:
+                value = value['@preserve'][0]
 
             # prefer most specific container including @graph
             if _is_graph(value):
