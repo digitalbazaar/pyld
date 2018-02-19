@@ -9,6 +9,7 @@ Remote document loader using Requests.
 .. moduleauthor:: Tim McNamara <tim.mcnamara@okfn.org>
 .. moduleauthor:: Olaf Conradi <olaf@conradi.org>
 """
+from __future__ import absolute_import
 
 import string
 
