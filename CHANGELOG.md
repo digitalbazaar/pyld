@@ -1,5 +1,23 @@
 # pyld ChangeLog
 
+## 0.9.0 - unreleased
+
+### Added
+- Support for asynchronous document loader library [aiohttp][].
+- Added `dummy_document_loader` which allows libraries to depend on
+  pyld without depending on [Requests][] or [aiohttp][].
+- The test runner contains an additional parameter `-l` to specify the
+  default document loader.
+
+## Changed
+- **BREAKING** A dependency of pyld will not pull in [Requests][] anymore.
+  One needs to define a dependency to `pyld[requests]` or create an
+  explicit dependency on `requests` seperately. Use `pyld[aiohttp]` for
+  [aiohttp][].
+- The default document loader is set to `request_document_loader`. If
+  [Requests][] is not available, `aiohttp_document_loader` is used. When
+  [aiohttp][] is not availabke, a `dummy_document_loader` is used.
+
 ## 0.8.2 - 2017-10-24
 
 ### Fixed
@@ -42,3 +60,4 @@
 
 [jsonld.js]: https://github.com/digitalbazaar/jsonld.js
 [Requests]: http://docs.python-requests.org/
+[aiohttp]: https://docs.aiohttp.org/

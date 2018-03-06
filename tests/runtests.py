@@ -6,6 +6,7 @@ Test runner for JSON-LD.
   :synopsis: Test harness for pyld
 
 .. moduleauthor:: Dave Longley
+.. moduleauthor:: Olaf Conradi <olaf@conradi.org>
 """
 
 from __future__ import print_function
@@ -70,6 +71,10 @@ class TestRunner(unittest.TextTestRunner):
         self.parser.add_option('-b', '--bail', dest='bail',
             action='store_true', default=False,
             help='Bail out as soon as any test fails')
+        self.parser.add_option('-l', '--loader', dest='loader',
+            default='requests',
+            help='The remote URL document loader: requests, aiohttp '
+                 '[default: %default]')
         self.parser.add_option('-v', '--verbose', dest='verbose',
             action='store_true', default=False,
             help='Print verbose test data')
@@ -80,6 +85,12 @@ class TestRunner(unittest.TextTestRunner):
         # ensure a manifest or a directory was specified
         if self.options.manifest is None and self.options.directory is None:
             raise Exception('No test manifest or directory specified.')
+
+        # Set a default JSON-LD document loader
+        if self.options.loader == 'requests':
+            jsonld._default_document_loader = jsonld.requests_document_loader()
+        elif self.options.loader == 'aiohttp':
+            jsonld._default_document_loader = jsonld.aiohttp_document_loader()
 
         # config runner
         self.failfast = self.options.bail

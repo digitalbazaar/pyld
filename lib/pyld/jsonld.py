@@ -10,14 +10,13 @@ JSON-LD.
 .. moduleauthor:: Dave Longley
 .. moduleauthor:: Mike Johnson
 .. moduleauthor:: Tim McNamara <tim.mcnamara@okfn.org>
+.. moduleauthor:: Olaf Conradi <olaf@conradi.org>
 """
 
 import copy
 import hashlib
 import json
 import re
-import requests
-import string
 import sys
 import traceback
 from collections import deque, namedtuple
@@ -73,7 +72,8 @@ __all__ = [
     '__copyright__', '__license__', '__version__',
     'compact', 'expand', 'flatten', 'frame', 'link', 'from_rdf', 'to_rdf',
     'normalize', 'set_document_loader', 'get_document_loader',
-    'parse_link_header', 'load_document', 'requests_document_loader',
+    'parse_link_header', 'load_document',
+    'requests_document_loader', 'aiohttp_document_loader',
     'register_rdf_parser', 'unregister_rdf_parser',
     'JsonLdProcessor', 'JsonLdError', 'ActiveContextCache'
 ]
@@ -352,79 +352,39 @@ def parse_link_header(header):
     return rval
 
 
-def requests_document_loader(secure=False, **kwargs):
+def dummy_document_loader(**kwargs):
     """
-    Create a Requests document loader.
+    Create a dummy document loader that will raise an exception on use.
 
-    Can be used to setup extra Requests args such as verify, cert, timeout,
-    or others.
+    :param **kwargs: extra keyword args
 
-    :param secure: require all requests to use HTTPS (default: False).
-    :param **kwargs: extra keyword args for Requests get() call.
-
-    :return: the RemoteDocument.
+    :return: the RemoteDocument loader function.
     """
 
     def loader(url):
         """
-        Retrieves JSON-LD at the given URL.
+        Raises an exception on every call.
 
         :param url: the URL to retrieve.
 
         :return: the RemoteDocument.
         """
-        try:
-            # validate URL
-            pieces = urllib_parse.urlparse(url)
-            if (not all([pieces.scheme, pieces.netloc]) or
-                pieces.scheme not in ['http', 'https'] or
-                set(pieces.netloc) > set(
-                    string.ascii_letters + string.digits + '-.:')):
-                raise JsonLdError(
-                    'URL could not be dereferenced; only "http" and "https" '
-                    'URLs are supported.',
-                    'jsonld.InvalidUrl', {'url': url},
-                    code='loading document failed')
-            if secure and pieces.scheme != 'https':
-                raise JsonLdError(
-                    'URL could not be dereferenced; secure mode enabled and '
-                    'the URL\'s scheme is not "https".',
-                    'jsonld.InvalidUrl', {'url': url},
-                    code='loading document failed')
-            headers = {
-                'Accept': 'application/ld+json, application/json'
-            }
-            response = requests.get(url, headers=headers, **kwargs)
+        raise JsonLdError('No default document loader configured',
+                          {'url': url}, code='no default document loader')
 
-            doc = {
-                'contextUrl': None,
-                'documentUrl': response.url,
-                'document': response.json()
-            }
-            content_type = response.headers.get('content-type')
-            link_header = response.headers.get('link')
-            if link_header and content_type != 'application/ld+json':
-                link_header = parse_link_header(link_header).get(
-                    LINK_HEADER_REL)
-                # only 1 related link header permitted
-                if isinstance(link_header, list):
-                    raise JsonLdError(
-                        'URL could not be dereferenced, it has more than one '
-                        'associated HTTP Link Header.',
-                        'jsonld.LoadDocumentError',
-                        {'url': url},
-                        code='multiple context link headers')
-                if link_header:
-                    doc['contextUrl'] = link_header['target']
-            return doc
-        except JsonLdError as e:
-            raise e
-        except Exception as cause:
-            raise JsonLdError(
-                'Could not retrieve a JSON-LD document from the URL.',
-                'jsonld.LoadDocumentError', code='loading document failed',
-                cause=cause)
     return loader
+
+
+def requests_document_loader(**kwargs):
+    import pyld.documentloader.requests
+
+    return pyld.documentloader.requests.requests_document_loader(**kwargs)
+
+
+def aiohttp_document_loader(**kwargs):
+    import pyld.documentloader.aiohttp
+
+    return pyld.documentloader.aiohttp.aiohttp_document_loader(**kwargs)
 
 
 def register_rdf_parser(content_type, parser):
@@ -653,7 +613,13 @@ def unparse_url(parsed):
 
 
 # The default JSON-LD document loader.
-_default_document_loader = requests_document_loader()
+try:
+    _default_document_loader = requests_document_loader()
+except ImportError:
+    try:
+        _default_document_loader = aiohttp_document_loader()
+    except (ImportError, SyntaxError):
+        _default_document_loader = dummy_document_loader()
 
 # Use default document loader for older exposed load_document API
 load_document = _default_document_loader
