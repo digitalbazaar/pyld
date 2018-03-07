@@ -5,7 +5,7 @@
 - Process @type term contexts before key iteration.
 
 ### Changed
-- **BREAKING** A dependency of pyld will not pull in [Requests][] anymore.
+- **BREAKING**: A dependency of pyld will not pull in [Requests][] anymore.
   One needs to define a dependency to `pyld[requests]` or create an
   explicit dependency on `requests` seperately. Use `pyld[aiohttp]` for
   [aiohttp][].
