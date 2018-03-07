@@ -1,5 +1,7 @@
 # pyld ChangeLog
 
+## 1.0.1 - 2018-03-06
+
 ### Fixed
 - Include document loaders in distribution.
 
