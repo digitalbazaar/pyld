@@ -2,6 +2,7 @@
 
 ### Fixed
 - Don't always use arrays for `@graph`. Fixes 1.0 compatibility issue.
+- Process @type term contexts before key iteration.
 
 ### Added
 - Support for asynchronous document loader library [aiohttp][].

@@ -1750,28 +1750,31 @@ class JsonLdProcessor(object):
                 options['link'].setdefault(element['@id'], []).append(
                     {'expanded': element, 'compacted': rval})
 
+            # apply any context defined on an alias of @type
+            # if key is @type and any compacted value is a term having a local
+            # context, overlay that context
+            for type in element.get('@type', []):
+                compacted_type = self._compact_iri(active_ctx, type, vocab=True)
+
+                # use any scoped context defined on this value
+                ctx = JsonLdProcessor.get_context_value(
+                        active_ctx, compacted_type, '@context')
+                if ctx:
+                    active_ctx = self._process_context(active_ctx, ctx, options)
+
             # recursively process element keys in order
             for expanded_property, expanded_value in sorted(element.items()):
                 # compact @id and @type(s)
                 if expanded_property == '@id' or expanded_property == '@type':
-                    # compact single @id
-                    if _is_string(expanded_value):
-                        compacted_value = self._compact_iri(
-                            active_ctx, expanded_value,
-                            vocab=(expanded_property == '@type'))
-                    # expanded value must be a @type array
-                    else:
-                        compacted_value = []
-                        for ev in expanded_value:
-                            compacted_type = self._compact_iri(active_ctx, ev, vocab=True)
-                            # use any scoped context defined on this value
-                            ctx = JsonLdProcessor.get_context_value(
-                                active_ctx, compacted_type, '@context')
-                            if ctx:
-                                active_ctx = self._process_context(
-                                    active_ctx, ctx, options)
 
-                            compacted_value.append(compacted_type)
+                    compacted_value = [
+                            self._compact_iri(
+                                active_ctx, expanded_iri,
+                                vocab=(expanded_property == '@type'))
+                            for expanded_iri in
+                            JsonLdProcessor.arrayify(expanded_value)]
+                    if len(compacted_value) == 1:
+                        compacted_value = compacted_value[0]
 
                     # use keyword alias and add value
                     alias = self._compact_iri(active_ctx, expanded_property)
