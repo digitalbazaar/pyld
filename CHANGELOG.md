@@ -1,13 +1,18 @@
 # pyld ChangeLog
 
-## 0.9.0 - unreleased
-
 ### Added
 - Support for asynchronous document loader library [aiohttp][].
 - Added `dummy_document_loader` which allows libraries to depend on
   pyld without depending on [Requests][] or [aiohttp][].
 - The test runner contains an additional parameter `-l` to specify the
   default document loader.
+- Expansion and Compaction using scoped contexts on property and `@type` terms.
+- Expansion and Compaction of nested properties.
+- Index graph containers using `@id` and `@index`, with `@set` variations.
+- Index node objects using `@id` and `@type`, with `@set` variations.
+- Framing default and named graphs in addition to merged graph.
+- Value patterns when framing, allowing a subset of values to appear in the
+  output.
 
 ## Changed
 - **BREAKING** A dependency of pyld will not pull in [Requests][] anymore.
