@@ -1,5 +1,17 @@
 # pyld ChangeLog
 
+## 1.0.0 - 2018-03-06
+
+### Notes
+- **1.0.0**!
+- [Semantic Versioning](https://semver.org/) is now past the "initial
+  development" 0.x.y stage (after 6+ years!).
+- [Conformance](README.rst#conformance):
+  - JSON-LD 1.0 + JSON-LD 1.0 errata
+  - JSON-LD 1.1 drafts
+- Thanks to the JSON-LD and related communities and the many many people over
+  the years who contributed ideas, code, bug reports, and support!
+
 ### Fixed
 - Don't always use arrays for `@graph`. Fixes 1.0 compatibility issue.
 - Process @type term contexts before key iteration.
