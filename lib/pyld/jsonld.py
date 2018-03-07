@@ -1953,9 +1953,14 @@ class JsonLdProcessor(object):
                                 nest_result, item_active_property, compacted_item,
                                 {'propertyIsArray': as_array})
                         else:
-                            # wrap using @graph alias
+                            # wrap using @graph alias, remove array if only one
+                            # item and compactArrays not set
+                            if (_is_array(compacted_item) and
+                                    len(compacted_item) == 1 and
+                                    options['compactArrays']):
+                                compacted_item = compacted_item[0];
                             compacted_item = {
-                                self._compact_iri(active_ctx, '@graph'): JsonLdProcessor.arrayify(compacted_item)
+                                self._compact_iri(active_ctx, '@graph'): compacted_item
                             }
 
                             # include @id from expanded graph, if any

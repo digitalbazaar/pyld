@@ -1,5 +1,8 @@
 # pyld ChangeLog
 
+### Fixed
+- Don't always use arrays for `@graph`. Fixes 1.0 compatibility issue.
+
 ### Added
 - Support for asynchronous document loader library [aiohttp][].
 - Added `dummy_document_loader` which allows libraries to depend on
