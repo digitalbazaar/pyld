@@ -5,6 +5,13 @@
 - Process @type term contexts before key iteration.
 
 ### Changed
+- **BREAKING** A dependency of pyld will not pull in [Requests][] anymore.
+  One needs to define a dependency to `pyld[requests]` or create an
+  explicit dependency on `requests` seperately. Use `pyld[aiohttp]` for
+  [aiohttp][].
+- The default document loader is set to `request_document_loader`. If
+  [Requests][] is not available, `aiohttp_document_loader` is used. When
+  [aiohttp][] is not availabke, a `dummy_document_loader` is used.
 - Use the W3C standard MIME type for N-Quads of "application/n-quads". Accept
   "application/nquads" for compatibility.
 
@@ -21,15 +28,6 @@
 - Framing default and named graphs in addition to merged graph.
 - Value patterns when framing, allowing a subset of values to appear in the
   output.
-
-## Changed
-- **BREAKING** A dependency of pyld will not pull in [Requests][] anymore.
-  One needs to define a dependency to `pyld[requests]` or create an
-  explicit dependency on `requests` seperately. Use `pyld[aiohttp]` for
-  [aiohttp][].
-- The default document loader is set to `request_document_loader`. If
-  [Requests][] is not available, `aiohttp_document_loader` is used. When
-  [aiohttp][] is not availabke, a `dummy_document_loader` is used.
 
 ## 0.8.2 - 2017-10-24
 
