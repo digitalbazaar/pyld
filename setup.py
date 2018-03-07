@@ -29,7 +29,10 @@ setup(
     author='Digital Bazaar',
     author_email='support@digitalbazaar.com',
     url='http://github.com/digitalbazaar/pyld',
-    packages=['pyld'],
+    packages=[
+        'pyld',
+        'pyld.documentloader'
+    ],
     package_dir={'': 'lib'},
     license='BSD 3-Clause license',
     classifiers=[
