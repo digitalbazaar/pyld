@@ -237,9 +237,9 @@ def normalize(input_, options=None):
         (default: `URGNA2012`).
       [base] the base IRI to use.
       [inputFormat] the format if input is not JSON-LD:
-        'application/nquads' for N-Quads.
+        'application/n-quads' for N-Quads.
       [format] the format if output is a string:
-        'application/nquads' for N-Quads.
+        'application/n-quads' for N-Quads.
       [documentLoader(url)] the document loader
         (default: _default_document_loader).
 
@@ -256,7 +256,7 @@ def from_rdf(input_, options=None):
       by the format option or an RDF dataset to convert.
     :param [options]: the options to use:
       [format] the format if input is a string:
-        'application/nquads' for N-Quads (default: 'application/nquads').
+        'application/n-quads' for N-Quads (default: 'application/n-quads').
       [useRdfType] True to use rdf:type, False to use @type (default: False).
       [useNativeTypes] True to convert XSD types into native types
         (boolean, integer, double), False not to (default: True).
@@ -274,7 +274,7 @@ def to_rdf(input_, options=None):
     :param [options]: the options to use.
       [base] the base IRI to use.
       [format] the format to use to output a string:
-        'application/nquads' for N-Quads.
+        'application/n-quads' for N-Quads.
       [produceGeneralizedRdf] true to output generalized RDF, false
         to produce only standard RDF (default: false).
       [documentLoader(url)] the document loader
@@ -1029,9 +1029,9 @@ class JsonLdProcessor(object):
             (default: `URGNA2012`).
           [base] the base IRI to use.
           [inputFormat] the format if input is not JSON-LD:
-            'application/nquads' for N-Quads.
+            'application/n-quads' for N-Quads.
           [format] the format if output is a string:
-            'application/nquads' for N-Quads.
+            'application/n-quads' for N-Quads.
           [documentLoader(url)] the document loader
             (default: _default_document_loader).
 
@@ -1050,7 +1050,8 @@ class JsonLdProcessor(object):
 
         try:
             if 'inputFormat' in options:
-                if options['inputFormat'] != 'application/nquads':
+                if (options['inputFormat'] != 'application/n-quads' and
+                        options['inputFormat'] != 'application/nquads'):
                     raise JsonLdError(
                         'Unknown normalization input format.',
                         'jsonld.NormalizeError')
@@ -1081,7 +1082,7 @@ class JsonLdProcessor(object):
           the format option or an RDF dataset to convert.
         :param options: the options to use.
           [format] the format if input is a string:
-            'application/nquads' for N-Quads (default: 'application/nquads').
+            'application/n-quads' for N-Quads (default: 'application/n-quads').
           [useRdfType] True to use rdf:type, False to use @type
             (default: False).
           [useNativeTypes] True to convert XSD types into native types
@@ -1097,7 +1098,7 @@ class JsonLdProcessor(object):
         options.setdefault('useNativeTypes', False)
 
         if ('format' not in options) and _is_string(dataset):
-            options['format'] = 'application/nquads'
+            options['format'] = 'application/n-quads'
 
         # handle special format
         if 'format' in options:
@@ -1127,7 +1128,7 @@ class JsonLdProcessor(object):
         :param options: the options to use.
           [base] the base IRI to use.
           [format] the format if input is a string:
-            'application/nquads' for N-Quads.
+            'application/n-quads' for N-Quads.
           [produceGeneralizedRdf] true to output generalized RDF, false
             to produce only standard RDF (default: false).
           [documentLoader(url)] the document loader
@@ -1164,7 +1165,8 @@ class JsonLdProcessor(object):
 
         # convert to output format
         if 'format' in options:
-            if options['format'] == 'application/nquads':
+            if (options['format'] == 'application/n-quads' or
+                    options['format'] == 'application/nquads'):
                 return self.to_nquads(dataset)
             raise JsonLdError(
                 'Unknown output format.',
@@ -4893,6 +4895,7 @@ class JsonLdProcessor(object):
 
 
 # register the N-Quads RDF parser
+register_rdf_parser('application/n-quads', JsonLdProcessor.parse_nquads)
 register_rdf_parser('application/nquads', JsonLdProcessor.parse_nquads)
 
 
@@ -4992,7 +4995,8 @@ class URDNA2015(object):
     def main(self, dataset, options):
         # handle invalid output format
         if 'format' in options:
-            if options['format'] != 'application/nquads':
+            if (options['format'] != 'application/n-quads' and
+                    options['format'] != 'application/nquads'):
                 raise JsonLdError(
                     'Unknown output format.',
                     'jsonld.UnknownFormat', {'format': options['format']})
@@ -5142,7 +5146,8 @@ class URDNA2015(object):
         normalized.sort()
 
         # 8) Return the normalized dataset.
-        if options.get('format') == 'application/nquads':
+        if (options.get('format') == 'application/n-quads' or
+                options.get('format') == 'application/nquads'):
             return ''.join(normalized)
         return JsonLdProcessor.parse_nquads(''.join(normalized))
 
