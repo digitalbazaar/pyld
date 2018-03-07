@@ -4,6 +4,10 @@
 - Don't always use arrays for `@graph`. Fixes 1.0 compatibility issue.
 - Process @type term contexts before key iteration.
 
+### Changed
+- Use the W3C standard MIME type for N-Quads of "application/n-quads". Accept
+  "application/nquads" for compatibility.
+
 ### Added
 - Support for asynchronous document loader library [aiohttp][].
 - Added `dummy_document_loader` which allows libraries to depend on

@@ -546,21 +546,21 @@ TEST_TYPES = {
         'fn': 'from_rdf',
         'params': [
             read_test_property('input'),
-            create_test_options({'format': 'application/nquads'})
+            create_test_options({'format': 'application/n-quads'})
         ]
     },
     'jld:NormalizeTest': {
         'fn': 'normalize',
         'params': [
             read_test_property('input'),
-            create_test_options({'format': 'application/nquads'})
+            create_test_options({'format': 'application/n-quads'})
         ]
     },
     'jld:ToRDFTest': {
         'fn': 'to_rdf',
         'params': [
             read_test_url('input'),
-            create_test_options({'format': 'application/nquads'})
+            create_test_options({'format': 'application/n-quads'})
         ]
     },
     'rdfn:Urgna2012EvalTest': {
@@ -569,8 +569,8 @@ TEST_TYPES = {
             read_test_property('action'),
             create_test_options({
                 'algorithm': 'URGNA2012',
-                'inputFormat': 'application/nquads',
-                'format': 'application/nquads'
+                'inputFormat': 'application/n-quads',
+                'format': 'application/n-quads'
             })
         ]
     },
@@ -580,8 +580,8 @@ TEST_TYPES = {
             read_test_property('action'),
             create_test_options({
                 'algorithm': 'URDNA2015',
-                'inputFormat': 'application/nquads',
-                'format': 'application/nquads'
+                'inputFormat': 'application/n-quads',
+                'format': 'application/n-quads'
             })
         ]
     }

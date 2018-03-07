@@ -139,7 +139,7 @@ Quick Examples
     # normalize a document using the RDF Dataset Normalization Algorithm
     # (URDNA2015), see: http://json-ld.github.io/normalization/spec/
     normalized = jsonld.normalize(
-        doc, {'algorithm': 'URDNA2015', 'format': 'application/nquads'})
+        doc, {'algorithm': 'URDNA2015', 'format': 'application/n-quads'})
     # normalized is a string that is a canonical representation of the document
     # that can be used for hashing, comparison, etc.
 
