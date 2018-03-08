@@ -370,6 +370,7 @@ def dummy_document_loader(**kwargs):
         :return: the RemoteDocument.
         """
         raise JsonLdError('No default document loader configured',
+                          'jsonld.LoadDocumentError',
                           {'url': url}, code='no default document loader')
 
     return loader
