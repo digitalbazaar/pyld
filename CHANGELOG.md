@@ -1,5 +1,10 @@
 # pyld ChangeLog
 
+## 1.0.2 - 2018-03-08
+
+### Fixed
+- Missing error parameter.
+
 ## 1.0.1 - 2018-03-06
 
 ### Fixed
