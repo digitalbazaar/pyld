@@ -191,7 +191,8 @@ def frame(input_, frame, options=None):
       [explicit] default @explicit flag (default: False).
       [requireAll] default @requireAll flag (default: True).
       [omitDefault] default @omitDefault flag (default: False).
-      [pruneBlankNodeIdentifiers] remove unnecessary blank node identifiers (default: True)
+      [pruneBlankNodeIdentifiers] remove unnecessary blank node identifiers
+        (default: True)
       [documentLoader(url)] the document loader
         (default: _default_document_loader).
 
@@ -901,7 +902,8 @@ class JsonLdProcessor(object):
           [explicit] default @explicit flag (default: False).
           [requireAll] default @requireAll flag (default: True).
           [omitDefault] default @omitDefault flag (default: False).
-          [pruneBlankNodeIdentifiers] remove unnecessary blank node identifiers (default: True)
+          [pruneBlankNodeIdentifiers] remove unnecessary blank node
+            identifiers (default: True)
           [documentLoader(url)] the document loader
             (default: _default_document_loader).
 
@@ -1702,7 +1704,8 @@ class JsonLdProcessor(object):
             return rval
 
         # use any scoped context on active_property
-        ctx = JsonLdProcessor.get_context_value(active_ctx, active_property, '@context')
+        ctx = JsonLdProcessor.get_context_value(
+                active_ctx, active_property, '@context')
         if ctx:
             active_ctx = self._process_context(
                 active_ctx, ctx, options)
@@ -1741,13 +1744,15 @@ class JsonLdProcessor(object):
             # if key is @type and any compacted value is a term having a local
             # context, overlay that context
             for type in element.get('@type', []):
-                compacted_type = self._compact_iri(active_ctx, type, vocab=True)
+                compacted_type = self._compact_iri(
+                        active_ctx, type, vocab=True)
 
                 # use any scoped context defined on this value
                 ctx = JsonLdProcessor.get_context_value(
                         active_ctx, compacted_type, '@context')
                 if ctx:
-                    active_ctx = self._process_context(active_ctx, ctx, options)
+                    active_ctx = self._process_context(
+                            active_ctx, ctx, options)
 
             # recursively process element keys in order
             for expanded_property, expanded_value in sorted(element.items()):
@@ -1948,7 +1953,7 @@ class JsonLdProcessor(object):
                             if (_is_array(compacted_item) and
                                     len(compacted_item) == 1 and
                                     options['compactArrays']):
-                                compacted_item = compacted_item[0];
+                                compacted_item = compacted_item[0]
                             compacted_item = {
                                 self._compact_iri(active_ctx, '@graph'): compacted_item
                             }
@@ -2189,7 +2194,6 @@ class JsonLdProcessor(object):
 
         return rval
 
-
     def _expand_object(
             self, active_ctx, active_property, expanded_active_property,
             element, expanded_parent, options, inside_list):
@@ -2253,15 +2257,15 @@ class JsonLdProcessor(object):
                                 {'value': value}, code='invalid @id value')
                     elif _is_array(value):
                         if not all(_is_string(v) for v in value):
-                           raise JsonLdError(
-                              'Invalid JSON-LD syntax; "@id" value an empty object or array of strings, if framing',
-                              'jsonld.SyntaxError',
-                              {'value': value}, code='invalid @id value')
+                            raise JsonLdError(
+                                'Invalid JSON-LD syntax; "@id" value an empty object or array of strings, if framing',
+                                'jsonld.SyntaxError',
+                                {'value': value}, code='invalid @id value')
                     else:
                         raise JsonLdError(
-                          'Invalid JSON-LD syntax; "@id" value an empty object or array of strings, if framing',
-                          'jsonld.SyntaxError',
-                          {'value': value}, code='invalid @id value')
+                            'Invalid JSON-LD syntax; "@id" value an empty object or array of strings, if framing',
+                            'jsonld.SyntaxError',
+                            {'value': value}, code='invalid @id value')
 
                 expanded_values = []
                 for v in JsonLdProcessor.arrayify(value):
@@ -2848,7 +2852,6 @@ class JsonLdProcessor(object):
         else:
             return active_ctx.get('processingMode', 'json-ld-1.0') == 'json-ld-1.0'
 
-
     def _check_nest_property(self, active_ctx, nest_property):
         """
         The value of `@nest` in the term definition must either be `@nest`, or a term
@@ -2862,7 +2865,7 @@ class JsonLdProcessor(object):
                 'JSON-LD compact error; nested property must have an @nest value resolving to @nest.',
                 'jsonld.SyntaxError', {'context': active_ctx},
                 code='invalid @nest value')
-    
+
     def _expand_language_map(self, active_ctx, language_map):
         """
         Expands a language map.
@@ -2890,7 +2893,6 @@ class JsonLdProcessor(object):
                     val['@language'] = key.lower()
                 rval.append(val)
         return rval
-
 
     def _expand_index_map(self, active_ctx, active_property, value, index_key, as_graph, options):
         """
@@ -3534,7 +3536,8 @@ class JsonLdProcessor(object):
                     preserve = JsonLdProcessor.arrayify(preserve)
                     output[prop] = [{'@preserve': preserve}]
 
-            # embed reverse values by finding nodes having this subject as a value of the associated property
+            # embed reverse values by finding nodes having this subject as a
+            # value of the associated property
             if '@reverse' in frame:
                 for reverse_prop, subframe in sorted(frame['@reverse'].items()):
                     for subject, subject_value in state['subjects'].items():
@@ -3676,13 +3679,15 @@ class JsonLdProcessor(object):
 
                 # check @id for a specific @id value
                 if k == '@id':
-                    # if @id is not a wildcard and is not empty, then match or not on specific value
+                    # if @id is not a wildcard and is not empty, then match
+                    # or not on specific value
                     if len(frame['@id']) >= 0 and not _is_empty_object(frame['@id'][0]):
                         return node_values[0] in frame['@id']
                     match_this = True
                     continue
 
-                # check @type (object value means 'any' type, fall through to ducktyping)
+                # check @type (object value means 'any' type, fall through to
+                # ducktyping)
                 if k == '@type':
                     if is_empty:
                         if len(node_values) > 0:
@@ -3703,10 +3708,12 @@ class JsonLdProcessor(object):
                 self._validate_frame([this_frame])
                 has_default = '@default' in this_frame
 
-            # no longer a wildcard pattern if frame has any non-keyword properties
+            # no longer a wildcard pattern if frame has any non-keyword
+            # properties
             wildcard = False
 
-            # skip, but allow match if node has no value for property, and frame has a default value
+            # skip, but allow match if node has no value for property, and
+            # frame has a default value
             if not node_values and has_default:
                 continue
 
@@ -3714,13 +3721,15 @@ class JsonLdProcessor(object):
             if node_values and is_empty:
                 return False
 
-            if this_frame == None:
-                # node does not match if values is not empty and the value of property in frame is match none.
+            if this_frame is None:
+                # node does not match if values is not empty and the value of
+                # property in frame is match none.
                 if node_values:
                     return False
                 match_this = True
             elif _is_object(this_frame):
-                # node matches if values is not empty and the value of property in frame is wildcard
+                # node matches if values is not empty and the value of
+                # property in frame is wildcard
                 match_this = len(node_values) > 0
             else:
                 if _is_value(this_frame):
@@ -4038,7 +4047,7 @@ class JsonLdProcessor(object):
                 if '@id' not in value:
                     containers.extend(['@graph@id', '@graph@id@set'])
             elif _is_object(value) and not _is_value(value):
-                containers.extend(['@id', '@id@set', '@type','@set@type'])
+                containers.extend(['@id', '@id@set', '@type', '@set@type'])
 
             # defaults for term selection based on type/language
             type_or_language = '@language'
@@ -4117,7 +4126,8 @@ class JsonLdProcessor(object):
             # do term selection
             containers.append('@none')
 
-            # an index map can be used to index values using @none, so add as a low priority
+            # an index map can be used to index values using @none, so add as
+            # a low priority
             if _is_object(value) and '@index' not in value:
                 containers.extend(['@index', '@index@set'])
 
@@ -4469,7 +4479,7 @@ class JsonLdProcessor(object):
 
             if self._processing_mode(active_ctx, 1.1):
                 valid_containers.extend(['@graph', '@id', '@type'])
-                
+
                 # check container length
                 if '@list' in container:
                     if len(container) != 1:
@@ -4672,10 +4682,11 @@ class JsonLdProcessor(object):
                             elif url not in urls:
                                 urls[url] = False
                         elif _is_object(v[i]):
-                          # look for scoped context
-                          for kk, vv in v[i].items():
-                              if _is_object(vv):
-                                  self._find_context_urls(vv, urls, replace, base)
+                            # look for scoped context
+                            for kk, vv in v[i].items():
+                                if _is_object(vv):
+                                    self._find_context_urls(
+                                            vv, urls, replace, base)
                 # string @context
                 elif _is_string(v):
                     v = prepend_base(base, v)
@@ -4686,10 +4697,10 @@ class JsonLdProcessor(object):
                     elif v not in urls:
                         urls[v] = False
                 elif _is_object(v):
-                  # look for soped context
-                  for kk, vv in v.items():
-                      if _is_object(vv):
-                          self._find_context_urls(vv, urls, replace, base)
+                    # look for soped context
+                    for kk, vv in v.items():
+                        if _is_object(vv):
+                            self._find_context_urls(vv, urls, replace, base)
 
     def _retrieve_context_urls(self, input_, cycles, load_document, base=''):
         """
@@ -4877,7 +4888,6 @@ class JsonLdProcessor(object):
         if '@vocab' in active_ctx:
             child['@vocab'] = active_ctx['@vocab']
         return child
-
 
 
 class JsonLdError(Exception):
@@ -5768,6 +5778,7 @@ def _is_absolute_iri(v):
     """
     return _is_string(v) and ':' in v
 
+
 def _is_relative_iri(v):
     """
     Returns true if the given value is a relative IRI, false if not.
@@ -5829,4 +5840,3 @@ _rdf_parsers = {}
 # register the N-Quads RDF parser
 register_rdf_parser('application/n-quads', JsonLdProcessor.parse_nquads)
 register_rdf_parser('application/nquads', JsonLdProcessor.parse_nquads)
-
