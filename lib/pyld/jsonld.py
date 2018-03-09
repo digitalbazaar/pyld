@@ -613,22 +613,6 @@ def unparse_url(parsed):
     return rval
 
 
-# The default JSON-LD document loader.
-try:
-    _default_document_loader = requests_document_loader()
-except ImportError:
-    try:
-        _default_document_loader = aiohttp_document_loader()
-    except (ImportError, SyntaxError):
-        _default_document_loader = dummy_document_loader()
-
-# Use default document loader for older exposed load_document API
-load_document = _default_document_loader
-
-# Registered global RDF parsers hashed by content-type.
-_rdf_parsers = {}
-
-
 class JsonLdProcessor(object):
     """
     A JSON-LD processor.
@@ -4895,10 +4879,6 @@ class JsonLdProcessor(object):
         return child
 
 
-# register the N-Quads RDF parser
-register_rdf_parser('application/n-quads', JsonLdProcessor.parse_nquads)
-register_rdf_parser('application/nquads', JsonLdProcessor.parse_nquads)
-
 
 class JsonLdError(Exception):
     """
@@ -5830,3 +5810,23 @@ class ActiveContextCache(object):
 _cache = {
     'activeCtx': ActiveContextCache()
 }
+
+# The default JSON-LD document loader.
+try:
+    _default_document_loader = requests_document_loader()
+except ImportError:
+    try:
+        _default_document_loader = aiohttp_document_loader()
+    except (ImportError, SyntaxError):
+        _default_document_loader = dummy_document_loader()
+
+# Use default document loader for older exposed load_document API
+load_document = _default_document_loader
+
+# Registered global RDF parsers hashed by content-type.
+_rdf_parsers = {}
+
+# register the N-Quads RDF parser
+register_rdf_parser('application/n-quads', JsonLdProcessor.parse_nquads)
+register_rdf_parser('application/nquads', JsonLdProcessor.parse_nquads)
+
