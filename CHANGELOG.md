@@ -1,5 +1,7 @@
 # pyld ChangeLog
 
+## 1.0.3 - 2018-03-09
+
 ### Fixed
 - Reorder code to avoid undefined symbols.
 
