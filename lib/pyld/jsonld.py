@@ -3458,6 +3458,8 @@ class JsonLdProcessor(object):
                     # recurse into graph
                     self._match_frame(
                         state, sorted(state['graphMap'][id_].keys()), [subframe], output, '@graph')
+                    #reset to current graph
+                    state['graph'] = state['graphStack'].pop()
 
             # iterate over subject properties in order
             for prop, objects in sorted(subject.items()):
