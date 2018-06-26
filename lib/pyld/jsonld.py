@@ -542,7 +542,7 @@ def remove_dot_segments(path):
     :return: a path with normalized dot segments.
     """
 
-    # RFC 3984 5.2.4 (reworked)
+    # RFC 3986 5.2.4 (reworked)
 
     # empty path shortcut
     if len(path) == 0:
