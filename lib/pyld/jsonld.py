@@ -1453,7 +1453,7 @@ class JsonLdProcessor(object):
         bnode = '(_:(?:[A-Za-z][A-Za-z0-9]*))'
         plain = '"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"'
         datatype = '(?:\\^\\^' + iri + ')'
-        language = '(?:@([a-z]+(?:-[a-z0-9]+)*))'
+        language = '(?:@([a-zA-Z]+(?:-[a-zA-Z0-9]+)*))'
         literal = '(?:' + plain + '(?:' + datatype + '|' + language + ')?)'
         ws = '[ \\t]+'
         wso = '[ \\t]*'
