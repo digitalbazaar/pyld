@@ -1,5 +1,8 @@
 # pyld ChangeLog
 
+### Fixed
+- Accept N-Quads upper case language tag.
+
 ## 1.0.3 - 2018-03-09
 
 ### Fixed
