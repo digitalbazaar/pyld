@@ -1,5 +1,7 @@
 # pyld ChangeLog
 
+## 1.0.5 - 2019-05-09
+
 ### Fixed
 - Use `return` instead of `raise StopIteration` to terminate generator.
 
