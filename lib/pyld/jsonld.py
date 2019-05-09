@@ -5499,7 +5499,7 @@ def permutations(elements):
 
         # no more permutations
         if k is None:
-            raise StopIteration
+            return
 
         # swap k and the element it is looking at
         swap = pos - 1 if left[k] else pos + 1
