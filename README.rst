@@ -40,20 +40,45 @@ compatible, and require a very small memory footprint in order to operate.
 Conformance
 -----------
 
-This library aims to pass the `test suite`_ and conform with the following:
+This library aims to conform with the following:
 
 - `JSON-LD 1.0`_,
   W3C Recommendation,
   2014-01-16, and any `errata`_
-- `JSON-LD 1.0 Processing Algorithms and API`_,
+- `JSON-LD 1.0 Processing Algorithms and API <JSON-LD 1.0 API_>`_,
   W3C Recommendation,
   2014-01-16, and any `errata`_
-- `JSON-LD 1.1`_,
+- `JSON-LD 1.0 Framing <JSON-LD 1.0 Framing_>`_,
+  Unofficial Draft,
+  2012-08-30
+- `JSON-LD 1.1 <JSON-LD CG 1.1_>`_,
   Draft Community Group Report,
-  2018-02-15 or `newer <JSON-LD latest_>`_
-- `JSON-LD 1.1 Processing Algorithms and API`_,
+  2018-06-07 or `newer <JSON-LD CG latest_>`_
+- `JSON-LD 1.1 Processing Algorithms and API <JSON-LD CG 1.1 API_>`_,
   Draft Community Group Report,
-  2018-02-15 or `newer <JSON-LD Processing Algorithms and API latest_>`_
+  2018-06-07 or `newer <JSON-LD CG API latest_>`_
+- `JSON-LD 1.1 Framing <JSON-LD CG 1.1 Framing_>`_,
+  Draft Community Group Report,
+  2018-06-07 or `newer <JSON-LD CG Framing latest_>`_
+- Community Group `test suite`_
+
+The `JSON-LD Working Group <JSON-LD WG_>`_ is now developing JSON-LD 1.1.
+Library updates to conform with newer specifications will happen as features
+stabilize and development time and resources permit.
+
+- `JSON-LD 1.1 <JSON-LD WG 1.1_>`_,
+  W3C Working Draft,
+  2018-12-14 or `newer <JSON-LD WG latest_>`_
+- `JSON-LD 1.1 Processing Algorithms and API <JSON-LD WG 1.1 API_>`_,
+  W3C Working Draft,
+  2018-12-14 or `newer <JSON-LD WG API latest_>`_
+- `JSON-LD 1.1 Framing <JSON-LD WG 1.1 Framing_>`_,
+  W3C Working Draft,
+  2018-12-14 or `newer <JSON-LD WG Framing latest_>`_
+- Working Group `test suite <WG test suite_>`_
+
+The `test runner`_ is often updated to note or skip newer tests that are not
+yet supported.
 
 Requirements
 ------------
@@ -206,14 +231,32 @@ The test runner supports different document loaders by setting
 ``-l requests`` or ``-l aiohttp``. The default document loader is set
 to Requests_.
 
+
 .. _Digital Bazaar: http://digitalbazaar.com/
-.. _JSON-LD: http://json-ld.org/
+
+.. _JSON-LD 1.0 API: http://www.w3.org/TR/2014/REC-json-ld-api-20140116/
+.. _JSON-LD 1.0 Framing: https://json-ld.org/spec/ED/json-ld-framing/20120830/
 .. _JSON-LD 1.0: http://www.w3.org/TR/2014/REC-json-ld-20140116/
-.. _JSON-LD 1.0 Processing Algorithms and API: http://www.w3.org/TR/2014/REC-json-ld-api-20140116/
-.. _JSON-LD 1.1: https://json-ld.org/spec/ED/json-ld/20180215/
-.. _JSON-LD 1.1 Processing Algorithms and API: https://json-ld.org/spec/ED/json-ld-api/20180215/
-.. _JSON-LD latest: https://json-ld.org/spec/latest/json-ld/
-.. _JSON-LD Processing Algorithms and API latest: https://json-ld.org/spec/latest/json-ld-api/
+
+.. _JSON-LD CG 1.1 API: https://json-ld.org/spec/FCGS/json-ld-api/20180607/
+.. _JSON-LD CG 1.1 Framing: https://json-ld.org/spec/FCGS/json-ld-framing/20180607/
+.. _JSON-LD CG 1.1: https://json-ld.org/spec/FCGS/json-ld/20180607/
+
+.. _JSON-LD CG API latest: https://json-ld.org/spec/latest/json-ld-api/
+.. _JSON-LD CG Framing latest: https://json-ld.org/spec/latest/json-ld-framing/
+.. _JSON-LD CG latest: https://json-ld.org/spec/latest/json-ld/
+
+.. _JSON-LD WG 1.1 API: https://www.w3.org/TR/json-ld11-api/
+.. _JSON-LD WG 1.1 Framing: https://www.w3.org/TR/json-ld11-framing/
+.. _JSON-LD WG 1.1: https://www.w3.org/TR/json-ld11/
+
+.. _JSON-LD WG API latest: https://w3c.github.io/json-ld-api/
+.. _JSON-LD WG Framing latest: https://w3c.github.io/json-ld-framing/
+.. _JSON-LD WG latest: https://w3c.github.io/json-ld-syntax/
+
+.. _JSON-LD Benchmarks: https://json-ld.org/benchmarks/
+.. _JSON-LD WG: https://www.w3.org/2018/json-ld-wg/
+.. _JSON-LD: https://json-ld.org/
 .. _Microdata: http://www.w3.org/TR/microdata/
 .. _Microformats: http://microformats.org/
 .. _Python: http://www.python.org/
@@ -221,6 +264,8 @@ to Requests_.
 .. _aiohttp: https://aiohttp.readthedocs.io/
 .. _RDFa: http://www.w3.org/TR/rdfa-core/
 .. _RFC7159: http://tools.ietf.org/html/rfc7159
+.. _WG test suite: https://github.com/w3c/json-ld-api/tree/master/tests
 .. _errata: http://www.w3.org/2014/json-ld-errata
 .. _pip: http://www.pip-installer.org/
+.. _test runner: https://github.com/digitalbazaar/pyld/blob/master/tests/runtests.py
 .. _test suite: https://github.com/json-ld/json-ld.org/tree/master/test-suite
