@@ -27,13 +27,17 @@ matrix:
 
 install:
   - pip install -r requirements.txt
-  - git clone https://github.com/json-ld/json-ld.org.git _json-ld.org
-  - git clone https://github.com/json-ld/normalization.git _normalization
+  - git clone --depth 1 https://github.com/w3c/json-ld-api.git _json-ld-api
+  - git clone --depth 1 https://github.com/w3c/json-ld-api.git _json-ld-framing
+  #- git clone --depth 1 https://github.com/json-ld/json-ld.org.git _json-ld.org
+  - git clone --depth 1 https://github.com/json-ld/normalization.git _normalization
 
 # Download test suite and run tests... submodule? meta testing project with
 # all of the reference implementations?
 script: 
-  - python tests/runtests.py -d ./_json-ld.org/test-suite -l $LOADER
+  - python tests/runtests.py -d ./_json-ld-api/tests -l $LOADER
+  - python tests/runtests.py -d ./_json-ld-framing/tests -l $LOADER
+  #- python tests/runtests.py -d ./_json-ld.org/test-suite -l $LOADER
   - python tests/runtests.py -d ./_normalization/tests -l $LOADER
 
 notifications:
