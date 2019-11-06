@@ -1050,7 +1050,6 @@ class JsonLdProcessor:
         issuer = IdentifierIssuer('_:b')
         node_map = {'@default': {}}
         self._create_node_map(expanded, node_map, '@default', issuer)
-
         # output RDF dataset
         dataset = {}
         for graph_name, graph in sorted(node_map.items()):
@@ -1151,15 +1150,21 @@ class JsonLdProcessor:
         """
         if JsonLdProcessor.has_property(subject, property):
             val = subject[property]
-            is_list = _is_list(val)
-            if _is_array(val) or is_list:
-                if is_list:
-                    val = val['@list']
+            # Avoid double checking if val is a list.
+            # If val is a list, then we treat is as an array (i.e. if value occurs in the list, has_value returns true)
+            # TODO: is this desirable behavior?
+            if _is_list(val):
+                val = val['@list']
+
+            if _is_array(val):
                 for v in val:
-                    if JsonLdProcessor.compare_values(value, v):
-                        return True
+                    # Avoid in depth comparison if the types are not the same
+                    if type(v) == type(value):
+                        return JsonLdProcessor.compare_values(value, v)
             # avoid matching the set of values with an array value parameter
-            elif not _is_array(value):
+            # TODO: this means that if `value` is an array, there will be no comparison at all and we default to False
+            # is this desirable behavior?
+            elif not _is_array(value) and type(val) == type(value):
                 return JsonLdProcessor.compare_values(value, val)
         return False
 
@@ -1282,28 +1287,33 @@ class JsonLdProcessor:
 
         :return: True if v1 and v2 are considered equal, False if not.
         """
-        # 1. equal primitives
-        if not _is_object(v1) and not _is_object(v2) and v1 == v2:
-            if isinstance(v1, bool) or isinstance(v2, bool):
-                return type(v1) is type(v2)
-            return True
 
-        # 2. equal @values
-        if (_is_value(v1) and _is_value(v2) and
-                v1['@value'] == v2['@value'] and
-                v1.get('@type') == v2.get('@type') and
-                v1.get('@language') == v2.get('@language') and
-                v1.get('@index') == v2.get('@index')):
-
-            if isinstance(v1['@value'], bool) or isinstance(v2['@value'], bool):
-                return type(v1['@value']) is type(v2['@value'])
+        # 1. equal primitives (= equal anything)
+        # This should just be equality...
+        # The previous version also returned true if one of the value types was bool and they were equal
+        # but they should only be equal if the types correspond as well.
+        # If they are both objects and they are equal in all respects, then they *are* equal (even if they are not primitives)
+        if v1 == v2:
             return True
 
         # 3. equal @ids
-        if (_is_object(v1) and '@id' in v1 and
-                _is_object(v2) and '@id' in v2):
-            return v1['@id'] == v2['@id']
+        # equal @ids only compares on one key, and is therefore preferred to do
+        # so let's do that first, and then only if there's a key error (i.e. no '@id'), we assume it's a value comparison.
+        try:
+            # If v1 and v2 have the same @id, they are the same
+            v1['@id'] == v2['@id']
+        except KeyError:
+            # if key error, then it is indeed a dict, but a literal value, not an object.
+            try:
+                return v1['@value'] == v2['@value'] and v1.get('@type') == v2.get('@type') and v1.get('@language') == v2.get('@language') and v1.get('@index') == v2.get('@index')
+            except:
+                # It is a dictionary, but a regular JSON one, not a JSON-LD dictionary
+                return False
+        except:
+            # one of v1 and v2 is not a dictionary
+            return False
 
+        # The two values are not the same.
         return False
 
     @staticmethod
