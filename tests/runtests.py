@@ -700,6 +700,8 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tso03$',
                 '.*expand-manifest.jsonld#tso05$',
                 '.*expand-manifest.jsonld#tso06$',
+                '.*expand-manifest.jsonld#tso12$',
+                '.*expand-manifest.jsonld#tso13$',
                 # protected
                 '.*expand-manifest.jsonld#tso07$',
                 # context merging
@@ -741,20 +743,6 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tpr12$',
                 '.*expand-manifest.jsonld#tpr13$',
                 '.*expand-manifest.jsonld#tpr14$',
-                # @graph container
-                '.*expand-manifest.jsonld#t0093$',
-                '.*expand-manifest.jsonld#t0094$',
-                # scoped context
-                '.*expand-manifest.jsonld#tc009$',
-                '.*expand-manifest.jsonld#tc011$',
-                '.*expand-manifest.jsonld#tc013$',
-                '.*expand-manifest.jsonld#tc014$',
-                '.*expand-manifest.jsonld#tc015$',
-                '.*expand-manifest.jsonld#tc016$',
-                '.*expand-manifest.jsonld#tc017$',
-                '.*expand-manifest.jsonld#tc018$',
-                '.*expand-manifest.jsonld#tc021$',
-                # protected
                 '.*expand-manifest.jsonld#tpr15$',
                 '.*expand-manifest.jsonld#tpr16$',
                 '.*expand-manifest.jsonld#tpr17$',
@@ -768,6 +756,19 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tpr25$',
                 '.*expand-manifest.jsonld#tpr26$',
                 '.*expand-manifest.jsonld#tpr27$',
+                # @graph container
+                '.*expand-manifest.jsonld#t0093$',
+                '.*expand-manifest.jsonld#t0094$',
+                # scoped context
+                '.*expand-manifest.jsonld#tc009$',
+                '.*expand-manifest.jsonld#tc011$',
+                '.*expand-manifest.jsonld#tc013$',
+                '.*expand-manifest.jsonld#tc014$',
+                '.*expand-manifest.jsonld#tc015$',
+                '.*expand-manifest.jsonld#tc016$',
+                '.*expand-manifest.jsonld#tc017$',
+                '.*expand-manifest.jsonld#tc018$',
+                '.*expand-manifest.jsonld#tc021$',
                 # expandContext option
                 '.*expand-manifest.jsonld#t0077$',
                 # @json
@@ -781,6 +782,7 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tjs08$',
                 '.*expand-manifest.jsonld#tjs09$',
                 '.*expand-manifest.jsonld#tjs10$',
+                '.*expand-manifest.jsonld#tjs22$',
                 # list of lists
                 '.*expand-manifest.jsonld#tli01$',
                 '.*expand-manifest.jsonld#tli02$',
@@ -792,6 +794,15 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tli08$',
                 '.*expand-manifest.jsonld#tli09$',
                 '.*expand-manifest.jsonld#tli10$',
+                # misc
+                '.*expand-manifest.jsonld#t0117$',
+                '.*expand-manifest.jsonld#t0118$',
+                '.*expand-manifest.jsonld#t0119$',
+                '.*expand-manifest.jsonld#t0120$',
+                '.*expand-manifest.jsonld#t0122$',
+                '.*expand-manifest.jsonld#tpr34$',
+                '.*expand-manifest.jsonld#tpr35$',
+                '.*expand-manifest.jsonld#tpr37$',
             ]
         },
         'fn': 'expand',
@@ -905,6 +916,13 @@ TEST_TYPES = {
                 '.*fromRdf-manifest.jsonld#tjs07$',
                 '.*fromRdf-manifest.jsonld#tjs08$',
                 '.*fromRdf-manifest.jsonld#tjs09$',
+                '.*fromRdf-manifest.jsonld#tjs10$',
+                '.*fromRdf-manifest.jsonld#tjs11$',
+                # misc
+                '.*fromRdf-manifest.jsonld#tdi06$',
+                '.*fromRdf-manifest.jsonld#tdi05$',
+                '.*fromRdf-manifest.jsonld#tdi11$',
+                '.*fromRdf-manifest.jsonld#tdi12$',
             ]
         },
         'fn': 'from_rdf',
@@ -992,8 +1010,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tpi09$',
                 '.*toRdf-manifest.jsonld#tpi10$',
                 '.*toRdf-manifest.jsonld#tpi11$',
-                # protected
-                '.*toRdf-manifest.jsonld#tpr28$',
                 # prefix
                 '.*toRdf-manifest.jsonld#tpr29$',
                 # @import
@@ -1031,6 +1047,7 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tpr25$',
                 '.*toRdf-manifest.jsonld#tpr26$',
                 '.*toRdf-manifest.jsonld#tpr27$',
+                '.*toRdf-manifest.jsonld#tpr28$',
                 # context merging
                 '.*toRdf-manifest.jsonld#tso08$',
                 '.*toRdf-manifest.jsonld#tso10$',
@@ -1067,6 +1084,7 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tjs11$',
                 '.*toRdf-manifest.jsonld#tjs12$',
                 '.*toRdf-manifest.jsonld#tjs13$',
+                '.*toRdf-manifest.jsonld#tjs22$',
                 # list of lists
                 '.*toRdf-manifest.jsonld#tli01$',
                 '.*toRdf-manifest.jsonld#tli02$',
@@ -1101,6 +1119,15 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#te101$',
                 '.*toRdf-manifest.jsonld#te107$',
                 '.*toRdf-manifest.jsonld#te108$',
+                # @nest
+                '.*toRdf-manifest.jsonld#tn001$',
+                '.*toRdf-manifest.jsonld#tn002$',
+                '.*toRdf-manifest.jsonld#tn003$',
+                '.*toRdf-manifest.jsonld#tn004$',
+                '.*toRdf-manifest.jsonld#tn005$',
+                '.*toRdf-manifest.jsonld#tn006$',
+                '.*toRdf-manifest.jsonld#tn007$',
+                '.*toRdf-manifest.jsonld#tn008$',
                 # misc
                 '.*toRdf-manifest.jsonld#te029$',
                 '.*toRdf-manifest.jsonld#te060$',
@@ -1123,15 +1150,23 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tm010$',
                 '.*toRdf-manifest.jsonld#tm011$',
                 '.*toRdf-manifest.jsonld#tm012$',
-                # @nest
-                '.*toRdf-manifest.jsonld#tn001$',
-                '.*toRdf-manifest.jsonld#tn002$',
-                '.*toRdf-manifest.jsonld#tn003$',
-                '.*toRdf-manifest.jsonld#tn004$',
-                '.*toRdf-manifest.jsonld#tn005$',
-                '.*toRdf-manifest.jsonld#tn006$',
-                '.*toRdf-manifest.jsonld#tn007$',
-                '.*toRdf-manifest.jsonld#tn008$',
+                '.*toRdf-manifest.jsonld#tpr34$',
+                '.*toRdf-manifest.jsonld#tpr35$',
+                '.*toRdf-manifest.jsonld#tpr37$',
+                '.*toRdf-manifest.jsonld#tpr38$',
+                '.*toRdf-manifest.jsonld#tpr39$',
+
+                '.*toRdf-manifest.jsonld#tc024$',
+                '.*toRdf-manifest.jsonld#tdi09$',
+                '.*toRdf-manifest.jsonld#tdi10$',
+                '.*toRdf-manifest.jsonld#tdi11$',
+                '.*toRdf-manifest.jsonld#tdi12$',
+                '.*toRdf-manifest.jsonld#te117$',
+                '.*toRdf-manifest.jsonld#te118$',
+                '.*toRdf-manifest.jsonld#te119$',
+                '.*toRdf-manifest.jsonld#te120$',
+                '.*toRdf-manifest.jsonld#te121$',
+                '.*toRdf-manifest.jsonld#te122$',
             ]
         },
         'fn': 'to_rdf',
