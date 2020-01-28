@@ -37,14 +37,12 @@ if sys.version_info[0] >= 3:
 
 ROOT_MANIFEST_DIR = None
 SKIP_TESTS = []
+ONLY_IDENTIFIER = None
 
 LOCAL_BASES = [
-    'http://json-ld.org/test-suite/tests',
-    'http://json-ld.org/test-suite',
-    'https://json-ld.org/test-suite/tests',
-    'https://json-ld.org/test-suite',
     'https://w3c.github.io/json-ld-api/tests',
-    'https://w3c.github.io/json-ld-framing/tests'
+    'https://w3c.github.io/json-ld-framing/tests',
+    'https://github.com/json-ld/normalization/tests'
 ]
 
 class TestRunner(unittest.TextTestRunner):
@@ -81,6 +79,8 @@ class TestRunner(unittest.TextTestRunner):
             default='requests',
             help='The remote URL document loader: requests, aiohttp '
                  '[default: %default]')
+        self.parser.add_option('-n', '--number', dest='number',
+            help='Limit tests to those containing the specified test identifier')
         self.parser.add_option('-v', '--verbose', dest='verbose',
             action='store_true', default=False,
             help='Print verbose test data')
@@ -107,6 +107,12 @@ class TestRunner(unittest.TextTestRunner):
         else:
             filename = os.path.abspath(
                 os.path.join(self.options.directory, 'manifest.jsonld'))
+
+
+        # Global for saving test numbers to focus on
+        global ONLY_IDENTIFIER
+        if self.options.number:
+          ONLY_IDENTIFIER = self.options.number
 
         # load root manifest
         global ROOT_MANIFEST_DIR
@@ -145,6 +151,8 @@ class Manifest:
         for filename in includes:
             entries.append(filename + '.jsonld')
 
+        global ONLY_IDENTIFIER
+
         for entry in entries:
             if isinstance(entry, basestring):
                 filename = os.path.join(self.dirname, entry)
@@ -156,9 +164,12 @@ class Manifest:
             if is_jsonld_type(entry, 'mf:Manifest'):
                 self.suite = unittest.TestSuite(
                     [self.suite, Manifest(entry, filename).load()])
+            # don't add tests that are not focused
+
             # assume entry is a test
-            else:
+            elif not ONLY_IDENTIFIER or ONLY_IDENTIFIER in entry['@id']:
                 self.suite.addTest(Test(self, entry, filename))
+
         return self.suite
 
 
@@ -200,7 +211,7 @@ class Test(unittest.TestCase):
     def setUp(self):
         data = self.data
         manifest = self.manifest
-
+        
         # skip unknown and explicitly skipped test types
         global SKIP_TESTS
         types = []
