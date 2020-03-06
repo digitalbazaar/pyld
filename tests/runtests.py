@@ -239,7 +239,7 @@ class Test(unittest.TestCase):
         # skip based on id regular expression
         skip_id_re = test_info.get('skip', {}).get('idRegex', [])
         for regex in skip_id_re:
-            if re.match(regex, data.get('@id', '')):
+            if re.match(regex, data.get('@id', data.get('id', ''))):
                 self.skipTest('Test with id regex %s' % regex)
 
         # skip based on description regular expression
@@ -1455,6 +1455,11 @@ TEST_TYPES = {
         ]
     },
     'rdfn:Urgna2012EvalTest': {
+        'skip': {
+            'idRegex': [
+                '.*manifest-urgna2012#test060$',
+            ]
+        },
         'fn': 'normalize',
         'params': [
             read_test_property('action'),
@@ -1466,6 +1471,12 @@ TEST_TYPES = {
         ]
     },
     'rdfn:Urdna2015EvalTest': {
+        'skip': {
+            'idRegex': [
+                '.*manifest-urdna2015#test059$',
+                '.*manifest-urdna2015#test060$',
+            ]
+        },
         'fn': 'normalize',
         'params': [
             read_test_property('action'),
