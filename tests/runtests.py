@@ -108,7 +108,6 @@ class TestRunner(unittest.TextTestRunner):
             filename = os.path.abspath(
                 os.path.join(self.options.directory, 'manifest.jsonld'))
 
-
         # Global for saving test numbers to focus on
         global ONLY_IDENTIFIER
         if self.options.number:
@@ -208,6 +207,13 @@ class Test(unittest.TestCase):
         else:
             raise Exception('No expected output property found')
 
+    def _get_expect_error_code_property(self):
+        '''Find the expectErrorCode property.'''
+        if 'expectErrorCode' in self.data:
+            return 'expectErrorCode'
+        else:
+            raise Exception('No expectErrorCode property found')
+
     def setUp(self):
         data = self.data
         manifest = self.manifest
@@ -264,7 +270,7 @@ class Test(unittest.TestCase):
         params = [param(self) for param in params]
         result = None
         if self.is_negative:
-            expect = data[self._get_expect_property()]
+            expect = data[self._get_expect_error_code_property()]
         else:
             expect = read_test_property(self._get_expect_property())(self)
 
