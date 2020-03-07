@@ -213,7 +213,6 @@ def frame(input_, frame, options=None):
         from HTML, False to extract just the first.
       [embed] default @embed flag (default: True).
       [explicit] default @explicit flag (default: False).
-      [requireAll] default @requireAll flag (default: True).
       [omitDefault] default @omitDefault flag (default: False).
       [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
         defaults to 'json-ld-1.1'.
@@ -2837,9 +2836,9 @@ class JsonLdProcessor(object):
                 rval['@version'] = ctx['@version']
                 defined['@version'] = True
 
-            # if not set explicitly, set processingMode to "json-ld-1.0"
+            # if not set explicitly, set processingMode to "json-ld-1.1"
             rval['processingMode'] = rval.get(
-                'processingMode', active_ctx.get('processingMode', 'json-ld-1.0'))
+                'processingMode', active_ctx.get('processingMode', 'json-ld-1.1'))
 
             # handle @base
             if '@base' in ctx:
