@@ -183,6 +183,7 @@ class Test(unittest.TestCase):
         self.is_positive = is_jsonld_type(data, 'jld:PositiveEvaluationTest')
         self.is_negative = is_jsonld_type(data, 'jld:NegativeEvaluationTest')
         self.test_type = None
+        self.pending = False
         global TEST_TYPES
         for t in TEST_TYPES.keys():
             if is_jsonld_type(data, t):
@@ -241,6 +242,12 @@ class Test(unittest.TestCase):
             if re.match(regex, data.get('@id', data.get('id', ''))):
                 self.skipTest('Test with id regex %s' % regex)
 
+        # mark tests as pending, meaning that they are expected to fail
+        pending_id_re = test_info.get('pending', {}).get('idRegex', [])
+        for regex in pending_id_re:
+            if re.match(regex, data.get('@id', data.get('id', ''))):
+                self.pending = 'Test with id regex %s' % regex
+
         # skip based on description regular expression
         skip_description_re = test_info.get('skip', {}).get(
             'descriptionRegex', [])
@@ -275,20 +282,38 @@ class Test(unittest.TestCase):
 
         try:
             result = getattr(jsonld, fn)(*params)
-            if self.is_negative:
+            if self.is_negative and not self.pending:
                 raise AssertionError('Expected an error; one was not raised')
             self.assertEqual(result, expect)
+            if self.pending and not self.is_negative:
+                raise AssertionError('pending positive test passed')
+        except AssertionError as e:
+            if e.args[0] == 'pending positive test passed':
+              print(e)
+              raise e
+            elif not self.is_negative and not self.pending:
+                print('\nEXPECTED: ', json.dumps(expect, indent=2))
+                print('ACTUAL: ', json.dumps(result, indent=2))
+                raise e
+            elif not self.is_negative:
+                print('pending')
+            elif self.is_negative and self.pending:
+                print('pending')
+            else:
+                raise e
         except Exception as e:
-            if not self.is_negative:
-                if not isinstance(e, AssertionError):
-                    print('\n')
-                    traceback.print_exc(file=sys.stdout)
-                else:
-                    print('\nEXPECTED: ', json.dumps(expect, indent=2))
-                    print('ACTUAL: ', json.dumps(result, indent=2))
+            if not self.is_negative and not self.pending:
+                print('\n')
+                traceback.print_exc(file=sys.stdout)
                 raise e
             result = get_jsonld_error_code(e)
-            self.assertEqual(result, expect)
+            if self.pending and result == expect:
+                print('pending negative test passed')
+                raise AssertionError('pending negative test passed')
+            elif self.pending:
+                print('pending')
+            else:
+                self.assertEqual(result, expect)
 
 
 def is_jsonld_type(node, type_):
@@ -525,64 +550,28 @@ class EarlReport():
 # supported test types
 TEST_TYPES = {
     'jld:CompactTest': {
-        'skip': {
-            # skip tests where behavior changed for a 1.1 processor
-            # see JSON-LD 1.0 Errata
-            'specVersion': ['json-ld-1.0'],
+        'pending': {
             'idRegex': [
-                #'compact-manifest.jsonld#t0023$',
                 # @graph
-                '.*compact-manifest.jsonld#t0079$',
-                '.*compact-manifest.jsonld#t0080$',
-                '.*compact-manifest.jsonld#t0081$',
-                '.*compact-manifest.jsonld#t0082$',
-                '.*compact-manifest.jsonld#t0083$',
-                '.*compact-manifest.jsonld#t0084$',
-                '.*compact-manifest.jsonld#t0085$',
-                '.*compact-manifest.jsonld#t0086$',
-                '.*compact-manifest.jsonld#t0087$',
-                '.*compact-manifest.jsonld#t0088$',
                 '.*compact-manifest.jsonld#t0092$',
                 '.*compact-manifest.jsonld#t0093$',
                 # rel iri
                 '.*compact-manifest.jsonld#t0095$',
-                # @graph
-                '.*compact-manifest.jsonld#t0096$',
-                '.*compact-manifest.jsonld#t0097$',
-                '.*compact-manifest.jsonld#t0098$',
-                '.*compact-manifest.jsonld#t0099$',
-                '.*compact-manifest.jsonld#t0100$',
-                '.*compact-manifest.jsonld#t0101$',
-                '.*compact-manifest.jsonld#t0102$',
-                '.*compact-manifest.jsonld#t0103$',
                 # type set
                 '.*compact-manifest.jsonld#t0104$',
                 '.*compact-manifest.jsonld#t0105$',
                 # rel vocab
                 '.*compact-manifest.jsonld#t0107$',
                 # scoped context on @type
-                '.*compact-manifest.jsonld#tc001$',
-                '.*compact-manifest.jsonld#tc002$',
-                '.*compact-manifest.jsonld#tc003$',
-                '.*compact-manifest.jsonld#tc004$',
-                '.*compact-manifest.jsonld#tc005$',
-                '.*compact-manifest.jsonld#tc006$',
-                '.*compact-manifest.jsonld#tc007$',
-                '.*compact-manifest.jsonld#tc008$',
                 '.*compact-manifest.jsonld#tc009$',
-                '.*compact-manifest.jsonld#tc010$',
-                '.*compact-manifest.jsonld#tc011$',
                 '.*compact-manifest.jsonld#tc012$',
-                '.*compact-manifest.jsonld#tc013$',
+                #'.*compact-manifest.jsonld#tc013$',
                 '.*compact-manifest.jsonld#tc014$',
                 '.*compact-manifest.jsonld#tc015$',
                 '.*compact-manifest.jsonld#tc016$',
                 '.*compact-manifest.jsonld#tc017$',
                 '.*compact-manifest.jsonld#tc018$',
-                '.*compact-manifest.jsonld#tc019$',
-                '.*compact-manifest.jsonld#tc020$',
                 '.*compact-manifest.jsonld#tc021$',
-                '.*compact-manifest.jsonld#tc022$',
                 # @direction
                 '.*compact-manifest.jsonld#tdi01$',
                 '.*compact-manifest.jsonld#tdi02$',
@@ -596,10 +585,6 @@ TEST_TYPES = {
                 '.*compact-manifest.jsonld#tc027$',
                 # IRI confusion
                 '.*compact-manifest.jsonld#te002$',
-                # @nest
-                '.*compact-manifest.jsonld#ten01$',
-                # @prefix
-                '.*compact-manifest.jsonld#tep08$',
                 # @container: @graph with multiple objects
                 '.*compact-manifest.jsonld#t0109$',
                 '.*compact-manifest.jsonld#t0110$',
@@ -628,40 +613,11 @@ TEST_TYPES = {
                 '.*compact-manifest.jsonld#tli04$',
                 '.*compact-manifest.jsonld#tli05$',
                 # index on @type
-                '.*compact-manifest.jsonld#tm001$',
-                '.*compact-manifest.jsonld#tm002$',
-                '.*compact-manifest.jsonld#tm003$',
-                '.*compact-manifest.jsonld#tm004$',
-                '.*compact-manifest.jsonld#tm005$',
-                '.*compact-manifest.jsonld#tm006$',
-                '.*compact-manifest.jsonld#tm007$',
-                '.*compact-manifest.jsonld#tm013$',
-                '.*compact-manifest.jsonld#tm014$',
-                '.*compact-manifest.jsonld#tm015$',
-                '.*compact-manifest.jsonld#tm016$',
-                '.*compact-manifest.jsonld#tm017$',
-                '.*compact-manifest.jsonld#tm018$',
-                '.*compact-manifest.jsonld#tm019$',
                 '.*compact-manifest.jsonld#tm020$',
                 '.*compact-manifest.jsonld#tm021$',
                 '.*compact-manifest.jsonld#tm022$',
-                # nesting
-                '.*compact-manifest.jsonld#tn001$',
-                '.*compact-manifest.jsonld#tn002$',
-                '.*compact-manifest.jsonld#tn003$',
-                '.*compact-manifest.jsonld#tn004$',
-                '.*compact-manifest.jsonld#tn005$',
-                '.*compact-manifest.jsonld#tn006$',
-                '.*compact-manifest.jsonld#tn007$',
-                '.*compact-manifest.jsonld#tn008$',
-                '.*compact-manifest.jsonld#tn009$',
-                '.*compact-manifest.jsonld#tn010$',
-                '.*compact-manifest.jsonld#tn011$',
                 # terms
                 '.*compact-manifest.jsonld#tp001$',
-                '.*compact-manifest.jsonld#tp005$',
-                '.*compact-manifest.jsonld#tp006$',
-                '.*compact-manifest.jsonld#tp008$',
                 # property-valued indexes
                 '.*compact-manifest.jsonld#tpi01$',
                 '.*compact-manifest.jsonld#tpi02$',
@@ -690,6 +646,13 @@ TEST_TYPES = {
                 '.*html-manifest.jsonld#tc004$',
             ]
         },
+        'skip': {
+            # skip tests where behavior changed for a 1.1 processor
+            # see JSON-LD 1.0 Errata
+            'specVersion': ['json-ld-1.0'],
+            'idRegex': [
+            ]
+        },
         'fn': 'compact',
         'params': [
             read_test_url('input'),
@@ -698,22 +661,10 @@ TEST_TYPES = {
         ]
     },
     'jld:ExpandTest': {
-        'skip': {
-            # skip tests where behavior changed for a 1.1 processor
-            # see JSON-LD 1.0 Errata
-            'specVersion': ['json-ld-1.0'],
+        'pending': {
             'idRegex': [
-                # expandContext option
-                '.*expand-manifest.jsonld#t0077$',
                 # Don't double-expand an already expanded graph
                 '.*expand-manifest.jsonld#t0081$',
-                # @graph containers
-                '.*expand-manifest.jsonld#t0082$',
-                '.*expand-manifest.jsonld#t0083$',
-                '.*expand-manifest.jsonld#t0084$',
-                '.*expand-manifest.jsonld#t0085$',
-                '.*expand-manifest.jsonld#t0086$',
-                '.*expand-manifest.jsonld#t0087$',
                 ## rel iri
                 '.*expand-manifest.jsonld#t0092$',
                 # @graph container
@@ -721,23 +672,11 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#t0094$',
                 # Double-expand an already expanded graph
                 '.*expand-manifest.jsonld#t0095$',
-                # @graph containers
-                '.*expand-manifest.jsonld#t0096$',
-                '.*expand-manifest.jsonld#t0097$',
-                '.*expand-manifest.jsonld#t0098$',
-                '.*expand-manifest.jsonld#t0099$',
-                '.*expand-manifest.jsonld#t0100$',
-                '.*expand-manifest.jsonld#t0101$',
                 # indexed graph objects
                 '.*expand-manifest.jsonld#t0102$',
                 # multiple graphs
                 '.*expand-manifest.jsonld#t0103$',
                 '.*expand-manifest.jsonld#t0104$',
-                '.*expand-manifest.jsonld#t0105$',
-                '.*expand-manifest.jsonld#t0106$',
-                # @graph containers
-                '.*expand-manifest.jsonld#t0107$',
-                '.*expand-manifest.jsonld#t0108$',
                 ## iris
                 '.*expand-manifest.jsonld#t0109$',
                 # rel vocab
@@ -755,28 +694,15 @@ TEST_TYPES = {
                 # colliding keywords
                 '.*expand-manifest.jsonld#t0114$',
                 # scoped context
-                '.*expand-manifest.jsonld#tc001$',
-                '.*expand-manifest.jsonld#tc002$',
-                '.*expand-manifest.jsonld#tc003$',
-                '.*expand-manifest.jsonld#tc004$',
-                '.*expand-manifest.jsonld#tc005$',
-                '.*expand-manifest.jsonld#tc006$',
-                '.*expand-manifest.jsonld#tc007$',
-                '.*expand-manifest.jsonld#tc008$',
                 '.*expand-manifest.jsonld#tc009$',
-                '.*expand-manifest.jsonld#tc010$',
                 '.*expand-manifest.jsonld#tc011$',
-                '.*expand-manifest.jsonld#tc012$',
                 '.*expand-manifest.jsonld#tc013$',
                 '.*expand-manifest.jsonld#tc014$',
                 '.*expand-manifest.jsonld#tc015$',
                 '.*expand-manifest.jsonld#tc016$',
                 '.*expand-manifest.jsonld#tc017$',
                 '.*expand-manifest.jsonld#tc018$',
-                '.*expand-manifest.jsonld#tc019$',
-                '.*expand-manifest.jsonld#tc020$',
                 '.*expand-manifest.jsonld#tc021$',
-                '.*expand-manifest.jsonld#tc022$',
                 # @propogate
                 '.*expand-manifest.jsonld#tc026$',
                 '.*expand-manifest.jsonld#tc027$',
@@ -794,7 +720,6 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tdi06$',
                 '.*expand-manifest.jsonld#tdi07$',
                 '.*expand-manifest.jsonld#tdi08$',
-                '.*expand-manifest.jsonld#tdi09$',
                 # misc
                 '.*expand-manifest.jsonld#te043$',
                 '.*expand-manifest.jsonld#te044$',
@@ -803,21 +728,8 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#te047$',
                 '.*expand-manifest.jsonld#te048$',
                 '.*expand-manifest.jsonld#te049$',
-                # nesting
-                '.*expand-manifest.jsonld#ten05$',
-                '.*expand-manifest.jsonld#ten06$',
-                ## HTML extraction
-                #'.*expand-manifest.jsonld#thc01$',
-                #'.*expand-manifest.jsonld#thc02$',
-                #'.*expand-manifest.jsonld#thc03$',
-                #'.*expand-manifest.jsonld#thc04$',
-                #'.*expand-manifest.jsonld#thc05$',
                 # included
-                '.*expand-manifest.jsonld#tin01$',
-                '.*expand-manifest.jsonld#tin02$',
                 '.*expand-manifest.jsonld#tin03$',
-                '.*expand-manifest.jsonld#tin04$',
-                '.*expand-manifest.jsonld#tin05$',
                 '.*expand-manifest.jsonld#tin06$',
                 '.*expand-manifest.jsonld#tin07$',
                 '.*expand-manifest.jsonld#tin08$',
@@ -858,34 +770,12 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tli09$',
                 '.*expand-manifest.jsonld#tli10$',
                 # @container: @id/@type
-                '.*expand-manifest.jsonld#tm001$',
-                '.*expand-manifest.jsonld#tm002$',
-                '.*expand-manifest.jsonld#tm003$',
-                '.*expand-manifest.jsonld#tm004$',
-                '.*expand-manifest.jsonld#tm005$',
-                '.*expand-manifest.jsonld#tm006$',
-                '.*expand-manifest.jsonld#tm007$',
-                '.*expand-manifest.jsonld#tm008$',
                 '.*expand-manifest.jsonld#tm000$',
-                '.*expand-manifest.jsonld#tm010$',
-                '.*expand-manifest.jsonld#tm011$',
-                '.*expand-manifest.jsonld#tm012$',
-                '.*expand-manifest.jsonld#tm013$',
-                '.*expand-manifest.jsonld#tm014$',
-                '.*expand-manifest.jsonld#tm015$',
-                '.*expand-manifest.jsonld#tm016$',
                 '.*expand-manifest.jsonld#tm017$',
                 '.*expand-manifest.jsonld#tm020$',
                 # @nest
                 '.*expand-manifest.jsonld#tn008$',
-                ## mode
-                #'.*expand-manifest.jsonld#tp001$',
-                #'.*expand-manifest.jsonld#tp002$',
                 ## property index maps
-                #'.*expand-manifest.jsonld#tpi01$',
-                #'.*expand-manifest.jsonld#tpi02$',
-                #'.*expand-manifest.jsonld#tpi03$',
-                #'.*expand-manifest.jsonld#tpi04$',
                 '.*expand-manifest.jsonld#tpi05$',
                 '.*expand-manifest.jsonld#tpi06$',
                 '.*expand-manifest.jsonld#tpi07$',
@@ -961,12 +851,8 @@ TEST_TYPES = {
                 '.*html-manifest.jsonld#te003$',
                 '.*html-manifest.jsonld#te004$',
                 '.*html-manifest.jsonld#te005$',
-                '.*html-manifest.jsonld#te006$',
                 '.*html-manifest.jsonld#te007$',
                 '.*html-manifest.jsonld#te010$',
-                '.*html-manifest.jsonld#te011$',
-                '.*html-manifest.jsonld#te012$',
-                '.*html-manifest.jsonld#te013$',
                 '.*html-manifest.jsonld#te014$',
                 '.*html-manifest.jsonld#te015$',
                 '.*html-manifest.jsonld#te016$',
@@ -990,6 +876,13 @@ TEST_TYPES = {
                 '.*remote-doc-manifest.jsonld#tla05$',
             ]
         },
+        'skip': {
+            # skip tests where behavior changed for a 1.1 processor
+            # see JSON-LD 1.0 Errata
+            'specVersion': ['json-ld-1.0'],
+            'idRegex': [
+            ]
+        },
         'fn': 'expand',
         'params': [
             read_test_url('input'),
@@ -997,10 +890,7 @@ TEST_TYPES = {
         ]
     },
     'jld:FlattenTest': {
-        'skip': {
-            # skip tests where behavior changed for a 1.1 processor
-            # see JSON-LD 1.0 Errata
-            'specVersion': ['json-ld-1.0'],
+        'pending': {
             'idRegex': [
                 ## html
                 '.*html-manifest.jsonld#tf001$',
@@ -1020,6 +910,13 @@ TEST_TYPES = {
                 '.*flatten-manifest.jsonld#tli03$',
             ]
         },
+        'skip': {
+            # skip tests where behavior changed for a 1.1 processor
+            # see JSON-LD 1.0 Errata
+            'specVersion': ['json-ld-1.0'],
+            'idRegex': [
+            ]
+        },
         'fn': 'flatten',
         'params': [
             read_test_url('input'),
@@ -1028,10 +925,7 @@ TEST_TYPES = {
         ]
     },
     'jld:FrameTest': {
-        'skip': {
-            # skip tests where behavior changed for a 1.1 processor
-            # see JSON-LD 1.0 Errata
-            'specVersion': ['json-ld-1.0'],
+        'pending': {
             'idRegex': [
                 # misc
                 '.*frame-manifest.jsonld#t0011$',
@@ -1046,7 +940,7 @@ TEST_TYPES = {
                 '.*frame-manifest.jsonld#t0030$',
                 '.*frame-manifest.jsonld#t0031$',
                 '.*frame-manifest.jsonld#t0032$',
-                '.*frame-manifest.jsonld#t0033$',
+                #'.*frame-manifest.jsonld#t0033$',
                 '.*frame-manifest.jsonld#t0034$',
                 '.*frame-manifest.jsonld#t0035$',
                 '.*frame-manifest.jsonld#t0036$',
@@ -1109,6 +1003,13 @@ TEST_TYPES = {
                 '.*frame-manifest.jsonld#tra03$',
             ]
         },
+        'skip': {
+            # skip tests where behavior changed for a 1.1 processor
+            # see JSON-LD 1.0 Errata
+            'specVersion': ['json-ld-1.0'],
+            'idRegex': [
+            ]
+        },
         'fn': 'frame',
         'params': [
             read_test_url('input'),
@@ -1117,10 +1018,7 @@ TEST_TYPES = {
         ]
     },
     'jld:FromRDFTest': {
-        'skip': {
-            # skip tests where behavior changed for a 1.1 processor
-            # see JSON-LD 1.0 Errata
-            'specVersion': ['json-ld-1.0'],
+        'pending': {
             'idRegex': [
                 '.*fromRdf-manifest.jsonld#t0023$',
                 '.*fromRdf-manifest.jsonld#t0026$',
@@ -1147,6 +1045,13 @@ TEST_TYPES = {
                 '.*fromRdf-manifest.jsonld#tdi12$',
             ]
         },
+        'skip': {
+            # skip tests where behavior changed for a 1.1 processor
+            # see JSON-LD 1.0 Errata
+            'specVersion': ['json-ld-1.0'],
+            'idRegex': [
+            ]
+        },
         'fn': 'from_rdf',
         'params': [
             read_test_property('input'),
@@ -1162,28 +1067,16 @@ TEST_TYPES = {
         ]
     },
     'jld:ToRDFTest': {
-        'skip': {
-            # skip tests where behavior changed for a 1.1 processor
-            # see JSON-LD 1.0 Errata
-            'specVersion': ['json-ld-1.0'],
+        'pending': {
             'idRegex': [
                 # IRI resolution
                 '.*toRdf-manifest.jsonld#t0130$',
                 '.*toRdf-manifest.jsonld#t0131$',
                 '.*toRdf-manifest.jsonld#t0132$',
                 # misc
-                '.*toRdf-manifest.jsonld#tc001$',
-                '.*toRdf-manifest.jsonld#tc002$',
-                '.*toRdf-manifest.jsonld#tc003$',
-                '.*toRdf-manifest.jsonld#tc004$',
-                '.*toRdf-manifest.jsonld#tc005$',
-                '.*toRdf-manifest.jsonld#tc006$',
-                '.*toRdf-manifest.jsonld#tc007$',
-                '.*toRdf-manifest.jsonld#tc008$',
                 '.*toRdf-manifest.jsonld#tc009$',
                 '.*toRdf-manifest.jsonld#tc010$',
                 '.*toRdf-manifest.jsonld#tc011$',
-                '.*toRdf-manifest.jsonld#tc012$',
                 '.*toRdf-manifest.jsonld#tc013$',
                 '.*toRdf-manifest.jsonld#tc014$',
                 '.*toRdf-manifest.jsonld#tc015$',
@@ -1193,7 +1086,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tc019$',
                 '.*toRdf-manifest.jsonld#tc020$',
                 '.*toRdf-manifest.jsonld#tc021$',
-                '.*toRdf-manifest.jsonld#tc022$',
                 '.*toRdf-manifest.jsonld#tc024$',
                 '.*toRdf-manifest.jsonld#tc026$',
                 '.*toRdf-manifest.jsonld#tc027$',
@@ -1228,9 +1120,6 @@ TEST_TYPES = {
                 # graph containers
                 '.*toRdf-manifest.jsonld#te079$',
                 '.*toRdf-manifest.jsonld#te081$',
-                '.*toRdf-manifest.jsonld#te082$',
-                '.*toRdf-manifest.jsonld#te084$',
-                '.*toRdf-manifest.jsonld#te083$',
                 '.*toRdf-manifest.jsonld#te085$',
                 '.*toRdf-manifest.jsonld#te086$',
                 '.*toRdf-manifest.jsonld#te087$',
@@ -1306,7 +1195,7 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tm002$',
                 '.*toRdf-manifest.jsonld#tm003$',
                 '.*toRdf-manifest.jsonld#tm004$',
-                '.*toRdf-manifest.jsonld#tm005$',
+                #'.*toRdf-manifest.jsonld#tm005$',
                 '.*toRdf-manifest.jsonld#tm006$',
                 '.*toRdf-manifest.jsonld#tm007$',
                 '.*toRdf-manifest.jsonld#tm008$',
@@ -1314,10 +1203,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tm010$',
                 '.*toRdf-manifest.jsonld#tm011$',
                 '.*toRdf-manifest.jsonld#tm012$',
-                '.*toRdf-manifest.jsonld#tm013$',
-                '.*toRdf-manifest.jsonld#tm014$',
-                '.*toRdf-manifest.jsonld#tm015$',
-                '.*toRdf-manifest.jsonld#tm016$',
                 '.*toRdf-manifest.jsonld#tm017$',
                 '.*toRdf-manifest.jsonld#tm020$',
                 # @nest
@@ -1329,25 +1214,7 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tn006$',
                 '.*toRdf-manifest.jsonld#tn007$',
                 '.*toRdf-manifest.jsonld#tn008$',
-                # nt
-                '.*toRdf-manifest.jsonld#tnt01$',
-                '.*toRdf-manifest.jsonld#tnt02$',
-                '.*toRdf-manifest.jsonld#tnt03$',
-                '.*toRdf-manifest.jsonld#tnt04$',
-                '.*toRdf-manifest.jsonld#tnt05$',
-                '.*toRdf-manifest.jsonld#tnt06$',
-                '.*toRdf-manifest.jsonld#tnt07$',
-                '.*toRdf-manifest.jsonld#tnt08$',
-                '.*toRdf-manifest.jsonld#tnt09$',
-                '.*toRdf-manifest.jsonld#tnt10$',
-                '.*toRdf-manifest.jsonld#tnt11$',
-                '.*toRdf-manifest.jsonld#tnt12$',
-                '.*toRdf-manifest.jsonld#tnt13$',
-                '.*toRdf-manifest.jsonld#tnt14$',
-                '.*toRdf-manifest.jsonld#tnt15$',
-                '.*toRdf-manifest.jsonld#tnt16$',
                 # processing
-                #'.*toRdf-manifest.jsonld#tp001$',
                 '.*toRdf-manifest.jsonld#tp002$',
                 '.*toRdf-manifest.jsonld#tp003$',
                 '.*toRdf-manifest.jsonld#tp004$',
@@ -1436,9 +1303,6 @@ TEST_TYPES = {
                 '.*html-manifest.jsonld#tr006$',
                 '.*html-manifest.jsonld#tr007$',
                 '.*html-manifest.jsonld#tr010$',
-                '.*html-manifest.jsonld#tr011$',
-                '.*html-manifest.jsonld#tr012$',
-                '.*html-manifest.jsonld#tr013$',
                 '.*html-manifest.jsonld#tr014$',
                 '.*html-manifest.jsonld#tr015$',
                 '.*html-manifest.jsonld#tr016$',
@@ -1450,6 +1314,30 @@ TEST_TYPES = {
                 '.*html-manifest.jsonld#tr022$',
             ]
         },
+        'skip': {
+            # skip tests where behavior changed for a 1.1 processor
+            # see JSON-LD 1.0 Errata
+            'specVersion': ['json-ld-1.0'],
+            'idRegex': [
+                # nt
+                '.*toRdf-manifest.jsonld#tnt01$',
+                '.*toRdf-manifest.jsonld#tnt02$',
+                '.*toRdf-manifest.jsonld#tnt03$',
+                '.*toRdf-manifest.jsonld#tnt04$',
+                '.*toRdf-manifest.jsonld#tnt05$',
+                '.*toRdf-manifest.jsonld#tnt06$',
+                '.*toRdf-manifest.jsonld#tnt07$',
+                '.*toRdf-manifest.jsonld#tnt08$',
+                '.*toRdf-manifest.jsonld#tnt09$',
+                '.*toRdf-manifest.jsonld#tnt10$',
+                '.*toRdf-manifest.jsonld#tnt11$',
+                '.*toRdf-manifest.jsonld#tnt12$',
+                '.*toRdf-manifest.jsonld#tnt13$',
+                '.*toRdf-manifest.jsonld#tnt14$',
+                '.*toRdf-manifest.jsonld#tnt15$',
+                '.*toRdf-manifest.jsonld#tnt16$',
+            ]
+        },
         'fn': 'to_rdf',
         'params': [
             read_test_url('input'),
@@ -1457,6 +1345,10 @@ TEST_TYPES = {
         ]
     },
     'rdfn:Urgna2012EvalTest': {
+        'pending': {
+            'idRegex': [
+            ]
+        },
         'skip': {
             'idRegex': [
                 '.*manifest-urgna2012#test060$',
@@ -1473,6 +1365,10 @@ TEST_TYPES = {
         ]
     },
     'rdfn:Urdna2015EvalTest': {
+        'pending': {
+            'idRegex': [
+            ]
+        },
         'skip': {
             'idRegex': [
                 '.*manifest-urdna2015#test059$',
