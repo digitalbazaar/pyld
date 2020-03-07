@@ -217,7 +217,6 @@ class Test(unittest.TestCase):
     def setUp(self):
         data = self.data
         manifest = self.manifest
-        
         # skip unknown and explicitly skipped test types
         global SKIP_TESTS
         types = []
