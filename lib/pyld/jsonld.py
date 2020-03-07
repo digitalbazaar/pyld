@@ -1236,6 +1236,15 @@ class JsonLdProcessor(object):
         :param options: the options to use.
           [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
+          [protected] make defined terms protected
+            (as if `@protected` were used)
+            (default: False).
+          [override_protected] protected terms may be cleared
+            (default: False).
+          [propagate] if False, retains any previously defined term,
+            which can be rolled back when the descending into
+            a new node object changes
+            (default: True).
 
         :return: the new active context.
         """
@@ -2776,6 +2785,10 @@ class JsonLdProcessor(object):
         """
         global _cache
 
+        options.setdefault('protected', False)
+        options.setdefault('override_protected', False)
+        propagate = options.get('propagage', True)
+
         # normalize local context to an array
         if _is_object(local_ctx) and _is_array(local_ctx.get('@context')):
             local_ctx = local_ctx['@context']
@@ -2785,13 +2798,32 @@ class JsonLdProcessor(object):
         if len(ctxs) == 0:
             return self._clone_active_context(active_ctx)
 
+        # override propagate if first resolved context has `@propagate`
+        if _is_object(ctxs[0]) and type(ctxs[0].get('@propagate', None)) == bool:
+            propagate = ctxs[0]['@propagate']
+
         # process each context in order, update active context on each
         # iteration to ensure proper caching
         rval = active_ctx
+
+        # track the previous context
+        # if not propagating, make sure rval has a previous context
+        if not propagate and not rval.get('previousContext', False):
+            rval = self_clone_active_context(rval)
+            rval['previousContext'] = active_ctx
+
         for ctx in ctxs:
             # reset to initial context
             if ctx is None:
-                rval = active_ctx = self._get_initial_context(options)
+                if (options['override_protected'] or
+                     not any(list(map(lambda m: m['protected'], rval['mappings'].values())))):
+                    rval = active_ctx = self._get_initial_context(options)
+                else:
+                    raise JsonLdError(
+                        'Tried to nullify a context with protected terms outside of '
+                        'a term definition.',
+                        'jsonld.SyntaxError', {},
+                        code='invalid context nullification')
                 continue
 
             # dereference @context key if present
@@ -2892,6 +2924,23 @@ class JsonLdProcessor(object):
                         code='invalid default language')
                 else:
                     rval['@language'] = value.lower()
+                defined['@language'] = True
+
+            # handle @propagate
+            # note: we've already extracted it, here we just do error checking
+            if '@propagate' in ctx:
+                value = ctx['@propagate']
+                if rval['processingMode'] == 'json-ld-1.0':
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; @propagate not compatible with '
+                        'json-ld-1.0',
+                        'jsonld.SyntaxError', {'context': ctx},
+                        code='invalid context entry')
+                if type(value) != bool:
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; @propagate value must be a boolean.',
+                        'jsonld.SyntaxError', {'context': ctx},
+                        code='invalid @propagate value')
                 defined['@language'] = True
 
             # process all other keys
@@ -4409,7 +4458,7 @@ class JsonLdProcessor(object):
                 {'context': local_ctx}, code='invalid term definition')
 
         # create new mapping
-        mapping = active_ctx['mappings'][term] = {'reverse': False}
+        mapping = active_ctx['mappings'][term] = {'reverse': False, 'protected': False}
 
         # make sure term definition only has expected keywords
         valid_keys = ['@container', '@id', '@language', '@reverse', '@type']

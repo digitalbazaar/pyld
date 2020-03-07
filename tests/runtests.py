@@ -707,8 +707,6 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tc026$',
                 '.*expand-manifest.jsonld#tc027$',
                 '.*expand-manifest.jsonld#tc028$',
-                '.*expand-manifest.jsonld#tc029$',
-                '.*expand-manifest.jsonld#tc030$',
                 '.*expand-manifest.jsonld#tc032$',
                 '.*expand-manifest.jsonld#tc033$',
                 # text direction
