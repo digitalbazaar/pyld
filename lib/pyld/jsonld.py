@@ -96,19 +96,26 @@ RDF_LANGSTRING = RDF + 'langString'
 # JSON-LD keywords
 KEYWORDS = [
     '@base',
-    '@context',
     '@container',
+    '@context',
     '@default',
+    '@direction',
     '@embed',
     '@explicit',
+    '@first',
     '@graph',
     '@id',
+    '@import',
+    '@included',
     '@index',
+    '@json',
     '@language',
     '@list',
     '@nest',
     '@none',
     '@omitDefault',
+    '@propagate',
+    '@protected',
     '@preserve',
     '@requireAll',
     '@reverse',
@@ -118,8 +125,11 @@ KEYWORDS = [
     '@version',
     '@vocab']
 
+# JSON-LD Namespace
+JSON_LD_NS = 'http://www.w3.org/ns/json-ld#'
+
 # JSON-LD link header rel
-LINK_HEADER_REL = 'http://www.w3.org/ns/json-ld#context'
+LINK_HEADER_REL = JSON_LD_NS + 'context'
 
 # Restraints
 MAX_CONTEXT_URLS = 10
@@ -137,7 +147,11 @@ def compact(input_, ctx, options=None):
         appropriate, False not to (default: True).
       [graph] True to always output a top-level graph (default: False).
       [expandContext] a context to expand with.
-      [documentLoader(url)] the document loader
+      [extractAllScripts] True to extract all JSON-LD script elements
+        from HTML, False to extract just the first.
+      [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
+        defaults to 'json-ld-1.1'.
+      [documentLoader(url, options)] the document loader
         (default: _default_document_loader).
 
     :return: the compacted JSON-LD output.
@@ -153,7 +167,11 @@ def expand(input_, options=None):
     :param [options]: the options to use.
       [base] the base IRI to use.
       [expandContext] a context to expand with.
-      [documentLoader(url)] the document loader
+      [extractAllScripts] True to extract all JSON-LD script elements
+        from HTML, False to extract just the first.
+      [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
+        defaults to 'json-ld-1.1'.
+      [documentLoader(url, options)] the document loader
         (default: _default_document_loader).
 
     :return: the expanded JSON-LD output.
@@ -170,7 +188,11 @@ def flatten(input_, ctx=None, options=None):
     :param [options]: the options to use.
       [base] the base IRI to use.
       [expandContext] a context to expand with.
-      [documentLoader(url)] the document loader
+      [extractAllScripts] True to extract all JSON-LD script elements
+        from HTML, False to extract just the first.
+      [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
+        defaults to 'json-ld-1.1'.
+      [documentLoader(url, options)] the document loader
         (default: _default_document_loader).
 
     :return: the flattened JSON-LD output.
@@ -187,13 +209,18 @@ def frame(input_, frame, options=None):
     :param [options]: the options to use.
       [base] the base IRI to use.
       [expandContext] a context to expand with.
+      [extractAllScripts] True to extract all JSON-LD script elements
+        from HTML, False to extract just the first.
       [embed] default @embed flag (default: True).
       [explicit] default @explicit flag (default: False).
       [requireAll] default @requireAll flag (default: True).
       [omitDefault] default @omitDefault flag (default: False).
+      [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
+        defaults to 'json-ld-1.1'.
       [pruneBlankNodeIdentifiers] remove unnecessary blank node identifiers
         (default: True)
-      [documentLoader(url)] the document loader
+      [requireAll] default @requireAll flag (default: True).
+      [documentLoader(url, options)] the document loader
         (default: _default_document_loader).
 
     :return: the framed JSON-LD output.
@@ -212,7 +239,11 @@ def link(input_, ctx, options=None):
     :param [options]: the options to use.
       [base] the base IRI to use.
       [expandContext] a context to expand with.
-      [documentLoader(url)] the document loader
+      [extractAllScripts] True to extract all JSON-LD script elements
+        from HTML, False to extract just the first.
+      [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
+        defaults to 'json-ld-1.1'.
+      [documentLoader(url, options)] the document loader
         (default: _default_document_loader).
 
     :return: the linked JSON-LD output.
@@ -241,7 +272,11 @@ def normalize(input_, options=None):
         'application/n-quads' for N-Quads.
       [format] the format if output is a string:
         'application/n-quads' for N-Quads.
-      [documentLoader(url)] the document loader
+      [extractAllScripts] True to extract all JSON-LD script elements
+        from HTML, False to extract just the first.
+      [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
+        defaults to 'json-ld-1.1'.
+      [documentLoader(url, options)] the document loader
         (default: _default_document_loader).
 
     :return: the normalized output.
@@ -278,7 +313,11 @@ def to_rdf(input_, options=None):
         'application/n-quads' for N-Quads.
       [produceGeneralizedRdf] true to output generalized RDF, false
         to produce only standard RDF (default: false).
-      [documentLoader(url)] the document loader
+      [extractAllScripts] True to extract all JSON-LD script elements
+        from HTML, False to extract just the first.
+      [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
+        defaults to 'json-ld-1.1'.
+      [documentLoader(url, options)] the document loader
         (default: _default_document_loader).
 
     :return: the resulting RDF dataset (or a serialization of it).
@@ -641,7 +680,11 @@ class JsonLdProcessor(object):
           [skipExpansion] True to assume the input is expanded and skip
             expansion, False not to, (default: False).
           [activeCtx] True to also return the active context used.
-          [documentLoader(url)] the document loader
+          [extractAllScripts] True to extract all JSON-LD script elements
+            from HTML, False to extract just the first.
+          [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
+            defaults to 'json-ld-1.1'.
+          [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
 
         :return: the compacted JSON-LD output.
@@ -663,6 +706,8 @@ class JsonLdProcessor(object):
         options.setdefault('skipExpansion', False)
         options.setdefault('activeCtx', False)
         options.setdefault('documentLoader', _default_document_loader)
+        options.setdefault('extractAllScripts', False)
+        options.setdefault('processingMode', 'json-ld-1.1')
         options.setdefault('link', False)
         if options['link']:
             # force skip expansion when linking, "link" is not part of the
@@ -759,7 +804,11 @@ class JsonLdProcessor(object):
             False not to (default: false).
           [keepFreeFloatingNodes] True to keep free-floating nodes,
             False not to (default: False).
-          [documentLoader(url)] the document loader
+          [extractAllScripts] True to extract all JSON-LD script elements
+            from HTML, False to extract just the first.
+          [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
+            defaults to 'json-ld-1.1'.
+          [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
 
         :return: the expanded JSON-LD output.
@@ -769,6 +818,8 @@ class JsonLdProcessor(object):
         options.setdefault('isFrame', False)
         options.setdefault('keepFreeFloatingNodes', False)
         options.setdefault('documentLoader', _default_document_loader)
+        options.setdefault('extractAllScripts', False)
+        options.setdefault('processingMode', 'json-ld-1.1')
 
         # if input is a string, attempt to dereference remote document
         if _is_string(input_):
@@ -853,7 +904,11 @@ class JsonLdProcessor(object):
         :param options: the options to use.
           [base] the base IRI to use.
           [expandContext] a context to expand with.
-          [documentLoader(url)] the document loader
+          [extractAllScripts] True to extract all JSON-LD script elements
+            from HTML, False to extract just the first.
+          [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
+            defaults to 'json-ld-1.1'.
+          [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
 
         :return: the flattened JSON-LD output.
@@ -861,6 +916,8 @@ class JsonLdProcessor(object):
         options = options.copy() if options else {}
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('documentLoader', _default_document_loader)
+        options.setdefault('extractAllScripts', False)
+        options.setdefault('processingMode', 'json-ld-1.1')
 
         try:
             # expand input
@@ -904,7 +961,11 @@ class JsonLdProcessor(object):
           [omitDefault] default @omitDefault flag (default: False).
           [pruneBlankNodeIdentifiers] remove unnecessary blank node
             identifiers (default: True)
-          [documentLoader(url)] the document loader
+          [extractAllScripts] True to extract all JSON-LD script elements
+            from HTML, False to extract just the first.
+          [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
+            defaults to 'json-ld-1.1'.
+          [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
 
         :return: the framed JSON-LD output.
@@ -920,6 +981,8 @@ class JsonLdProcessor(object):
         options.setdefault('pruneBlankNodeIdentifiers', True)
         options.setdefault('bnodesToClear', [])
         options.setdefault('documentLoader', _default_document_loader)
+        options.setdefault('extractAllScripts', False)
+        options.setdefault('processingMode', 'json-ld-1.1')
 
         # if frame is a string, attempt to dereference remote document
         if _is_string(frame):
@@ -1019,7 +1082,7 @@ class JsonLdProcessor(object):
             'application/n-quads' for N-Quads.
           [format] the format if output is a string:
             'application/n-quads' for N-Quads.
-          [documentLoader(url)] the document loader
+          [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
 
         :return: the normalized output.
@@ -1029,6 +1092,8 @@ class JsonLdProcessor(object):
         options.setdefault('algorithm', 'URGNA2012')
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('documentLoader', _default_document_loader)
+        options.setdefault('extractAllScripts', False)
+        options.setdefault('processingMode', 'json-ld-1.1')
 
         if not options['algorithm'] in ['URDNA2015', 'URGNA2012']:
             raise JsonLdError(
@@ -1118,7 +1183,7 @@ class JsonLdProcessor(object):
             'application/n-quads' for N-Quads.
           [produceGeneralizedRdf] true to output generalized RDF, false
             to produce only standard RDF (default: false).
-          [documentLoader(url)] the document loader
+          [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
 
         :return: the resulting RDF dataset (or a serialization of it).
@@ -1128,6 +1193,8 @@ class JsonLdProcessor(object):
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('produceGeneralizedRdf', False)
         options.setdefault('documentLoader', _default_document_loader)
+        options.setdefault('extractAllScripts', False)
+        options.setdefault('processingMode', 'json-ld-1.1')
 
         try:
             # expand input
@@ -1168,7 +1235,7 @@ class JsonLdProcessor(object):
         :param active_ctx: the current active context.
         :param local_ctx: the local context to process.
         :param options: the options to use.
-          [documentLoader(url)] the document loader
+          [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
 
         :return: the new active context.

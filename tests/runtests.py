@@ -802,6 +802,7 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#te046$',
                 '.*expand-manifest.jsonld#te047$',
                 '.*expand-manifest.jsonld#te048$',
+                '.*expand-manifest.jsonld#te049$',
                 # nesting
                 '.*expand-manifest.jsonld#ten05$',
                 '.*expand-manifest.jsonld#ten06$',
@@ -945,6 +946,7 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tso06$',
                 '.*expand-manifest.jsonld#tso07$',
                 '.*expand-manifest.jsonld#tso08$',
+                '.*expand-manifest.jsonld#tso09$',
                 '.*expand-manifest.jsonld#tso10$',
                 '.*expand-manifest.jsonld#tso11$',
                 '.*expand-manifest.jsonld#tso12$',
@@ -1409,6 +1411,7 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tso07$',
                 # context merging
                 '.*toRdf-manifest.jsonld#tso08$',
+                '.*toRdf-manifest.jsonld#tso09$',
                 '.*toRdf-manifest.jsonld#tso10$',
                 '.*toRdf-manifest.jsonld#tso11$',
                 '.*toRdf-manifest.jsonld#tso12$',
