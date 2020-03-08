@@ -4760,7 +4760,7 @@ class JsonLdProcessor(object):
         # define dependency not if defined
         if (local_ctx and value in local_ctx and
                 defined.get(value) is not True):
-            self._create_term_definition(active_ctx, local_ctx, value, defined, options)
+            self._create_term_definition(active_ctx, local_ctx, value, defined, {})
 
         if vocab and value in active_ctx['mappings']:
             mapping = active_ctx['mappings'].get(value)
