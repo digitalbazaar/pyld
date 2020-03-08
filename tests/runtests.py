@@ -616,8 +616,6 @@ TEST_TYPES = {
                 '.*compact-manifest.jsonld#tm020$',
                 '.*compact-manifest.jsonld#tm021$',
                 '.*compact-manifest.jsonld#tm022$',
-                # terms
-                '.*compact-manifest.jsonld#tp001$',
                 # property-valued indexes
                 '.*compact-manifest.jsonld#tpi01$',
                 '.*compact-manifest.jsonld#tpi02$',
@@ -678,10 +676,7 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#t0111$',
                 '.*expand-manifest.jsonld#t0112$',
                 # misc
-                '.*expand-manifest.jsonld#t0117$',
                 '.*expand-manifest.jsonld#t0118$',
-                #'.*expand-manifest.jsonld#t0119$',
-                '.*expand-manifest.jsonld#t0120$',
                 '.*expand-manifest.jsonld#t0122$',
                 # invalid iris
                 '.*expand-manifest.jsonld#t0123$',
@@ -719,9 +714,6 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#te046$',
                 '.*expand-manifest.jsonld#te047$',
                 '.*expand-manifest.jsonld#te048$',
-                '.*expand-manifest.jsonld#te049$',
-                # invalid term definition
-                '.*expand-manifest.jsonld#tec01$',
                 # included
                 '.*expand-manifest.jsonld#tin03$',
                 '.*expand-manifest.jsonld#tin06$',
@@ -765,14 +757,9 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tli10$',
                 # @container: @id/@type
                 '.*expand-manifest.jsonld#tm000$',
-                '.*expand-manifest.jsonld#tm017$',
-                '.*expand-manifest.jsonld#tm020$',
                 # @nest
                 '.*expand-manifest.jsonld#tn008$',
                 ## property index maps
-                '.*expand-manifest.jsonld#tpi02$',
-                '.*expand-manifest.jsonld#tpi03$',
-                '.*expand-manifest.jsonld#tpi04$',
                 '.*expand-manifest.jsonld#tpi05$',
                 '.*expand-manifest.jsonld#tpi06$',
                 '.*expand-manifest.jsonld#tpi07$',
@@ -790,14 +777,9 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tpr30$',
                 '.*expand-manifest.jsonld#tpr31$',
                 '.*expand-manifest.jsonld#tpr32$',
-                '.*expand-manifest.jsonld#tpr33$',
                 '.*expand-manifest.jsonld#tpr35$',
-                '.*expand-manifest.jsonld#tpr36$',
-                '.*expand-manifest.jsonld#tpr37$',
                 '.*expand-manifest.jsonld#tpr38$',
-                '.*expand-manifest.jsonld#tpr39$',
                 '.*expand-manifest.jsonld#tpr35$',
-                '.*expand-manifest.jsonld#tpr37$',
                 # IRI prefixes
                 '.*expand-manifest.jsonld#tpr29$',
                 # protected null IRI mapping
@@ -1098,9 +1080,7 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#te088$',
                 '.*toRdf-manifest.jsonld#te105$',
                 '.*toRdf-manifest.jsonld#te106$',
-                '.*toRdf-manifest.jsonld#te117$',
                 '.*toRdf-manifest.jsonld#te118$',
-                '.*toRdf-manifest.jsonld#te120$',
                 '.*toRdf-manifest.jsonld#te121$',
                 '.*toRdf-manifest.jsonld#te122$',
                 '.*toRdf-manifest.jsonld#te123$',
@@ -1127,8 +1107,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#te112$',
                 # colliding keyword
                 '.*toRdf-manifest.jsonld#te114$',
-                # invalid term definition
-                '.*toRdf-manifest.jsonld#tec01$',
                 # included
                 '.*toRdf-manifest.jsonld#tin01$',
                 '.*toRdf-manifest.jsonld#tin02$',
@@ -1176,8 +1154,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tm010$',
                 '.*toRdf-manifest.jsonld#tm011$',
                 '.*toRdf-manifest.jsonld#tm012$',
-                '.*toRdf-manifest.jsonld#tm017$',
-                '.*toRdf-manifest.jsonld#tm020$',
                 # @nest
                 '.*toRdf-manifest.jsonld#tn001$',
                 '.*toRdf-manifest.jsonld#tn002$',
@@ -1192,9 +1168,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tp003$',
                 '.*toRdf-manifest.jsonld#tp004$',
                 ## index maps
-                '.*toRdf-manifest.jsonld#tpi02$',
-                '.*toRdf-manifest.jsonld#tpi03$',
-                '.*toRdf-manifest.jsonld#tpi04$',
                 '.*toRdf-manifest.jsonld#tpi05$',
                 '.*toRdf-manifest.jsonld#tpi06$',
                 '.*toRdf-manifest.jsonld#tpi07$',
@@ -1218,10 +1191,7 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tpr30$',
                 '.*toRdf-manifest.jsonld#tpr31$',
                 '.*toRdf-manifest.jsonld#tpr32$',
-                '.*toRdf-manifest.jsonld#tpr33$',
                 '.*toRdf-manifest.jsonld#tpr35$',
-                '.*toRdf-manifest.jsonld#tpr36$',
-                '.*toRdf-manifest.jsonld#tpr37$',
                 '.*toRdf-manifest.jsonld#tpr38$',
                 '.*toRdf-manifest.jsonld#tpr39$',
                 # number fixes
