@@ -19,6 +19,7 @@ import json
 import re
 import sys
 import traceback
+import warnings
 from collections import deque, namedtuple
 from numbers import Integral, Real
 from pyld.__about__ import (__copyright__, __license__, __version__)
@@ -124,6 +125,8 @@ KEYWORDS = [
     '@value',
     '@version',
     '@vocab']
+
+KEYWORD_PATTERN = r'^@[a-zA-Z]+$'
 
 # JSON-LD Namespace
 JSON_LD_NS = 'http://www.w3.org/ns/json-ld#'
@@ -2943,9 +2946,14 @@ class JsonLdProcessor(object):
                         code='invalid @propagate value')
                 defined['@language'] = True
 
+            # handle @protected; determine whether this sub-context is declaring
+            # all its terms to be "protected" (exceptions can be made on a
+            # per-definition basis)
+            defined['@protected'] = ctx.get('@protected', False)
+
             # process all other keys
             for k, v in ctx.items():
-                self._create_term_definition(rval, ctx, k, defined)
+                self._create_term_definition(rval, ctx, k, defined, options)
 
             # cache result
             if _cache.get('activeCtx') is not None:
@@ -4393,7 +4401,7 @@ class JsonLdProcessor(object):
         rval[self._compact_iri(active_ctx, '@id')] = compacted
         return rval
 
-    def _create_term_definition(self, active_ctx, local_ctx, term, defined):
+    def _create_term_definition(self, active_ctx, local_ctx, term, defined, options):
         """
         Creates a term definition during context processing.
 
@@ -4402,6 +4410,7 @@ class JsonLdProcessor(object):
         :param term: the key in the local context to define the mapping for.
         :param defined: a map of defining/defined keys to detect cycles
           and prevent double definitions.
+        :param options: the context processing options.
         """
         if term in defined:
             # term already defined
@@ -4418,13 +4427,31 @@ class JsonLdProcessor(object):
         # now defining term
         defined[term] = False
 
-        if _is_keyword(term):
+        # get context term value
+        value = local_ctx.get(term, None)
+
+        if (term == '@type' and
+            _is_object(value) and
+            value.get('@container', '@set') == '@set' and
+            active_ctx['processingMode'] == 'json-ld-1.1'):
+            keys = value.keys()
+            if not keys or not (keys <= ['@container', '@id', '@protected']):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; keywords cannot be overridden.',
+                    'jsonld.SyntaxError', {'context': local_ctx, 'term': term},
+                    code='keyword redefinition')
+        elif _is_keyword(term):
             raise JsonLdError(
                 'Invalid JSON-LD syntax; keywords cannot be overridden.',
                 'jsonld.SyntaxError', {'context': local_ctx, 'term': term},
                 code='keyword redefinition')
-
-        if term == '':
+        elif re.match(KEYWORD_PATTERN, term):
+            warnings.warn(
+                'terms beginning with "@" are reserved'
+                ' for future use and ignored',
+                SyntaxWarning)
+            return
+        elif term == '':
             raise JsonLdError(
                 'Invalid JSON-LD syntax; a term cannot be an empty string.',
                 'jsonld.SyntaxError', {'context': local_ctx},
@@ -4432,7 +4459,10 @@ class JsonLdProcessor(object):
 
         # remove old mapping
         if term in active_ctx['mappings']:
+            previous_mapping = active_ctx['mappings'][term]
             del active_ctx['mappings'][term]
+        else:
+            previous_mapping = None
 
         # get context term value
         value = local_ctx[term]
@@ -4463,7 +4493,7 @@ class JsonLdProcessor(object):
         # make sure term definition only has expected keywords
         valid_keys = ['@container', '@id', '@language', '@reverse', '@type']
         if self._processing_mode(active_ctx, 1.1):
-            valid_keys.extend(['@context', '@nest', '@prefix'])
+            valid_keys.extend(['@context', '@direction', '@index', '@nest', '@prefix', '@protected'])
         for kw in value:
             if kw not in valid_keys:
                 raise JsonLdError(
@@ -4535,7 +4565,7 @@ class JsonLdProcessor(object):
                 if prefix in local_ctx:
                     # define parent prefix
                     self._create_term_definition(
-                        active_ctx, local_ctx, prefix, defined)
+                        active_ctx, local_ctx, prefix, defined, options)
 
                 # set @id based on prefix parent
                 if active_ctx['mappings'].get(prefix) is not None:
@@ -4559,6 +4589,10 @@ class JsonLdProcessor(object):
 
         # IRI mapping now defined
         defined[term] = True
+
+        if (value.get('@protected') or
+            (defined.get('@protected') and value.get('@protected') != False)):
+            mapping['protected'] = True
 
         if '@type' in value:
             type_ = value['@type']
@@ -4687,6 +4721,19 @@ class JsonLdProcessor(object):
                 'cannot be aliased.', 'jsonld.SyntaxError',
                 {'context': local_ctx}, code='invalid keyword alias')
 
+        if (previous_mapping and
+            previous_mapping['protected'] and
+            not options['override_protected']):
+            # force new term to continue to be protected and see if the mappings would be equal
+            mapping['protected'] = True
+
+            if previous_mapping != mapping:
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; tried to redefine a protected term.',
+                    'jsonld.SyntaxError',
+                    {'context': local_ctx}, code='protected term redefinition')
+
+
     def _expand_iri(
             self, active_ctx, value, base=False, vocab=False,
             local_ctx=None, defined=None):
@@ -4713,7 +4760,7 @@ class JsonLdProcessor(object):
         # define dependency not if defined
         if (local_ctx and value in local_ctx and
                 defined.get(value) is not True):
-            self._create_term_definition(active_ctx, local_ctx, value, defined)
+            self._create_term_definition(active_ctx, local_ctx, value, defined, options)
 
         if vocab and value in active_ctx['mappings']:
             mapping = active_ctx['mappings'].get(value)
@@ -4735,7 +4782,7 @@ class JsonLdProcessor(object):
             # prefix dependency not defined, define it
             if local_ctx and prefix in local_ctx:
                 self._create_term_definition(
-                    active_ctx, local_ctx, prefix, defined)
+                    active_ctx, local_ctx, prefix, defined, {})
 
             # use mapping if prefix is defined
             mapping = active_ctx['mappings'].get(prefix)
