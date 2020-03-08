@@ -4433,7 +4433,7 @@ class JsonLdProcessor(object):
         if (term == '@type' and
             _is_object(value) and
             value.get('@container', '@set') == '@set' and
-            active_ctx['processingMode'] == 'json-ld-1.1'):
+            self._processing_mode(active_ctx, 1.1)):
             keys = value.keys()
             if not keys or not (keys <= ['@container', '@id', '@protected']):
                 raise JsonLdError(
@@ -4502,7 +4502,8 @@ class JsonLdProcessor(object):
                     {'context': local_ctx}, code='invalid term definition')
 
         # always compute whether term has a colon as an optimization for _compact_iri
-        _term_has_colon = ':' in term
+        colon = term.find(':')
+        mapping['_term_has_colon'] = colon > 0
 
         if '@reverse' in value:
             if '@id' in value:
@@ -4532,16 +4533,43 @@ class JsonLdProcessor(object):
                     'an absolute IRI or a blank node identifier.',
                     'jsonld.SyntaxError', {'context': local_ctx},
                     code='invalid IRI mapping')
+
+            if re.match(KEYWORD_PATTERN, reverse):
+                warnings.warn('values beginning with "@" are reserved'
+                    'for future use and ignored',
+                    SyntaxWarning)
+
+                if previous_mapping:
+                    active_ctx['mappings'][term] = previous_mapping
+                else:
+                    del active_ctx['mappings'][term]
+
+                return
+
             mapping['@id'] = id_
             mapping['reverse'] = True
         elif '@id' in value:
             id_ = value['@id']
-            if not _is_string(id_):
+            if id_ and not _is_string(id_):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @context @id value must be a '
                     'string.', 'jsonld.SyntaxError',
                     {'context': local_ctx}, code='invalid IRI mapping')
-            if id_ != term:
+
+            if id_ is None:
+                mapping['@id'] = None
+            elif not _is_keyword(id_) and re.match(KEYWORD_PATTERN, id_):
+                warnings.warn('values beginning with "@" are reserved'
+                    'for future use and ignored',
+                    SyntaxWarning)
+
+                if previous_mapping:
+                    active_ctx['mappings'][term] = previous_mapping
+                else:
+                    del active_ctx['mappings'][term]
+
+                return
+            elif id_ != term:
                 # add @id to mapping
                 id_ = self._expand_iri(
                     active_ctx, id_, vocab=True, base=False,
@@ -4552,15 +4580,27 @@ class JsonLdProcessor(object):
                         'an absolute IRI, a blank node identifier, or a '
                         'keyword.', 'jsonld.SyntaxError',
                         {'context': local_ctx}, code='invalid IRI mapping')
+
+                # if term has the form of an IRI it must map the same
+                if re.match(r'(?::[^:])|\/', term):
+                    term_iri = self._expand_iri(
+                        active_ctx, term, vocab=True, base=False,
+                        local_ctx=local_ctx, defined={**defined, **{term: True}})
+                    if term_iri != id_:
+                        raise JsonLdError(
+                            'Invalid JSON-LD syntax; term in form of IRI must '
+                            'expand to definition.',
+                            'jsonld.SyntaxError',
+                            {'context': local_ctx}, code='invalid IRI mapping')
+
                 mapping['@id'] = id_
                 mapping['_prefix'] = (
-                    not _term_has_colon
-                    and re.match('.*[:/\?#\[\]@]$', id_)
-                    and (_simple_term or self._processing_mode(active_ctx, 1.0)))
+                    _simple_term and
+                    not mapping['_term_has_colon'] and
+                    bool(re.match('.*[:/\?#\[\]@]$', id_)))
         if '@id' not in mapping:
             # see if the term has a prefix
-            colon = term.find(':')
-            if colon != -1:
+            if mapping['_term_has_colon']:
                 prefix = term[0:colon]
                 if prefix in local_ctx:
                     # define parent prefix
@@ -4575,6 +4615,8 @@ class JsonLdProcessor(object):
                 # term is an absolute IRI
                 else:
                     mapping['@id'] = term
+            elif term == '@type':
+                mapping['@id'] = term
             else:
                 # non-IRIs MUST define @ids if @vocab not available
                 if '@vocab' not in active_ctx:
@@ -4587,12 +4629,12 @@ class JsonLdProcessor(object):
                 # prepend vocab to term
                 mapping['@id'] = active_ctx['@vocab'] + term
 
-        # IRI mapping now defined
-        defined[term] = True
-
         if (value.get('@protected') or
             (defined.get('@protected') and value.get('@protected') != False)):
             mapping['protected'] = True
+
+        # IRI mapping now defined
+        defined[term] = True
 
         if '@type' in value:
             type_ = value['@type']
@@ -4601,7 +4643,14 @@ class JsonLdProcessor(object):
                     'Invalid JSON-LD syntax; @context @type value must be '
                     'a string.', 'jsonld.SyntaxError',
                     {'context': local_ctx}, code='invalid type mapping')
-            if type_ != '@id' and type_ != '@vocab':
+            if type == '@json' or type == '@none':
+                if self._processing_mode(active_ctx, 1.0):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; an @context @type value must not be ' +
+                        type +
+                        ' in JSON-LD 1.0 mode.', 'jsonld.SyntaxError',
+                        {'context': local_ctx}, code='invalid type mapping')
+            elif type_ != '@id' and type_ != '@vocab':
                 # expand @type to full IRI
                 type_ = self._expand_iri(
                     active_ctx, type_, vocab=True,
@@ -4646,6 +4695,18 @@ class JsonLdProcessor(object):
                             {'context': local_ctx}, code='invalid container mapping')
                 else:
                     is_valid = is_valid and (len(container) <= (2 if has_set else 1))
+
+                if '@type' in container:
+                    # if mapping does not have an @type, set it to @id
+                    if not mapping.get('@type'):
+                        mapping['@type'] = '@id'
+
+                    if mapping['@type'] != '@id' and mapping['@type'] != '@vocab':
+                        raise JsonLdError(
+                            'Invalid JSON-LD syntax; container: @type requires @type to be '
+                            '@id or @vocab.',
+                            'jsonld.SyntaxError',
+                            {'context': local_ctx}, code='invalid type mapping')
             else: # json-ld-1.0
                 is_valid = is_valid and _is_string(value['@container'])
 
@@ -4672,6 +4733,30 @@ class JsonLdProcessor(object):
             # add @container to mapping
             mapping['@container'] = container
 
+        if '@index' in value:
+            if not '@container' in value or not '@index' in mapping['@container']:
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; @index without @index in @container.',
+                    'jsonld.SyntaxError',
+                    {
+                        'context': local_ctx,
+                        'term': term,
+                        'index': value['@index']
+                    },
+                    code='invalid term definition')
+
+            if not _is_string(value['@index']) or value['@index'].find('@') == 0:
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; @index must expand to an IRI.',
+                    'jsonld.SyntaxError',
+                    {
+                        'context': local_ctx,
+                        'term': term,
+                        'index': value['@index']
+                    },
+                    code='invalid term definition')
+            mapping['@index'] = value['@index']
+
         # scoped contexts
         if '@context' in value:
             mapping['@context'] = value['@context']
@@ -4690,9 +4775,14 @@ class JsonLdProcessor(object):
 
         # term may be used as prefix
         if '@prefix' in value:
-            if _term_has_colon:
+            if re.match(r'.*(:|/)', term):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @context @prefix used on a compact IRI term.',
+                    'jsonld.SyntaxError',
+                    {'context': local_ctx}, code='invalid term definition')
+            if _is_keyword(mapping['@id']):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; @keywords may not be used as prefixes.',
                     'jsonld.SyntaxError',
                     {'context': local_ctx}, code='invalid term definition')
             if not _is_bool(value['@prefix']):
@@ -4701,6 +4791,16 @@ class JsonLdProcessor(object):
                     'jsonld.SyntaxError',
                     {'context': local_ctx}, code='invalid @prefix value')
             mapping['_prefix'] = value['@prefix']
+
+        # direction
+        if '@direction' in value:
+            direction = value['@direction']
+            if direction and direction != 'ltr' and direction != 'rtl':
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; @direction value must be null, "ltr", or "rtl".',
+                    'jsonld.SyntaxError',
+                    {'context': local_ctx}, code='invalid base direction')
+            mapping['@direction'] = direction
 
         # nesting
         if '@nest' in value:
