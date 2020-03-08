@@ -4585,7 +4585,7 @@ class JsonLdProcessor(object):
                 if re.match(r'(?::[^:])|\/', term):
                     term_iri = self._expand_iri(
                         active_ctx, term, vocab=True, base=False,
-                        local_ctx=local_ctx, defined={**defined, **{term: True}})
+                        local_ctx=local_ctx, defined=defined.update({term: True}))
                     if term_iri != id_:
                         raise JsonLdError(
                             'Invalid JSON-LD syntax; term in form of IRI must '
