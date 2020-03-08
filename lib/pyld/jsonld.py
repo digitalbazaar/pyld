@@ -4523,17 +4523,6 @@ class JsonLdProcessor(object):
                     'a string.', 'jsonld.SyntaxError', {'context': local_ctx},
                     code='invalid IRI mapping')
 
-            # expand and add @id mapping
-            id_ = self._expand_iri(
-                active_ctx, reverse, vocab=True, base=False,
-                local_ctx=local_ctx, defined=defined)
-            if not _is_absolute_iri(id_):
-                raise JsonLdError(
-                    'Invalid JSON-LD syntax; @context @reverse value must be '
-                    'an absolute IRI or a blank node identifier.',
-                    'jsonld.SyntaxError', {'context': local_ctx},
-                    code='invalid IRI mapping')
-
             if re.match(KEYWORD_PATTERN, reverse):
                 warnings.warn('values beginning with "@" are reserved'
                     'for future use and ignored',
@@ -4545,6 +4534,17 @@ class JsonLdProcessor(object):
                     del active_ctx['mappings'][term]
 
                 return
+
+            # expand and add @id mapping
+            id_ = self._expand_iri(
+                active_ctx, reverse, vocab=True, base=False,
+                local_ctx=local_ctx, defined=defined)
+            if not _is_absolute_iri(id_):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; @context @reverse value must be '
+                    'an absolute IRI or a blank node identifier.',
+                    'jsonld.SyntaxError', {'context': local_ctx},
+                    code='invalid IRI mapping')
 
             mapping['@id'] = id_
             mapping['reverse'] = True
@@ -4857,6 +4857,10 @@ class JsonLdProcessor(object):
         if value is None or _is_keyword(value) or not _is_string(value):
             return value
 
+        # ignore non-keyword things that look like a keyword
+        if re.match(KEYWORD_PATTERN, value):
+            return None
+
         # define dependency not if defined
         if (local_ctx and value in local_ctx and
                 defined.get(value) is not True):
@@ -4870,8 +4874,10 @@ class JsonLdProcessor(object):
             # value is a term
             return mapping['@id']
 
+        colon = str(value).find(':')
+
         # split value into prefix:suffix
-        if ':' in str(value):
+        if colon > 0:
             prefix, suffix = value.split(':', 1)
 
             # do not expand blank nodes (prefix of '_') or already-absolute
@@ -4886,11 +4892,11 @@ class JsonLdProcessor(object):
 
             # use mapping if prefix is defined
             mapping = active_ctx['mappings'].get(prefix)
-            if mapping:
+            if mapping and mapping['_prefix']:
                 return mapping['@id'] + suffix
 
-            # already absolute IRI
-            return value
+            if _is_absolute_iri(value):
+                return value
 
         # prepend vocab
         if vocab and '@vocab' in active_ctx:
