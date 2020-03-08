@@ -675,9 +675,6 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#t0110$',
                 '.*expand-manifest.jsonld#t0111$',
                 '.*expand-manifest.jsonld#t0112$',
-                # misc
-                '.*expand-manifest.jsonld#t0118$',
-                '.*expand-manifest.jsonld#t0122$',
                 # invalid iris
                 '.*expand-manifest.jsonld#t0123$',
                 # colliding keywords
@@ -774,16 +771,10 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tpr15$',
                 '.*expand-manifest.jsonld#tpr16$',
                 '.*expand-manifest.jsonld#tpr19$',
+                '.*expand-manifest.jsonld#tpr28$',
                 '.*expand-manifest.jsonld#tpr30$',
                 '.*expand-manifest.jsonld#tpr31$',
                 '.*expand-manifest.jsonld#tpr32$',
-                '.*expand-manifest.jsonld#tpr35$',
-                '.*expand-manifest.jsonld#tpr38$',
-                '.*expand-manifest.jsonld#tpr35$',
-                # IRI prefixes
-                '.*expand-manifest.jsonld#tpr29$',
-                # protected null IRI mapping
-                '.*expand-manifest.jsonld#tpr28$',
                 # @import
                 '.*expand-manifest.jsonld#tso01$',
                 '.*expand-manifest.jsonld#tso02$',
@@ -1187,12 +1178,9 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tpr22$',
                 '.*toRdf-manifest.jsonld#tpr25$',
                 '.*toRdf-manifest.jsonld#tpr28$',
-                '.*toRdf-manifest.jsonld#tpr29$',
                 '.*toRdf-manifest.jsonld#tpr30$',
                 '.*toRdf-manifest.jsonld#tpr31$',
                 '.*toRdf-manifest.jsonld#tpr32$',
-                '.*toRdf-manifest.jsonld#tpr35$',
-                '.*toRdf-manifest.jsonld#tpr38$',
                 '.*toRdf-manifest.jsonld#tpr39$',
                 # number fixes
                 '.*toRdf-manifest.jsonld#trt01$',
