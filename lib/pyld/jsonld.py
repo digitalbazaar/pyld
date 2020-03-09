@@ -2812,7 +2812,7 @@ class JsonLdProcessor(object):
         # track the previous context
         # if not propagating, make sure rval has a previous context
         if not propagate and not rval.get('previousContext', False):
-            rval = self_clone_active_context(rval)
+            rval = self._clone_active_context(rval)
             rval['previousContext'] = active_ctx
 
         for ctx in ctxs:
@@ -2874,6 +2874,33 @@ class JsonLdProcessor(object):
             # if not set explicitly, set processingMode to "json-ld-1.1"
             rval['processingMode'] = rval.get(
                 'processingMode', active_ctx.get('processingMode', 'json-ld-1.1'))
+
+            if '@import' in ctx:
+                value = ctx['@import']
+                if rval['processingMode'] == 'json-ld-1.0':
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; @import not compatible with '
+                        'json-ld-1.0',
+                        'jsonld.SyntaxError', {'context': ctx},
+                        code='invalid context entry')
+                if '@import' in value:
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; @import must not include @import entry',
+                        'jsonld.SyntaxError', {'context': ctx},
+                        code='invalid context entry')
+                if _is_string(value):
+                    import pdb; pdb.set_trace()
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; @import cannot be dereferenced',
+                        'jsonld.SyntaxError', {'context': ctx},
+                        code='invalid context entry')
+
+                # value must be an object with '@context'
+                # from _find_context_urls
+                value.update(ctx)
+                del value['@import']
+                ctx = value
+                defined['@import'] = True
 
             # handle @base
             if '@base' in ctx:
@@ -2944,7 +2971,7 @@ class JsonLdProcessor(object):
                         'Invalid JSON-LD syntax; @propagate value must be a boolean.',
                         'jsonld.SyntaxError', {'context': ctx},
                         code='invalid @propagate value')
-                defined['@language'] = True
+                defined['@propagate'] = True
 
             # handle @protected; determine whether this sub-context is declaring
             # all its terms to be "protected" (exceptions can be made on a
@@ -4773,8 +4800,7 @@ class JsonLdProcessor(object):
                     'Term definition contains invalid scoped context.',
                     'jsonld.SyntaxError',  {
                         'context': local_ctx,
-                        'term': term,
-                        'index': value['@index']
+                        'term': term
                     },
                     code='invalid scoped context',
                     cause=cause)
@@ -4971,6 +4997,18 @@ class JsonLdProcessor(object):
                         elif _is_object(v[i]):
                             # look for scoped context
                             for kk, vv in v[i].items():
+                                # look for imported context
+                                if kk == '@import':
+                                    if not _is_string(vv):
+                                        raise JsonLdError(
+                                            'Invalid JSON-LD syntax; @import value must be a string.',
+                                            'jsonld.SyntaxError', {'context': v[i]},
+                                            code='invalid @import value')
+                                    vv = prepend_base(base, vv)
+                                    if replace:
+                                        v[i][kk] = urls[vv]
+                                    if vv not in urls:
+                                        urls[vv] = False
                                 if _is_object(vv):
                                     self._find_context_urls(
                                             vv, urls, replace, base)
@@ -4984,9 +5022,21 @@ class JsonLdProcessor(object):
                     elif v not in urls:
                         urls[v] = False
                 elif _is_object(v):
-                    # look for soped context
+                    # look for sooped context
                     for kk, vv in v.items():
-                        if _is_object(vv):
+                        # look for imported context
+                        if kk == '@import':
+                            if not _is_string(vv):
+                                raise JsonLdError(
+                                    'Invalid JSON-LD syntax; @import value must be a string.',
+                                    'jsonld.SyntaxError', {'context': v},
+                                    code='invalid @import value')
+                            vv = prepend_base(base, vv)
+                            if replace:
+                                v[kk] = urls[vv]
+                            if vv not in urls:
+                                urls[vv] = False
+                        elif _is_object(vv):
                             self._find_context_urls(vv, urls, replace, base)
 
     def _retrieve_context_urls(self, input_, cycles, load_document, base=''):

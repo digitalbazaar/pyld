@@ -572,6 +572,8 @@ TEST_TYPES = {
                 '.*compact-manifest.jsonld#tc017$',
                 '.*compact-manifest.jsonld#tc018$',
                 '.*compact-manifest.jsonld#tc021$',
+                # @propogate
+                '.*compact-manifest.jsonld#tc027$',
                 # @direction
                 '.*compact-manifest.jsonld#tdi01$',
                 '.*compact-manifest.jsonld#tdi02$',
@@ -580,9 +582,6 @@ TEST_TYPES = {
                 '.*compact-manifest.jsonld#tdi05$',
                 '.*compact-manifest.jsonld#tdi06$',
                 '.*compact-manifest.jsonld#tdi07$',
-                # @propogate
-                '.*compact-manifest.jsonld#tc026$',
-                '.*compact-manifest.jsonld#tc027$',
                 # IRI confusion
                 '.*compact-manifest.jsonld#te002$',
                 # @container: @graph with multiple objects
@@ -690,11 +689,8 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tc018$',
                 '.*expand-manifest.jsonld#tc021$',
                 # @propogate
-                '.*expand-manifest.jsonld#tc026$',
                 '.*expand-manifest.jsonld#tc027$',
                 '.*expand-manifest.jsonld#tc028$',
-                '.*expand-manifest.jsonld#tc032$',
-                '.*expand-manifest.jsonld#tc033$',
                 # text direction
                 '.*expand-manifest.jsonld#tdi01$',
                 '.*expand-manifest.jsonld#tdi02$',
@@ -775,17 +771,12 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tpr30$',
                 '.*expand-manifest.jsonld#tpr31$',
                 '.*expand-manifest.jsonld#tpr32$',
-                # @import
+                # @import should be "invalid context entry" not "recursive context inclusion"
                 '.*expand-manifest.jsonld#tso01$',
-                '.*expand-manifest.jsonld#tso02$',
                 '.*expand-manifest.jsonld#tso03$',
-                '.*expand-manifest.jsonld#tso05$',
+                # context propagation
                 '.*expand-manifest.jsonld#tso06$',
-                '.*expand-manifest.jsonld#tso07$',
-                '.*expand-manifest.jsonld#tso08$',
-                '.*expand-manifest.jsonld#tso09$',
-                '.*expand-manifest.jsonld#tso10$',
-                '.*expand-manifest.jsonld#tso11$',
+                # @import should be "invalid context entry" not "recursive context inclusion"
                 '.*expand-manifest.jsonld#tso12$',
                 # context merging
                 '.*expand-manifest.jsonld#tso13$',
@@ -1034,11 +1025,8 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tc020$',
                 '.*toRdf-manifest.jsonld#tc021$',
                 '.*toRdf-manifest.jsonld#tc024$',
-                '.*toRdf-manifest.jsonld#tc026$',
                 '.*toRdf-manifest.jsonld#tc027$',
                 '.*toRdf-manifest.jsonld#tc028$',
-                '.*toRdf-manifest.jsonld#tc032$',
-                '.*toRdf-manifest.jsonld#tc033$',
                 # direction
                 '.*toRdf-manifest.jsonld#tdi01$',
                 '.*toRdf-manifest.jsonld#tdi02$',
@@ -1186,18 +1174,11 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#trt01$',
                 # @import
                 '.*toRdf-manifest.jsonld#tso01$',
-                '.*toRdf-manifest.jsonld#tso02$',
                 '.*toRdf-manifest.jsonld#tso03$',
                 # @propogate
                 '.*toRdf-manifest.jsonld#tso05$',
                 '.*toRdf-manifest.jsonld#tso06$',
-                # protected
-                '.*toRdf-manifest.jsonld#tso07$',
                 # context merging
-                '.*toRdf-manifest.jsonld#tso08$',
-                '.*toRdf-manifest.jsonld#tso09$',
-                '.*toRdf-manifest.jsonld#tso10$',
-                '.*toRdf-manifest.jsonld#tso11$',
                 '.*toRdf-manifest.jsonld#tso12$',
                 '.*toRdf-manifest.jsonld#tso13$',
                 # type:none
