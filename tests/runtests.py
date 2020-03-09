@@ -694,7 +694,6 @@ TEST_TYPES = {
                 # text direction
                 '.*expand-manifest.jsonld#tdi01$',
                 '.*expand-manifest.jsonld#tdi02$',
-                '.*expand-manifest.jsonld#tdi03$',
                 '.*expand-manifest.jsonld#tdi04$',
                 '.*expand-manifest.jsonld#tdi05$',
                 '.*expand-manifest.jsonld#tdi06$',

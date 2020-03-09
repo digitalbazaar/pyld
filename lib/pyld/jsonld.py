@@ -3133,7 +3133,7 @@ class JsonLdProcessor(object):
         rval = {}
 
         # other type
-        if type_ is not None and type_ != '@id' and type_ != '@vocab':
+        if type_ is not None and type_ != '@id' and type_ != '@vocab' and type_ != '@none':
             rval['@type'] = type_
         # check for language tagging
         elif _is_string(value):
@@ -3141,6 +3141,10 @@ class JsonLdProcessor(object):
                 active_ctx, active_property, '@language')
             if language is not None:
                 rval['@language'] = language
+            direction = JsonLdProcessor.get_context_value(
+                active_ctx, active_property, '@direction')
+            if direction is not None:
+                rval['@direction'] = direction
 
         # do conversion of values that aren't basic JSON types to strings
         if not (_is_bool(value) or _is_numeric(value) or _is_string(value)):
