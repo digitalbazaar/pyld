@@ -4583,9 +4583,11 @@ class JsonLdProcessor(object):
 
                 # if term has the form of an IRI it must map the same
                 if re.match(r'(?::[^:])|\/', term):
+                    updated_defined = defined.copy()
+                    updated_defined.update({term: True})
                     term_iri = self._expand_iri(
                         active_ctx, term, vocab=True, base=False,
-                        local_ctx=local_ctx, defined=defined.update({term: True}))
+                        local_ctx=local_ctx, defined=updated_defined)
                     if term_iri != id_:
                         raise JsonLdError(
                             'Invalid JSON-LD syntax; term in form of IRI must '
@@ -4759,6 +4761,23 @@ class JsonLdProcessor(object):
 
         # scoped contexts
         if '@context' in value:
+            # process context to find errors
+            try:
+                opts_with_protected = options.copy()
+                opts_with_protected.update({'override_protected': True})
+                self._process_context(
+                    active_ctx, value['@context'],
+                    opts_with_protected)
+            except JsonLdError as cause:
+                raise JsonLdError(
+                    'Term definition contains invalid scoped context.',
+                    'jsonld.SyntaxError',  {
+                        'context': local_ctx,
+                        'term': term,
+                        'index': value['@index']
+                    },
+                    code='invalid scoped context',
+                    cause=cause)
             mapping['@context'] = value['@context']
 
         if '@language' in value and '@type' not in value:
