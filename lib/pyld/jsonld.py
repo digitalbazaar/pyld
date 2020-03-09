@@ -1239,15 +1239,6 @@ class JsonLdProcessor(object):
         :param options: the options to use.
           [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
-          [protected] make defined terms protected
-            (as if `@protected` were used)
-            (default: False).
-          [override_protected] protected terms may be cleared
-            (default: False).
-          [propagate] if False, retains any previously defined term,
-            which can be rolled back when the descending into
-            a new node object changes
-            (default: True).
 
         :return: the new active context.
         """
@@ -2776,21 +2767,25 @@ class JsonLdProcessor(object):
 
         return result
 
-    def _process_context(self, active_ctx, local_ctx, options):
+    def _process_context(self, active_ctx, local_ctx, options,
+            override_protected=False,
+            propagate=True):
         """
         Processes a local context and returns a new active context.
 
         :param active_ctx: the current active context.
         :param local_ctx: the local context to process.
         :param options: the context processing options.
+        :param override_protected protected terms may be cleared
+            (default: False).
+        :param propagate if False, retains any previously defined term,
+            which can be rolled back when the descending into
+            a new node object changes
+            (default: True).
 
         :return: the new active context.
         """
         global _cache
-
-        options.setdefault('protected', False)
-        options.setdefault('override_protected', False)
-        propagate = options.get('propagage', True)
 
         # normalize local context to an array
         if _is_object(local_ctx) and _is_array(local_ctx.get('@context')):
@@ -2818,7 +2813,7 @@ class JsonLdProcessor(object):
         for ctx in ctxs:
             # reset to initial context
             if ctx is None:
-                if (options['override_protected'] or
+                if (override_protected or
                      not any(list(map(lambda m: m['protected'], rval['mappings'].values())))):
                     rval = active_ctx = self._get_initial_context(options)
                 else:
@@ -2980,7 +2975,8 @@ class JsonLdProcessor(object):
 
             # process all other keys
             for k, v in ctx.items():
-                self._create_term_definition(rval, ctx, k, defined, options)
+                self._create_term_definition(rval, ctx, k, defined, options,
+                    override_protected=override_protected)
 
             # cache result
             if _cache.get('activeCtx') is not None:
@@ -4432,7 +4428,8 @@ class JsonLdProcessor(object):
         rval[self._compact_iri(active_ctx, '@id')] = compacted
         return rval
 
-    def _create_term_definition(self, active_ctx, local_ctx, term, defined, options):
+    def _create_term_definition(self, active_ctx, local_ctx, term, defined, options,
+            override_protected=False):
         """
         Creates a term definition during context processing.
 
@@ -4442,6 +4439,8 @@ class JsonLdProcessor(object):
         :param defined: a map of defining/defined keys to detect cycles
           and prevent double definitions.
         :param options: the context processing options.
+        :param override_protected protected terms may be cleared
+            (default: False).
         """
         if term in defined:
             # term already defined
@@ -4794,11 +4793,10 @@ class JsonLdProcessor(object):
         if '@context' in value:
             # process context to find errors
             try:
-                opts_with_protected = options.copy()
-                opts_with_protected.update({'override_protected': True})
                 self._process_context(
                     active_ctx, value['@context'],
-                    opts_with_protected)
+                    options,
+                    override_protected=True)
             except JsonLdError as cause:
                 raise JsonLdError(
                     'Term definition contains invalid scoped context.',
@@ -4872,7 +4870,7 @@ class JsonLdProcessor(object):
 
         if (previous_mapping and
             previous_mapping['protected'] and
-            not options['override_protected']):
+            not override_protected):
             # force new term to continue to be protected and see if the mappings would be equal
             mapping['protected'] = True
 
