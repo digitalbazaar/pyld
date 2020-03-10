@@ -731,13 +731,8 @@ TEST_TYPES = {
                 # @container: @id/@type
                 '.*expand-manifest.jsonld#tm000$',
                 ## property index maps
-                '.*expand-manifest.jsonld#tpi05$',
-                '.*expand-manifest.jsonld#tpi06$',
                 '.*expand-manifest.jsonld#tpi07$',
-                '.*expand-manifest.jsonld#tpi08$',
                 '.*expand-manifest.jsonld#tpi09$',
-                '.*expand-manifest.jsonld#tpi10$',
-                '.*expand-manifest.jsonld#tpi11$',
                 # protected
                 '.*expand-manifest.jsonld#tpr06$',
                 '.*expand-manifest.jsonld#tpr07$',
@@ -1121,7 +1116,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tp003$',
                 '.*toRdf-manifest.jsonld#tp004$',
                 ## index maps
-                '.*toRdf-manifest.jsonld#tpi05$',
                 '.*toRdf-manifest.jsonld#tpi06$',
                 '.*toRdf-manifest.jsonld#tpi07$',
                 '.*toRdf-manifest.jsonld#tpi08$',

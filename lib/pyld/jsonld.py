@@ -2594,11 +2594,19 @@ class JsonLdProcessor(object):
                 expanded_value = self._expand_language_map(term_ctx, value, direction)
             # handle index container (skip if value is not an object)
             elif '@index' in container and _is_object(value):
-                expanded_value = self._expand_index_map(term_ctx, key, value, '@index', '@graph' in container, options)
+                as_graph = '@graph' in container
+                index_key = JsonLdProcessor.get_context_value(term_ctx, key, '@index')
+                if index_key is None:
+                    index_key = '@index'
+                property_index = None
+                if index_key != '@index':
+                    property_index = self._expand_iri(active_ctx, index_key, vocab=True)
+                expanded_value = self._expand_index_map(term_ctx, key, value, index_key, as_graph, property_index, options)
             elif '@id' in container and _is_object(value):
-                expanded_value = self._expand_index_map(term_ctx, key, value, '@id', '@graph' in container, options)
+                as_graph = '@graph' in container
+                expanded_value = self._expand_index_map(term_ctx, key, value, '@id', as_graph, None, options)
             elif '@type' in container and _is_object(value):
-                expanded_value = self._expand_index_map(term_ctx, key, value, '@type', False, options)
+                expanded_value = self._expand_index_map(term_ctx, key, value, '@type', False, None, options)
             else:
                 # recurse into @list or @set
                 is_list = (expanded_property == '@list')
@@ -3212,7 +3220,7 @@ class JsonLdProcessor(object):
                 rval.append(val)
         return rval
 
-    def _expand_index_map(self, active_ctx, active_property, value, index_key, as_graph, options):
+    def _expand_index_map(self, active_ctx, active_property, value, index_key, as_graph, property_index, options):
         """
         Expands in index, id or type map.
 
@@ -3221,25 +3229,39 @@ class JsonLdProcessor(object):
         :param value: the object containing indexed values
         :param index_key: the key value used to index
         :param as_graph: contents should form a named graph
+        :param property_index: index is a property
         """
         rval = []
+        is_type_index = index_key == '@type'
         for k, v in sorted(value.items()):
-            ctx = JsonLdProcessor.get_context_value(
-                active_ctx, k, '@context')
-            if ctx:
-                active_ctx = self._process_context(active_ctx, ctx, options)
-
-            expanded_key = self._expand_iri(active_ctx, k, vocab=True)
-            if index_key == '@id':
-                # expand document relative
-                k = self._expand_iri(active_ctx, k, base=True)
-            elif index_key == '@type':
-                k = expanded_key
+            if is_type_index:
+                ctx = JsonLdProcessor.get_context_value(
+                    active_ctx, k, '@context')
+                if ctx:
+                    active_ctx = self._process_context(active_ctx, ctx, options)
 
             v = self._expand(
                 active_ctx, active_property,
                 JsonLdProcessor.arrayify(v),
-                options, inside_list=False)
+                options,
+                inside_list=False,
+                inside_index=True)
+
+            expanded_key = None
+            if property_index:
+                if k == '@none':
+                    expanded_key = '@none'
+                else:
+                    expanded_key = self._expand_value(active_ctx, index_key, k)
+            else:
+                expanded_key = self._expand_iri(active_ctx, k, vocab=True)
+
+            if index_key == '@id':
+                # expand document relative
+                k = self._expand_iri(active_ctx, k, base=True)
+            elif is_type_index:
+                k = expanded_key
+
             for item in v:
                 if as_graph and not _is_graph(item):
                     item = {'@graph': [item]}
@@ -3253,6 +3275,23 @@ class JsonLdProcessor(object):
                         item['@type'] = types
                     else:
                         item['@type'] = [k]
+                elif (_is_value(item) and
+                    '@language' not in index_key and
+                    '@type' not in index_key and
+                    '@index' not in index_key):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; Attempt to add illegal key to value '
+                        'object: ' + index_key + '.',
+                        'jsonld.SyntaxError',
+                        {'value': item}, code='invalid value object')
+                elif property_index:
+                    # index is a property to be expanded,
+                    # and values interpreted for that property
+                    if expanded_key != '@none':
+                        JsonLdProcessor.add_value(
+                            item, property_index,
+                            expanded_key,
+                            {'propertyIsArray': True, 'prependValue': True})
                 elif expanded_key != '@none' and index_key not in item:
                     item[index_key] = k
 
