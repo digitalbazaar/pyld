@@ -5135,7 +5135,7 @@ class JsonLdProcessor(object):
                 return value
 
             # prefix dependency not defined, define it
-            if local_ctx and prefix in local_ctx:
+            if local_ctx and prefix in local_ctx and not defined.get(prefix):
                 self._create_term_definition(
                     active_ctx, local_ctx, prefix, defined, {})
 
@@ -6317,7 +6317,7 @@ def _is_absolute_iri(v):
 
     :return: True if the value is an absolute IRI, False if not.
     """
-    return _is_string(v) and ':' in v
+    return _is_string(v) and re.match(r'^([A-Za-z][A-Za-z0-9+-.]*|_):[^\s]*$', v)
 
 
 def _is_relative_iri(v):

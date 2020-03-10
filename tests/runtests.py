@@ -643,10 +643,6 @@ TEST_TYPES = {
     'jld:ExpandTest': {
         'pending': {
             'idRegex': [
-                ## iris
-                '.*expand-manifest.jsonld#t0109$',
-                # invalid iris
-                '.*expand-manifest.jsonld#t0123$',
                 # scoped context
                 '.*expand-manifest.jsonld#tc009$',
                 '.*expand-manifest.jsonld#tc011$',
@@ -1002,7 +998,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#te118$',
                 '.*toRdf-manifest.jsonld#te121$',
                 '.*toRdf-manifest.jsonld#te122$',
-                '.*toRdf-manifest.jsonld#te123$',
                 '.*toRdf-manifest.jsonld#te107$',
                 '.*toRdf-manifest.jsonld#te108$',
                 '.*toRdf-manifest.jsonld#te109$',
@@ -1078,7 +1073,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tpi11$',
                 # prefix
                 '.*toRdf-manifest.jsonld#tpr02$',
-                '.*toRdf-manifest.jsonld#tpr06$',
                 '.*toRdf-manifest.jsonld#tpr10$',
                 '.*toRdf-manifest.jsonld#tpr13$',
                 '.*toRdf-manifest.jsonld#tpr14$',
@@ -1106,13 +1100,8 @@ TEST_TYPES = {
                 # type:none
                 '.*toRdf-manifest.jsonld#ttn02$',
                 # well formed
-                '.*toRdf-manifest.jsonld#twf01$',
-                '.*toRdf-manifest.jsonld#twf02$',
-                '.*toRdf-manifest.jsonld#twf03$',
-                '.*toRdf-manifest.jsonld#twf04$',
                 '.*toRdf-manifest.jsonld#twf05$',
                 '.*toRdf-manifest.jsonld#twf06$',
-                '.*toRdf-manifest.jsonld#twf07$',
 
                 ## html
                 '.*html-manifest.jsonld#tr001$',
