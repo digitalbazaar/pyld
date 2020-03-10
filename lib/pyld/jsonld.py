@@ -1494,6 +1494,10 @@ class JsonLdProcessor(object):
         if type_ == '@language' and type_ in ctx:
             rval = ctx[type_]
 
+        # get default direction
+        if type_ == '@direction' and type_ in ctx:
+            rval = ctx[type_]
+
         # get specific entry information
         if key in ctx['mappings']:
             entry = ctx['mappings'][key]
@@ -2586,7 +2590,8 @@ class JsonLdProcessor(object):
 
             # handle language map container (skip if value is not an object)
             if '@language' in container and _is_object(value):
-                expanded_value = self._expand_language_map(term_ctx, value)
+                direction = JsonLdProcessor.get_context_value(active_ctx, key, '@direction')
+                expanded_value = self._expand_language_map(term_ctx, value, direction)
             # handle index container (skip if value is not an object)
             elif '@index' in container and _is_object(value):
                 expanded_value = self._expand_index_map(term_ctx, key, value, '@index', '@graph' in container, options)
@@ -3029,7 +3034,6 @@ class JsonLdProcessor(object):
                         'jsonld.SyntaxError', {'context': ctx},
                         code='invalid context entry')
                 if _is_string(value):
-                    import pdb; pdb.set_trace()
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; @import cannot be dereferenced',
                         'jsonld.SyntaxError', {'context': ctx},
@@ -3096,6 +3100,26 @@ class JsonLdProcessor(object):
                     rval['@language'] = value.lower()
                 defined['@language'] = True
 
+            # handle @direction
+            if '@direction' in ctx:
+                value = ctx['@direction']
+                if rval['processingMode'] == 'json-ld-1.0':
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; @direction not compatible with '
+                        'json-ld-1.0',
+                        'jsonld.SyntaxError', {'context': ctx},
+                        code='invalid context entry')
+                if value is None:
+                    del rval['@direction']
+                elif value != 'ltr' and value != 'rtl':
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; @direction value must be null, "ltr", or "rtl".',
+                        'jsonld.SyntaxError',
+                        {'context': ctx}, code='invalid base direction')
+                else:
+                    rval['@direction'] = value
+                defined['@direction'] = True
+
             # handle @propagate
             # note: we've already extracted it, here we just do error checking
             if '@propagate' in ctx:
@@ -3157,12 +3181,13 @@ class JsonLdProcessor(object):
                 'jsonld.SyntaxError', {'context': active_ctx},
                 code='invalid @nest value')
 
-    def _expand_language_map(self, active_ctx, language_map):
+    def _expand_language_map(self, active_ctx, language_map, direction):
         """
         Expands a language map.
 
         :param active_ctx: the current active context.
         :param language_map: the language map to expand.
+        :param direction the direction to apply to values.
 
         :return: the expanded language map.
         """
@@ -3182,6 +3207,8 @@ class JsonLdProcessor(object):
                 val = {'@value': item}
                 if expanded_key != '@none':
                     val['@language'] = key.lower()
+                if direction:
+                    val['@direction'] = direction
                 rval.append(val)
         return rval
 
