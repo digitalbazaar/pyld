@@ -2640,9 +2640,8 @@ class JsonLdProcessor(object):
             # convert expanded value to @graph
             if ('@graph' in container and
                     '@id' not in container and
-                    '@index' not in container and
-                    not _is_graph(expanded_value)):
-                expanded_value = {'@graph': JsonLdProcessor.arrayify(expanded_value)}
+                    '@index' not in container):
+                expanded_value = [{'@graph': [v]} for v in JsonLdProcessor.arrayify(expanded_value)]
 
             # merge in reverse properties
             mapping = term_ctx['mappings'].get(key)
