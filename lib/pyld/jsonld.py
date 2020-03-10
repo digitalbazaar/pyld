@@ -4719,7 +4719,7 @@ class JsonLdProcessor(object):
                 {'context': local_ctx}, code='invalid term definition')
 
         # create new mapping
-        mapping = active_ctx['mappings'][term] = {'reverse': False, 'protected': False}
+        mapping = {'reverse': False, 'protected': False}
 
         # make sure term definition only has expected keywords
         valid_keys = ['@container', '@id', '@language', '@reverse', '@type']
@@ -4761,7 +4761,7 @@ class JsonLdProcessor(object):
 
                 if previous_mapping:
                     active_ctx['mappings'][term] = previous_mapping
-                else:
+                elif term in active_ctx['mappings']:
                     del active_ctx['mappings'][term]
 
                 return
@@ -4796,7 +4796,7 @@ class JsonLdProcessor(object):
 
                 if previous_mapping:
                     active_ctx['mappings'][term] = previous_mapping
-                else:
+                elif term in active_ctx['mappings']:
                     del active_ctx['mappings'][term]
 
                 return
@@ -4813,7 +4813,7 @@ class JsonLdProcessor(object):
                         {'context': local_ctx}, code='invalid IRI mapping')
 
                 # if term has the form of an IRI it must map the same
-                if re.match(r'(?::[^:])|\/', term):
+                if re.match(r'.*(?::[^:])|\/', term):
                     updated_defined = defined.copy()
                     updated_defined.update({term: True})
                     term_iri = self._expand_iri(
@@ -4865,9 +4865,6 @@ class JsonLdProcessor(object):
         if (value.get('@protected') or
             (defined.get('@protected') and value.get('@protected') != False)):
             mapping['protected'] = True
-
-        # IRI mapping now defined
-        defined[term] = True
 
         if '@type' in value:
             type_ = value['@type']
@@ -5080,6 +5077,10 @@ class JsonLdProcessor(object):
                     'Invalid JSON-LD syntax; tried to redefine a protected term.',
                     'jsonld.SyntaxError',
                     {'context': local_ctx}, code='protected term redefinition')
+
+        # IRI mapping now defined
+        active_ctx['mappings'][term] = mapping
+        defined[term] = True
 
 
     def _expand_iri(
