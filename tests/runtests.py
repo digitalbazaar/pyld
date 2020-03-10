@@ -660,9 +660,6 @@ TEST_TYPES = {
                 # @propogate
                 '.*expand-manifest.jsonld#tc027$',
                 '.*expand-manifest.jsonld#tc028$',
-                # misc
-                '.*expand-manifest.jsonld#te043$',
-                '.*expand-manifest.jsonld#te044$',
                 # vocab iri/term
                 '.*expand-manifest.jsonld#te048$',
                 # included
