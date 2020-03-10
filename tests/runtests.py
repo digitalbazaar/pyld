@@ -575,11 +575,8 @@ TEST_TYPES = {
                 # @propogate
                 '.*compact-manifest.jsonld#tc027$',
                 # @direction
-                '.*compact-manifest.jsonld#tdi01$',
                 '.*compact-manifest.jsonld#tdi02$',
                 '.*compact-manifest.jsonld#tdi03$',
-                '.*compact-manifest.jsonld#tdi05$',
-                '.*compact-manifest.jsonld#tdi06$',
                 '.*compact-manifest.jsonld#tdi07$',
                 # IRI confusion
                 '.*compact-manifest.jsonld#te002$',
@@ -688,14 +685,6 @@ TEST_TYPES = {
                 # @propogate
                 '.*expand-manifest.jsonld#tc027$',
                 '.*expand-manifest.jsonld#tc028$',
-                # text direction
-                '.*expand-manifest.jsonld#tdi01$',
-                '.*expand-manifest.jsonld#tdi02$',
-                '.*expand-manifest.jsonld#tdi04$',
-                '.*expand-manifest.jsonld#tdi05$',
-                '.*expand-manifest.jsonld#tdi06$',
-                '.*expand-manifest.jsonld#tdi07$',
-                '.*expand-manifest.jsonld#tdi08$',
                 # misc
                 '.*expand-manifest.jsonld#te043$',
                 '.*expand-manifest.jsonld#te044$',
@@ -1024,7 +1013,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tdi05$',
                 '.*toRdf-manifest.jsonld#tdi06$',
                 '.*toRdf-manifest.jsonld#tdi07$',
-                '.*toRdf-manifest.jsonld#tdi08$',
                 '.*toRdf-manifest.jsonld#tdi09$',
                 '.*toRdf-manifest.jsonld#tdi10$',
                 '.*toRdf-manifest.jsonld#tdi11$',
