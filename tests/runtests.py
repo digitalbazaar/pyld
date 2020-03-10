@@ -717,19 +717,6 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tjs20$',
                 '.*expand-manifest.jsonld#tjs21$',
                 '.*expand-manifest.jsonld#tjs23$',
-                # list of lists
-                '.*expand-manifest.jsonld#tli01$',
-                '.*expand-manifest.jsonld#tli02$',
-                '.*expand-manifest.jsonld#tli03$',
-                '.*expand-manifest.jsonld#tli04$',
-                '.*expand-manifest.jsonld#tli05$',
-                '.*expand-manifest.jsonld#tli06$',
-                '.*expand-manifest.jsonld#tli07$',
-                '.*expand-manifest.jsonld#tli08$',
-                '.*expand-manifest.jsonld#tli09$',
-                '.*expand-manifest.jsonld#tli10$',
-                # @container: @id/@type
-                '.*expand-manifest.jsonld#tm000$',
                 ## property index maps
                 '.*expand-manifest.jsonld#tpi07$',
                 '.*expand-manifest.jsonld#tpi09$',
