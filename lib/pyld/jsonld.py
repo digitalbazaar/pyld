@@ -3698,7 +3698,7 @@ class JsonLdProcessor(object):
                     merged[id_] = {'@id': id}
                 merged_node = merged[id_]
                 for property, values in sorted(node.items()):
-                    if _is_keyword(property):
+                    if property != '@type' and _is_keyword(property):
                         # copy keywords
                         merged_node[property] = copy.deepcopy(values)
                     else:
