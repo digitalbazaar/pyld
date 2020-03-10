@@ -804,6 +804,7 @@ TEST_TYPES = {
                 '.*frame-manifest.jsonld#t0065$',
                 '.*frame-manifest.jsonld#t0066$',
                 '.*frame-manifest.jsonld#t0067$',
+                '.*frame-manifest.jsonld#t0068$',
                 # misc
                 #'.*frame-manifest.jsonld#tp010$',
                 '.*frame-manifest.jsonld#teo01$',
