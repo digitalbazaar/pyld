@@ -552,13 +552,12 @@ TEST_TYPES = {
     'jld:CompactTest': {
         'pending': {
             'idRegex': [
-                # rel iri
-                '.*compact-manifest.jsonld#t0095$',
                 # type set
                 '.*compact-manifest.jsonld#t0104$',
                 '.*compact-manifest.jsonld#t0105$',
-                # rel vocab
-                '.*compact-manifest.jsonld#t0107$',
+                # @container: @graph with multiple objects
+                '.*compact-manifest.jsonld#t0109$',
+                '.*compact-manifest.jsonld#t0110$',
                 # scoped context on @type
                 '.*compact-manifest.jsonld#tc009$',
                 '.*compact-manifest.jsonld#tc012$',
@@ -577,9 +576,6 @@ TEST_TYPES = {
                 '.*compact-manifest.jsonld#tdi07$',
                 # IRI confusion
                 '.*compact-manifest.jsonld#te002$',
-                # @container: @graph with multiple objects
-                '.*compact-manifest.jsonld#t0109$',
-                '.*compact-manifest.jsonld#t0110$',
                 # included
                 '.*compact-manifest.jsonld#tin01$',
                 '.*compact-manifest.jsonld#tin02$',
@@ -647,14 +643,8 @@ TEST_TYPES = {
     'jld:ExpandTest': {
         'pending': {
             'idRegex': [
-                ## rel iri
-                '.*expand-manifest.jsonld#t0092$',
                 ## iris
                 '.*expand-manifest.jsonld#t0109$',
-                # rel vocab
-                '.*expand-manifest.jsonld#t0110$',
-                '.*expand-manifest.jsonld#t0111$',
-                '.*expand-manifest.jsonld#t0112$',
                 # invalid iris
                 '.*expand-manifest.jsonld#t0123$',
                 # scoped context
@@ -674,8 +664,6 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#te043$',
                 '.*expand-manifest.jsonld#te044$',
                 # vocab iri/term
-                '.*expand-manifest.jsonld#te046$',
-                '.*expand-manifest.jsonld#te047$',
                 '.*expand-manifest.jsonld#te048$',
                 # included
                 '.*expand-manifest.jsonld#tin06$',

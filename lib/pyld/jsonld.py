@@ -3073,14 +3073,14 @@ class JsonLdProcessor(object):
                         '@context must be a string or null.',
                         'jsonld.SyntaxError', {'context': ctx},
                         code='invalid vocab mapping')
-                elif not _is_absolute_iri(value):
+                elif not _is_absolute_iri(value) and rval['processingMode'] == 'json-ld-1.0':
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; the value of "@vocab" in a '
                         '@context must be an absolute IRI.',
                         'jsonld.SyntaxError', {'context': ctx},
                         code='invalid vocab mapping')
                 else:
-                    rval['@vocab'] = value
+                    rval['@vocab'] = self._expand_iri(rval, value, vocab=True, base=True)
                 defined['@vocab'] = True
 
             # handle @language
