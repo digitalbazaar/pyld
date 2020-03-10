@@ -2143,12 +2143,8 @@ class JsonLdProcessor(object):
                     inside_list=inside_list,
                     inside_index=inside_index,
                     type_scoped_ctx=type_scoped_ctx)
-                if inside_list and (_is_array(e) or _is_list(e)):
-                    # lists of lists are illegal
-                    raise JsonLdError(
-                        'Invalid JSON-LD syntax; lists of lists are not '
-                        'permitted.', 'jsonld.SyntaxError',
-                        code='list of lists')
+                if inside_list and _is_array(e):
+                    e = {'@list': e}
                 # drop None values
                 if e is not None:
                     if _is_array(e):
@@ -2617,11 +2613,6 @@ class JsonLdProcessor(object):
                     expanded_value = self._expand(
                         term_ctx, next_active_property, value, options,
                         inside_list=is_list)
-                    if is_list and _is_list(expanded_value):
-                        raise JsonLdError(
-                            'Invalid JSON-LD syntax; lists of lists are '
-                            'not permitted.', 'jsonld.SyntaxError',
-                            code='list of lists')
                 elif JsonLdProcessor.get_context_value(active_ctx, key, '@type') == '@json':
                     expanded_value = {
                         '@type': '@json',
