@@ -2463,11 +2463,6 @@ class JsonLdProcessor(object):
             # @value must not be an object or an array
             if expanded_property == '@value':
                 unexpanded_value = value
-                if (_is_object(value) or _is_array(value)) and not options['isFrame']:
-                    raise JsonLdError(
-                        'Invalid JSON-LD syntax; "@value" value must not be an '
-                        'object or an array.', 'jsonld.SyntaxError',
-                        {'value': value}, code='invalid value object value')
                 if is_json_type and self._processing_mode(active_ctx, 1.1):
                     expanded_parent['@value'] = value
                 else:
@@ -4873,11 +4868,11 @@ class JsonLdProcessor(object):
                     'Invalid JSON-LD syntax; @context @type value must be '
                     'a string.', 'jsonld.SyntaxError',
                     {'context': local_ctx}, code='invalid type mapping')
-            if type == '@json' or type == '@none':
+            if type_ == '@json' or type_ == '@none':
                 if self._processing_mode(active_ctx, 1.0):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; an @context @type value must not be ' +
-                        type +
+                        type_ +
                         ' in JSON-LD 1.0 mode.', 'jsonld.SyntaxError',
                         {'context': local_ctx}, code='invalid type mapping')
             elif type_ != '@id' and type_ != '@vocab':

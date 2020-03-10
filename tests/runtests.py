@@ -582,18 +582,6 @@ TEST_TYPES = {
                 '.*compact-manifest.jsonld#tin03$',
                 '.*compact-manifest.jsonld#tin04$',
                 '.*compact-manifest.jsonld#tin05$',
-                # JSON literals
-                '.*compact-manifest.jsonld#tjs01$',
-                '.*compact-manifest.jsonld#tjs02$',
-                '.*compact-manifest.jsonld#tjs03$',
-                '.*compact-manifest.jsonld#tjs04$',
-                '.*compact-manifest.jsonld#tjs05$',
-                '.*compact-manifest.jsonld#tjs06$',
-                '.*compact-manifest.jsonld#tjs07$',
-                '.*compact-manifest.jsonld#tjs08$',
-                '.*compact-manifest.jsonld#tjs09$',
-                '.*compact-manifest.jsonld#tjs10$',
-                '.*compact-manifest.jsonld#tjs11$',
                 # list of lists
                 '.*compact-manifest.jsonld#tli01$',
                 '.*compact-manifest.jsonld#tli02$',
@@ -658,29 +646,8 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tc028$',
                 # included
                 '.*expand-manifest.jsonld#tin06$',
-                # @json
-                '.*expand-manifest.jsonld#tjs01$',
-                '.*expand-manifest.jsonld#tjs02$',
-                '.*expand-manifest.jsonld#tjs03$',
-                '.*expand-manifest.jsonld#tjs04$',
-                '.*expand-manifest.jsonld#tjs05$',
-                '.*expand-manifest.jsonld#tjs06$',
-                '.*expand-manifest.jsonld#tjs07$',
-                '.*expand-manifest.jsonld#tjs08$',
-                '.*expand-manifest.jsonld#tjs09$',
-                '.*expand-manifest.jsonld#tjs10$',
-                '.*expand-manifest.jsonld#tjs11$',
-                '.*expand-manifest.jsonld#tjs12$',
-                '.*expand-manifest.jsonld#tjs13$',
-                '.*expand-manifest.jsonld#tjs14$',
-                '.*expand-manifest.jsonld#tjs15$',
-                '.*expand-manifest.jsonld#tjs16$',
-                '.*expand-manifest.jsonld#tjs17$',
-                '.*expand-manifest.jsonld#tjs18$',
-                '.*expand-manifest.jsonld#tjs19$',
-                '.*expand-manifest.jsonld#tjs20$',
+                # loading remote context fails
                 '.*expand-manifest.jsonld#tjs21$',
-                '.*expand-manifest.jsonld#tjs23$',
                 ## property index maps
                 '.*expand-manifest.jsonld#tpi07$',
                 '.*expand-manifest.jsonld#tpi09$',
@@ -704,8 +671,6 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tso12$',
                 # context merging
                 '.*expand-manifest.jsonld#tso13$',
-                # @type: @none
-                '.*expand-manifest.jsonld#ttn02$',
 
                 ## html
                 '.*html-manifest.jsonld#te001$',
