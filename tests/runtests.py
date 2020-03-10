@@ -578,7 +578,6 @@ TEST_TYPES = {
                 '.*compact-manifest.jsonld#tdi01$',
                 '.*compact-manifest.jsonld#tdi02$',
                 '.*compact-manifest.jsonld#tdi03$',
-                '.*compact-manifest.jsonld#tdi04$',
                 '.*compact-manifest.jsonld#tdi05$',
                 '.*compact-manifest.jsonld#tdi06$',
                 '.*compact-manifest.jsonld#tdi07$',
@@ -676,8 +675,6 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#t0112$',
                 # invalid iris
                 '.*expand-manifest.jsonld#t0123$',
-                # colliding keywords
-                '.*expand-manifest.jsonld#t0114$',
                 # scoped context
                 '.*expand-manifest.jsonld#tc009$',
                 '.*expand-manifest.jsonld#tc011$',
@@ -707,11 +704,7 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#te047$',
                 '.*expand-manifest.jsonld#te048$',
                 # included
-                '.*expand-manifest.jsonld#tin03$',
                 '.*expand-manifest.jsonld#tin06$',
-                '.*expand-manifest.jsonld#tin07$',
-                '.*expand-manifest.jsonld#tin08$',
-                '.*expand-manifest.jsonld#tin09$',
                 # @json
                 '.*expand-manifest.jsonld#tjs01$',
                 '.*expand-manifest.jsonld#tjs02$',
@@ -734,7 +727,6 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tjs19$',
                 '.*expand-manifest.jsonld#tjs20$',
                 '.*expand-manifest.jsonld#tjs21$',
-                '.*expand-manifest.jsonld#tjs22$',
                 '.*expand-manifest.jsonld#tjs23$',
                 # list of lists
                 '.*expand-manifest.jsonld#tli01$',
@@ -749,8 +741,6 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tli10$',
                 # @container: @id/@type
                 '.*expand-manifest.jsonld#tm000$',
-                # @nest
-                '.*expand-manifest.jsonld#tn008$',
                 ## property index maps
                 '.*expand-manifest.jsonld#tpi05$',
                 '.*expand-manifest.jsonld#tpi06$',
@@ -1083,8 +1073,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#te110$',
                 '.*toRdf-manifest.jsonld#te111$',
                 '.*toRdf-manifest.jsonld#te112$',
-                # colliding keyword
-                '.*toRdf-manifest.jsonld#te114$',
                 # included
                 '.*toRdf-manifest.jsonld#tin01$',
                 '.*toRdf-manifest.jsonld#tin02$',
@@ -1140,7 +1128,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tn005$',
                 '.*toRdf-manifest.jsonld#tn006$',
                 '.*toRdf-manifest.jsonld#tn007$',
-                '.*toRdf-manifest.jsonld#tn008$',
                 # processing
                 '.*toRdf-manifest.jsonld#tp002$',
                 '.*toRdf-manifest.jsonld#tp003$',
