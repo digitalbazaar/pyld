@@ -552,9 +552,6 @@ TEST_TYPES = {
     'jld:CompactTest': {
         'pending': {
             'idRegex': [
-                # @graph
-                '.*compact-manifest.jsonld#t0092$',
-                '.*compact-manifest.jsonld#t0093$',
                 # rel iri
                 '.*compact-manifest.jsonld#t0095$',
                 # type set
@@ -650,20 +647,8 @@ TEST_TYPES = {
     'jld:ExpandTest': {
         'pending': {
             'idRegex': [
-                # Don't double-expand an already expanded graph
-                '.*expand-manifest.jsonld#t0081$',
                 ## rel iri
                 '.*expand-manifest.jsonld#t0092$',
-                # @graph container
-                '.*expand-manifest.jsonld#t0093$',
-                '.*expand-manifest.jsonld#t0094$',
-                # Double-expand an already expanded graph
-                '.*expand-manifest.jsonld#t0095$',
-                # indexed graph objects
-                '.*expand-manifest.jsonld#t0102$',
-                # multiple graphs
-                '.*expand-manifest.jsonld#t0103$',
-                '.*expand-manifest.jsonld#t0104$',
                 ## iris
                 '.*expand-manifest.jsonld#t0109$',
                 # rel vocab
@@ -1011,35 +996,32 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#te078$',
                 # graph containers
                 '.*toRdf-manifest.jsonld#te079$',
-                '.*toRdf-manifest.jsonld#te081$',
                 '.*toRdf-manifest.jsonld#te085$',
                 '.*toRdf-manifest.jsonld#te086$',
                 '.*toRdf-manifest.jsonld#te087$',
                 '.*toRdf-manifest.jsonld#te088$',
-                '.*toRdf-manifest.jsonld#te105$',
-                '.*toRdf-manifest.jsonld#te106$',
-                '.*toRdf-manifest.jsonld#te118$',
-                '.*toRdf-manifest.jsonld#te121$',
-                '.*toRdf-manifest.jsonld#te122$',
-                '.*toRdf-manifest.jsonld#te123$',
+                ## rel IRI
+                '.*toRdf-manifest.jsonld#te092$',
+                # Does not create a new graph object
                 '.*toRdf-manifest.jsonld#te093$',
                 '.*toRdf-manifest.jsonld#te094$',
-                '.*toRdf-manifest.jsonld#te095$',
                 '.*toRdf-manifest.jsonld#te096$',
                 '.*toRdf-manifest.jsonld#te097$',
                 '.*toRdf-manifest.jsonld#te098$',
                 '.*toRdf-manifest.jsonld#te099$',
                 '.*toRdf-manifest.jsonld#te100$',
                 '.*toRdf-manifest.jsonld#te101$',
+                '.*toRdf-manifest.jsonld#te104$',
+                '.*toRdf-manifest.jsonld#te105$',
+                '.*toRdf-manifest.jsonld#te106$',
+                '.*toRdf-manifest.jsonld#te118$',
+                '.*toRdf-manifest.jsonld#te121$',
+                '.*toRdf-manifest.jsonld#te122$',
+                '.*toRdf-manifest.jsonld#te123$',
                 '.*toRdf-manifest.jsonld#te107$',
                 '.*toRdf-manifest.jsonld#te108$',
-                ## rel IRI
-                '.*toRdf-manifest.jsonld#te092$',
-                # Does not create a new graph object
-                '.*toRdf-manifest.jsonld#te102$',
-                '.*toRdf-manifest.jsonld#te103$',
-                '.*toRdf-manifest.jsonld#te104$',
                 '.*toRdf-manifest.jsonld#te109$',
+                # rel vocab
                 '.*toRdf-manifest.jsonld#te110$',
                 '.*toRdf-manifest.jsonld#te111$',
                 '.*toRdf-manifest.jsonld#te112$',
