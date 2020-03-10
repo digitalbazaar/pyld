@@ -4813,7 +4813,7 @@ class JsonLdProcessor(object):
                         {'context': local_ctx}, code='invalid IRI mapping')
 
                 # if term has the form of an IRI it must map the same
-                if re.match(r'.*(?::[^:])|\/', term):
+                if re.match(r'.*((:[^:])|/)', term):
                     updated_defined = defined.copy()
                     updated_defined.update({term: True})
                     term_iri = self._expand_iri(
