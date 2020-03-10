@@ -885,7 +885,8 @@ class JsonLdProcessor(object):
                 active_ctx, remote_context, options)
 
         # do expansion
-        expanded = self._expand(active_ctx, None, document, options, False)
+        expanded = self._expand(active_ctx, None, document, options,
+            inside_list=False)
 
         # optimize away @graph with no other properties
         if (_is_object(expanded) and '@graph' in expanded and
@@ -2093,7 +2094,10 @@ class JsonLdProcessor(object):
         return element
 
     def _expand(
-            self, active_ctx, active_property, element, options, inside_list):
+            self, active_ctx, active_property, element, options,
+            inside_list=False,
+            inside_index=False,
+            type_scoped_ctx=None):
         """
         Recursively expands an element using the given context. Any context in
         the element will be removed. All context URLs must have been retrieved
@@ -2104,6 +2108,11 @@ class JsonLdProcessor(object):
         :param element: the element to expand.
         :param options: the expansion options.
         :param inside_list: True if the property is a list, False if not.
+        :param inside_index: True if the element is inside an index container,
+            False if not.
+        :param type_scoped_ctx: an optional type-scoped active context for
+            expanding values of nodes that were expressed according to
+            a type-scoped context.
 
         :return: the expanded value.
         """
@@ -2126,7 +2135,10 @@ class JsonLdProcessor(object):
             for e in element:
                 # expand element
                 e = self._expand(
-                    active_ctx, active_property, e, options, inside_list)
+                    active_ctx, active_property, e, options,
+                    inside_list=inside_list,
+                    inside_index=inside_index,
+                    type_scoped_ctx=type_scoped_ctx)
                 if inside_list and (_is_array(e) or _is_list(e)):
                     # lists of lists are illegal
                     raise JsonLdError(
@@ -2152,45 +2164,91 @@ class JsonLdProcessor(object):
             # expand element according to value expansion rules
             return self._expand_value(active_ctx, active_property, element)
 
+        # expand the active property
+        expanded_active_property = self._expand_iri(
+            active_ctx, active_property, vocab=True)
+
+        # get any property-scoped context for activeProperty
+        property_scoped_ctx = JsonLdProcessor.get_context_value(
+            active_ctx, active_property, '@context')
+        
+        # second, determine if any type-scoped context should be reverted; it
+        # should only be reverted when the following are all true:
+        # 1. `element` is not a value or subject reference
+        # 2. `insideIndex` is false
+        if not type_scoped_ctx and active_ctx.get('previousContext'):
+            type_scoped_ctx = active_ctx
+
+        must_revert = not inside_index
+        if (must_revert and type_scoped_ctx and
+            len(element) <= 2 and '@context' not in element):
+            for key, value in sorted(element.items()):
+                expanded_property = self._expand_iri(
+                    type_scoped_ctx, key, vocab=True)
+                if expanded_property == '@value':
+                    # value found, ensure type-scoped context is used to expand it
+                    must_revert = False
+                    active_ctx = type_scoped_ctx
+                    break
+                if expanded_property == '@id' and len(element) == 1:
+                    # subject reference found, do not revert
+                    must_revert = False
+                    break
+        
+        if must_revert:
+            active_ctx = active_ctx.get('previousContext', active_ctx)
+        
+        # apply property-scoped context after reverting term-scoped context
+        if property_scoped_ctx:
+            active_ctx = self._process_context(
+                active_ctx, property_scoped_ctx, options)
+
         # recursively expand object
         # if element has a context, process it
         if '@context' in element:
             active_ctx = self._process_context(
                 active_ctx, element['@context'], options)
 
+        # set the type-scoped context to the context on input, for use later
+        type_scoped_ctx = active_ctx
+
+        # Remember the first key found expanding to @type
+        type_key = None
+
         # look for scoped context on @type
         for key, value in sorted(element.items()):
             expanded_property = self._expand_iri(
                 active_ctx, key, vocab=True)
             if expanded_property == '@type':
+                if not type_key:
+                    type_key = key
                 # set scoped contexts from @type
                 types = [t for t in JsonLdProcessor.arrayify(element[key]) if _is_string(t)]
                 for type_ in types:
                     ctx = JsonLdProcessor.get_context_value(
-                        active_ctx, type_, '@context')
+                        type_scoped_ctx, type_, '@context')
                     if ctx:
                         active_ctx = self._process_context(
-                            active_ctx, ctx, options)
-
-        # expand the active property
-        expanded_active_property = self._expand_iri(
-            active_ctx, active_property, vocab=True)
+                            active_ctx, ctx, options, propagate=False)
 
         # process each key and value in element, ignoring @nest content
         rval = {}
         self._expand_object(
             active_ctx, active_property, expanded_active_property,
-            element, rval, options, inside_list)
+            element, rval, options,
+            inside_list,
+            type_key,
+            type_scoped_ctx)
 
         # get property count on expanded output
         count = len(rval)
 
         if '@value' in rval:
             # @value must only have @language or @type
-            if '@type' in rval and '@language' in rval:
+            if '@type' in rval and ('@language' in rval or '@direction' in rval):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; an element containing '
-                    '"@value" may not contain both "@type" and "@language".',
+                    '"@value" may not contain both "@type" and either "@language" or "@direction".',
                     'jsonld.SyntaxError', {'element': rval},
                     code='invalid value object')
             valid_count = count - 1
@@ -2199,6 +2257,8 @@ class JsonLdProcessor(object):
             if '@index' in rval:
                 valid_count -= 1
             if '@language' in rval:
+                valid_count -= 1
+            if '@direction' in rval:
                 valid_count -= 1
             if valid_count != 0:
                 raise JsonLdError(
@@ -2212,7 +2272,10 @@ class JsonLdProcessor(object):
             types = JsonLdProcessor.get_values(rval, '@type')
 
             # drop None @values
-            if rval['@value'] is None:
+            if self._processing_mode(active_ctx, 1.1) and '@json' in types and len(types) == 1:
+                # any @value is okay if @type: @json
+                rval = rval
+            elif rval['@value'] is None:
                 rval = None
             # if @language is present, @value must be a string
             elif '@language' in rval and not all(_is_string(val) or _is_empty_object(val) for val in values):
@@ -2265,7 +2328,10 @@ class JsonLdProcessor(object):
 
     def _expand_object(
             self, active_ctx, active_property, expanded_active_property,
-            element, expanded_parent, options, inside_list):
+            element, expanded_parent, options,
+            inside_list=False,
+            type_key=None,
+            type_scoped_ctx=None):
         """
         Expand each key and value of element adding to result.
 
@@ -2281,6 +2347,17 @@ class JsonLdProcessor(object):
         """
 
         nests = []
+        unexpanded_value = None
+        is_json_type = False
+
+        if type_key in element:
+            if _is_array(element[type_key]):
+                t = element[type_key][0]
+            else:
+                t = element[type_key]
+            is_json_type = self._expand_iri(
+                active_ctx, t, vocab=True) == '@json'
+
         for key, value in sorted(element.items()):
             if key == '@context':
                 continue
@@ -2303,7 +2380,9 @@ class JsonLdProcessor(object):
                         'a @reverse property.',
                         'jsonld.SyntaxError', {'value': value},
                         code='invalid reverse property map')
-                if expanded_property in expanded_parent:
+                if (expanded_property in expanded_parent and
+                    expanded_property != '@included' and
+                    expanded_property != '@type'):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; colliding keywords detected.',
                         'jsonld.SyntaxError', {'keyword': expanded_property},
@@ -2355,6 +2434,24 @@ class JsonLdProcessor(object):
                     {'propertyIsArray': options['isFrame']})
                 continue
 
+            # Included blocks are treated as an array of separate object nodes sharing
+            # the same referencing active_property.
+            # For 1.0, it is skipped as are other unknown keywords
+            if (expanded_property == '@included' and
+                self._processing_mode(active_ctx, 1.1)):
+                included_result = JsonLdProcessor.arrayify(
+                    self._expand(active_ctx, active_property, value, options))
+                if not all(_is_subject(v) for v in included_result):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; "values of @included '
+                        'must expand to node objects.',
+                        'jsonld.SyntaxError',
+                        {'value': value}, code='invalid @included value')
+                JsonLdProcessor.add_value(
+                    expanded_parent, '@included', included_result,
+                    {'propertyIsArray': True})
+                continue
+
             # @graph must be an array or an object
             if (expanded_property == '@graph' and
                     not (_is_object(value) or _is_array(value))):
@@ -2365,14 +2462,18 @@ class JsonLdProcessor(object):
 
             # @value must not be an object or an array
             if expanded_property == '@value':
+                unexpanded_value = value
                 if (_is_object(value) or _is_array(value)) and not options['isFrame']:
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; "@value" value must not be an '
                         'object or an array.', 'jsonld.SyntaxError',
                         {'value': value}, code='invalid value object value')
-                JsonLdProcessor.add_value(
-                    expanded_parent, '@value', value,
-                    {'propertyIsArray': options['isFrame']})
+                if is_json_type and self._processing_mode(active_ctx, 1.1):
+                    expanded_parent['@value'] = value
+                else:
+                    JsonLdProcessor.add_value(
+                        expanded_parent, '@value', value,
+                        {'propertyIsArray': options['isFrame']})
                 continue
 
             # @language must be a string
@@ -2395,6 +2496,25 @@ class JsonLdProcessor(object):
                     {'propertyIsArray': options['isFrame']})
                 continue
 
+            # @direction must be "ltr" or "rtl"
+            if expanded_property == '@direction':
+                if not _is_string(value) and not options['isFrame']:
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; "@direction" value must be '
+                        'a string.', 'jsonld.SyntaxError', {'value': value},
+                        code='invalid base direction')
+                value = JsonLdProcessor.arrayify(value)
+                for dir in value:
+                    if _is_string(dir) and dir != 'ltr' and dir != 'rtl':
+                        raise JsonLdError(
+                            'Invalid JSON-LD syntax; "@direction" must be "ltr" or "rtl".',
+                            'jsonld.SyntaxError', {'value': value},
+                            code='invalid base direction')
+                JsonLdProcessor.add_value(
+                    expanded_parent, '@direction', value,
+                    {'propertyIsArray': options['isFrame']})
+                continue
+
             # @index must be a string
             if expanded_property == '@index':
                 if not _is_string(value):
@@ -2414,7 +2534,8 @@ class JsonLdProcessor(object):
                         code='invalid @reverse value')
 
                 expanded_value = self._expand(
-                    active_ctx, '@reverse', value, options, inside_list)
+                    active_ctx, '@reverse', value, options,
+                    inside_list=inside_list)
 
                 # properties double-reversed
                 if '@reverse' in expanded_value:
@@ -2482,16 +2603,22 @@ class JsonLdProcessor(object):
                         next_active_property = None
                     expanded_value = self._expand(
                         term_ctx, next_active_property, value, options,
-                        is_list)
+                        inside_list=is_list)
                     if is_list and _is_list(expanded_value):
                         raise JsonLdError(
                             'Invalid JSON-LD syntax; lists of lists are '
                             'not permitted.', 'jsonld.SyntaxError',
                             code='list of lists')
+                elif JsonLdProcessor.get_context_value(active_ctx, key, '@type') == '@json':
+                    expanded_value = {
+                        '@type': '@json',
+                        '@value': value
+                    }
                 else:
                     # recursively expand value w/key as new active property
                     expanded_value = self._expand(
-                        term_ctx, key, value, options, inside_list=False)
+                        term_ctx, key, value, options,
+                        inside_list=False)
 
             # drop None values if property is not @value (dropped below)
             if expanded_value is None and expanded_property != '@value':
@@ -2538,6 +2665,21 @@ class JsonLdProcessor(object):
                 expanded_parent, expanded_property, expanded_value,
                 {'propertyIsArray': use_array})
 
+        # @value must not be an object or an array (unless framing)
+        # or if @type is @json
+        if '@value' in expanded_parent:
+            if expanded_parent.get('@type') == '@json' and self._processing_mode(active_ctx, 1.1):
+                # allow any value, to be verified when the object
+                # is fully expanded and the @type is @json.
+                None
+            elif (_is_object(unexpanded_value) or _is_array(unexpanded_value) and
+                not options['isFrame']):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; @value" value must not be an '
+                    'object or an array.',
+                    'jsonld.SyntaxError', {'value': unexpanded_value},
+                    code='invalid value object value')
+
         # expand each nested key
         for key in nests:
             for nv in JsonLdProcessor.arrayify(element[key]):
@@ -2549,7 +2691,10 @@ class JsonLdProcessor(object):
                         code='invalid @nest value')
                 self._expand_object(
                     active_ctx, active_property, expanded_active_property,
-                    nv, expanded_parent, options, inside_list)
+                    nv, expanded_parent, options,
+                    inside_list=inside_list,
+                    type_key=type_key,
+                    type_scoped_ctx=type_scoped_ctx)
 
     def _flatten(self, input):
         """
@@ -6149,7 +6294,8 @@ class ActiveContextCache(object):
     def set(self, active_ctx, local_ctx, result):
         if len(self.order) == self.size:
             entry = self.order.popleft()
-            del self.cache[entry['activeCtx']][entry['localCtx']]
+            if (entry['localCtx'] in self.cache[entry['activeCtx']]):
+                del self.cache[entry['activeCtx']][entry['localCtx']]
         key1 = json.dumps(active_ctx)
         key2 = json.dumps(local_ctx)
         self.order.append({'activeCtx': key1, 'localCtx': key2})
