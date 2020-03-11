@@ -663,10 +663,7 @@ TEST_TYPES = {
                 # @import should be "invalid context entry" not "recursive context inclusion"
                 '.*expand-manifest.jsonld#tso01$',
                 '.*expand-manifest.jsonld#tso03$',
-                # @import should be "invalid context entry" not "recursive context inclusion"
                 '.*expand-manifest.jsonld#tso12$',
-                # context merging
-                '.*expand-manifest.jsonld#tso13$',
 
                 ## html
                 '.*html-manifest.jsonld#te001$',
@@ -902,7 +899,7 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tdi10$',
                 '.*toRdf-manifest.jsonld#tdi11$',
                 '.*toRdf-manifest.jsonld#tdi12$',
-                # @vocab mapping
+                # blank node property
                 '.*toRdf-manifest.jsonld#te075$',
                 # Does not create a new graph object
                 '.*toRdf-manifest.jsonld#te122$',
@@ -945,12 +942,10 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tli02$',
                 # number fixes
                 '.*toRdf-manifest.jsonld#trt01$',
-                # @import
+                # @import should be "invalid context entry" not "recursive context inclusion"
                 '.*toRdf-manifest.jsonld#tso01$',
                 '.*toRdf-manifest.jsonld#tso03$',
-                # context merging
                 '.*toRdf-manifest.jsonld#tso12$',
-                '.*toRdf-manifest.jsonld#tso13$',
                 # type:none
                 '.*toRdf-manifest.jsonld#ttn02$',
                 # well formed
