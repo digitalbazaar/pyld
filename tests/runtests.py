@@ -284,7 +284,25 @@ class Test(unittest.TestCase):
             result = getattr(jsonld, fn)(*params)
             if self.is_negative and not self.pending:
                 raise AssertionError('Expected an error; one was not raised')
-            self.assertEqual(result, expect)
+            if self.test_type == 'jld:ToRDFTest':
+                # Test normalized results
+                result = jsonld.normalize(result, {
+                    'algorithm': 'URGNA2012',
+                    'inputFormat': 'application/n-quads',
+                    'format': 'application/n-quads'
+                })
+                expect = jsonld.normalize(expect, {
+                    'algorithm': 'URGNA2012',
+                    'inputFormat': 'application/n-quads',
+                    'format': 'application/n-quads'
+                })
+                self.assertEqual(result, expect)
+            elif not self.is_negative:
+                # Perform order-independent equivalence test
+                # XXX
+                self.assertEqual(result, expect)
+            else:
+                self.assertEqual(result, expect)
             if self.pending and not self.is_negative:
                 raise AssertionError('pending positive test passed')
         except AssertionError as e:
@@ -903,7 +921,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#t0132$',
                 # misc
                 '.*toRdf-manifest.jsonld#tc009$',
-                '.*toRdf-manifest.jsonld#tc010$',
                 '.*toRdf-manifest.jsonld#tc011$',
                 '.*toRdf-manifest.jsonld#tc013$',
                 '.*toRdf-manifest.jsonld#tc014$',
@@ -911,62 +928,19 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tc016$',
                 '.*toRdf-manifest.jsonld#tc017$',
                 '.*toRdf-manifest.jsonld#tc018$',
-                '.*toRdf-manifest.jsonld#tc019$',
-                '.*toRdf-manifest.jsonld#tc020$',
                 '.*toRdf-manifest.jsonld#tc021$',
-                '.*toRdf-manifest.jsonld#tc024$',
                 '.*toRdf-manifest.jsonld#tc027$',
                 '.*toRdf-manifest.jsonld#tc028$',
                 # direction
-                '.*toRdf-manifest.jsonld#tdi01$',
-                '.*toRdf-manifest.jsonld#tdi02$',
-                '.*toRdf-manifest.jsonld#tdi03$',
-                '.*toRdf-manifest.jsonld#tdi04$',
-                '.*toRdf-manifest.jsonld#tdi05$',
-                '.*toRdf-manifest.jsonld#tdi06$',
-                '.*toRdf-manifest.jsonld#tdi07$',
                 '.*toRdf-manifest.jsonld#tdi09$',
                 '.*toRdf-manifest.jsonld#tdi10$',
                 '.*toRdf-manifest.jsonld#tdi11$',
                 '.*toRdf-manifest.jsonld#tdi12$',
-                ## errors
-                '.*toRdf-manifest.jsonld#te029$',
-                '.*toRdf-manifest.jsonld#te060$',
-                '.*toRdf-manifest.jsonld#te066$',
-                '.*toRdf-manifest.jsonld#te073$',
                 # @vocab mapping
                 '.*toRdf-manifest.jsonld#te075$',
-                # expandContext option
-                '.*toRdf-manifest.jsonld#te077$',
-                '.*toRdf-manifest.jsonld#te078$',
-                # graph containers
-                '.*toRdf-manifest.jsonld#te079$',
-                '.*toRdf-manifest.jsonld#te085$',
-                '.*toRdf-manifest.jsonld#te086$',
-                '.*toRdf-manifest.jsonld#te087$',
-                '.*toRdf-manifest.jsonld#te088$',
-                ## rel IRI
-                '.*toRdf-manifest.jsonld#te092$',
                 # Does not create a new graph object
-                '.*toRdf-manifest.jsonld#te093$',
-                '.*toRdf-manifest.jsonld#te094$',
-                '.*toRdf-manifest.jsonld#te096$',
-                '.*toRdf-manifest.jsonld#te097$',
-                '.*toRdf-manifest.jsonld#te098$',
-                '.*toRdf-manifest.jsonld#te099$',
-                '.*toRdf-manifest.jsonld#te100$',
-                '.*toRdf-manifest.jsonld#te101$',
-                '.*toRdf-manifest.jsonld#te104$',
-                '.*toRdf-manifest.jsonld#te105$',
-                '.*toRdf-manifest.jsonld#te106$',
-                '.*toRdf-manifest.jsonld#te118$',
-                '.*toRdf-manifest.jsonld#te121$',
                 '.*toRdf-manifest.jsonld#te122$',
-                '.*toRdf-manifest.jsonld#te107$',
-                '.*toRdf-manifest.jsonld#te108$',
-                '.*toRdf-manifest.jsonld#te109$',
                 # rel vocab
-                '.*toRdf-manifest.jsonld#te110$',
                 '.*toRdf-manifest.jsonld#te111$',
                 '.*toRdf-manifest.jsonld#te112$',
                 # included
@@ -1003,60 +977,21 @@ TEST_TYPES = {
                 # list of lists
                 '.*toRdf-manifest.jsonld#tli01$',
                 '.*toRdf-manifest.jsonld#tli02$',
-                # index on @type
-                '.*toRdf-manifest.jsonld#tm001$',
-                '.*toRdf-manifest.jsonld#tm002$',
-                '.*toRdf-manifest.jsonld#tm003$',
-                '.*toRdf-manifest.jsonld#tm004$',
-                #'.*toRdf-manifest.jsonld#tm005$',
-                '.*toRdf-manifest.jsonld#tm006$',
-                '.*toRdf-manifest.jsonld#tm007$',
-                '.*toRdf-manifest.jsonld#tm008$',
-                '.*toRdf-manifest.jsonld#tm009$',
-                '.*toRdf-manifest.jsonld#tm010$',
-                '.*toRdf-manifest.jsonld#tm011$',
-                '.*toRdf-manifest.jsonld#tm012$',
-                # @nest
-                '.*toRdf-manifest.jsonld#tn001$',
-                '.*toRdf-manifest.jsonld#tn002$',
-                '.*toRdf-manifest.jsonld#tn003$',
-                '.*toRdf-manifest.jsonld#tn004$',
-                '.*toRdf-manifest.jsonld#tn005$',
-                '.*toRdf-manifest.jsonld#tn006$',
-                '.*toRdf-manifest.jsonld#tn007$',
-                # processing
-                '.*toRdf-manifest.jsonld#tp002$',
-                '.*toRdf-manifest.jsonld#tp003$',
-                '.*toRdf-manifest.jsonld#tp004$',
-                ## index maps
-                '.*toRdf-manifest.jsonld#tpi06$',
-                '.*toRdf-manifest.jsonld#tpi07$',
-                '.*toRdf-manifest.jsonld#tpi08$',
-                '.*toRdf-manifest.jsonld#tpi09$',
-                '.*toRdf-manifest.jsonld#tpi10$',
-                '.*toRdf-manifest.jsonld#tpi11$',
                 # prefix
-                '.*toRdf-manifest.jsonld#tpr02$',
-                '.*toRdf-manifest.jsonld#tpr10$',
-                '.*toRdf-manifest.jsonld#tpr13$',
                 '.*toRdf-manifest.jsonld#tpr14$',
                 '.*toRdf-manifest.jsonld#tpr15$',
                 '.*toRdf-manifest.jsonld#tpr16$',
                 '.*toRdf-manifest.jsonld#tpr19$',
-                '.*toRdf-manifest.jsonld#tpr22$',
-                '.*toRdf-manifest.jsonld#tpr25$',
                 '.*toRdf-manifest.jsonld#tpr28$',
                 '.*toRdf-manifest.jsonld#tpr30$',
                 '.*toRdf-manifest.jsonld#tpr31$',
                 '.*toRdf-manifest.jsonld#tpr32$',
-                '.*toRdf-manifest.jsonld#tpr39$',
                 # number fixes
                 '.*toRdf-manifest.jsonld#trt01$',
                 # @import
                 '.*toRdf-manifest.jsonld#tso01$',
                 '.*toRdf-manifest.jsonld#tso03$',
                 # @propogate
-                '.*toRdf-manifest.jsonld#tso05$',
                 '.*toRdf-manifest.jsonld#tso06$',
                 # context merging
                 '.*toRdf-manifest.jsonld#tso12$',
