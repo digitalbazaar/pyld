@@ -4527,7 +4527,9 @@ class JsonLdProcessor(object):
             if ':' in term:
                 continue
             # skip entries with @ids that are not partial matches
-            if (definition is None or definition['@id'] == iri or
+            if (definition is None or
+                    not definition['@id'] or
+                    definition['@id'] == iri or
                     not iri.startswith(definition['@id'])):
                 continue
 
@@ -4682,8 +4684,8 @@ class JsonLdProcessor(object):
             _is_object(value) and
             value.get('@container', '@set') == '@set' and
             self._processing_mode(active_ctx, 1.1)):
-            keys = value.keys()
-            if not keys or not (keys <= ['@container', '@id', '@protected']):
+            if (not value or
+                any(v not in ['@container', '@id', '@protected'] for v in value.keys())):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; keywords cannot be overridden.',
                     'jsonld.SyntaxError', {'context': local_ctx, 'term': term},
@@ -4715,17 +4717,9 @@ class JsonLdProcessor(object):
         # get context term value
         value = local_ctx[term]
 
-        # clear context entry
-        if (value is None or (
-                _is_object(value) and '@id' in value and
-                value['@id'] is None)):
-            active_ctx['mappings'][term] = None
-            defined[term] = True
-            return
-
         # convert short-hand value to object w/@id
         _simple_term = False
-        if _is_string(value):
+        if _is_string(value) or value is None:
             _simple_term = True
             value = {'@id': value}
 

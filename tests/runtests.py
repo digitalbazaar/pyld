@@ -660,12 +660,6 @@ TEST_TYPES = {
             'idRegex': [
                 # loading remote context fails
                 '.*expand-manifest.jsonld#tjs21$',
-                # protected
-                '.*expand-manifest.jsonld#tpr07$',
-                '.*expand-manifest.jsonld#tpr28$',
-                '.*expand-manifest.jsonld#tpr30$',
-                '.*expand-manifest.jsonld#tpr31$',
-                '.*expand-manifest.jsonld#tpr32$',
                 # @import should be "invalid context entry" not "recursive context inclusion"
                 '.*expand-manifest.jsonld#tso01$',
                 '.*expand-manifest.jsonld#tso03$',
@@ -949,10 +943,6 @@ TEST_TYPES = {
                 # list of lists
                 '.*toRdf-manifest.jsonld#tli01$',
                 '.*toRdf-manifest.jsonld#tli02$',
-                '.*toRdf-manifest.jsonld#tpr28$',
-                '.*toRdf-manifest.jsonld#tpr30$',
-                '.*toRdf-manifest.jsonld#tpr31$',
-                '.*toRdf-manifest.jsonld#tpr32$',
                 # number fixes
                 '.*toRdf-manifest.jsonld#trt01$',
                 # @import
