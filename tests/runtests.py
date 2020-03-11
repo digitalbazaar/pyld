@@ -661,12 +661,7 @@ TEST_TYPES = {
                 # loading remote context fails
                 '.*expand-manifest.jsonld#tjs21$',
                 # protected
-                '.*expand-manifest.jsonld#tpr06$',
                 '.*expand-manifest.jsonld#tpr07$',
-                '.*expand-manifest.jsonld#tpr14$',
-                '.*expand-manifest.jsonld#tpr15$',
-                '.*expand-manifest.jsonld#tpr16$',
-                '.*expand-manifest.jsonld#tpr19$',
                 '.*expand-manifest.jsonld#tpr28$',
                 '.*expand-manifest.jsonld#tpr30$',
                 '.*expand-manifest.jsonld#tpr31$',
@@ -954,11 +949,6 @@ TEST_TYPES = {
                 # list of lists
                 '.*toRdf-manifest.jsonld#tli01$',
                 '.*toRdf-manifest.jsonld#tli02$',
-                # prefix
-                '.*toRdf-manifest.jsonld#tpr14$',
-                '.*toRdf-manifest.jsonld#tpr15$',
-                '.*toRdf-manifest.jsonld#tpr16$',
-                '.*toRdf-manifest.jsonld#tpr19$',
                 '.*toRdf-manifest.jsonld#tpr28$',
                 '.*toRdf-manifest.jsonld#tpr30$',
                 '.*toRdf-manifest.jsonld#tpr31$',

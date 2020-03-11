@@ -2167,7 +2167,7 @@ class JsonLdProcessor(object):
         # expand the active property
         expanded_active_property = self._expand_iri(
             active_ctx, active_property, vocab=True)
-
+        
         # get any property-scoped context for activeProperty
         property_scoped_ctx = JsonLdProcessor.get_context_value(
             active_ctx, active_property, '@context')
@@ -2201,7 +2201,8 @@ class JsonLdProcessor(object):
         # apply property-scoped context after reverting term-scoped context
         if property_scoped_ctx:
             active_ctx = self._process_context(
-                active_ctx, property_scoped_ctx, options)
+                active_ctx, property_scoped_ctx, options,
+                override_protected=True)
 
         # recursively expand object
         # if element has a context, process it
@@ -2585,7 +2586,8 @@ class JsonLdProcessor(object):
             term_ctx = active_ctx
             ctx = JsonLdProcessor.get_context_value(active_ctx, key, '@context')
             if ctx:
-                term_ctx = self._process_context(active_ctx, ctx, options)
+                term_ctx = self._process_context(active_ctx, ctx, options,
+                    propagate=True, override_protected=True)
 
             container = JsonLdProcessor.arrayify(
                 JsonLdProcessor.get_context_value(
@@ -2971,7 +2973,7 @@ class JsonLdProcessor(object):
             # reset to initial context
             if ctx is None:
                 if (override_protected or
-                     not any(list(map(lambda m: m['protected'], rval['mappings'].values())))):
+                     not any(v.get('protected') for v in rval['mappings'].values())):
                     rval = active_ctx = self._get_initial_context(options)
                 else:
                     raise JsonLdError(
@@ -3242,7 +3244,8 @@ class JsonLdProcessor(object):
                 ctx = JsonLdProcessor.get_context_value(
                     active_ctx, k, '@context')
                 if ctx:
-                    active_ctx = self._process_context(active_ctx, ctx, options)
+                    active_ctx = self._process_context(active_ctx, ctx, options,
+                        propagate=False)
 
             v = self._expand(
                 active_ctx, active_property,
@@ -5018,7 +5021,7 @@ class JsonLdProcessor(object):
                     },
                     code='invalid scoped context',
                     cause=cause)
-            mapping['@context'] = value['@context']
+            mapping['@context'] = value['@context'] if value['@context'] else [None]
 
         if '@language' in value and '@type' not in value:
             language = value['@language']
