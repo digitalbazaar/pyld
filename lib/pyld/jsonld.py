@@ -2425,10 +2425,22 @@ class JsonLdProcessor(object):
                 continue
 
             if expanded_property == '@type':
+                if _is_object(value):
+                    # if framing, can be a default object, but need to expand
+                    # key to determine that
+                    new_value = {}
+                    for k, v in value:
+                        ek = self._expand_iri(type_scoped_ctx, k, vocab=True)
+                        ev = (self._expand_iri(type_scoped_ctx, vv, vocab=True, base=True)
+                              for vv in JsonLdProcessor.arrayify(v))
+                        new_value[ek] = ev
+                    value = new_value
+                else:
+                    value = JsonLdProcessor.arrayify(value)
                 _validate_type_value(value)
                 expanded_values = []
-                for v in JsonLdProcessor.arrayify(value):
-                    expanded_values.append(self._expand_iri(active_ctx, v, vocab=True, base=True) if _is_string(v) else v)
+                for v in value:
+                    expanded_values.append(self._expand_iri(type_scoped_ctx, v, vocab=True, base=True) if _is_string(v) else v)
                 JsonLdProcessor.add_value(
                     expanded_parent, '@type', expanded_values,
                     {'propertyIsArray': options['isFrame']})

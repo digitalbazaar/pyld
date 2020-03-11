@@ -658,9 +658,6 @@ TEST_TYPES = {
     'jld:ExpandTest': {
         'pending': {
             'idRegex': [
-                # scoped context
-                '.*expand-manifest.jsonld#tc014$',
-                '.*expand-manifest.jsonld#tc018$',
                 # loading remote context fails
                 '.*expand-manifest.jsonld#tjs21$',
                 # protected
@@ -911,9 +908,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#t0130$',
                 '.*toRdf-manifest.jsonld#t0131$',
                 '.*toRdf-manifest.jsonld#t0132$',
-                # misc
-                '.*toRdf-manifest.jsonld#tc014$',
-                '.*toRdf-manifest.jsonld#tc018$',
                 # direction
                 '.*toRdf-manifest.jsonld#tdi09$',
                 '.*toRdf-manifest.jsonld#tdi10$',
