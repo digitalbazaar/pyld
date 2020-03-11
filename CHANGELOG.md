@@ -1,5 +1,50 @@
 # pyld ChangeLog
 
+### Changed
+* Update conformance docs.
+* Add all keywords and update options.
+* Default processingMode to json-ld-1.1.
+* Implement logic for marking tests as pending, so that it will fail if a pending test passes.
+* Context processing:
+  * Support `@propagate` in context processing and propagate option.
+  * Support for `@import`. (Some issues confusing recursion errors for invalid contexts).
+  * Make `override_protected` and `propagate` optional arguments to `_create_term_definition` and `_process_context` instead of using option argument.
+  * Improve management of previous contexts.
+  * Imported contexts must resolve to an object.
+* Create Term Definition:
+  * Allow `@type` as a term under certain circumstances.
+  * Reject and warn on keyword-like terms.
+  * Support protected term definitions.
+  * Look for keyword patterns and warn/return.
+  * Look for terms that are compact IRIs that don't expand to the same thing.
+  * Basic support for `@json` and `@none` as values of `@type`.
+  * If `@container` includes `@type`, `@type` must be `@id` or `@vocab`.
+  * Support `@index` and `@direction`.
+  * Corner-case checking for `@prefix`.
+  * Validate scoped contexts even if not used.
+  * Support relative vocabulary IRIs.
+  * Fix check that term has the form of an IRI.
+  * Delay adding mapping to end of _create_term_definition.
+  * If a scoped context is null, wrap it in an array so it doesn't seem to be undefined.
+* IRI Expansion:
+  * Find keyword patterns.
+  * Don't treat terms starting with a colon as IRIs.
+  * Only return a resulting IRI if it is absolute.
+  * Fix _is_absolute_iri to use a reasonable regular expression and some other _expand_iri issues.
+  * Fix to detecting relative IRIs.
+* Expansion:
+  * Updates to expansion algorithm.
+  * _expand_value adds `@direction` from term definition.
+  * JSON Literals.
+  * support `@direction` when expanding.
+  * support lists of lists.
+  * support property indexes.
+  * improve graph container expansion.
+  * Order types when applying scoped contexts.
+  * Use type_scoped_ctx when expanding values of `@type`.
+  * Use propagate and override_protected properly when creating expansion contexts.
+* Update merge_node_maps for `@type`.
+
 ## 1.0.5 - 2019-05-09
 
 ### Fixed
