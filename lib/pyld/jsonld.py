@@ -5242,7 +5242,7 @@ class JsonLdProcessor(object):
                     elif v not in urls:
                         urls[v] = False
                 elif _is_object(v):
-                    # look for sooped context
+                    # look for scoped context
                     for kk, vv in v.items():
                         # look for imported context
                         if kk == '@import':
