@@ -299,8 +299,7 @@ class Test(unittest.TestCase):
                 self.assertEqual(result, expect)
             elif not self.is_negative:
                 # Perform order-independent equivalence test
-                # XXX
-                self.assertEqual(result, expect)
+                self.assertTrue(equalUnordered(result, expect))
             else:
                 self.assertEqual(result, expect)
             if self.pending and not self.is_negative:
@@ -333,6 +332,16 @@ class Test(unittest.TestCase):
             else:
                 self.assertEqual(result, expect)
 
+# Compare values with order-insensitive array tests
+def equalUnordered(result, expect):
+    if isinstance(result, list) and isinstance(expect, list):
+        return(len(result) == len(expect) and
+            all(any(equalUnordered(v1, v2) for v2 in expect) for v1 in result))
+    elif isinstance(result, dict) and isinstance(expect, dict):
+        return(len(result) == len(expect) and
+            all(k in expect and equalUnordered(v, expect[k]) for k, v in result.items()))
+    else:
+        return(result == expect)
 
 def is_jsonld_type(node, type_):
     node_types = []
@@ -666,9 +675,6 @@ TEST_TYPES = {
                 '.*expand-manifest.jsonld#tin06$',
                 # loading remote context fails
                 '.*expand-manifest.jsonld#tjs21$',
-                ## property index maps
-                '.*expand-manifest.jsonld#tpi07$',
-                '.*expand-manifest.jsonld#tpi09$',
                 # protected
                 '.*expand-manifest.jsonld#tpr06$',
                 '.*expand-manifest.jsonld#tpr07$',
