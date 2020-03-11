@@ -2224,7 +2224,7 @@ class JsonLdProcessor(object):
                     type_key = key
                 # set scoped contexts from @type
                 types = [t for t in JsonLdProcessor.arrayify(element[key]) if _is_string(t)]
-                for type_ in types:
+                for type_ in sorted(types):
                     ctx = JsonLdProcessor.get_context_value(
                         type_scoped_ctx, type_, '@context')
                     if ctx:
