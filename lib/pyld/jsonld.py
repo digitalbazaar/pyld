@@ -3047,6 +3047,11 @@ class JsonLdProcessor(object):
                         'Invalid JSON-LD syntax; @import cannot be dereferenced',
                         'jsonld.SyntaxError', {'context': ctx},
                         code='invalid context entry')
+                if not _is_object(value):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; @import must be a string',
+                        'jsonld.SyntaxError', {'context': ctx},
+                        code='invalid remote context')
 
                 # value must be an object with '@context'
                 # from _find_context_urls
@@ -6314,7 +6319,7 @@ def _is_bnode(v):
     rval = False
     if _is_object(v):
         if '@id' in v:
-            rval = v['@id'].startswith('_:')
+            rval = str(v['@id']).startswith('_:')
         else:
             rval = (
                 len(v) == 0 or
