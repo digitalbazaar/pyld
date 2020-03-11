@@ -659,20 +659,10 @@ TEST_TYPES = {
         'pending': {
             'idRegex': [
                 # scoped context
-                '.*expand-manifest.jsonld#tc009$',
                 '.*expand-manifest.jsonld#tc011$',
-                '.*expand-manifest.jsonld#tc013$',
                 '.*expand-manifest.jsonld#tc014$',
-                '.*expand-manifest.jsonld#tc015$',
-                '.*expand-manifest.jsonld#tc016$',
                 '.*expand-manifest.jsonld#tc017$',
                 '.*expand-manifest.jsonld#tc018$',
-                '.*expand-manifest.jsonld#tc021$',
-                # @propogate
-                '.*expand-manifest.jsonld#tc027$',
-                '.*expand-manifest.jsonld#tc028$',
-                # included
-                '.*expand-manifest.jsonld#tin06$',
                 # loading remote context fails
                 '.*expand-manifest.jsonld#tjs21$',
                 # protected
@@ -689,8 +679,6 @@ TEST_TYPES = {
                 # @import should be "invalid context entry" not "recursive context inclusion"
                 '.*expand-manifest.jsonld#tso01$',
                 '.*expand-manifest.jsonld#tso03$',
-                # context propagation
-                '.*expand-manifest.jsonld#tso06$',
                 # @import should be "invalid context entry" not "recursive context inclusion"
                 '.*expand-manifest.jsonld#tso12$',
                 # context merging
@@ -926,17 +914,10 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#t0131$',
                 '.*toRdf-manifest.jsonld#t0132$',
                 # misc
-                '.*toRdf-manifest.jsonld#tc009$',
                 '.*toRdf-manifest.jsonld#tc011$',
-                '.*toRdf-manifest.jsonld#tc013$',
                 '.*toRdf-manifest.jsonld#tc014$',
-                '.*toRdf-manifest.jsonld#tc015$',
-                '.*toRdf-manifest.jsonld#tc016$',
                 '.*toRdf-manifest.jsonld#tc017$',
                 '.*toRdf-manifest.jsonld#tc018$',
-                '.*toRdf-manifest.jsonld#tc021$',
-                '.*toRdf-manifest.jsonld#tc027$',
-                '.*toRdf-manifest.jsonld#tc028$',
                 # direction
                 '.*toRdf-manifest.jsonld#tdi09$',
                 '.*toRdf-manifest.jsonld#tdi10$',
@@ -997,8 +978,6 @@ TEST_TYPES = {
                 # @import
                 '.*toRdf-manifest.jsonld#tso01$',
                 '.*toRdf-manifest.jsonld#tso03$',
-                # @propogate
-                '.*toRdf-manifest.jsonld#tso06$',
                 # context merging
                 '.*toRdf-manifest.jsonld#tso12$',
                 '.*toRdf-manifest.jsonld#tso13$',

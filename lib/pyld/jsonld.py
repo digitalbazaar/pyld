@@ -2171,11 +2171,11 @@ class JsonLdProcessor(object):
         # get any property-scoped context for activeProperty
         property_scoped_ctx = JsonLdProcessor.get_context_value(
             active_ctx, active_property, '@context')
-        
+
         # second, determine if any type-scoped context should be reverted; it
         # should only be reverted when the following are all true:
         # 1. `element` is not a value or subject reference
-        # 2. `insideIndex` is false
+        # 2. `inside_index` is false
         if not type_scoped_ctx and active_ctx.get('previousContext'):
             type_scoped_ctx = active_ctx
 
@@ -2196,7 +2196,7 @@ class JsonLdProcessor(object):
                     break
         
         if must_revert:
-            active_ctx = active_ctx.get('previousContext', active_ctx)
+            active_ctx = self._revert_to_previous_context(active_ctx)
         
         # apply property-scoped context after reverting term-scoped context
         if property_scoped_ctx:
@@ -2597,7 +2597,9 @@ class JsonLdProcessor(object):
                 as_graph = '@graph' in container
                 expanded_value = self._expand_index_map(term_ctx, key, value, '@id', as_graph, None, options)
             elif '@type' in container and _is_object(value):
-                expanded_value = self._expand_index_map(term_ctx, key, value, '@type', False, None, options)
+                expanded_value = self._expand_index_map(
+                    self._revert_to_previous_context(term_ctx),
+                    key, value, '@type', False, None, options)
             else:
                 # recurse into @list or @set
                 is_list = (expanded_property == '@list')
@@ -2949,7 +2951,7 @@ class JsonLdProcessor(object):
 
         # track the previous context
         # if not propagating, make sure rval has a previous context
-        if not propagate and not rval.get('previousContext', False):
+        if not propagate and not rval.get('previousContext'):
             rval = self._clone_active_context(rval)
             rval['previousContext'] = active_ctx
 
@@ -3145,6 +3147,11 @@ class JsonLdProcessor(object):
                 _cache.get('activeCtx').set(active_ctx, ctx, rval)
 
         return rval
+
+    def _revert_to_previous_context(self, active_ctx):
+        if 'previousContext' not in active_ctx:
+            return active_ctx
+        return copy.deepcopy(active_ctx['previousContext'])
 
     def _processing_mode(self, active_ctx, version):
         """
@@ -5419,6 +5426,8 @@ class JsonLdProcessor(object):
             'mappings': copy.deepcopy(active_ctx['mappings']),
             'inverse': None
         }
+        if 'previousContext' in active_ctx:
+            child['previousContext'] = copy.deepcopy(active_ctx['previousContext'])
         if '@language' in active_ctx:
             child['@language'] = active_ctx['@language']
         if '@vocab' in active_ctx:
