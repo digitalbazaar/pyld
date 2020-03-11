@@ -749,8 +749,8 @@ TEST_TYPES = {
             'idRegex': [
                 # misc
                 '.*frame-manifest.jsonld#t0011$',
+                '.*frame-manifest.jsonld#t0016$',
                 # graphs
-                #'.*frame-manifest.jsonld#t0010$',
                 '.*frame-manifest.jsonld#t0020$',
                 '.*frame-manifest.jsonld#t0023$',
                 '.*frame-manifest.jsonld#t0026$',
