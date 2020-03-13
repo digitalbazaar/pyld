@@ -839,38 +839,12 @@ TEST_TYPES = {
         ]
     },
     'jld:FromRDFTest': {
-        'pending': {
-            'idRegex': [
-                '.*fromRdf-manifest.jsonld#t0023$',
-                '.*fromRdf-manifest.jsonld#t0026$',
-                # list of lists
-                '.*fromRdf-manifest.jsonld#tli01$',
-                '.*fromRdf-manifest.jsonld#tli02$',
-                '.*fromRdf-manifest.jsonld#tli03$',
-                # @json
-                '.*fromRdf-manifest.jsonld#tjs01$',
-                '.*fromRdf-manifest.jsonld#tjs02$',
-                '.*fromRdf-manifest.jsonld#tjs03$',
-                '.*fromRdf-manifest.jsonld#tjs04$',
-                '.*fromRdf-manifest.jsonld#tjs05$',
-                '.*fromRdf-manifest.jsonld#tjs06$',
-                '.*fromRdf-manifest.jsonld#tjs07$',
-                '.*fromRdf-manifest.jsonld#tjs08$',
-                '.*fromRdf-manifest.jsonld#tjs09$',
-                '.*fromRdf-manifest.jsonld#tjs10$',
-                '.*fromRdf-manifest.jsonld#tjs11$',
-                # misc
-                '.*fromRdf-manifest.jsonld#tdi06$',
-                '.*fromRdf-manifest.jsonld#tdi05$',
-                '.*fromRdf-manifest.jsonld#tdi11$',
-                '.*fromRdf-manifest.jsonld#tdi12$',
-            ]
-        },
         'skip': {
-            # skip tests where behavior changed for a 1.1 processor
-            # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
             'idRegex': [
+                # direction (compound-literal)
+                '.*fromRdf-manifest.jsonld#tdi11$',
+                '.*fromRdf-manifest.jsonld#tdi12$',
             ]
         },
         'fn': 'from_rdf',

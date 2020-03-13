@@ -43,6 +43,9 @@
   * Order types when applying scoped contexts.
   * Use type_scoped_ctx when expanding values of `@type`.
   * Use propagate and override_protected properly when creating expansion contexts.
+* ToRdf:
+  * Support for I18N direction.
+  * Support for Lists of Lists.
 * Update merge_node_maps for `@type`.
 
 ## 1.0.5 - 2019-05-09
