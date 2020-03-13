@@ -93,6 +93,10 @@ RDF_REST = RDF + 'rest'
 RDF_NIL = RDF + 'nil'
 RDF_TYPE = RDF + 'type'
 RDF_LANGSTRING = RDF + 'langString'
+RDF_JSON_LITERAL = RDF + 'JSON'
+
+# BCP47
+REGEX_BCP47 = r'^[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*$'
 
 # JSON-LD keywords
 KEYWORDS = [
@@ -1142,6 +1146,7 @@ class JsonLdProcessor(object):
             (default: False).
           [useNativeTypes] True to convert XSD types into native types
             (boolean, integer, double), False not to (default: False).
+          [rdfDirection] Only 'i18n-datatype' is supported. (default: None)
 
         :return: the JSON-LD output.
         """
@@ -1151,6 +1156,7 @@ class JsonLdProcessor(object):
         options = options.copy() if options else {}
         options.setdefault('useRdfType', False)
         options.setdefault('useNativeTypes', False)
+        options.setdefault('rdfDirection', None)
 
         if ('format' not in options) and _is_string(dataset):
             options['format'] = 'application/n-quads'
@@ -2816,7 +2822,7 @@ class JsonLdProcessor(object):
                         node, '@type', o['value'], {'propertyIsArray': True})
                     continue
 
-                value = self._rdf_to_object(o, options['useNativeTypes'])
+                value = self._rdf_to_object(o, options['useNativeTypes'], options['rdfDirection'])
                 JsonLdProcessor.add_value(
                     node, p, value, {'propertyIsArray': True})
 
@@ -2852,6 +2858,8 @@ class JsonLdProcessor(object):
 
             # iterate backwards through each RDF list
             nil = graph_object[RDF_NIL]
+            if 'usages' not in nil:
+                continue
             for usage in nil['usages']:
                 node = usage['node']
                 property = usage['property']
@@ -2890,27 +2898,16 @@ class JsonLdProcessor(object):
                     if not node['@id'].startswith('_:'):
                         break
 
-                # the list is nested in another list
-                if property == RDF_FIRST:
-                    # empty list
-                    if node['@id'] == RDF_NIL:
-                        # can't convert rdf:nil to a @list object because it
-                        # would result in a list of lists which isn't supported
-                        continue
-
-                    # preserve list head
-                    head = graph_object[head['@id']][RDF_REST][0]
-                    list_.pop()
-                    list_nodes.pop()
-
                 # transform list into @list object
                 del head['@id']
                 list_.reverse()
                 head['@list'] = list_
                 for node in list_nodes:
-                    graph_object.pop(node, None)
+                    del graph_object[node]
+                    #graph_object.pop(node, None)
 
-            nil.pop('usages', None)
+            del nil['usages']
+            #nil.pop('usages', None)
 
         result = []
         for subject, node in sorted(default_graph.items()):
@@ -3525,12 +3522,13 @@ class JsonLdProcessor(object):
 
         return object
 
-    def _rdf_to_object(self, o, use_native_types):
+    def _rdf_to_object(self, o, use_native_types, rdf_direction):
         """
         Converts an RDF triple object to a JSON-LD object.
 
         :param o: the RDF triple object to convert.
         :param use_native_types: True to output native types, False not to.
+        :param rdf_direction: Only 'i18n-datatype' is supported.
 
         :return: the JSON-LD object.
         """
@@ -3547,6 +3545,21 @@ class JsonLdProcessor(object):
         # add datatype
         else:
             type_ = o['datatype']
+            if not type_:
+                type_ = XSD_STRING
+
+            if type_ == RDF_JSON_LITERAL:
+                type_ = '@json'
+                try:
+                    rval['@value'] = json.loads(rval['@value'])
+                except Exception as cause:
+                    raise JsonLdError(
+                        'JSON literal could not be parsed.',
+                        'jsonld.InvalidJsonLiteral',
+                        {"value": rval['@value']},
+                        code='invalid JSON literal',
+                        cause=cause)
+
             # use native types for certain xsd types
             if use_native_types:
                 if type_ == XSD_BOOLEAN:
@@ -3564,6 +3577,14 @@ class JsonLdProcessor(object):
                 if type_ not in [
                         XSD_BOOLEAN, XSD_INTEGER, XSD_DOUBLE, XSD_STRING]:
                     rval['@type'] = type_
+            elif (rdf_direction == 'i18n-datatype' and
+                type_.startswith('https://www.w3.org/ns/i18n#')):
+                _, language, direction = re.split(r'[#_]', type_)
+                if language:
+                    rval['@language'] = language
+                    if not re.match(REGEX_BCP47, language):
+                        warnings.warn('@language must be valid BCP47')
+                rval['@direction'] = direction
             elif type_ != XSD_STRING:
                 rval['@type'] = type_
         return rval
