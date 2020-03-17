@@ -468,7 +468,7 @@ def create_document_loader(test):
             raise Exception('loading document failed')
         return doc
 
-    def local_loader(url):
+    def local_loader(url, headers):
         # always load remote-doc and non-base tests remotely
         if ((not is_test_suite_url(url) and url.find(':') != -1) or
                 test.manifest.data.get('name') == 'Remote document'):
@@ -658,6 +658,11 @@ TEST_TYPES = {
     'jld:ExpandTest': {
         'pending': {
             'idRegex': [
+                # recursive context inclusion
+                '.*expand-manifest.jsonld#t0126$',
+                '.*expand-manifest.jsonld#t0127$',
+                '.*expand-manifest.jsonld#t0128$',
+
                 # loading remote context fails
                 '.*expand-manifest.jsonld#tjs21$',
                 # @import should be "invalid context entry" not "recursive context inclusion"
@@ -880,6 +885,10 @@ TEST_TYPES = {
                 # rel vocab
                 '.*toRdf-manifest.jsonld#te111$',
                 '.*toRdf-manifest.jsonld#te112$',
+                # recursive context inclusion
+                '.*toRdf-manifest.jsonld#te126$',
+                '.*toRdf-manifest.jsonld#te128$',
+                '.*toRdf-manifest.jsonld#te127$',
                 # included
                 '.*toRdf-manifest.jsonld#tin01$',
                 '.*toRdf-manifest.jsonld#tin02$',
@@ -914,6 +923,14 @@ TEST_TYPES = {
                 # list of lists
                 '.*toRdf-manifest.jsonld#tli01$',
                 '.*toRdf-manifest.jsonld#tli02$',
+                '.*toRdf-manifest.jsonld#tli03$',
+                '.*toRdf-manifest.jsonld#tli04$',
+                '.*toRdf-manifest.jsonld#tli05$',
+                '.*toRdf-manifest.jsonld#tli06$',
+                '.*toRdf-manifest.jsonld#tli07$',
+                '.*toRdf-manifest.jsonld#tli08$',
+                '.*toRdf-manifest.jsonld#tli09$',
+                '.*toRdf-manifest.jsonld#tli10$',
                 # number fixes
                 '.*toRdf-manifest.jsonld#trt01$',
                 # @import should be "invalid context entry" not "recursive context inclusion"

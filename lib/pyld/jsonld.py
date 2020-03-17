@@ -331,14 +331,14 @@ def to_rdf(input_, options=None):
     return JsonLdProcessor().to_rdf(input_, options)
 
 
-def set_document_loader(load_document):
+def set_document_loader(load_document_):
     """
     Sets the default JSON-LD document loader.
 
-    :param load_document(url): the document loader to use.
+    :param load_document(url, options): the document loader to use.
     """
     global _default_document_loader
-    _default_document_loader = load_document
+    _default_document_loader = load_document_
 
 
 def get_document_loader():
@@ -407,7 +407,7 @@ def dummy_document_loader(**kwargs):
     :return: the RemoteDocument loader function.
     """
 
-    def loader(url):
+    def loader(url, options):
         """
         Raises an exception on every call.
 
@@ -829,7 +829,7 @@ class JsonLdProcessor(object):
 
         # if input is a string, attempt to dereference remote document
         if _is_string(input_):
-            remote_doc = options['documentLoader'](input_)
+            remote_doc = load_document(input_, options)
         else:
             remote_doc = {
                 'contextUrl': None,
@@ -842,8 +842,6 @@ class JsonLdProcessor(object):
                 raise JsonLdError(
                     'No remote document found at the given URL.',
                     'jsonld.NullRemoteDocument')
-            if _is_string(remote_doc['document']):
-                remote_doc['document'] = json.loads(remote_doc['document'])
         except Exception as cause:
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
@@ -868,7 +866,7 @@ class JsonLdProcessor(object):
 
         try:
             self._retrieve_context_urls(
-                input_, {}, options['documentLoader'], options['base'])
+                input_, {}, options)
         except Exception as cause:
             raise JsonLdError(
                 'Could not perform JSON-LD expansion.',
@@ -993,7 +991,7 @@ class JsonLdProcessor(object):
 
         # if frame is a string, attempt to dereference remote document
         if _is_string(frame):
-            remote_frame = options['documentLoader'](frame)
+            remote_frame = load_document(frame, options)
         else:
             remote_frame = {
                 'contextUrl': None,
@@ -1006,8 +1004,6 @@ class JsonLdProcessor(object):
                 raise JsonLdError(
                     'No remote document found at the given URL.',
                     'jsonld.NullRemoteDocument')
-            if _is_string(remote_frame['document']):
-                remote_frame['document'] = json.loads(remote_frame['document'])
         except Exception as cause:
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
@@ -1265,7 +1261,7 @@ class JsonLdProcessor(object):
             local_ctx = {'@context': local_ctx}
         try:
             self._retrieve_context_urls(
-                local_ctx, {}, options['documentLoader'], options['base'])
+                local_ctx, {}, options)
         except Exception as cause:
             raise JsonLdError(
                 'Could not process JSON-LD context.',
@@ -5280,7 +5276,7 @@ class JsonLdProcessor(object):
                         elif _is_object(vv):
                             self._find_context_urls(vv, urls, replace, base)
 
-    def _retrieve_context_urls(self, input_, cycles, load_document, base=''):
+    def _retrieve_context_urls(self, input_, cycles, options):
         """
         Retrieves external @context URLs using the given document loader. Each
         instance of @context in the input that refers to a URL will be
@@ -5293,6 +5289,7 @@ class JsonLdProcessor(object):
 
         :return: the result.
         """
+        base = options.get('base', '')
         if len(cycles) > MAX_CONTEXT_URLS:
             raise JsonLdError(
                 'Maximum number of @context URLs exceeded.',
@@ -5324,7 +5321,7 @@ class JsonLdProcessor(object):
 
             # retrieve URL
             try:
-                remote_doc = load_document(url)
+                remote_doc = load_document(url, options)
                 ctx = remote_doc['document']
             except Exception as cause:
                 raise JsonLdError(
@@ -5332,16 +5329,6 @@ class JsonLdProcessor(object):
                     'context.',
                     'jsonld.ContextUrlError',  {'url': url},
                     code='loading remote context failed', cause=cause)
-
-            # parse string context as JSON
-            if _is_string(ctx):
-                try:
-                    ctx = json.loads(ctx)
-                except Exception as cause:
-                    raise JsonLdError(
-                        'Could not parse JSON from URL.',
-                        'jsonld.ParseError', {'url': url},
-                        code='loading remote context failed', cause=cause)
 
             # ensure ctx is an object
             if not _is_object(ctx):
@@ -5363,7 +5350,9 @@ class JsonLdProcessor(object):
                 ctx['@context'].append(remote_doc['contextUrl'])
 
             # recurse
-            self._retrieve_context_urls(ctx, cycles_, load_document, url)
+            recurse_opts = copy.deepcopy(options)
+            recurse_opts['base'] = url
+            self._retrieve_context_urls(ctx, cycles_, recurse_opts)
             urls[url] = ctx['@context']
 
         # replace all URLs in the input
@@ -6412,8 +6401,66 @@ except ImportError:
     except (ImportError, SyntaxError):
         _default_document_loader = dummy_document_loader()
 
-# Use default document loader for older exposed load_document API
-load_document = _default_document_loader
+def load_document(url,
+    options,
+    base=None,
+    profile=None,
+    requestProfile=None):
+    """
+    Uses built-in or provided documentLoader to retrieve a parsed document.
+
+    :param url: the URL (relative or absolute) of the remote document.
+    :param base: the absolute URL to use for making url absolute.
+    :param profile: When the resulting `contentType` is `text/html` or `application/xhtml+xml`,
+        this option determines the profile to use for selecting a JSON-LD script elements.
+    :param requestProfile: One or more IRIs to use in the request as a profile parameter.
+
+    :return: True if the value is an absolute IRI, False if not.
+    """
+    extractAllScripts = options.get('extractAllScripts', False)
+    headers = {
+        'Accept': 'application/ld+json, application/json;q=0.5'
+    }
+    if requestProfile:
+        headers['Accept'] = 'application/ld+json, application/ld+json;profile=%s, application/json;q=0.5' % requestProfile
+
+    # FIXME: add text/html and application/xhtml+xml, if appropriate
+
+    if 'headers' not in options:
+        options['headers'] = headers
+    remote_doc = options['documentLoader'](url, options)
+    if base:
+        remote_doc['documentUrl'] = base
+
+    if remote_doc['document'] is None:
+        raise JsonLdError(
+            'No remote document found at the given URL.',
+            'jsonld.NullRemoteDocument')
+    elif _is_string(remote_doc['document']):
+        try:
+            if (remote_doc['contentType'] == 'text/html' or
+                remote_doc['contentType'] == 'application/xhtml+xml'):
+                # extract JSON from HTML
+                html_options = {}
+                remote_doc['document'] = load_html(remote_doc['document'],
+                    remote_doc['documentUrl'],
+                    extractAllScripts,
+                    profile,
+                    html_options)
+                if 'base' in html_options:
+                    remote_doc['documentUrl'] = html_options['base']
+            else:
+                # parse JSON
+                remote_doc['document'] = json.loads(remote_doc['document'])
+        except Exception as cause:
+            raise JsonLdError(
+                'Could not retrieve a JSON-LD document from the URL.',
+                'jsonld.LoadDocumentError',
+                {'remoteDoc': remote_doc}, code='loading document failed',
+                cause=cause)
+
+    return remote_doc
+
 
 # Registered global RDF parsers hashed by content-type.
 _rdf_parsers = {}
