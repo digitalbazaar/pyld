@@ -29,7 +29,7 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    async def async_loader(url):
+    async def async_loader(url, headers):
         """
         Retrieves JSON-LD at the given URL asynchronously.
 
@@ -56,9 +56,6 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
                     'the URL\'s scheme is not "https".',
                     'jsonld.InvalidUrl', {'url': url},
                     code='loading document failed')
-            headers = {
-                'Accept': 'application/ld+json, application/json'
-            }
             async with aiohttp.ClientSession(loop=loop) as session:
                 async with session.get(url,
                                        headers=headers,
@@ -96,7 +93,7 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
                 'jsonld.LoadDocumentError', code='loading document failed',
                 cause=cause)
 
-    def loader(url):
+    def loader(url, options={}):
         """
         Retrieves JSON-LD at the given URL.
 
@@ -104,6 +101,10 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
 
         :return: the RemoteDocument.
         """
-        return loop.run_until_complete(async_loader(url))
+        if headers is None:
+            headers = {
+                'Accept': 'application/ld+json, application/json'
+            }
+        return loop.run_until_complete(async_loader(url, options.get('headers')))
 
     return loader

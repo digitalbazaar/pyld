@@ -31,7 +31,7 @@ def requests_document_loader(secure=False, **kwargs):
     """
     import requests
 
-    def loader(url):
+    def loader(url, options={}):
         """
         Retrieves JSON-LD at the given URL.
 
@@ -57,9 +57,11 @@ def requests_document_loader(secure=False, **kwargs):
                     'the URL\'s scheme is not "https".',
                     'jsonld.InvalidUrl', {'url': url},
                     code='loading document failed')
-            headers = {
-                'Accept': 'application/ld+json, application/json'
-            }
+            headers = options.get('headers')
+            if headers is None:
+                headers = {
+                    'Accept': 'application/ld+json, application/json'
+                }
             response = requests.get(url, headers=headers, **kwargs)
 
             doc = {
