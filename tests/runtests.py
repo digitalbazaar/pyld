@@ -857,10 +857,6 @@ TEST_TYPES = {
     'jld:ToRDFTest': {
         'pending': {
             'idRegex': [
-                # IRI resolution
-                '.*toRdf-manifest.jsonld#t0130$',
-                '.*toRdf-manifest.jsonld#t0131$',
-                '.*toRdf-manifest.jsonld#t0132$',
                 # direction
                 '.*toRdf-manifest.jsonld#tdi09$',
                 '.*toRdf-manifest.jsonld#tdi10$',
