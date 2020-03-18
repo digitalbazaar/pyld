@@ -6,6 +6,7 @@
 * Default processingMode to json-ld-1.1.
 * Implement logic for marking tests as pending, so that it will fail if a pending test passes.
 * Consolidate documentLoader option and defaults into a load_document method to also handle JSON (eventually HTML) parsing.
+* Flatten `@included`.
 * Context processing:
   * Support `@propagate` in context processing and propagate option.
   * Support for `@import`. (Some issues confusing recursion errors for invalid contexts).

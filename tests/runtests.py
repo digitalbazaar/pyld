@@ -710,13 +710,6 @@ TEST_TYPES = {
                 '.*html-manifest.jsonld#tf002$',
                 '.*html-manifest.jsonld#tf003$',
                 '.*html-manifest.jsonld#tf004$',
-                # included
-                '.*flatten-manifest.jsonld#tin01$',
-                '.*flatten-manifest.jsonld#tin02$',
-                '.*flatten-manifest.jsonld#tin03$',
-                '.*flatten-manifest.jsonld#tin04$',
-                '.*flatten-manifest.jsonld#tin05$',
-                '.*flatten-manifest.jsonld#tin06$',
                 # list of lists
                 '.*flatten-manifest.jsonld#tli01$',
                 '.*flatten-manifest.jsonld#tli02$',
@@ -864,18 +857,10 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tdi12$',
                 # blank node property
                 '.*toRdf-manifest.jsonld#te075$',
-                # Does not create a new graph object
                 '.*toRdf-manifest.jsonld#te122$',
                 # rel vocab
                 '.*toRdf-manifest.jsonld#te111$',
                 '.*toRdf-manifest.jsonld#te112$',
-                # included
-                '.*toRdf-manifest.jsonld#tin01$',
-                '.*toRdf-manifest.jsonld#tin02$',
-                '.*toRdf-manifest.jsonld#tin03$',
-                '.*toRdf-manifest.jsonld#tin04$',
-                '.*toRdf-manifest.jsonld#tin05$',
-                '.*toRdf-manifest.jsonld#tin06$',
                 # @json
                 '.*toRdf-manifest.jsonld#tjs01$',
                 '.*toRdf-manifest.jsonld#tjs02$',

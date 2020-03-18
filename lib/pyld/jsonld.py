@@ -3735,6 +3735,11 @@ class JsonLdProcessor(object):
                 self._create_node_map(objects, graphs, g, issuer)
                 continue
 
+            # recurse into included
+            if property == '@included':
+                self._create_node_map(objects, graphs, graph, issuer)
+                continue
+
             # copy non-@type keywords
             if property != '@type' and _is_keyword(property):
                 if property == '@index' and '@index' in subject \
