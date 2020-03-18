@@ -5,12 +5,14 @@
 * Add all keywords and update options.
 * Default processingMode to json-ld-1.1.
 * Implement logic for marking tests as pending, so that it will fail if a pending test passes.
+* Consolidate documentLoader option and defaults into a load_document method to also handle JSON (eventually HTML) parsing.
 * Context processing:
   * Support `@propagate` in context processing and propagate option.
   * Support for `@import`. (Some issues confusing recursion errors for invalid contexts).
   * Make `override_protected` and `propagate` optional arguments to `_create_term_definition` and `_process_context` instead of using option argument.
   * Improve management of previous contexts.
   * Imported contexts must resolve to an object.
+  * Do remote context processing from within _process_contexts, as logic is too complicated for pre-loading. Removes _find_context_urls and _retrieve_context_urls.
 * Create Term Definition:
   * Allow `@type` as a term under certain circumstances.
   * Reject and warn on keyword-like terms.

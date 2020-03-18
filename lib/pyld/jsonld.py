@@ -855,31 +855,23 @@ class JsonLdProcessor(object):
         # build meta-object and retrieve all @context urls
         input_ = {
             'document': copy.deepcopy(remote_doc['document']),
-            'remoteContext': {'@context': remote_doc['contextUrl']}
+            'remoteContext': remote_doc['contextUrl']
         }
         if 'expandContext' in options:
             expand_context = copy.deepcopy(options['expandContext'])
             if _is_object(expand_context) and '@context' in expand_context:
-                input_['expandContext'] = expand_context
+                input_['expandContext'] = expand_context['@context']
             else:
-                input_['expandContext'] = {'@context': expand_context}
-
-        try:
-            self._retrieve_context_urls(
-                input_, {}, options)
-        except Exception as cause:
-            raise JsonLdError(
-                'Could not perform JSON-LD expansion.',
-                'jsonld.ExpandError', cause=cause)
+                input_['expandContext'] = expand_context
 
         active_ctx = self._get_initial_context(options)
         document = input_['document']
-        remote_context = input_['remoteContext']['@context']
+        remote_context = input_['remoteContext']
 
         # process optional expandContext
         if 'expandContext' in input_:
             active_ctx = self.process_context(
-                active_ctx, input_['expandContext']['@context'], options)
+                active_ctx, input_['expandContext'], options)
 
         # process remote context from HTTP Link Header
         if remote_context is not None:
@@ -1254,20 +1246,6 @@ class JsonLdProcessor(object):
         options.setdefault('base', '')
         options.setdefault('documentLoader', _default_document_loader)
 
-        # retrieve URLs in local_ctx
-        local_ctx = copy.deepcopy(local_ctx)
-        if (_is_string(local_ctx) or (
-                _is_object(local_ctx) and '@context' not in local_ctx)):
-            local_ctx = {'@context': local_ctx}
-        try:
-            self._retrieve_context_urls(
-                local_ctx, {}, options)
-        except Exception as cause:
-            raise JsonLdError(
-                'Could not process JSON-LD context.',
-                'jsonld.ContextError', cause=cause)
-
-        # process context
         return self._process_context(active_ctx, local_ctx, options)
 
     def register_rdf_parser(self, content_type, parser):
@@ -2921,7 +2899,9 @@ class JsonLdProcessor(object):
 
     def _process_context(self, active_ctx, local_ctx, options,
             override_protected=False,
-            propagate=True):
+            propagate=True,
+            remote_contexts=None,
+            validate_scoped=True):
         """
         Processes a local context and returns a new active context.
 
@@ -2934,10 +2914,16 @@ class JsonLdProcessor(object):
             which can be rolled back when the descending into
             a new node object changes
             (default: True).
+        :param remote_contexts: list of contexts loaded this session.
+            (default: []).
+        :param validate_scoped: if True, load remote contexts if not already loaded.
+            if False, do not load scoped contexts.
 
         :return: the new active context.
         """
         global _cache
+        if remote_contexts is None:
+            remote_contexts = []
 
         # normalize local context to an array
         if _is_object(local_ctx) and _is_array(local_ctx.get('@context')):
@@ -2976,23 +2962,72 @@ class JsonLdProcessor(object):
                         code='invalid context nullification')
                 continue
 
-            # dereference @context key if present
-            if _is_object(ctx) and '@context' in ctx:
-                ctx = ctx['@context']
+            # Dereference remote context
+            elif _is_string(ctx):
+                # resolve ctx to context base or option base
+                if active_ctx.get('context_base'):
+                    ctx = prepend_base(active_ctx['context_base'], ctx)
+                elif active_ctx.get('@base'):
+                    ctx = prepend_base(active_ctx['@base'], ctx)
+                # FIXME URL and scheme canonicalization?
 
-            # context must be an object now, all URLs retrieved prior to call
-            if not _is_object(ctx):
+                ctx_no_base = self._clone_active_context(active_ctx)
+                ctx_no_base['context_base'] = ctx
+                if '@base' in ctx_no_base:
+                    del ctx_no_base['@base']
+
+                loaded_ctx = _cache.get('activeCtx', {}).get(active_ctx, ctx)
+
+                # if validating a scoped context which has already been loaded, skip to the next one
+                if not validate_scoped and ctx in remote_contexts:
+                    continue
+
+                remote_contexts.append(ctx)
+                if len(remote_contexts) > MAX_CONTEXT_URLS:
+                    raise JsonLdError(
+                        'Too many remote contexts loaded.'
+                        'jsonld.SyntaxError', {'context': ctx},
+                        code='context overflow')
+                    
+                if loaded_ctx is None:
+                    # Load remote context
+                    try:
+                        remote_doc = load_document(ctx, options)
+                    except Exception as cause:
+                        raise JsonLdError(
+                            'Invalid JSON-LD syntax; unable to load remote context.'
+                            'jsonld.SyntaxError', {'context': ctx},
+                            code='loading remote context failed')
+
+                    if _is_string(remote_doc['document']):
+                        remote_doc['document'] = json.loads(remote_doc['document'])
+                    loaded_ctx = remote_doc['document']
+
+                if not _is_object(loaded_ctx) or '@context' not in loaded_ctx:
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; invalid remote context.'
+                        'jsonld.SyntaxError', {'context': loaded_ctx},
+                        code='invalid remote context')
+                loaded_ctx = loaded_ctx['@context']
+
+                rval = self._process_context(ctx_no_base, loaded_ctx, options,
+                    override_protected=override_protected,
+                    propagate=propagate,
+                    remote_contexts=remote_contexts.copy(),
+                    validate_scoped=validate_scoped)
+                continue
+
+            # dereference @context key if present
+            elif _is_object(ctx):
+                if '@context' in ctx:
+                    ctx = ctx['@context']
+            else:
                 raise JsonLdError(
-                    'Invalid JSON-LD syntax; @context must be an object.',
+                    'Invalid JSON-LD syntax; invalid remote context.',
                     'jsonld.SyntaxError', {'context': ctx},
                     code='invalid local context')
 
-            # get context from cache if available
-            if _cache.get('activeCtx') is not None:
-                cached = _cache['activeCtx'].get(active_ctx, ctx)
-                if cached:
-                    rval = active_ctx = cached
-                    continue
+            # ctx is now a dictionary
 
             # update active context and clone new one before updating
             active_ctx = rval
@@ -3030,14 +3065,39 @@ class JsonLdProcessor(object):
                         'json-ld-1.0',
                         'jsonld.SyntaxError', {'context': ctx},
                         code='invalid context entry')
+                if not _is_string(value):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; @import must be a string',
+                        'jsonld.SyntaxError', {'context': ctx},
+                        code='invalid @import value')
+
+                # dereference remote context
+                # resolve value to context base or option base
+                if active_ctx.get('context_base'):
+                    value = prepend_base(active_ctx['context_base'], value)
+                elif active_ctx.get('@base'):
+                    value = prepend_base(active_ctx['@base'], value)
+                try:
+                    remote_import = load_document(value, options,
+                        base=None,
+                        profile='http://www.w3.org/ns/json-ld#context',
+                        requestProfile='http://www.w3.org/ns/json-ld#context')
+                except Exception as cause:
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; failed to load imported context',
+                        'jsonld.SyntaxError', {'context': value},
+                        code='loading remote context failed')
+
+                if (not _is_object(remote_import['document']) or
+                    '@context' not in remote_import['document']):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; remote context must be an object with @context',
+                        'jsonld.SyntaxError', {'context': ctx},
+                        code='invalid remote context')
+                value = remote_import['document']['@context']
                 if '@import' in value:
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; @import must not include @import entry',
-                        'jsonld.SyntaxError', {'context': ctx},
-                        code='invalid context entry')
-                if _is_string(value):
-                    raise JsonLdError(
-                        'Invalid JSON-LD syntax; @import cannot be dereferenced',
                         'jsonld.SyntaxError', {'context': ctx},
                         code='invalid context entry')
                 if not _is_object(value):
@@ -3152,7 +3212,9 @@ class JsonLdProcessor(object):
             # process all other keys
             for k, v in ctx.items():
                 self._create_term_definition(rval, ctx, k, defined, options,
-                    override_protected=override_protected)
+                    override_protected=override_protected,
+                    remote_contexts=remote_contexts.copy(),
+                    validate_scoped=validate_scoped)
 
             # cache result
             if _cache.get('activeCtx') is not None:
@@ -4671,7 +4733,9 @@ class JsonLdProcessor(object):
         return rval
 
     def _create_term_definition(self, active_ctx, local_ctx, term, defined, options,
-            override_protected=False):
+            override_protected=False,
+            remote_contexts=[],
+            validate_scoped=True):
         """
         Creates a term definition during context processing.
 
@@ -4683,6 +4747,10 @@ class JsonLdProcessor(object):
         :param options: the context processing options.
         :param override_protected protected terms may be cleared
             (default: False).
+        :param remote_contexts: list of contexts loaded this session.
+            (default: []).
+        :param validate_scoped: if True, load remote contexts if not already loaded.
+            if False, do not load scoped contexts.
         """
         if term in defined:
             # term already defined
@@ -5024,10 +5092,12 @@ class JsonLdProcessor(object):
         if '@context' in value:
             # process context to find errors
             try:
-                self._process_context(
+                new_ctx = self._process_context(
                     active_ctx, value['@context'],
                     options,
-                    override_protected=True)
+                    override_protected=True,
+                    remote_contexts=remote_contexts.copy(),
+                    validate_scoped=False)
             except JsonLdError as cause:
                 raise JsonLdError(
                     'Term definition contains invalid scoped context.',
@@ -5037,7 +5107,7 @@ class JsonLdProcessor(object):
                     },
                     code='invalid scoped context',
                     cause=cause)
-            mapping['@context'] = value['@context'] if value['@context'] else [None]
+            mapping['@context'] = new_ctx.get('context_base', value['@context']) if value['@context'] else [None]
 
         if '@language' in value and '@type' not in value:
             language = value['@language']
@@ -5191,173 +5261,6 @@ class JsonLdProcessor(object):
 
         return rval
 
-    def _find_context_urls(self, input_, urls, replace, base):
-        """
-        Finds all @context URLs in the given JSON-LD input.
-
-        :param input_: the JSON-LD input.
-        :param urls: a map of URLs (url => False/@contexts).
-        :param replace: True to replace the URLs in the given input with
-                 the @contexts from the urls map, False not to.
-        :param base: the base URL to resolve relative URLs against.
-        """
-        if _is_array(input_):
-            for e in input_:
-                self._find_context_urls(e, urls, replace, base)
-        elif _is_object(input_):
-            for k, v in input_.items():
-                if k != '@context':
-                    self._find_context_urls(v, urls, replace, base)
-                    continue
-
-                # array @context
-                if _is_array(v):
-                    length = len(v)
-                    for i in range(length):
-                        if _is_string(v[i]):
-                            url = prepend_base(base, v[i])
-                            # replace w/@context if requested
-                            if replace:
-                                ctx = urls[url]
-                                if _is_array(ctx):
-                                    # add flattened context
-                                    v.pop(i)
-                                    for e in reversed(ctx):
-                                        v.insert(i, e)
-                                    i += len(ctx) - 1
-                                    length = len(v)
-                                else:
-                                    v[i] = ctx
-                            # @context URL found
-                            elif url not in urls:
-                                urls[url] = False
-                        elif _is_object(v[i]):
-                            # look for scoped context
-                            for kk, vv in v[i].items():
-                                # look for imported context
-                                if kk == '@import':
-                                    if not _is_string(vv):
-                                        raise JsonLdError(
-                                            'Invalid JSON-LD syntax; @import value must be a string.',
-                                            'jsonld.SyntaxError', {'context': v[i]},
-                                            code='invalid @import value')
-                                    vv = prepend_base(base, vv)
-                                    if replace:
-                                        v[i][kk] = urls[vv]
-                                    if vv not in urls:
-                                        urls[vv] = False
-                                if _is_object(vv):
-                                    self._find_context_urls(
-                                            vv, urls, replace, base)
-                # string @context
-                elif _is_string(v):
-                    v = prepend_base(base, v)
-                    # replace w/@context if requested
-                    if replace:
-                        input_[k] = urls[v]
-                    # @context URL found
-                    elif v not in urls:
-                        urls[v] = False
-                elif _is_object(v):
-                    # look for scoped context
-                    for kk, vv in v.items():
-                        # look for imported context
-                        if kk == '@import':
-                            if not _is_string(vv):
-                                raise JsonLdError(
-                                    'Invalid JSON-LD syntax; @import value must be a string.',
-                                    'jsonld.SyntaxError', {'context': v},
-                                    code='invalid @import value')
-                            vv = prepend_base(base, vv)
-                            if replace:
-                                v[kk] = urls[vv]
-                            if vv not in urls:
-                                urls[vv] = False
-                        elif _is_object(vv):
-                            self._find_context_urls(vv, urls, replace, base)
-
-    def _retrieve_context_urls(self, input_, cycles, options):
-        """
-        Retrieves external @context URLs using the given document loader. Each
-        instance of @context in the input that refers to a URL will be
-        replaced with the JSON @context found at that URL.
-
-        :param input_: the JSON-LD input with possible contexts.
-        :param cycles: an object for tracking context cycles.
-        :param load_document(url): the document loader.
-        :param base: the base URL to resolve relative URLs against.
-
-        :return: the result.
-        """
-        base = options.get('base', '')
-        if len(cycles) > MAX_CONTEXT_URLS:
-            raise JsonLdError(
-                'Maximum number of @context URLs exceeded.',
-                'jsonld.ContextUrlError', {'max': MAX_CONTEXT_URLS},
-                code='loading remote context failed')
-
-        # for tracking URLs to retrieve
-        urls = {}
-
-        # find all URLs in the given input
-        self._find_context_urls(input_, urls, replace=False, base=base)
-
-        # queue all unretrieved URLs
-        queue = []
-        for url, ctx in urls.items():
-            if ctx is False:
-                queue.append(url)
-
-        # retrieve URLs in queue
-        for url in queue:
-            # check for context URL cycle
-            if url in cycles:
-                raise JsonLdError(
-                    'Cyclical @context URLs detected.',
-                    'jsonld.ContextUrlError', {'url': url},
-                    code='recursive context inclusion')
-            cycles_ = copy.deepcopy(cycles)
-            cycles_[url] = True
-
-            # retrieve URL
-            try:
-                remote_doc = load_document(url, options)
-                ctx = remote_doc['document']
-            except Exception as cause:
-                raise JsonLdError(
-                    'Dereferencing a URL did not result in a valid JSON-LD '
-                    'context.',
-                    'jsonld.ContextUrlError',  {'url': url},
-                    code='loading remote context failed', cause=cause)
-
-            # ensure ctx is an object
-            if not _is_object(ctx):
-                raise JsonLdError(
-                    'Dereferencing a URL did not result in a valid JSON-LD '
-                    'object.',
-                    'jsonld.InvalidUrl', {'url': url},
-                    code='invalid remote context')
-
-            # use empty context if no @context key is present
-            if '@context' not in ctx:
-                ctx = {'@context': {}}
-            else:
-                ctx = {'@context': ctx['@context']}
-
-            # append context URL to context if given
-            if remote_doc['contextUrl'] is not None:
-                ctx['@context'] = JsonLdProcessor.arrayify(ctx['@context'])
-                ctx['@context'].append(remote_doc['contextUrl'])
-
-            # recurse
-            recurse_opts = copy.deepcopy(options)
-            recurse_opts['base'] = url
-            self._retrieve_context_urls(ctx, cycles_, recurse_opts)
-            urls[url] = ctx['@context']
-
-        # replace all URLs in the input
-        self._find_context_urls(input_, urls, replace=True, base=base)
-
     def _get_initial_context(self, options):
         """
         Gets the initial context.
@@ -5446,10 +5349,13 @@ class JsonLdProcessor(object):
         :return: a clone (child) of the active context.
         """
         child = {
-            '@base': active_ctx['@base'],
             'mappings': copy.deepcopy(active_ctx['mappings']),
             'inverse': None
         }
+        if '@base' in active_ctx:
+            child['@base'] = active_ctx['@base']
+        if 'context_base' in active_ctx:
+            child['context_base'] = active_ctx['context_base']
         if 'previousContext' in active_ctx:
             child['previousContext'] = copy.deepcopy(active_ctx['previousContext'])
         if '@language' in active_ctx:

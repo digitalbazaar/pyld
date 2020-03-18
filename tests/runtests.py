@@ -658,18 +658,6 @@ TEST_TYPES = {
     'jld:ExpandTest': {
         'pending': {
             'idRegex': [
-                # recursive context inclusion
-                '.*expand-manifest.jsonld#t0126$',
-                '.*expand-manifest.jsonld#t0127$',
-                '.*expand-manifest.jsonld#t0128$',
-
-                # loading remote context fails
-                '.*expand-manifest.jsonld#tjs21$',
-                # @import should be "invalid context entry" not "recursive context inclusion"
-                '.*expand-manifest.jsonld#tso01$',
-                '.*expand-manifest.jsonld#tso03$',
-                '.*expand-manifest.jsonld#tso12$',
-
                 ## html
                 '.*html-manifest.jsonld#te001$',
                 '.*html-manifest.jsonld#te002$',
@@ -885,10 +873,6 @@ TEST_TYPES = {
                 # rel vocab
                 '.*toRdf-manifest.jsonld#te111$',
                 '.*toRdf-manifest.jsonld#te112$',
-                # recursive context inclusion
-                '.*toRdf-manifest.jsonld#te126$',
-                '.*toRdf-manifest.jsonld#te128$',
-                '.*toRdf-manifest.jsonld#te127$',
                 # included
                 '.*toRdf-manifest.jsonld#tin01$',
                 '.*toRdf-manifest.jsonld#tin02$',
@@ -933,10 +917,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest.jsonld#tli10$',
                 # number fixes
                 '.*toRdf-manifest.jsonld#trt01$',
-                # @import should be "invalid context entry" not "recursive context inclusion"
-                '.*toRdf-manifest.jsonld#tso01$',
-                '.*toRdf-manifest.jsonld#tso03$',
-                '.*toRdf-manifest.jsonld#tso12$',
                 # type:none
                 '.*toRdf-manifest.jsonld#ttn02$',
                 # well formed
