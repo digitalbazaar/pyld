@@ -50,6 +50,8 @@
 * ToRdf:
   * Support for I18N direction.
   * Support for Lists of Lists.
+  * Partial support for JSON canonicalicalization of JSON literals.
+    * Includes local copy of JCS library, but doesn't load.
 * Update merge_node_maps for `@type`.
 
 ## 1.0.5 - 2019-05-09
