@@ -257,6 +257,12 @@ class Test(unittest.TestCase):
         if data_sv in skip_sv:
             self.skipTest('Test with specVersion %s' % data_sv)
 
+        # mark tests to run with local loader
+        run_remote_re = test_info.get('runLocal', [])
+        for regex in run_remote_re:
+            if re.match(regex, data.get('@id', data.get('id', ''))):
+                data['runLocal'] = True
+
     def runTest(self):
         data = self.data
         global TEST_TYPES
@@ -459,9 +465,14 @@ def create_document_loader(test):
         return doc
 
     def local_loader(url, headers):
-        # always load remote-doc and non-base tests remotely
-        if ((not is_test_suite_url(url) and url.find(':') != -1) or
-                test.manifest.data.get('name') == 'Remote document'):
+        # always load remote-doc tests remotely
+        # (some skipped due to lack of reasonable HTTP header support)
+        if (test.manifest.data.get('name') == 'Remote document' and
+            not test.data.get('runLocal')):
+            return loader(url)
+
+        # always load non-base tests remotely
+        if not is_test_suite_url(url) and url.find(':') != -1:
             return loader(url)
 
         # attempt to load locally
@@ -667,18 +678,29 @@ TEST_TYPES = {
                 '.*html-manifest.jsonld#te022$',
                 '.*html-manifest.jsonld#tex01$',
 
-                ## remote
-                '.*remote-doc-manifest.jsonld#t0005$',
-                '.*remote-doc-manifest.jsonld#t0006$',
-                '.*remote-doc-manifest.jsonld#t0007$',
-                '.*remote-doc-manifest.jsonld#t0010$',
-                '.*remote-doc-manifest.jsonld#t0011$',
-                '.*remote-doc-manifest.jsonld#t0012$',
+                # HTML
                 '.*remote-doc-manifest.jsonld#t0013$',
                 '.*remote-doc-manifest.jsonld#tla01$',
                 '.*remote-doc-manifest.jsonld#tla05$',
             ]
         },
+        'runLocal': [
+            '.*remote-doc-manifest.jsonld#t0003$',
+            '.*remote-doc-manifest.jsonld#t0004$',
+            '.*remote-doc-manifest.jsonld#t0005$',
+            '.*remote-doc-manifest.jsonld#t0006$',
+            '.*remote-doc-manifest.jsonld#t0007$',
+            '.*remote-doc-manifest.jsonld#t0009$',
+            '.*remote-doc-manifest.jsonld#t0010$',
+            '.*remote-doc-manifest.jsonld#t0011$',
+            '.*remote-doc-manifest.jsonld#t0012$',
+            '.*remote-doc-manifest.jsonld#t0013$',
+            '.*remote-doc-manifest.jsonld#tla01$',
+            '.*remote-doc-manifest.jsonld#tla02$',
+            '.*remote-doc-manifest.jsonld#tla03$',
+            '.*remote-doc-manifest.jsonld#tla04$',
+            '.*remote-doc-manifest.jsonld#tla05$',
+        ],
         'skip': {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata

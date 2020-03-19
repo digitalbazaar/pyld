@@ -2977,6 +2977,8 @@ class JsonLdProcessor(object):
                     propagate=propagate,
                     remote_contexts=remote_contexts.copy(),
                     validate_scoped=validate_scoped)
+                if '@base' in active_ctx:
+                    rval['@base'] = active_ctx['@base']
                 continue
 
             # dereference @context key if present
@@ -5226,7 +5228,7 @@ class JsonLdProcessor(object):
 
         # resolve against base
         rval = value
-        if base:
+        if base and active_ctx.get('@base'):
             rval = prepend_base(active_ctx['@base'], rval)
 
         return rval
