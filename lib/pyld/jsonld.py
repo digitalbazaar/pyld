@@ -3550,7 +3550,7 @@ class JsonLdProcessor(object):
 
             # convert to XSD datatypes as appropriate
             if item.get('@type') == '@json':
-                object['value'] = str(canonicalize(value))
+                object['value'] = canonicalize(value).decode('UTF-8')
                 object['datatype'] = RDF_JSON_LITERAL
             elif _is_bool(value):
                 object['value'] = 'true' if value else 'false'

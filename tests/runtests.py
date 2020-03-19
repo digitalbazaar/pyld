@@ -861,22 +861,6 @@ TEST_TYPES = {
                 # rel vocab
                 '.*toRdf-manifest.jsonld#te111$',
                 '.*toRdf-manifest.jsonld#te112$',
-                # @json
-                '.*toRdf-manifest.jsonld#tjs04$',
-                '.*toRdf-manifest.jsonld#tjs06$',
-                '.*toRdf-manifest.jsonld#tjs07$',
-                '.*toRdf-manifest.jsonld#tjs08$',
-                '.*toRdf-manifest.jsonld#tjs09$',
-                '.*toRdf-manifest.jsonld#tjs10$',
-                '.*toRdf-manifest.jsonld#tjs11$',
-                '.*toRdf-manifest.jsonld#tjs12$',
-                '.*toRdf-manifest.jsonld#tjs13$',
-                '.*toRdf-manifest.jsonld#tjs14$',
-                '.*toRdf-manifest.jsonld#tjs15$',
-                '.*toRdf-manifest.jsonld#tjs16$',
-                '.*toRdf-manifest.jsonld#tjs19$',
-                '.*toRdf-manifest.jsonld#tjs20$',
-                '.*toRdf-manifest.jsonld#tjs21$',
                 # list of lists
                 '.*toRdf-manifest.jsonld#tli01$',
                 '.*toRdf-manifest.jsonld#tli02$',
