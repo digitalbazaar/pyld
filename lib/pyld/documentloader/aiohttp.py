@@ -8,9 +8,9 @@ Remote document loader using aiohttp.
 """
 
 import string
+import urllib.parse as urllib_parse
 
-from pyld.jsonld import (JsonLdError, urllib_parse,
-                         parse_link_header, LINK_HEADER_REL)
+from pyld.jsonld import (JsonLdError, parse_link_header, LINK_HEADER_REL)
 
 
 def aiohttp_document_loader(loop=None, secure=False, **kwargs):

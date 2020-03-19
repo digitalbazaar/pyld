@@ -20,55 +20,14 @@ import re
 import sys
 import traceback
 import warnings
+from c14n.Canonicalize import canonicalize
 from collections import deque, namedtuple
+from functools import cmp_to_key
 from numbers import Integral, Real
 from pyld.__about__ import (__copyright__, __license__, __version__)
-from c14n.Canonicalize import canonicalize
 
-try:
-    from functools import cmp_to_key
-except ImportError:
-    def cmp_to_key(mycmp):
-        """
-        Convert a cmp= function into a key= function
-
-        Source: http://hg.python.org/cpython/file/default/Lib/functools.py
-        """
-        class K(object):
-            __slots__ = ['obj']
-
-            def __init__(self, obj):
-                self.obj = obj
-
-            def __lt__(self, other):
-                return mycmp(self.obj, other.obj) < 0
-
-            def __gt__(self, other):
-                return mycmp(self.obj, other.obj) > 0
-
-            def __eq__(self, other):
-                return mycmp(self.obj, other.obj) == 0
-
-            def __le__(self, other):
-                return mycmp(self.obj, other.obj) <= 0
-
-            def __ge__(self, other):
-                return mycmp(self.obj, other.obj) >= 0
-
-            def __ne__(self, other):
-                return mycmp(self.obj, other.obj) != 0
-            __hash__ = None
-        return K
-
-# support python 2 and 3
-if sys.version_info[0] >= 3:
-    import urllib.parse as urllib_parse
-    basestring = str
-
-    def cmp(a, b):
-        return (a > b) - (a < b)
-else:
-    import urlparse as urllib_parse
+def cmp(a, b):
+    return (a > b) - (a < b)
 
 __all__ = [
     '__copyright__', '__license__', '__version__',
@@ -6066,7 +6025,7 @@ def _is_string(v):
 
     :return: True if the value is a String, False if not.
     """
-    return isinstance(v, basestring)
+    return isinstance(v, str)
 
 
 def _validate_type_value(v):
