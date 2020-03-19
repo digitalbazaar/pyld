@@ -436,20 +436,34 @@ def create_document_loader(test):
         if options and url == test.base:
             if ('redirectTo' in options and options.get('httpStatus') >= 300):
                 doc['documentUrl'] = (
-                        test.manifest.data['baseIri'] + options['redirectTo'])
+                    test.manifest.data['baseIri'] + options['redirectTo'])
             elif 'httpLink' in options:
                 content_type = options.get('contentType')
                 if not content_type and url.endswith('.jsonld'):
                     content_type = 'application/ld+json'
+                if not content_type and url.endswith('.json'):
+                    content_type = 'application/json'
+                if not content_type and url.endswith('.html'):
+                    content_type = 'text/html'
+                if not content_type:
+                    content_type = 'application/octet-stream'
                 link_header = options.get('httpLink', '')
                 if isinstance(link_header, list):
                     link_header = ','.join(link_header)
-                link_header = jsonld.parse_link_header(
+                linked_context = jsonld.parse_link_header(
                     link_header).get('http://www.w3.org/ns/json-ld#context')
-                if link_header and content_type != 'application/ld+json':
-                    if isinstance(link_header, list):
+                if linked_context and content_type != 'application/ld+json':
+                    if isinstance(linked_context, list):
                         raise Exception('multiple context link headers')
-                    doc['contextUrl'] = link_header['target']
+                    doc['contextUrl'] = linked_context['target']
+                linked_alternate = jsonld.parse_link_header(
+                    link_header).get('alternate')
+                # if not JSON-LD, alternate may point there
+                if (linked_alternate and
+                        linked_alternate.get('type') == 'application/ld+json' and
+                        not re.match(r'^application\/(\w*\+)?json$', content_type)):
+                    doc['contentType'] = 'application/ld+json'
+                    doc['documentUrl'] = jsonld.prepend_base(url, linked_alternate['target'])
         global ROOT_MANIFEST_DIR
         if doc['documentUrl'].find(':') == -1:
             filename = os.path.join(ROOT_MANIFEST_DIR, doc['documentUrl'])
@@ -680,8 +694,6 @@ TEST_TYPES = {
 
                 # HTML
                 '.*remote-doc-manifest.jsonld#t0013$',
-                '.*remote-doc-manifest.jsonld#tla01$',
-                '.*remote-doc-manifest.jsonld#tla05$',
             ]
         },
         'runLocal': [
