@@ -9,8 +9,6 @@ Test runner for JSON-LD.
 .. moduleauthor:: Olaf Conradi <olaf@conradi.org>
 """
 
-from __future__ import print_function
-
 import datetime
 import json
 import os
@@ -19,21 +17,13 @@ import traceback
 import unittest
 import re
 from optparse import OptionParser
+from unittest import TextTestResult
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from pyld import jsonld
 
-try:
-    from unittest import TextTestResult
-except ImportError:
-    from unittest import _TextTestResult as TextTestResult
-
 __copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
-
-# support python 2
-if sys.version_info[0] >= 3:
-    basestring = str
 
 ROOT_MANIFEST_DIR = None
 SKIP_TESTS = []
@@ -153,7 +143,7 @@ class Manifest:
         global ONLY_IDENTIFIER
 
         for entry in entries:
-            if isinstance(entry, basestring):
+            if isinstance(entry, str):
                 filename = os.path.join(self.dirname, entry)
                 entry = read_json(filename)
             else:
