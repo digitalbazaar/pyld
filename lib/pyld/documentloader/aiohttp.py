@@ -69,21 +69,31 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
                         'document': json_body
                     }
                     content_type = response.headers.get('content-type')
+                    if not content_type:
+                        content_type = 'application/octet-stream'
                     link_header = response.headers.get('link')
-                    if link_header and content_type != 'application/ld+json':
-                        link_header = parse_link_header(link_header).get(
+                    if link_header:
+                        linked_context = parse_link_header(link_header).get(
                             LINK_HEADER_REL)
                         # only 1 related link header permitted
-                        if isinstance(link_header, list):
-                            raise JsonLdError(
-                                'URL could not be dereferenced, '
-                                'it has more than one '
-                                'associated HTTP Link Header.',
-                                'jsonld.LoadDocumentError',
-                                {'url': url},
-                                code='multiple context link headers')
-                        if link_header:
-                            doc['contextUrl'] = link_header['target']
+                        if linked_context and content_type != 'application/ld+json':
+                          if isinstance(linked_context, list):
+                              raise JsonLdError(
+                                  'URL could not be dereferenced, '
+                                  'it has more than one '
+                                  'associated HTTP Link Header.',
+                                  'jsonld.LoadDocumentError',
+                                  {'url': url},
+                                  code='multiple context link headers')
+                          doc['contextUrl'] = linked_context['target']
+                        linked_alternate = parse_link_header(link_header).get('alternate')
+                        # if not JSON-LD, alternate may point there
+                        if (linked_alternate and
+                                linked_alternate.get('type') == 'application/ld+json' and
+                                not re.match(r'^application\/(\w*\+)?json$', content_type)):
+                            doc['contentType'] = 'application/ld+json'
+                            doc['documentUrl'] = jsonld.prepend_base(url, linked_alternate['target'])
+                        
                     return doc
         except JsonLdError as e:
             raise e
