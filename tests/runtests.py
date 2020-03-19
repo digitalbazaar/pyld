@@ -172,6 +172,7 @@ class Test(unittest.TestCase):
         self.dirname = os.path.dirname(filename)
         self.is_positive = is_jsonld_type(data, 'jld:PositiveEvaluationTest')
         self.is_negative = is_jsonld_type(data, 'jld:NegativeEvaluationTest')
+        self.is_syntax = is_jsonld_type(data, 'jld:PositiveSyntaxTest')
         self.test_type = None
         self.pending = False
         global TEST_TYPES
@@ -273,6 +274,8 @@ class Test(unittest.TestCase):
         result = None
         if self.is_negative:
             expect = data[self._get_expect_error_code_property()]
+        elif self.is_syntax:
+            expect = None
         else:
             expect = read_test_property(self._get_expect_property())(self)
 
@@ -280,7 +283,9 @@ class Test(unittest.TestCase):
             result = getattr(jsonld, fn)(*params)
             if self.is_negative and not self.pending:
                 raise AssertionError('Expected an error; one was not raised')
-            if self.test_type == 'jld:ToRDFTest':
+            if self.is_syntax and not self.pending:
+                self.assertTrue(True)
+            elif self.test_type == 'jld:ToRDFTest':
                 # Test normalized results
                 result = jsonld.normalize(result, {
                     'algorithm': 'URGNA2012',
@@ -292,7 +297,12 @@ class Test(unittest.TestCase):
                     'inputFormat': 'application/n-quads',
                     'format': 'application/n-quads'
                 })
-                self.assertEqual(result, expect)
+                if result == expect:
+                    self.assertTrue(True)
+                else:
+                    print('\nEXPECTED: ', expect)
+                    print('ACTUAL: ', result)
+                    raise AssertionError('results differ')
             elif not self.is_negative:
                 # Perform order-independent equivalence test
                 self.assertTrue(equalUnordered(result, expect))
@@ -929,23 +939,6 @@ TEST_TYPES = {
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
             'idRegex': [
-                # nt
-                '.*toRdf-manifest.jsonld#tnt01$',
-                '.*toRdf-manifest.jsonld#tnt02$',
-                '.*toRdf-manifest.jsonld#tnt03$',
-                '.*toRdf-manifest.jsonld#tnt04$',
-                '.*toRdf-manifest.jsonld#tnt05$',
-                '.*toRdf-manifest.jsonld#tnt06$',
-                '.*toRdf-manifest.jsonld#tnt07$',
-                '.*toRdf-manifest.jsonld#tnt08$',
-                '.*toRdf-manifest.jsonld#tnt09$',
-                '.*toRdf-manifest.jsonld#tnt10$',
-                '.*toRdf-manifest.jsonld#tnt11$',
-                '.*toRdf-manifest.jsonld#tnt12$',
-                '.*toRdf-manifest.jsonld#tnt13$',
-                '.*toRdf-manifest.jsonld#tnt14$',
-                '.*toRdf-manifest.jsonld#tnt15$',
-                '.*toRdf-manifest.jsonld#tnt16$',
             ]
         },
         'fn': 'to_rdf',
