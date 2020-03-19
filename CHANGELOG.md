@@ -1,6 +1,7 @@
 # pyld ChangeLog
 
 ### Changed
+* **BREAKING**: Versions of Python before 3.4 are no longer supported.
 * Update conformance docs.
 * Add all keywords and update options.
 * Default processingMode to json-ld-1.1.
