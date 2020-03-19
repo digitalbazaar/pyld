@@ -101,10 +101,8 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
 
         :return: the RemoteDocument.
         """
-        if headers is None:
-            headers = {
-                'Accept': 'application/ld+json, application/json'
-            }
-        return loop.run_until_complete(async_loader(url, options.get('headers')))
+        return loop.run_until_complete(
+            async_loader(url,
+                options.get('headers', {'Accept': 'application/ld+json, application/json'})))
 
     return loader
