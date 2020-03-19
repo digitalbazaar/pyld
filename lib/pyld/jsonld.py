@@ -23,7 +23,7 @@ import warnings
 from collections import deque, namedtuple
 from numbers import Integral, Real
 from pyld.__about__ import (__copyright__, __license__, __version__)
-#from c14n import canonicalize
+from c14n.Canonicalize import canonicalize
 
 try:
     from functools import cmp_to_key
@@ -3550,9 +3550,7 @@ class JsonLdProcessor(object):
 
             # convert to XSD datatypes as appropriate
             if item.get('@type') == '@json':
-                object['value'] = json.dumps(value)
-                # FIXME: module import
-                #object['value'] = canonicalize(value)
+                object['value'] = str(canonicalize(value))
                 object['datatype'] = RDF_JSON_LITERAL
             elif _is_bool(value):
                 object['value'] = 'true' if value else 'false'
