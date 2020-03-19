@@ -6352,7 +6352,8 @@ def load_document(url,
     if remote_doc['document'] is None:
         raise JsonLdError(
             'No remote document found at the given URL.',
-            'jsonld.NullRemoteDocument')
+            'jsonld.NullRemoteDocument',
+            code='loading document failed')
     elif _is_string(remote_doc['document']):
         try:
             if (remote_doc['contentType'] == 'text/html' or
