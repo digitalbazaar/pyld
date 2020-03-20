@@ -59,6 +59,7 @@
   * Partial support for JSON canonicalization of JSON literals.
     * Includes local copy of JCS library, but doesn't load.
   * Lists of Lists.
+  * Text Direction 'i18n-datatype'.
 
 ## 1.0.5 - 2019-05-09
 
