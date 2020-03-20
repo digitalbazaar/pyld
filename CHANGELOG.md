@@ -52,12 +52,13 @@
   * Rewrite _create_node_map based on 1.1 algorithm.
   * Flatten `@included`.
   * Flatten lists of lists.
+  * Update merge_node_maps for `@type`.
 * ToRdf:
   * Support for I18N direction.
   * Support for Lists of Lists.
-  * Partial support for JSON canonicalicalization of JSON literals.
+  * Partial support for JSON canonicalization of JSON literals.
     * Includes local copy of JCS library, but doesn't load.
-* Update merge_node_maps for `@type`.
+  * Lists of Lists.
 
 ## 1.0.5 - 2019-05-09
 
