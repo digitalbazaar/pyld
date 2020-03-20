@@ -885,11 +885,6 @@ TEST_TYPES = {
     'jld:ToRDFTest': {
         'pending': {
             'idRegex': [
-                # direction
-                '.*toRdf-manifest.jsonld#tdi09$',
-                '.*toRdf-manifest.jsonld#tdi10$',
-                '.*toRdf-manifest.jsonld#tdi11$',
-                '.*toRdf-manifest.jsonld#tdi12$',
                 # blank node property
                 '.*toRdf-manifest.jsonld#te075$',
                 '.*toRdf-manifest.jsonld#te122$',
@@ -929,6 +924,9 @@ TEST_TYPES = {
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
             'idRegex': [
+                # node object direction
+                '.*toRdf-manifest.jsonld#tdi11$',
+                '.*toRdf-manifest.jsonld#tdi12$',
             ]
         },
         'fn': 'to_rdf',

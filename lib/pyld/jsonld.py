@@ -285,6 +285,7 @@ def to_rdf(input_, options=None):
         defaults to 'json-ld-1.1'.
       [documentLoader(url, options)] the document loader
         (default: _default_document_loader).
+      [rdfDirection] Only 'i18n-datatype' supported.
 
     :return: the resulting RDF dataset (or a serialization of it).
     """
@@ -1144,6 +1145,8 @@ class JsonLdProcessor(object):
             to produce only standard RDF (default: false).
           [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
+          [rdfDirection] Only 'i18n-datatype' supported
+            (default: None).
 
         :return: the resulting RDF dataset (or a serialization of it).
         """
@@ -3436,7 +3439,7 @@ class JsonLdProcessor(object):
                     predicate['value'] = property
 
                     # convert list, value or node object to triple
-                    object = self._object_to_rdf(item, issuer, triples)
+                    object = self._object_to_rdf(item, issuer, triples, options.get('rdfDirection'))
                     # skip None objects (they are relative IRIs)
                     if object is not None:
                         triples.append({
@@ -3446,7 +3449,7 @@ class JsonLdProcessor(object):
                         })
         return triples
 
-    def _list_to_rdf(self, list_, issuer, triples):
+    def _list_to_rdf(self, list_, issuer, triples, rdfDirection):
         """
         Converts a @list value into a linked list of blank node RDF triples
         (and RDF collection).
@@ -3454,6 +3457,7 @@ class JsonLdProcessor(object):
         :param list_: the @list value.
         :param issuer: the IdentifierIssuer for issuing blank node identifiers.
         :param triples: the array of triples to append to.
+        :param rdfDirection: for creating datatyped literals.
 
         :return: the head of the list
         """
@@ -3467,7 +3471,7 @@ class JsonLdProcessor(object):
         subject = result
 
         for item in list_:
-            object = self._object_to_rdf(item, issuer, triples)
+            object = self._object_to_rdf(item, issuer, triples, rdfDirection)
             next = {'type': 'blank node', 'value': issuer.get_id()}
             triples.append({
                 'subject': subject,
@@ -3484,7 +3488,7 @@ class JsonLdProcessor(object):
 
         # tail of list
         if last:
-            object = self._object_to_rdf(last, issuer, triples)
+            object = self._object_to_rdf(last, issuer, triples, rdfDirection)
             triples.append({
                 'subject': subject,
                 'predicate': first,
@@ -3498,7 +3502,7 @@ class JsonLdProcessor(object):
 
         return result
 
-    def _object_to_rdf(self, item, issuer, triples):
+    def _object_to_rdf(self, item, issuer, triples, rdfDirection):
         """
         Converts a JSON-LD value object to an RDF literal or a JSON-LD string
         or node object to an RDF resource.
@@ -3506,6 +3510,8 @@ class JsonLdProcessor(object):
         :param item: the JSON-LD value or node object.
         :param issuer: the IdentifierIssuer for issuing blank node identifiers.
         :param triples: the array of triples to append list entries to.
+        :param rdfDirection: for creating datatyped literals.
+        :param rdfDirection: for creating datatyped literals.
 
         :return: the RDF literal or RDF resource.
         """
@@ -3532,6 +3538,13 @@ class JsonLdProcessor(object):
             elif _is_integer(value):
                 object['value'] = str(value)
                 object['datatype'] = datatype or XSD_INTEGER
+            elif rdfDirection == 'i18n-datatype' and '@direction' in item:
+                datatype = 'https://www.w3.org/ns/i18n#%s_%s' % (
+                    item.get('@language', ''),
+                    item['@direction']
+                )
+                object['value'] = value
+                object['datatype'] = datatype
             elif '@language' in item:
                 object['value'] = value
                 object['datatype'] = datatype or RDF_LANGSTRING
@@ -3541,7 +3554,7 @@ class JsonLdProcessor(object):
                 object['datatype'] = datatype or XSD_STRING
         # convert list object to RDF
         elif _is_list(item):
-            list_ = self._list_to_rdf(item['@list'], issuer, triples)
+            list_ = self._list_to_rdf(item['@list'], issuer, triples, rdfDirection)
             object['value'] = list_['value']
             object['type'] = list_['type']
         # convert string/node object to RDF
