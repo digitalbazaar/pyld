@@ -7,7 +7,6 @@
 * Default processingMode to json-ld-1.1.
 * Implement logic for marking tests as pending, so that it will fail if a pending test passes.
 * Consolidate documentLoader option and defaults into a load_document method to also handle JSON (eventually HTML) parsing.
-* Flatten `@included`.
 * Add support for rel=alternate for non-JSON-LD docs.
 * Context processing:
   * Support `@propagate` in context processing and propagate option.
@@ -49,6 +48,10 @@
   * Order types when applying scoped contexts.
   * Use type_scoped_ctx when expanding values of `@type`.
   * Use propagate and override_protected properly when creating expansion contexts.
+* Flattening:
+  * Rewrite _create_node_map based on 1.1 algorithm.
+  * Flatten `@included`.
+  * Flatten lists of lists.
 * ToRdf:
   * Support for I18N direction.
   * Support for Lists of Lists.
