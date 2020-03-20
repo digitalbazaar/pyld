@@ -305,7 +305,12 @@ class Test(unittest.TestCase):
                     raise AssertionError('results differ')
             elif not self.is_negative:
                 # Perform order-independent equivalence test
-                self.assertTrue(equalUnordered(result, expect))
+                if equalUnordered(result, expect):
+                    self.assertTrue(True)
+                else:
+                    print('\nEXPECTED: ', json.dumps(expect, indent=2))
+                    print('ACTUAL: ', json.dumps(result, indent=2))
+                    raise AssertionError('results differ')
             else:
                 self.assertEqual(result, expect)
             if self.pending and not self.is_negative:
@@ -744,10 +749,6 @@ TEST_TYPES = {
                 '.*html-manifest.jsonld#tf002$',
                 '.*html-manifest.jsonld#tf003$',
                 '.*html-manifest.jsonld#tf004$',
-                # list of lists
-                '.*flatten-manifest.jsonld#tli01$',
-                '.*flatten-manifest.jsonld#tli02$',
-                '.*flatten-manifest.jsonld#tli03$',
             ]
         },
         'skip': {

@@ -3615,29 +3615,36 @@ class JsonLdProcessor(object):
         return rval
 
     def _create_node_map(
-            self, input_, graphs, graph, issuer, name=None, list_=None):
+            self, input_, graph_map, active_graph, issuer,
+            active_subject=None, active_property=None, list_=None):
         """
         Recursively flattens the subjects in the given JSON-LD expanded
         input into a node map.
 
         :param input_: the JSON-LD expanded input.
-        :param graphs: a map of graph name to subject map.
-        :param graph: the name of the current graph.
+        :param graph_map: a map of graph name to subject map.
+        :param active_graph: the name of the current graph.
         :param issuer: the IdentifierIssuer for issuing blank node identifiers.
-        :param name: the name assigned to the current input if it is a bnode.
+        :param active_subject: the name assigned to the current input if it is a bnode.
+        :param active_property: property within current node.
         :param list_: the list to append to, None for none.
         """
         # recurse through array
         if _is_array(input_):
             for e in input_:
-                self._create_node_map(e, graphs, graph, issuer, None, list_)
+                self._create_node_map(e, graph_map, active_graph, issuer, active_subject, active_property, list_)
             return
 
-        # add non-object to list
-        if not _is_object(input_):
-            if list_ is not None:
-                list_.append(input_)
-            return
+        # Note: At this point, input must be a subject.
+
+        # create new subject or merge into existing one
+        subject_node = graph_map.setdefault(active_graph, {}).get(active_subject) if _is_string(active_subject) else None
+
+        # spec requires @type to be labeled first, so assign identifiers early
+        if '@type' in input_:
+            for type_ in input_['@type']:
+                if type_.startswith('_:'):
+                    issuer.get_id(type_)
 
         # add values to list
         if _is_value(input_):
@@ -3646,30 +3653,47 @@ class JsonLdProcessor(object):
                 # relabel @type blank node
                 if type_.startswith('_:'):
                     type_ = input_['@type'] = issuer.get_id(type_)
-            if list_ is not None:
-                list_.append(input_)
+            if list_:
+                list_['@list'].append(input_)
+            elif subject_node:
+                JsonLdProcessor.add_value(
+                    subject_node, active_property, input_,
+                    {'propertyIsArray': True, 'allowDuplicate': False})
             return
 
-        # Note: At this point, input must be a subject.
+        if _is_list(input_):
+            o = {'@list': []}
+            self._create_node_map(
+                input_['@list'], graph_map, active_graph, issuer, active_subject, active_property, o)
+            if list_:
+                list_['@list'].append(o)
+            elif subject_node:
+                JsonLdProcessor.add_value(
+                    subject_node, active_property, o,
+                    {'propertyIsArray': True, 'allowDuplicate': True})
+            return
 
-        # spec requires @type to be labeled first, so assign identifiers early
-        if '@type' in input_:
-            for type_ in input_['@type']:
-                if type_.startswith('_:'):
-                    issuer.get_id(type_)
-
-        # get identifier for subject
-        if name is None:
-            name = input_.get('@id')
-            if _is_bnode(input_):
-                name = issuer.get_id(name)
-
-        # add subject reference to list
-        if list_ is not None:
-            list_.append({'@id': name})
+        id_ = input_.get('@id')
+        if _is_bnode(input_):
+            id_ = issuer.get_id(id_)
 
         # create new subject or merge into existing one
-        subject = graphs.setdefault(graph, {}).setdefault(name, {'@id': name})
+        node = graph_map.setdefault(active_graph, {}).setdefault(id_, {'@id': id_})
+
+        if _is_object(active_subject):
+            # reverse property relationship
+            JsonLdProcessor.add_value(
+                node, active_property, active_subject,
+                {'propertyIsArray': True, 'allowDuplicate': False})
+        elif active_property:
+            reference = {'@id': id_}
+            if list_:
+                list_['@list'].append(reference)
+            elif subject_node:
+                JsonLdProcessor.add_value(
+                    subject_node, active_property, reference,
+                    {'propertyIsArray': True, 'allowDuplicate': False})
+
         for property, objects in sorted(input_.items()):
             # skip @id
             if property == '@id':
@@ -3677,44 +3701,39 @@ class JsonLdProcessor(object):
 
             # handle reverse properties
             if property == '@reverse':
-                referenced_node = {'@id': name}
+                referenced_node = {'@id': id_}
                 reverse_map = input_['@reverse']
                 for reverse_property, items in reverse_map.items():
                     for item in items:
-                        item_name = item.get('@id')
-                        if _is_bnode(item):
-                            item_name = issuer.get_id(item_name)
                         self._create_node_map(
-                            item, graphs, graph, issuer, item_name)
-                        JsonLdProcessor.add_value(
-                            graphs[graph][item_name], reverse_property,
-                            referenced_node,
-                            {'propertyIsArray': True, 'allowDuplicate': False})
+                            item, graph_map, active_graph, issuer,
+                            active_subject=referenced_node,
+                            active_property=reverse_property)
                 continue
 
-            # recurse into graph
+            # recurse into active_graph
             if property == '@graph':
                 # add graph subjects map entry
-                graphs.setdefault(name, {})
-                g = graph if graph == '@merged' else name
-                self._create_node_map(objects, graphs, g, issuer)
+                graph_map.setdefault(id_, {})
+                g = active_graph if active_graph == '@merged' else id_
+                self._create_node_map(objects, graph_map, g, issuer)
                 continue
 
             # recurse into included
             if property == '@included':
-                self._create_node_map(objects, graphs, graph, issuer)
+                self._create_node_map(objects, graph_map, active_graph, issuer)
                 continue
 
             # copy non-@type keywords
             if property != '@type' and _is_keyword(property):
-                if property == '@index' and '@index' in subject \
-                    and (input_['@index'] != subject['@index'] or
-                         input_['@index']['@id'] != subject['@index']['@id']):
+                if property == '@index' and '@index' in node \
+                    and (input_['@index'] != node['@index'] or
+                         input_['@index']['@id'] != node['@index']['@id']):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; conflicting @index property '
                         ' detected.', 'jsonld.SyntaxError',
-                        {'subject': subject}, code='conflicting indexes')
-                subject[property] = input_[property]
+                        {'node': node}, code='conflicting indexes')
+                node[property] = input_[property]
                 continue
 
             # if property is a bnode, assign it a new id
@@ -3724,53 +3743,31 @@ class JsonLdProcessor(object):
             # ensure property is added for empty arrays
             if len(objects) == 0:
                 JsonLdProcessor.add_value(
-                    subject, property, [], {'propertyIsArray': True})
+                    node, property, [], {'propertyIsArray': True})
                 continue
 
             for o in objects:
                 if property == '@type':
                     # rename @type blank nodes
                     o = issuer.get_id(o) if o.startswith('_:') else o
-
-                # handle embedded subject or subject reference
-                if _is_subject(o) or _is_subject_reference(o):
-                    # rename blank node @id
-                    id_ = o.get('@id')
-                    if _is_bnode(o):
-                        id_ = issuer.get_id(id_)
-
-                    # add reference and recurse
                     JsonLdProcessor.add_value(
-                        subject, property, {'@id': id_},
+                        node, property, o,
                         {'propertyIsArray': True, 'allowDuplicate': False})
-                    self._create_node_map(o, graphs, graph, issuer, id_)
-                # handle @list
-                elif _is_list(o):
-                    olist = []
-                    self._create_node_map(
-                        o['@list'], graphs, graph, issuer, name, olist)
-                    o = {'@list': olist}
-                    JsonLdProcessor.add_value(
-                        subject, property, o,
-                        {'propertyIsArray': True, 'allowDuplicate': False})
-                # handle @value
                 else:
-                    self._create_node_map(o, graphs, graph, issuer, name)
-                    JsonLdProcessor.add_value(
-                        subject, property, o,
-                        {'propertyIsArray': True, 'allowDuplicate': False})
+                    self._create_node_map(o, graph_map, active_graph, issuer,
+                        active_subject=id_, active_property=property)
 
-    def _merge_node_map_graphs(self, graphs):
+    def _merge_node_map_graphs(self, graph_map):
         """
         Merge separate named graphs into a single merged graph including
         all nodes from the default graph and named graphs.
 
-        :param graphs: a map of graph name to subject map.
+        :param graph_map: a map of graph name to subject map.
 
         :return: merged graph map.
         """
         merged = {}
-        for name, graph in sorted(graphs.items()):
+        for name, graph in sorted(graph_map.items()):
             for id_, node in sorted(graph.items()):
                 if id_ not in merged:
                     merged[id_] = {'@id': id}
