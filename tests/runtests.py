@@ -896,17 +896,6 @@ TEST_TYPES = {
                 # rel vocab
                 '.*toRdf-manifest.jsonld#te111$',
                 '.*toRdf-manifest.jsonld#te112$',
-                # list of lists
-                '.*toRdf-manifest.jsonld#tli01$',
-                '.*toRdf-manifest.jsonld#tli02$',
-                '.*toRdf-manifest.jsonld#tli03$',
-                '.*toRdf-manifest.jsonld#tli04$',
-                '.*toRdf-manifest.jsonld#tli05$',
-                '.*toRdf-manifest.jsonld#tli06$',
-                '.*toRdf-manifest.jsonld#tli07$',
-                '.*toRdf-manifest.jsonld#tli08$',
-                '.*toRdf-manifest.jsonld#tli09$',
-                '.*toRdf-manifest.jsonld#tli10$',
                 # number fixes
                 '.*toRdf-manifest.jsonld#trt01$',
                 # type:none

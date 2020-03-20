@@ -3401,7 +3401,7 @@ class JsonLdProcessor(object):
 
         :return: the array of RDF triples for the given graph.
         """
-        rval = []
+        triples = []
         for id_, node in sorted(graph.items()):
             for property, items in sorted(node.items()):
                 if property == '@type':
@@ -3435,70 +3435,77 @@ class JsonLdProcessor(object):
                         predicate['type'] = 'IRI'
                     predicate['value'] = property
 
-                    # convert @list to triples
-                    if _is_list(item):
-                        self._list_to_rdf(
-                            item['@list'], issuer, subject, predicate, rval)
-                    # convert value or node object to triple
-                    else:
-                        object = self._object_to_rdf(item)
-                        # skip None objects (they are relative IRIs)
-                        if object is not None:
-                            rval.append({
-                                'subject': subject,
-                                'predicate': predicate,
-                                'object': object
-                            })
-        return rval
+                    # convert list, value or node object to triple
+                    object = self._object_to_rdf(item, issuer, triples)
+                    # skip None objects (they are relative IRIs)
+                    if object is not None:
+                        triples.append({
+                            'subject': subject,
+                            'predicate': predicate,
+                            'object': object
+                        })
+        return triples
 
-    def _list_to_rdf(self, list, issuer, subject, predicate, triples):
+    def _list_to_rdf(self, list_, issuer, triples):
         """
         Converts a @list value into a linked list of blank node RDF triples
         (and RDF collection).
 
-        :param list: the @list value.
+        :param list_: the @list value.
         :param issuer: the IdentifierIssuer for issuing blank node identifiers.
-        :param subject: the subject for the head of the list.
-        :param predicate: the predicate for the head of the list.
         :param triples: the array of triples to append to.
+
+        :return: the head of the list
         """
         first = {'type': 'IRI', 'value': RDF_FIRST}
         rest = {'type': 'IRI', 'value': RDF_REST}
         nil = {'type': 'IRI', 'value': RDF_NIL}
 
-        for item in list:
-            blank_node = {'type': 'blank node', 'value': issuer.get_id()}
+        last = list_.pop() if list_ else None
+        # result is the head of the list
+        result = {'type': 'blank node', 'value': issuer.get_id()} if last else nil
+        subject = result
+
+        for item in list_:
+            object = self._object_to_rdf(item, issuer, triples)
+            next = {'type': 'blank node', 'value': issuer.get_id()}
             triples.append({
                 'subject': subject,
-                'predicate': predicate,
-                'object': blank_node
+                'predicate': first,
+                'object': object
+            })
+            triples.append({
+                'subject': subject,
+                'predicate': rest,
+                'object': next
             })
 
-            subject = blank_node
-            predicate = first
-            object = self._object_to_rdf(item)
-            # skip None objects (they are relative IRIs)
-            if object is not None:
-                triples.append({
-                    'subject': subject,
-                    'predicate': predicate,
-                    'object': object
-                })
+            subject = next
 
-            predicate = rest
+        # tail of list
+        if last:
+            object = self._object_to_rdf(last, issuer, triples)
+            triples.append({
+                'subject': subject,
+                'predicate': first,
+                'object': object
+            })
+            triples.append({
+                'subject': subject,
+                'predicate': rest,
+                'object': nil
+            })
 
-        triples.append({
-            'subject': subject,
-            'predicate': predicate,
-            'object': nil
-        })
+        return result
 
-    def _object_to_rdf(self, item):
+    def _object_to_rdf(self, item, issuer, triples):
         """
         Converts a JSON-LD value object to an RDF literal or a JSON-LD string
         or node object to an RDF resource.
 
         :param item: the JSON-LD value or node object.
+        :param issuer: the IdentifierIssuer for issuing blank node identifiers.
+        :param triples: the array of triples to append list entries to.
 
         :return: the RDF literal or RDF resource.
         """
@@ -3532,6 +3539,11 @@ class JsonLdProcessor(object):
             else:
                 object['value'] = value
                 object['datatype'] = datatype or XSD_STRING
+        # convert list object to RDF
+        elif _is_list(item):
+            list_ = self._list_to_rdf(item['@list'], issuer, triples)
+            object['value'] = list_['value']
+            object['type'] = list_['type']
         # convert string/node object to RDF
         else:
             id_ = item['@id'] if _is_object(item) else item
