@@ -482,22 +482,27 @@ def create_document_loader(test):
         raise Exception('unkonwn base')
 
     def load_locally(url):
-        doc = {'contextUrl': None, 'documentUrl': url, 'document': None}
-        options = test.data.get('option')
+        options = test.data.get('option', {})
+        content_type = options.get('contentType')
+        if not content_type and url.endswith('.jsonld'):
+            content_type = 'application/ld+json'
+        if not content_type and url.endswith('.json'):
+            content_type = 'application/json'
+        if not content_type and url.endswith('.html'):
+            content_type = 'text/html'
+        if not content_type:
+            content_type = 'application/octet-stream'
+        doc = {
+            'contentType': content_type,
+            'contextUrl': None,
+            'documentUrl': url,
+            'document': None
+        }
         if options and url == test.base:
             if ('redirectTo' in options and options.get('httpStatus') >= 300):
                 doc['documentUrl'] = (
                     test.manifest.data['baseIri'] + options['redirectTo'])
             elif 'httpLink' in options:
-                content_type = options.get('contentType')
-                if not content_type and url.endswith('.jsonld'):
-                    content_type = 'application/ld+json'
-                if not content_type and url.endswith('.json'):
-                    content_type = 'application/json'
-                if not content_type and url.endswith('.html'):
-                    content_type = 'text/html'
-                if not content_type:
-                    content_type = 'application/octet-stream'
                 link_header = options.get('httpLink', '')
                 if isinstance(link_header, list):
                     link_header = ','.join(link_header)
@@ -525,7 +530,7 @@ def create_document_loader(test):
             #filename = ROOT_MANIFEST_DIR + strip_base(doc['documentUrl'])
             filename = test.dirname + strip_base(doc['documentUrl'])
         try:
-            doc['document'] = read_json(filename)
+            doc['document'] = read_file(filename)
         except:
             raise Exception('loading document failed')
         return doc
