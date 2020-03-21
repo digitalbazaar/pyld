@@ -63,14 +63,15 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
                     # Allow any content_type in trying to parse json
                     # similar to requests library
                     json_body = await response.json(content_type=None)
+                    content_type = response.headers.get('content-type')
+                    if not content_type:
+                        content_type = 'application/octet-stream'
                     doc = {
+                        'contentType': content_type,
                         'contextUrl': None,
                         'documentUrl': response.url.human_repr(),
                         'document': json_body
                     }
-                    content_type = response.headers.get('content-type')
-                    if not content_type:
-                        content_type = 'application/octet-stream'
                     link_header = response.headers.get('link')
                     if link_header:
                         linked_context = parse_link_header(link_header).get(
