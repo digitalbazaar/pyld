@@ -62,14 +62,15 @@ def requests_document_loader(secure=False, **kwargs):
                 }
             response = requests.get(url, headers=headers, **kwargs)
 
+            content_type = response.headers.get('content-type')
+            if not content_type:
+                content_type = 'application/octet-stream'
             doc = {
+                'contentType': content_type,
                 'contextUrl': None,
                 'documentUrl': response.url,
                 'document': response.json()
             }
-            content_type = response.headers.get('content-type')
-            if not content_type:
-                content_type = 'application/octet-stream'
             link_header = response.headers.get('link')
             if link_header:
                 linked_context = parse_link_header(link_header).get(
