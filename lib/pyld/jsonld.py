@@ -116,7 +116,8 @@ def compact(input_, ctx, options=None):
       [graph] True to always output a top-level graph (default: False).
       [expandContext] a context to expand with.
       [extractAllScripts] True to extract all JSON-LD script elements
-        from HTML, False to extract just the first.
+        from HTML, False to extract just the first
+        (default: False).
       [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
         defaults to 'json-ld-1.1'.
       [documentLoader(url, options)] the document loader
@@ -136,7 +137,8 @@ def expand(input_, options=None):
       [base] the base IRI to use.
       [expandContext] a context to expand with.
       [extractAllScripts] True to extract all JSON-LD script elements
-        from HTML, False to extract just the first.
+        from HTML, False to extract just the first
+        (default: False).
       [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
         defaults to 'json-ld-1.1'.
       [documentLoader(url, options)] the document loader
@@ -157,9 +159,10 @@ def flatten(input_, ctx=None, options=None):
       [base] the base IRI to use.
       [expandContext] a context to expand with.
       [extractAllScripts] True to extract all JSON-LD script elements
-        from HTML, False to extract just the first.
+        from HTML, False to extract just the first
+        (default: True).
       [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
-        defaults to 'json-ld-1.1'.
+        (default: 'json-ld-1.1').
       [documentLoader(url, options)] the document loader
         (default: _default_document_loader).
 
@@ -178,7 +181,8 @@ def frame(input_, frame, options=None):
       [base] the base IRI to use.
       [expandContext] a context to expand with.
       [extractAllScripts] True to extract all JSON-LD script elements
-        from HTML, False to extract just the first.
+        from HTML, False to extract just the first
+        (default: False).
       [embed] default @embed flag: '@last', '@always', '@never', '@link'
         (default: '@last').
       [explicit] default @explicit flag (default: False).
@@ -208,7 +212,8 @@ def link(input_, ctx, options=None):
       [base] the base IRI to use.
       [expandContext] a context to expand with.
       [extractAllScripts] True to extract all JSON-LD script elements
-        from HTML, False to extract just the first.
+        from HTML, False to extract just the first
+        (default: False).
       [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
         defaults to 'json-ld-1.1'.
       [documentLoader(url, options)] the document loader
@@ -241,7 +246,8 @@ def normalize(input_, options=None):
       [format] the format if output is a string:
         'application/n-quads' for N-Quads.
       [extractAllScripts] True to extract all JSON-LD script elements
-        from HTML, False to extract just the first.
+        from HTML, False to extract just the first
+        (default: False).
       [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
         defaults to 'json-ld-1.1'.
       [documentLoader(url, options)] the document loader
@@ -282,7 +288,8 @@ def to_rdf(input_, options=None):
       [produceGeneralizedRdf] true to output generalized RDF, false
         to produce only standard RDF (default: false).
       [extractAllScripts] True to extract all JSON-LD script elements
-        from HTML, False to extract just the first.
+        from HTML, False to extract just the first
+        (default: True).
       [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
         defaults to 'json-ld-1.1'.
       [documentLoader(url, options)] the document loader
@@ -875,7 +882,7 @@ class JsonLdProcessor(object):
         options = options.copy() if options else {}
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('documentLoader', _default_document_loader)
-        options.setdefault('extractAllScripts', False)
+        options.setdefault('extractAllScripts', True)
         options.setdefault('processingMode', 'json-ld-1.1')
 
         try:
@@ -1068,7 +1075,7 @@ class JsonLdProcessor(object):
         options.setdefault('algorithm', 'URGNA2012')
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('documentLoader', _default_document_loader)
-        options.setdefault('extractAllScripts', False)
+        options.setdefault('extractAllScripts', True)
         options.setdefault('processingMode', 'json-ld-1.1')
 
         if not options['algorithm'] in ['URDNA2015', 'URGNA2012']:
@@ -1173,7 +1180,7 @@ class JsonLdProcessor(object):
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('produceGeneralizedRdf', False)
         options.setdefault('documentLoader', _default_document_loader)
-        options.setdefault('extractAllScripts', False)
+        options.setdefault('extractAllScripts', True)
         options.setdefault('processingMode', 'json-ld-1.1')
 
         try:
@@ -6604,7 +6611,6 @@ def load_document(url,
                 html_options = options.copy()
                 remote_doc['document'] = load_html(remote_doc['document'],
                     remote_doc['documentUrl'],
-                    extractAllScripts,
                     profile,
                     html_options)
                 if 'base' in html_options:
@@ -6625,7 +6631,7 @@ def load_document(url,
 
     return remote_doc
 
-def load_html(input, url, extractAllScripts, profile, options):
+def load_html(input, url, profile, options):
     """
     Load one or more script tags from an HTML source.
     Unescapes and uncomments input, returns the internal representation.
@@ -6633,13 +6639,13 @@ def load_html(input, url, extractAllScripts, profile, options):
 
     :param input: the document to parse.
     :param url: the original URL of the document.
-    :param extractAllScripts]True to extract all JSON-LD script elements
-        from HTML, False to extract just the first.
     :param profile: When the resulting `contentType` is `text/html` or `application/xhtml+xml`,
         this option determines the profile to use for selecting a JSON-LD script elements.
     :param requestProfile: One or more IRIs to use in the request as a profile parameter.
     :param options: the options to use.
-        [base] used for setting returning the base determined by the document
+        [base] used for setting returning the base determined by the document.
+        [extractAllScripts] True to extract all JSON-LD script elements
+        from HTML, False to extract just the first.
 
     :return: the extracted JSON.
     """
@@ -6683,7 +6689,7 @@ def load_html(input, url, extractAllScripts, profile, options):
         elements = document.xpath('//script[starts-with(@type, "application/ld+json;profile=%s")]' % profile)
     if not elements:
         elements = document.xpath('//script[starts-with(@type, "application/ld+json")]')
-    if extractAllScripts:
+    if options.get('extractAllScripts'):
         result = []
         for element in elements:
             try:
