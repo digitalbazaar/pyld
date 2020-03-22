@@ -481,14 +481,22 @@ def create_document_loader(test):
                 return url[len(base):]
         raise Exception('unkonwn base')
 
+    def strip_fragment(url):
+        if '#' in url:
+            return url[:url.index('#')]
+        else:
+            return url
+
     def load_locally(url):
         options = test.data.get('option', {})
         content_type = options.get('contentType')
-        if not content_type and url.endswith('.jsonld'):
+
+        url_no_frag = strip_fragment(url)
+        if not content_type and url_no_frag.endswith('.jsonld'):
             content_type = 'application/ld+json'
-        if not content_type and url.endswith('.json'):
+        if not content_type and url_no_frag.endswith('.json'):
             content_type = 'application/json'
-        if not content_type and url.endswith('.html'):
+        if not content_type and url_no_frag.endswith('.html'):
             content_type = 'text/html'
         if not content_type:
             content_type = 'application/octet-stream'
@@ -525,10 +533,7 @@ def create_document_loader(test):
             filename = os.path.join(ROOT_MANIFEST_DIR, doc['documentUrl'])
             doc['documentUrl'] = 'file://' + filename
         else:
-            #filename = os.path.join(
-            #    ROOT_MANIFEST_DIR, doc['documentUrl'][len(base):])
-            #filename = ROOT_MANIFEST_DIR + strip_base(doc['documentUrl'])
-            filename = test.dirname + strip_base(doc['documentUrl'])
+            filename = test.dirname + strip_fragment(strip_base(doc['documentUrl']))
         try:
             doc['document'] = read_file(filename)
         except:
@@ -662,11 +667,6 @@ TEST_TYPES = {
     'jld:CompactTest': {
         'pending': {
             'idRegex': [
-                # html
-                '.*html-manifest#tc001$',
-                '.*html-manifest#tc002$',
-                '.*html-manifest#tc003$',
-                '.*html-manifest#tc004$',
             ]
         },
         'skip': {
@@ -686,27 +686,6 @@ TEST_TYPES = {
     'jld:ExpandTest': {
         'pending': {
             'idRegex': [
-                ## html
-                '.*html-manifest#te001$',
-                '.*html-manifest#te002$',
-                '.*html-manifest#te003$',
-                '.*html-manifest#te004$',
-                '.*html-manifest#te005$',
-                '.*html-manifest#te007$',
-                '.*html-manifest#te010$',
-                '.*html-manifest#te014$',
-                '.*html-manifest#te015$',
-                '.*html-manifest#te016$',
-                '.*html-manifest#te017$',
-                '.*html-manifest#te018$',
-                '.*html-manifest#te019$',
-                '.*html-manifest#te020$',
-                '.*html-manifest#te021$',
-                '.*html-manifest#te022$',
-                '.*html-manifest#tex01$',
-
-                # HTML
-                '.*remote-doc-manifest#t0013$',
             ]
         },
         'runLocal': [
@@ -742,11 +721,6 @@ TEST_TYPES = {
     'jld:FlattenTest': {
         'pending': {
             'idRegex': [
-                ## html
-                '.*html-manifest#tf001$',
-                '.*html-manifest#tf002$',
-                '.*html-manifest#tf003$',
-                '.*html-manifest#tf004$',
             ]
         },
         'skip': {
@@ -821,25 +795,6 @@ TEST_TYPES = {
                 # well formed
                 '.*toRdf-manifest#twf05$',
                 '.*toRdf-manifest#twf06$',
-
-                ## html
-                '.*html-manifest#tr001$',
-                '.*html-manifest#tr002$',
-                '.*html-manifest#tr003$',
-                '.*html-manifest#tr004$',
-                '.*html-manifest#tr005$',
-                '.*html-manifest#tr006$',
-                '.*html-manifest#tr007$',
-                '.*html-manifest#tr010$',
-                '.*html-manifest#tr014$',
-                '.*html-manifest#tr015$',
-                '.*html-manifest#tr016$',
-                '.*html-manifest#tr017$',
-                '.*html-manifest#tr018$',
-                '.*html-manifest#tr019$',
-                '.*html-manifest#tr020$',
-                '.*html-manifest#tr021$',
-                '.*html-manifest#tr022$',
             ]
         },
         'skip': {
