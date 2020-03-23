@@ -38,8 +38,9 @@
   * Fix to detecting relative IRIs.
   * Fix special case where relative path should not have a leading '/'
 * Compaction:
-  * Compact `@direction`
-  * Compact `@type`: `@none`
+  * Compact `@direction`.
+  * Compact `@type`: `@none`.
+  * Honor `@container`: `@set` on `@type`.
 * Expansion:
   * Updates to expansion algorithm.
   * _expand_value adds `@direction` from term definition.
