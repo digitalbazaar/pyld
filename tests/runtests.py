@@ -627,10 +627,6 @@ TEST_TYPES = {
                 '.*compact-manifest.jsonld#tc021$',
                 # @propogate
                 '.*compact-manifest.jsonld#tc027$',
-                # @direction
-                '.*compact-manifest.jsonld#tdi02$',
-                '.*compact-manifest.jsonld#tdi03$',
-                '.*compact-manifest.jsonld#tdi07$',
                 # IRI confusion
                 '.*compact-manifest.jsonld#te002$',
                 # included
@@ -659,10 +655,6 @@ TEST_TYPES = {
                 # context values
                 '.*compact-manifest.jsonld#ts001$',
                 '.*compact-manifest.jsonld#ts002$',
-                # @type: @none
-                '.*compact-manifest.jsonld#ttn01$',
-                '.*compact-manifest.jsonld#ttn02$',
-                '.*compact-manifest.jsonld#ttn03$',
 
                 # html
                 '.*html-manifest.jsonld#tc001$',

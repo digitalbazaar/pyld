@@ -4424,6 +4424,11 @@ class JsonLdProcessor(object):
                 prefs.extend(['@id', '@vocab'])
         else:
             prefs.append(type_or_language_value)
+
+            # consider direction only
+            lang_dir = [e for e in prefs if '_' in e]
+            if lang_dir:
+                prefs.append('_' + lang_dir[0].split('_')[-1])
         prefs.append('@none')
 
         container_map = active_ctx['inverse'][iri]
@@ -4522,7 +4527,9 @@ class JsonLdProcessor(object):
                         item_language = '@none'
                         item_type = '@none'
                         if _is_value(item):
-                            if '@language' in item:
+                            if '@direction' in item:
+                                item_language = ('%s_%s' % (item.get('@language', ''), item.get('@direction', '')))
+                            elif '@language' in item:
                                 item_language = item['@language']
                             elif '@type' in item:
                                 item_type = item['@type']
@@ -4533,8 +4540,8 @@ class JsonLdProcessor(object):
                             item_type = '@id'
                         if common_language is None:
                             common_language = item_language
-                        elif item_language != common_language and \
-                                _is_value(item):
+                        elif (item_language != common_language and
+                                _is_value(item)):
                             common_language = '@none'
                         if common_type is None:
                             common_type = item_type
@@ -4543,8 +4550,8 @@ class JsonLdProcessor(object):
                         # there are different languages and types in the list,
                         # so choose the most generic term, no need to keep
                         # iterating
-                        if common_language == '@none' and \
-                                common_type == '@none':
+                        if (common_language == '@none' and
+                                common_type == '@none'):
                             break
                     if common_language is None:
                         common_language = '@none'
@@ -4560,7 +4567,12 @@ class JsonLdProcessor(object):
                 if _is_value(value):
                     if '@language' in value and '@index' not in value:
                         containers.extend(['@language', '@language@set'])
-                        type_or_language_value = value['@language']
+                        if value.get('@direction'):
+                            type_or_language_value = ('%s_%s' % (value['@language'], value.get('@direction')))
+                        else:
+                            type_or_language_value = value['@language']
+                    elif '@direction' in value and '@index' not in value:
+                            type_or_language_value = '_%s' % value['@direction']
                     elif '@type' in value:
                         type_or_language = '@type'
                         type_or_language_value = value['@type']
@@ -4655,6 +4667,8 @@ class JsonLdProcessor(object):
                 active_ctx, active_property, '@type')
             language = JsonLdProcessor.get_context_value(
                 active_ctx, active_property, '@language')
+            direction = JsonLdProcessor.get_context_value(
+                active_ctx, active_property, '@direction')
             container = JsonLdProcessor.arrayify(
                 JsonLdProcessor.get_context_value(
                     active_ctx, active_property, '@container'))
@@ -4663,11 +4677,18 @@ class JsonLdProcessor(object):
             preserve_index = '@index' in value and '@index' not in container
 
             # if there's no @index to preserve
-            if not preserve_index:
+            if not preserve_index and type_ != '@none':
                 # matching @type or @language specified in context, compact
-                if (('@type' in value and value['@type'] == type_) or
-                        ('@language' in value and
-                            value['@language'] == language)):
+                if '@type' in value and value['@type'] == type_:
+                    return value['@value']
+                if ('@language' in value and
+                        value['@language'] == language and
+                        '@direction' in value and
+                        value['@direction'] == direction):
+                    return value['@value']
+                if '@language' in value and value['@language'] == language:
+                    return value['@value']
+                if '@direction' in value and value['@direction'] == direction:
                     return value['@value']
 
             # return just the value of @value if all are true:
@@ -4685,7 +4706,8 @@ class JsonLdProcessor(object):
                 active_ctx['mappings'].get(active_property) is not None and
                 '@language' in active_ctx['mappings'][active_property] and
                 active_ctx['mappings'][active_property]['@language'] is None)
-            if (is_value_only_key and (
+            if (is_value_only_key and
+                    type_ != '@none' and (
                     not has_default_language or not is_value_string or
                     has_null_mapping)):
                 return value['@value']
@@ -4704,6 +4726,11 @@ class JsonLdProcessor(object):
             elif '@language' in value:
                 rval[self._compact_iri(active_ctx, '@language')] = (
                     value['@language'])
+
+            # alias @direction
+            if '@direction' in value:
+                rval[self._compact_iri(active_ctx, '@direction')] = (
+                    value['@direction'])
 
             # alias @value
             rval[self._compact_iri(active_ctx, '@value')] = value['@value']
@@ -5294,7 +5321,7 @@ class JsonLdProcessor(object):
         for term, mapping in sorted(
                 active_ctx['mappings'].items(),
                 key=cmp_to_key(_compare_shortest_least)):
-            if mapping is None:
+            if mapping is None or not mapping.get('@id'):
                 continue
 
             # add term selection where it applies
@@ -5314,15 +5341,36 @@ class JsonLdProcessor(object):
                 # term is preferred for values using @reverse
                 if mapping['reverse']:
                     entry['@type'].setdefault('@reverse', term)
+                elif mapping.get('@type') == '@none':
+                    entry['@type'].setdefault('@none', term)
+                    entry['@language'].setdefault('@none', term)
+                    entry['@any'].setdefault('@none', term)
                 # term is preferred for values using specific type
                 elif '@type' in mapping:
                     entry['@type'].setdefault(mapping['@type'], term)
+                # term is preferred for values using specific language and direction
+                elif '@language' in mapping and '@direction' in mapping:
+                    if mapping['@language'] and mapping['@direction']:
+                        key = ('%s_%s' % (mapping['@language'], mapping['@direction'])).lower()
+                        entry['@language'].setdefault(key, term)
+                    elif mapping['@language']:
+                        entry['@language'].setdefault(mapping['@language'].lower(), term)
+                    elif mapping['@direction']:
+                        entry['@language'].setdefault(('_%s' % mapping['@direction']), term)
+                    else:
+                        entry['@language'].setdefault('@null', term)
                 # term is preferred for values using specific language
                 elif '@language' in mapping:
                     language = mapping['@language']
                     if language is None:
                         language = '@null'
                     entry['@language'].setdefault(language, term)
+                # term is preferred for values using specific direction
+                elif '@direction' in mapping:
+                    if mapping['@direction']:
+                        entry['@language'].setdefault(('_%s' % mapping['@direction']), term)
+                    else:
+                        entry['@language'].setdefault('@none', term)
                 # term is preferred for values w/default language or not type
                 # and no language
                 else:
