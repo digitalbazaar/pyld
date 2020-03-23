@@ -37,6 +37,9 @@
   * Fix _is_absolute_iri to use a reasonable regular expression and some other _expand_iri issues.
   * Fix to detecting relative IRIs.
   * Fix special case where relative path should not have a leading '/'
+* Compaction:
+  * Compact `@direction`
+  * Compact `@type`: `@none`
 * Expansion:
   * Updates to expansion algorithm.
   * _expand_value adds `@direction` from term definition.
