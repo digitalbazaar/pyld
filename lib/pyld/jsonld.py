@@ -1775,13 +1775,27 @@ class JsonLdProcessor(object):
 
             # recursively process element keys in order
             for expanded_property, expanded_value in sorted(element.items()):
-                # compact @id and @type(s)
-                if expanded_property == '@id' or expanded_property == '@type':
-
+                # compact @id
+                if expanded_property == '@id':
                     compacted_value = [
                             self._compact_iri(
                                 active_ctx, expanded_iri,
-                                vocab=(expanded_property == '@type'))
+                                vocab=False)
+                            for expanded_iri in
+                            JsonLdProcessor.arrayify(expanded_value)]
+                    #if len(compacted_value) == 1:
+                    #    compacted_value = compacted_value[0]
+
+                    # use keyword alias and add value
+                    alias = self._compact_iri(active_ctx, '@id')
+                    JsonLdProcessor.add_value(rval, alias, compacted_value)
+                    continue
+
+                if expanded_property == '@type':
+                    compacted_value = [
+                            self._compact_iri(
+                                active_ctx, expanded_iri,
+                                vocab=True)
                             for expanded_iri in
                             JsonLdProcessor.arrayify(expanded_value)]
                     if len(compacted_value) == 1:
@@ -1789,9 +1803,14 @@ class JsonLdProcessor(object):
 
                     # use keyword alias and add value
                     alias = self._compact_iri(active_ctx, expanded_property)
-                    is_array = (
-                            _is_array(compacted_value) and
-                            len(compacted_value) == 0)
+                    container = JsonLdProcessor.arrayify(
+                        JsonLdProcessor.get_context_value(
+                            active_ctx, alias, '@container'))
+                    type_as_set = ('@set' in container and
+                        self._processing_mode(active_ctx, 1.1))
+                    is_array = (type_as_set or
+                            (_is_array(compacted_value) and
+                             len(compacted_value) == 0))
                     JsonLdProcessor.add_value(
                         rval, alias, compacted_value,
                         {'propertyIsArray': is_array})

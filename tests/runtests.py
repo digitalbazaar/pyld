@@ -609,16 +609,12 @@ TEST_TYPES = {
     'jld:CompactTest': {
         'pending': {
             'idRegex': [
-                # type set
-                '.*compact-manifest.jsonld#t0104$',
-                '.*compact-manifest.jsonld#t0105$',
                 # @container: @graph with multiple objects
                 '.*compact-manifest.jsonld#t0109$',
                 '.*compact-manifest.jsonld#t0110$',
                 # scoped context on @type
                 '.*compact-manifest.jsonld#tc009$',
                 '.*compact-manifest.jsonld#tc012$',
-                #'.*compact-manifest.jsonld#tc013$',
                 '.*compact-manifest.jsonld#tc014$',
                 '.*compact-manifest.jsonld#tc015$',
                 '.*compact-manifest.jsonld#tc016$',
