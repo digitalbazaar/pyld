@@ -609,42 +609,8 @@ TEST_TYPES = {
     'jld:CompactTest': {
         'pending': {
             'idRegex': [
-                # @container: @graph with multiple objects
-                '.*compact-manifest.jsonld#t0109$',
-                '.*compact-manifest.jsonld#t0110$',
-                # scoped context on @type
-                '.*compact-manifest.jsonld#tc009$',
-                '.*compact-manifest.jsonld#tc012$',
-                '.*compact-manifest.jsonld#tc014$',
-                '.*compact-manifest.jsonld#tc015$',
-                '.*compact-manifest.jsonld#tc016$',
-                '.*compact-manifest.jsonld#tc017$',
-                '.*compact-manifest.jsonld#tc018$',
-                '.*compact-manifest.jsonld#tc021$',
-                # @propogate
-                '.*compact-manifest.jsonld#tc027$',
                 # IRI confusion
                 '.*compact-manifest.jsonld#te002$',
-                # included
-                '.*compact-manifest.jsonld#tin01$',
-                '.*compact-manifest.jsonld#tin02$',
-                '.*compact-manifest.jsonld#tin03$',
-                '.*compact-manifest.jsonld#tin04$',
-                '.*compact-manifest.jsonld#tin05$',
-                # index on @type
-                '.*compact-manifest.jsonld#tm020$',
-                '.*compact-manifest.jsonld#tm021$',
-                '.*compact-manifest.jsonld#tm022$',
-                # property-valued indexes
-                '.*compact-manifest.jsonld#tpi01$',
-                '.*compact-manifest.jsonld#tpi02$',
-                '.*compact-manifest.jsonld#tpi03$',
-                '.*compact-manifest.jsonld#tpi04$',
-                # protected
-                '.*compact-manifest.jsonld#tpr04$',
-                # context values
-                '.*compact-manifest.jsonld#ts001$',
-                '.*compact-manifest.jsonld#ts002$',
 
                 # html
                 '.*html-manifest.jsonld#tc001$',

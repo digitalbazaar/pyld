@@ -44,7 +44,7 @@
   * Honor `@container`: `@set` on `@type`.
   * Lists of Lists.
   * Improve handling of scoped contexts and propagate.
-  * Compact `@included`.
+  * Improve map compaction, including indexed properties.
 * Expansion:
   * Updates to expansion algorithm.
   * _expand_value adds `@direction` from term definition.
