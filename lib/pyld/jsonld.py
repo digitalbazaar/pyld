@@ -4939,7 +4939,7 @@ class JsonLdProcessor(object):
                 {'context': local_ctx}, code='invalid term definition')
 
         # create new mapping
-        mapping = {'reverse': False, 'protected': False}
+        mapping = {'reverse': False, 'protected': False, '_prefix': False}
 
         # make sure term definition only has expected keywords
         valid_keys = ['@container', '@id', '@language', '@reverse', '@type']
