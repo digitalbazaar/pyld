@@ -631,12 +631,6 @@ TEST_TYPES = {
                 '.*compact-manifest.jsonld#tin03$',
                 '.*compact-manifest.jsonld#tin04$',
                 '.*compact-manifest.jsonld#tin05$',
-                # list of lists
-                '.*compact-manifest.jsonld#tli01$',
-                '.*compact-manifest.jsonld#tli02$',
-                '.*compact-manifest.jsonld#tli03$',
-                '.*compact-manifest.jsonld#tli04$',
-                '.*compact-manifest.jsonld#tli05$',
                 # index on @type
                 '.*compact-manifest.jsonld#tm020$',
                 '.*compact-manifest.jsonld#tm021$',
