@@ -1292,14 +1292,20 @@ class JsonLdProcessor(object):
         :param [options]: the options to use:
           [propertyIsArray] True if the property is always
             an array, False if not (default: False).
+          [valueIsArray] True if the value to be added should be preserved as
+            an array (lists)
+            (default: False).
           [allowDuplicate] True to allow duplicates, False not to (uses
             a simple shallow comparison of subject ID or value)
             (default: True).
         """
         options.setdefault('propertyIsArray', False)
+        options.setdefault('valueIsArray', False)
         options.setdefault('allowDuplicate', True)
 
-        if _is_array(value):
+        if options['valueIsArray']:
+            subject[property] = value
+        elif _is_array(value):
             if (len(value) == 0 and options['propertyIsArray'] and
                     property not in subject):
                 subject[property] = []
@@ -1749,6 +1755,15 @@ class JsonLdProcessor(object):
                         {'expanded': element, 'compacted': rval})
                 return rval
 
+            # if expanded property is @list and we're contained within a list
+            # container, recursively compact this item to an array
+            if _is_list(element):
+                container = JsonLdProcessor.arrayify(
+                    JsonLdProcessor.get_context_value(
+                        active_ctx, active_property, '@container'))
+                if '@list' in container:
+                    return self._compact(active_ctx, active_property, element['@list'], options)
+
             # FIXME: avoid misuse of active property as an expanded property?
             inside_reverse = (active_property == '@reverse')
 
@@ -1950,16 +1965,11 @@ class JsonLdProcessor(object):
                                 alias = self._compact_iri(active_ctx, '@index')
                                 compacted_item[alias] = (
                                     expanded_item['@index'])
-                        # can't use @list container for more than 1 list
-                        elif item_active_property in nest_result:
-                            raise JsonLdError(
-                                'JSON-LD compact error; property has a '
-                                '"@list" @container rule but there is more '
-                                'than a single @list that matches the '
-                                'compacted term in the document. Compaction '
-                                'might mix unwanted items into the list.',
-                                'jsonld.SyntaxError',
-                                code='compaction to list of lists')
+                        else:
+                            JsonLdProcessor.add_value(
+                                nest_result, item_active_property, compacted_item,
+                                {'valueIsArray': True, 'allowDuplicate': True})
+                            continue
 
                     # graph object compaction
                     if is_graph:
