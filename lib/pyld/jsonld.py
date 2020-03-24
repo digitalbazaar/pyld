@@ -1904,10 +1904,11 @@ class JsonLdProcessor(object):
                     JsonLdProcessor.add_value(rval, alias, expanded_value)
                     continue
 
-                # skip array processing for keywords that aren't @graph or
-                # @list
+                # skip array processing for keywords that aren't @graph,
+                # @list, or @included
                 if(expanded_property != '@graph' and
                         expanded_property != '@list' and
+                        expanded_property != '@included' and
                         _is_keyword(expanded_property)):
                     # use keyword alias and add value as is
                     alias = self._compact_iri(active_ctx, expanded_property)
@@ -1916,6 +1917,10 @@ class JsonLdProcessor(object):
 
                 # Note: expanded value must be an array due to expansion
                 # algorithm.
+                if not _is_array(expanded_value):
+                    raise JsonLdError(
+                        'JSON-LD compact error; expanded value must be an array.',
+                        'jsonld.SyntaxError')
 
                 # preserve empty arrays
                 if len(expanded_value) == 0:
