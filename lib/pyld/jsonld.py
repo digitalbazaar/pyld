@@ -2017,6 +2017,8 @@ class JsonLdProcessor(object):
                                 map_object, key, compacted_item,
                                 {'propertyIsArray': as_array})
                         elif '@graph' in container and _is_simple_graph(expanded_item):
+                            if _is_array(compacted_item) and len(compacted_item) > 1:
+                                compacted_item = {'@included': compacted_item}
                             JsonLdProcessor.add_value(
                                 nest_result, item_active_property, compacted_item,
                                 {'propertyIsArray': as_array})
@@ -2044,8 +2046,10 @@ class JsonLdProcessor(object):
                                 {'propertyIsArray': as_array})
 
                     # handle language index, id and type maps
-                    elif ('@language' in container or '@index' in container or
-                            '@id' in container or '@type' in container):
+                    elif ('@language' in container or
+                            '@index' in container or
+                            '@id' in container or
+                            '@type' in container):
                         # get or create the map object
                         map_object = nest_result.setdefault(item_active_property, {})
                         key = None
@@ -2055,7 +2059,30 @@ class JsonLdProcessor(object):
                                 compacted_item = compacted_item['@value']
                             key = expanded_item.get('@language')
                         elif '@index' in container:
-                            key = expanded_item.get('@index')
+                            index_key = JsonLdProcessor.get_context_value(
+                                active_ctx, item_active_property, '@index')
+                            if not index_key:
+                                index_key = '@index'
+                            container_key = self._compact_iri(active_ctx, index_key)
+                            if index_key == '@index':
+                                key = expanded_item.get('@index')
+                                if _is_object(compacted_item) and container_key in compacted_item:
+                                    del compacted_item[container_key]
+                            else:
+                                indexes = []
+                                if _is_object(compacted_item):
+                                    indexes = JsonLdProcessor.arrayify(compacted_item.get(index_key, []))
+                                if not indexes or not _is_string(indexes[0]):
+                                    key = None
+                                else:
+                                    key = indexes.pop(0)
+                                if _is_string(key):
+                                    if index_key and len(indexes) == 0 and _is_object(compacted_item):
+                                        del compacted_item[index_key]
+                                    elif len(indexes) == 1:
+                                        compacted_item[index_key] = indexes[0]
+                                    else:
+                                        compacted_item[index_key] = indexes
                         elif '@id' in container:
                             id_key = self._compact_iri(active_ctx, '@id')
                             key = compacted_item.pop(id_key, None)
@@ -2065,6 +2092,13 @@ class JsonLdProcessor(object):
                             key = types.pop(0) if types else None
                             if types:
                                 JsonLdProcessor.add_value(compacted_item, type_key, types)
+
+                            # if compactedItem contains a single entry
+                            # whose key maps to @id, recompact without @type
+                            if len(compacted_item.keys()) == 1 and '@id' in expanded_item:
+                                compacted_item = self._compact(
+                                    active_ctx, item_active_property,
+                                    {'@id': expanded_item['@id']}, options)
 
                         key = key or self._compact_iri(active_ctx, '@none')
 
@@ -4462,7 +4496,7 @@ class JsonLdProcessor(object):
         # determine prefs for @id based on whether value compacts to term
         if ((type_or_language_value == '@id' or
                 type_or_language_value == '@reverse') and
-                _is_subject_reference(value)):
+                _is_object(value) and '@id' in value):
             # prefer @reverse first
             if type_or_language_value == '@reverse':
                 prefs.append('@reverse')
