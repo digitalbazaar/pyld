@@ -178,14 +178,15 @@ def frame(input_, frame, options=None):
       [expandContext] a context to expand with.
       [extractAllScripts] True to extract all JSON-LD script elements
         from HTML, False to extract just the first.
-      [embed] default @embed flag (default: True).
+      [embed] default @embed flag: '@last', '@always', '@never', '@link'
+        (default: '@last').
       [explicit] default @explicit flag (default: False).
       [omitDefault] default @omitDefault flag (default: False).
       [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
         defaults to 'json-ld-1.1'.
       [pruneBlankNodeIdentifiers] remove unnecessary blank node identifiers
         (default: True)
-      [requireAll] default @requireAll flag (default: True).
+      [requireAll] default @requireAll flag (default: False).
       [documentLoader(url, options)] the document loader
         (default: _default_document_loader).
 
@@ -756,10 +757,7 @@ class JsonLdProcessor(object):
             for k, v in graph.items():
                 compacted[k] = v
 
-        if options['activeCtx']:
-            return {'compacted': compacted, 'activeCtx': active_ctx}
-        else:
-            return compacted
+        return compacted
 
     def expand(self, input_, options):
         """
@@ -914,17 +912,20 @@ class JsonLdProcessor(object):
         :param options: the options to use.
           [base] the base IRI to use.
           [expandContext] a context to expand with.
+          [extractAllScripts] True to extract all JSON-LD script elements
+            from HTML, False to extract just the first.
           [embed] default @embed flag: '@last', '@always', '@never', '@link'
             (default: '@last').
           [explicit] default @explicit flag (default: False).
-          [requireAll] default @requireAll flag (default: True).
           [omitDefault] default @omitDefault flag (default: False).
-          [pruneBlankNodeIdentifiers] remove unnecessary blank node
-            identifiers (default: True)
-          [extractAllScripts] True to extract all JSON-LD script elements
-            from HTML, False to extract just the first.
+          [omitGraph] does not use '@graph' at top level unless necessary
+            to describe multiple objects.
+            defaults to True if processingMode is 1.1, otherwise False.
           [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
             defaults to 'json-ld-1.1'.
+          [pruneBlankNodeIdentifiers] remove unnecessary blank node identifiers
+            (default: True)
+          [requireAll] default @requireAll flag (default: False).
           [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
 
@@ -934,11 +935,10 @@ class JsonLdProcessor(object):
         options = options.copy() if options else {}
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('compactArrays', True)
-        options.setdefault('embed', '@last')
+        options.setdefault('embed', '@once')
         options.setdefault('explicit', False)
-        options.setdefault('requireAll', True)
         options.setdefault('omitDefault', False)
-        options.setdefault('pruneBlankNodeIdentifiers', True)
+        options.setdefault('requireAll', False)
         options.setdefault('bnodesToClear', [])
         options.setdefault('documentLoader', _default_document_loader)
         options.setdefault('extractAllScripts', False)
@@ -978,6 +978,22 @@ class JsonLdProcessor(object):
                     ctx.append(remote_frame['contextUrl'])
                 frame['@context'] = ctx
 
+        # process context
+        active_ctx = self._get_initial_context(options)
+        frame_ctx = frame.get('@context', {}) if frame else {}
+        try:
+            active_ctx = self.process_context(active_ctx, frame_ctx, options)
+        except JsonLdError as cause:
+            raise JsonLdError(
+                'Could not process context before framing.',
+                'jsonld.FrameError', cause=cause)
+
+        # mode specific defaluts
+        if 'omitGraph' not in options:
+            options['omitGraph'] = self._processing_mode(active_ctx, 1.1)
+        if 'pruneBlankNodeIdentifiers' not in options:
+            options['pruneBlankNodeIdentifiers'] = self._processing_mode(active_ctx, 1.1)
+
         try:
             # expand input
             expanded = self.expand(input_, options)
@@ -997,33 +1013,34 @@ class JsonLdProcessor(object):
                 'Could not expand frame before framing.',
                 'jsonld.FrameError', cause=cause)
 
+        # if the unexpanded frame includes a key expanding to @graph, frame the
+        # default graph, otherwise, the merged graph
+        frame_keys = [self._expand_iri(active_ctx, key) for key in frame.keys()]
+        options['merged'] = '@graph' not in frame_keys
+        options['is11'] = self._processing_mode(active_ctx, 1.1)
+
         # do framing
-        # FIXME should look for aliases of @graph
-        options['merged'] = '@graph' not in frame
         framed = self._frame(expanded, expanded_frame, options)
+
+        # remove @preserve from results
+        options['link'] = {}
+        framed = self._cleanup_preserve(framed, options)
 
         try:
             # compact result (force @graph option to True, skip expansion,
             # check for linked embeds)
-            options['graph'] = True
+            options['graph'] = not options['omitGraph']
             options['skipExpansion'] = True
+            options['framing'] = True
             options['link'] = {}
-            options['activeCtx'] = True
             result = self.compact(framed, ctx, options)
         except JsonLdError as cause:
             raise JsonLdError(
                 'Could not compact framed output.',
                 'jsonld.FrameError', cause=cause)
 
-        compacted = result['compacted']
-        active_ctx = result['activeCtx']
-
-        # get graph alias
-        graph = self._compact_iri(active_ctx, '@graph')
-        # remove @preserve from results
-        compacted[graph] = self._remove_preserve(
-            active_ctx, compacted[graph], options)
-        return compacted
+        options['link'] = {}
+        return self._cleanup_null(result, options)
 
     def normalize(self, input_, options):
         """
@@ -2784,6 +2801,7 @@ class JsonLdProcessor(object):
         # create framing state
         state = {
             'options': options,
+            'embedded': False,
             'graph': '@default',
             'graphMap': {'@default': {}},
             'graphStack': [],
@@ -2809,6 +2827,7 @@ class JsonLdProcessor(object):
         if options['pruneBlankNodeIdentifiers']:
             options['bnodesToClear'].extend(
                 [id_ for id_ in state['bnodeMap'].keys() if len(state['bnodeMap'][id_]) == 1])
+
         return framed
 
     def _from_rdf(self, dataset, options):
@@ -4399,12 +4418,11 @@ class JsonLdProcessor(object):
             return False
         return True
 
-    def _remove_preserve(self, ctx, input_, options):
+    def _cleanup_preserve(self, input_, options):
         """
         Removes the @preserve keywords as the last step of the framing
         algorithm.
 
-        :param ctx: the active context used to compact the input.
         :param input_: the framed, compacted output.
         :param options: the compaction options used.
 
@@ -4414,17 +4432,18 @@ class JsonLdProcessor(object):
         if _is_array(input_):
             output = []
             for e in input_:
-                result = self._remove_preserve(ctx, e, options)
+                result = self._cleanup_preserve(e, options)
                 # drop Nones from arrays
+                # XXX needed?
                 if result is not None:
                     output.append(result)
             return output
         elif _is_object(input_):
             # remove @preserve
             if '@preserve' in input_:
-                if input_['@preserve'] == '@null':
-                    return None
-                return input_['@preserve']
+                #if input_['@preserve'] == '@null':
+                #    return None
+                return input_['@preserve'][0]
 
             # skip @values
             if _is_value(input_):
@@ -4432,14 +4451,13 @@ class JsonLdProcessor(object):
 
             # recurse through @lists
             if _is_list(input_):
-                input_['@list'] = self._remove_preserve(
-                    ctx, input_['@list'], options)
+                input_['@list'] = self._cleanup_preserve(
+                    input_['@list'], options)
                 return input_
 
             # handle in-memory linked nodes
-            id_alias = self._compact_iri(ctx, '@id')
-            if id_alias in input_:
-                id_ = input_[id_alias]
+            if '@id' in input_:
+                id_ = input_['@id']
                 if id_ in options['link']:
                     try:
                         idx = options['link'][id_].index(input_)
@@ -4452,23 +4470,47 @@ class JsonLdProcessor(object):
                     # prevent circular visitation
                     options['link'][id_] = [input_]
 
-            # potentially remove the id, if it is an unreference bnode
-            if input_.get(id_alias) in options['bnodesToClear']:
-                input_.pop(id_alias)
+            # potentially remove the id, if it is an unreferenced bnode
+            if input_.get('@id') in options['bnodesToClear']:
+                input_.pop('@id')
 
             # recurse through properties
-            graph_alias = self._compact_iri(ctx, '@graph')
             for prop, v in input_.items():
-                result = self._remove_preserve(ctx, v, options)
-                container = JsonLdProcessor.arrayify(
-                    JsonLdProcessor.get_context_value(
-                        ctx, prop, '@container'))
-                if (options['compactArrays'] and
-                        _is_array(result) and len(result) == 1 and
-                        '@set' not in container and '@list' not in container and
-                        prop != graph_alias):
-                    result = result[0]
-                input_[prop] = result
+                input_[prop] = self._cleanup_preserve(v, options)
+        return input_
+
+    def _cleanup_null(self, input_, options):
+        """
+        Replace '@null' with None, removing it from arrays.
+
+        :param input_: the framed, compacted output.
+        :param options: the compaction options used.
+
+        :return: the resulting output.
+        """
+        # recurse through arrays
+        if _is_array(input_):
+            no_nulls = [self._cleanup_null(v, options) for v in input_]
+            return [v for v in no_nulls if v is not None]
+        if input_ == '@null':
+            return None
+        if _is_object(input_):
+            # handle in-memory linked nodes
+            if '@id' in input_:
+                id_ = input_['@id']
+                if id_ in options['link']:
+                    try:
+                        idx = options['link'][id_].index(input_)
+                        # already visited
+                        return options['link'][id_][idx]
+                    except:
+                        # prevent circular visitation
+                        options['link'][id_].append(input_)
+                else:
+                    # prevent circular visitation
+                    options['link'][id_] = [input_]
+            for prop, v in input_.items():
+                input_[prop] = self._cleanup_null(v, options)
         return input_
 
     def _select_term(
