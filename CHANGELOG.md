@@ -72,6 +72,14 @@
   * Flatten `@included`.
   * Flatten lists of lists.
   * Update `merge_node_maps` for `@type`.
+* Framing:
+  * Change default for 'requireAll' from True to False.
+  * Change default for 'embed' from '@last' to '@once'.
+  * Add defaults for 'omitGraph' and 'pruneBlankNodeIdentifiers'
+    based on processing mode.
+  * Change `_remove_preserve` to `_cleanup_preserve` which happens before
+    compaction.
+  * Add `_cleanup_null` which happens after compaction.
 * ToRdf:
   * Support for I18N direction.
   * Support for Lists of Lists.
