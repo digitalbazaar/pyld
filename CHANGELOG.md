@@ -41,6 +41,7 @@
   * Compact `@direction`.
   * Compact `@type`: `@none`.
   * Honor `@container`: `@set` on `@type`.
+  * Lists of Lists.
 * Expansion:
   * Updates to expansion algorithm.
   * _expand_value adds `@direction` from term definition.
