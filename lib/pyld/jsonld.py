@@ -4717,7 +4717,7 @@ class JsonLdProcessor(object):
             #  the mapping matches the IRI
             curie = term + ':' + iri[len(definition['@id']):]
             is_usable_curie = (
-                active_ctx['mappings'][term].get('_prefix') and
+                active_ctx['mappings'][term]['_prefix'] and
                 curie not in active_ctx['mappings'] or
                 (value is None and
                  active_ctx['mappings'].get(curie, {}).get('@id') == iri))
@@ -4732,6 +4732,16 @@ class JsonLdProcessor(object):
         # return curie candidate
         if candidate is not None:
             return candidate
+
+        # if iri could be confused with a compact IRI using a term in this context,
+        # signal an error
+        for term, definition in active_ctx['mappings'].items():
+            if definition and definition['_prefix'] and iri.startswith(term + ':'):
+                raise JsonLdError(
+                    'Absolute IRI confused with prefix.',
+                    'jsonld.SyntaxError',
+                    {'iri': iri, 'term': term, 'context': active_ctx},
+                    code='IRI confused with prefix')
 
         # compact IRI relative to base
         if not vocab:
