@@ -609,9 +609,6 @@ TEST_TYPES = {
     'jld:CompactTest': {
         'pending': {
             'idRegex': [
-                # IRI confusion
-                '.*compact-manifest.jsonld#te002$',
-
                 # html
                 '.*html-manifest.jsonld#tc001$',
                 '.*html-manifest.jsonld#tc002$',

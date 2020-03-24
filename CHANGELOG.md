@@ -45,6 +45,7 @@
   * Lists of Lists.
   * Improve handling of scoped contexts and propagate.
   * Improve map compaction, including indexed properties.
+  * Catch Absolute IRI confused with prefix.
 * Expansion:
   * Updates to expansion algorithm.
   * _expand_value adds `@direction` from term definition.
