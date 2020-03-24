@@ -42,6 +42,7 @@
   * Compact `@type`: `@none`.
   * Honor `@container`: `@set` on `@type`.
   * Lists of Lists.
+  * Improve handling of scoped contexts and propagate.
 * Expansion:
   * Updates to expansion algorithm.
   * _expand_value adds `@direction` from term definition.

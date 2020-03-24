@@ -1733,7 +1733,9 @@ class JsonLdProcessor(object):
                 active_ctx, active_property, '@context')
         if ctx:
             active_ctx = self._process_context(
-                active_ctx, ctx, options)
+                active_ctx, ctx, options,
+                propagate=True,
+                override_protected=True)
 
         # recursively compact object
         if _is_object(element):
@@ -1769,24 +1771,44 @@ class JsonLdProcessor(object):
 
             rval = {}
 
+            # original context before applying property-scoped and local contexts
+            input_ctx = active_ctx
+
+            # revert to previous context, if there is one,
+            # and element is not a value object or a node reference
+            if not _is_value(element) and not _is_subject_reference(element):
+                active_ctx = self._revert_to_previous_context(active_ctx)
+
+            property_scoped_ctx = JsonLdProcessor.get_context_value(
+                input_ctx, active_property, '@context')
+            if property_scoped_ctx:
+                active_ctx = self._process_context(
+                    active_ctx, property_scoped_ctx, options,
+                    propagate=True,
+                    override_protected=True)
+
             if options['link'] and '@id' in element:
                 # store linked element
                 options['link'].setdefault(element['@id'], []).append(
                     {'expanded': element, 'compacted': rval})
 
+            # find all type-scoped contexts based on current context, prior to updating it
+            type_ctx = active_ctx
+
             # apply any context defined on an alias of @type
             # if key is @type and any compacted value is a term having a local
             # context, overlay that context
-            for type in element.get('@type', []):
+            for type_ in sorted(element.get('@type', [])):
                 compacted_type = self._compact_iri(
-                        active_ctx, type, vocab=True)
+                        type_ctx, type_, vocab=True)
 
                 # use any scoped context defined on this value
                 ctx = JsonLdProcessor.get_context_value(
-                        active_ctx, compacted_type, '@context')
+                        input_ctx, compacted_type, '@context')
                 if ctx:
                     active_ctx = self._process_context(
-                            active_ctx, ctx, options)
+                            active_ctx, ctx, options,
+                            propagate=False)
 
             # recursively process element keys in order
             for expanded_property, expanded_value in sorted(element.items()):
@@ -1798,8 +1820,6 @@ class JsonLdProcessor(object):
                                 vocab=False)
                             for expanded_iri in
                             JsonLdProcessor.arrayify(expanded_value)]
-                    #if len(compacted_value) == 1:
-                    #    compacted_value = compacted_value[0]
 
                     # use keyword alias and add value
                     alias = self._compact_iri(active_ctx, '@id')
@@ -1809,7 +1829,7 @@ class JsonLdProcessor(object):
                 if expanded_property == '@type':
                     compacted_value = [
                             self._compact_iri(
-                                active_ctx, expanded_iri,
+                                input_ctx, expanded_iri,
                                 vocab=True)
                             for expanded_iri in
                             JsonLdProcessor.arrayify(expanded_value)]
