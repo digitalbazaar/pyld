@@ -567,6 +567,13 @@ class EarlReport():
             'doap:license': 'https://github.com/digitalbazaar/pyld/blob/master/LICENSE',
             'doap:description': 'A JSON-LD processor for Python',
             'doap:programming-language': 'Python',
+            'doap:release': {
+                'doap:revision': '2.0.0', # FIXME: this should come from a file
+                'doap:created': {
+                    '@value': datetime.datetime.utcnow().strftime('%Y-%m-%d'),
+                    '@type': 'xsd:date'
+                }
+            },
             'dc:creator': 'https://github.com/dlongley',
             'doap:developer': {
                 '@id': 'https://github.com/dlongley',
