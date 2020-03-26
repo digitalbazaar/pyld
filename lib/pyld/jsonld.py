@@ -2176,8 +2176,7 @@ class JsonLdProcessor(object):
 
         # disable framing if active_property is @default
         if active_property == '@default':
-            options = options.copy()
-            options['isFrame'] = False
+            options = {**options, 'isFrame': False}
 
         # recursively expand array
         if _is_array(element):
@@ -2402,7 +2401,7 @@ class JsonLdProcessor(object):
         is_json_type = False
 
         if type_key in element:
-            if _is_array(element[type_key]):
+            if element[type_key] and _is_array(element[type_key]):
                 t = element[type_key][0]
             else:
                 t = element[type_key]
@@ -2480,17 +2479,17 @@ class JsonLdProcessor(object):
                     # if framing, can be a default object, but need to expand
                     # key to determine that
                     new_value = {}
-                    for k, v in value:
+                    for k, v in value.items():
                         ek = self._expand_iri(type_scoped_ctx, k, vocab=True)
-                        ev = (self._expand_iri(type_scoped_ctx, vv, vocab=True, base=True)
-                              for vv in JsonLdProcessor.arrayify(v))
+                        ev = [self._expand_iri(type_scoped_ctx, vv, vocab=True, base=True)
+                              for vv in JsonLdProcessor.arrayify(v)]
                         new_value[ek] = ev
                     value = new_value
                 else:
                     value = JsonLdProcessor.arrayify(value)
-                _validate_type_value(value)
+                _validate_type_value(value, options.get('isFrame'))
                 expanded_values = []
-                for v in value:
+                for v in JsonLdProcessor.arrayify(value):
                     expanded_values.append(self._expand_iri(type_scoped_ctx, v, vocab=True, base=True) if _is_string(v) else v)
                 JsonLdProcessor.add_value(
                     expanded_parent, '@type', expanded_values,
@@ -2736,8 +2735,8 @@ class JsonLdProcessor(object):
                 # allow any value, to be verified when the object
                 # is fully expanded and the @type is @json.
                 None
-            elif (_is_object(unexpanded_value) or _is_array(unexpanded_value) and
-                not options['isFrame']):
+            elif ((_is_object(unexpanded_value) or _is_array(unexpanded_value)) and
+                    not options['isFrame']):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @value" value must not be an '
                     'object or an array.',
@@ -3938,21 +3937,15 @@ class JsonLdProcessor(object):
             'requireAll': self._get_frame_flag(frame, options, 'requireAll')
         }
 
+        # get link for current graph
+        state['link'].setdefault(state['graph'], {})
+        link = state['link'][state['graph']]
+
         # filter out subjects that match the frame
         matches = self._filter_subjects(state, subjects, frame, flags)
 
         # add matches to output
         for id_, subject in sorted(matches.items()):
-            if flags['embed'] == '@link' and id_ in state['link']:
-                # TODO: may want to also match an existing linked subject
-                # against the current frame ... so different frames could
-                # produce different subjects that are only shared in-memory
-                # when the frames are the same
-
-                # add existing linked subject
-                self._add_frame_output(parent, property, state['link'][id_])
-                continue
-
             # Note: In order to treat each top-level match as a
             # compartmentalized result, clear the unique embedded subjects map
             # when the property is None, which only occurs at the top-level.
@@ -3961,6 +3954,16 @@ class JsonLdProcessor(object):
             elif not state['graph'] in state['uniqueEmbeds']:
                 state['uniqueEmbeds'][state['graph']] = {}
 
+            if flags['embed'] == '@link' and id_ in link:
+                # TODO: may want to also match an existing linked subject
+                # against the current frame ... so different frames could
+                # produce different subjects that are only shared in-memory
+                # when the frames are the same
+
+                # add existing linked subject
+                self._add_frame_output(parent, property, link[id_])
+                continue
+
             # start output for subject
             output = {'@id': id_}
             # keep track of objects having blank nodes
@@ -3968,15 +3971,37 @@ class JsonLdProcessor(object):
                 JsonLdProcessor.add_value(
                     state['bnodeMap'], id_, output,
                     {'propertyIsArray': True})
-            state['link'][id_] = output
+            link[id_] = output
+
+            if (flags['embed'] == '@first' or flags['embed'] == '@last') and state['options']['is11']:
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; invalid value of @embed.',
+                    'jsonld.SyntaxError',
+                    {'frame': frame},
+                    code='invalid @embed value')
+
+            # skip adding this node object to the top level, as it was
+            # already included in another node object
+            if not state['embedded'] and id_ in state['uniqueEmbeds'][state['graph']]:
+                continue
 
             # if embed is @never or if a circular reference would be created
             # by an embed, the subject cannot be embedded, just add the
             # reference; note that a circular reference won't occur when the
             # embed flag is `@link` as the above check will short-circuit
             # before reaching this point
-            if(flags['embed'] == '@never' or self._creates_circular_reference(
-                    subject, state['graph'], state['subjectStack'])):
+            if (state['embedded'] and
+                    (flags['embed'] == '@never' or
+                     self._creates_circular_reference(
+                        subject, state['graph'], state['subjectStack']))):
+                self._add_frame_output(parent, property, output)
+                continue
+
+            # if only the first (or once) should be embedded
+            if (state['embedded'] and
+                    (flags['embed'] == '@first' or
+                     flags['embed'] == '@once') and
+                    id_ in state['uniqueEmbeds'][state['graph']]):
                 self._add_frame_output(parent, property, output)
                 continue
 
@@ -3985,10 +4010,11 @@ class JsonLdProcessor(object):
                 # remove any existing embed
                 if id_ in state['uniqueEmbeds'][state['graph']]:
                     self._remove_embed(state, id_)
-                state['uniqueEmbeds'][state['graph']][id_] = {
-                    'parent': parent,
-                    'property': property
-                }
+
+            state['uniqueEmbeds'][state['graph']][id_] = {
+                'parent': parent,
+                'property': property
+            }
 
             # push matching subject onto stack to enable circular embed checks
             state['subjectStack'].append({'subject': subject, 'graph': state['graph']})
@@ -4006,11 +4032,16 @@ class JsonLdProcessor(object):
                     recurse = not (id_ == '@merged' or id_ == '@default')
 
                 if recurse:
-                    state['graphStack'].append(state['graph'])
-                    state['graph'] = id_
                     # recurse into graph
                     self._match_frame(
-                        state, sorted(state['graphMap'][id_].keys()), [subframe], output, '@graph')
+                        {**state, 'graph': id_, 'embedded': False},
+                        sorted(state['graphMap'][id_].keys()), [subframe], output, '@graph')
+
+            # if frame has @included, recurse over its sub-frame
+            if '@included' in frame:
+                self._match_frame(
+                    {**state, 'embedded': False},
+                    subjects, frame['@included'], output, '@included')
 
             # iterate over subject properties in order
             for prop, objects in sorted(subject.items()):
@@ -4040,6 +4071,11 @@ class JsonLdProcessor(object):
 
                     # recurse into list
                     if _is_list(o):
+                        if prop in frame and frame[prop][0] and '@list' in frame[prop][0]:
+                            subframe = frame[prop][0]['@list']
+                        else:
+                            subframe = self._create_implicit_frame(flags)
+
                         # add empty list
                         list_ = {'@list': []}
                         self._add_frame_output(output, prop, list_)
@@ -4048,14 +4084,9 @@ class JsonLdProcessor(object):
                         src = o['@list']
                         for o in src:
                             if _is_subject_reference(o):
-                                # recurse into subject reference
-                                if prop in frame:
-                                    subframe = frame[prop][0]['@list']
-                                else:
-                                    subframe = self._create_implicit_frame(
-                                        flags)
                                 self._match_frame(
-                                    state, [o['@id']],
+                                    {**state, 'embedded': True},
+                                    [o['@id']],
                                     subframe, list_, '@list')
                             else:
                                 # include other values automatically
@@ -4066,7 +4097,8 @@ class JsonLdProcessor(object):
                     if _is_subject_reference(o):
                         # recurse into subject reference
                         self._match_frame(
-                            state, [o['@id']], subframe, output, prop)
+                            {**state, 'embedded': True},
+                            [o['@id']], subframe, output, prop)
                     elif self._value_match(subframe[0], o):
                         # include other values automatically, if they match
                         self._add_frame_output(output, prop, copy.deepcopy(o))
@@ -4074,7 +4106,12 @@ class JsonLdProcessor(object):
             # handle defaults in order
             for prop in sorted(frame.keys()):
                 # skip keywords
-                if _is_keyword(prop):
+                if prop == '@type':
+                    if (not frame[prop] or
+                            not _is_object(frame[prop][0]) or
+                            '@default' not in frame[prop][0]):
+                        continue
+                elif _is_keyword(prop):
                     continue
                 # if omit default is off, then include default values for
                 # properties that appear in the next frame but are not in
@@ -4102,7 +4139,8 @@ class JsonLdProcessor(object):
                                 output['@reverse'], reverse_prop, [],
                                 {'propertyIsArray': True})
                             self._match_frame(
-                                state, [subject], subframe, output['@reverse'][reverse_prop], property)
+                                {**state, 'embeded': True},
+                                [subject], subframe, output['@reverse'][reverse_prop], property)
 
             # add output to parent
             self._add_frame_output(parent, property, output)
@@ -4154,16 +4192,21 @@ class JsonLdProcessor(object):
         """
         rval = frame.get('@' + name, [options[name]])[0]
         if name == 'embed':
-            # default is "@last"
+            # default is "@once"
             # backwards-compatibility support for "embed" maps:
-            # true => "@last"
+            # true => "@once"
             # false => "@never"
             if rval is True:
-                rval = '@last'
+                rval = '@once'
             elif rval is False:
                 rval = '@never'
-            elif rval != '@always' and rval != '@never' and rval != '@link':
-                rval = '@last'
+            elif (rval != '@always' and rval != '@never' and rval != '@link' and
+                  rval != '@first' and rval != '@last' and rval != '@once'):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; invalid value of @embed',
+                    'jsonld.SyntaxError',
+                    {'frame': frame, 'embed': rval},
+                    code='invalid @embed value')
         return rval
 
     def _validate_frame(self, frame):
@@ -4177,7 +4220,29 @@ class JsonLdProcessor(object):
                 not _is_object(frame[0])):
             raise JsonLdError(
                 'Invalid JSON-LD syntax; a JSON-LD frame must be a single '
-                'object.', 'jsonld.SyntaxError', {'frame': frame})
+                'object.', 'jsonld.SyntaxError',
+                {'frame': frame},
+                code='invalid frame')
+        if '@id' in frame[0]:
+            for id_ in JsonLdProcessor.arrayify(frame[0]['@id']):
+                # @id must be wildcard or IRI
+                if (not (_is_object(id_) or _is_absolute_iri(id_)) or
+                        (_is_string(id_) and id_.startswith('_:'))):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; invalid @id in frame.',
+                        'jsonld.SyntaxError',
+                        {'frame': frame},
+                        code='invalid frame')
+        if '@type' in frame[0]:
+            for type_ in JsonLdProcessor.arrayify(frame[0]['@type']):
+                # @id must be wildcard or IRI
+                if (not (_is_object(type_) or _is_absolute_iri(type_)) or
+                        (_is_string(type_) and type_.startswith('_:'))):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; invalid @type in frame.',
+                        'jsonld.SyntaxError',
+                        {'frame': frame},
+                        code='invalid frame')
 
     def _filter_subjects(self, state, subjects, frame, flags):
         """
@@ -4224,84 +4289,87 @@ class JsonLdProcessor(object):
             node_values = JsonLdProcessor.get_values(subject, k)
             is_empty = len(v) == 0
 
-            if _is_keyword(k):
-                # skip non-@id and non-@type
-                if k != '@id' and k != '@type':
-                    continue
-                wildcard = True
-
-                # check @id for a specific @id value
-                if k == '@id':
-                    # if @id is not a wildcard and is not empty, then match
-                    # or not on specific value
-                    if len(frame['@id']) >= 0 and not _is_empty_object(frame['@id'][0]):
-                        return node_values[0] in frame['@id']
+            if k == '@id':
+                # if @id is not a wildcard and is not empty, then match
+                # or not on specific value
+                if len(frame['@id']) == 0 or _is_empty_object(frame['@id'][0]):
                     match_this = True
+                elif frame['@id']:
+                    match_this = node_values[0] in frame['@id']
+                if not flags['requireAll']:
+                    return match_this
+            elif k == '@type':
+                wildcard = False
+                if is_empty:
+                    if len(node_values) > 0:
+                        # don't match on no @type
+                        return False
+                    match_this = True
+                elif len(frame['@type']) == 1 and _is_empty_object(frame['@type'][0]):
+                    match_this = len(node_values) > 0
+                else:
+                    # match on a specific @type
+                    for tv in frame['@type']:
+                        if _is_object(tv) and '@default' in tv:
+                            # match on default object
+                            match_this = True
+                        elif not match_this:
+                            match_this = tv in node_values
+                    if not flags['requireAll']:
+                        return match_this
+            elif _is_keyword(k):
+                continue
+            else:
+                # force a copy of this frame entry so it can be manipulated
+                this_frame = JsonLdProcessor.get_values(frame, k)
+                this_frame = this_frame[0] if this_frame else None
+                has_default = False
+                if this_frame:
+                    self._validate_frame([this_frame])
+                    has_default = '@default' in this_frame
+
+                # no longer a wildcard pattern if frame has any non-keyword
+                # properties
+                wildcard = False
+
+                # skip, but allow match if node has no value for property, and
+                # frame has a default value
+                if not node_values and has_default:
                     continue
 
-                # check @type (object value means 'any' type, fall through to
-                # ducktyping)
-                if k == '@type':
-                    if is_empty:
-                        if len(node_values) > 0:
-                            # don't match on no @type
-                            return False
-                        match_this = True
-                    elif _is_empty_object(frame['@type'][0]):
-                        match_this = len(node_values) > 0
-                    else:
-                        # match on a specific @type
-                        return len([tv for tv in node_values if [tf for tf in frame['@type'] if tv == tf]]) > 0
-
-            # force a copy of this frame entry so it can be manipulated
-            this_frame = JsonLdProcessor.get_values(frame, k)
-            this_frame = this_frame[0] if this_frame else None
-            has_default = False
-            if this_frame:
-                self._validate_frame([this_frame])
-                has_default = '@default' in this_frame
-
-            # no longer a wildcard pattern if frame has any non-keyword
-            # properties
-            wildcard = False
-
-            # skip, but allow match if node has no value for property, and
-            # frame has a default value
-            if not node_values and has_default:
-                continue
-
-            # if frame value is empty, don't match if subject has any value
-            if node_values and is_empty:
-                return False
-
-            if this_frame is None:
-                # node does not match if values is not empty and the value of
-                # property in frame is match none.
-                if node_values:
+                # if frame value is empty, don't match if subject has any value
+                if node_values and is_empty:
                     return False
-                match_this = True
-            elif _is_object(this_frame):
-                # node matches if values is not empty and the value of
-                # property in frame is wildcard
-                match_this = len(node_values) > 0
-            else:
-                if _is_value(this_frame):
-                    # match on any matching value
-                    match_this = any(self._value_match(this_frame, nv) for nv in node_values)
-                elif _is_list(this_frame):
-                    list_value = this_frame['@list'][0] if this_frame['@list'] else None
-                    if _is_list(node_values[0] if node_values else None):
-                        node_list_values = node_values[0]['@list']
 
-                        if _is_value(list_value):
-                            match_this = any(
-                                self._value_match(list_value, lv) for lv in node_list_values)
-                        elif _is_subject(list_value) or _is_subject_reference(list_value):
-                            match_this = any(
-                                self._node_match(state, list_value, lv, flags) for lv in node_list_values)
+                if this_frame is None:
+                    # node does not match if values is not empty and the value of
+                    # property in frame is match none.
+                    if node_values:
+                        return False
+                    match_this = True
+                else:
+                    if _is_list(this_frame):
+                        list_value = this_frame['@list'][0] if this_frame['@list'] else None
+                        if _is_list(node_values[0] if node_values else None):
+                            node_list_values = node_values[0]['@list']
+                            if _is_value(list_value):
+                                match_this = any(
+                                    self._value_match(list_value, lv) for lv in node_list_values)
+                            elif _is_subject(list_value) or _is_subject_reference(list_value):
+                                match_this = any(
+                                    self._node_match(state, list_value, lv, flags) for lv in node_list_values)
+                    elif _is_value(this_frame):
+                        # match on any matching value
+                        match_this = any(self._value_match(this_frame, nv) for nv in node_values)
+                    elif _is_subject_reference(this_frame):
+                        match_this = any(
+                            self._node_match(state, this_frame, nv, flags) for nv in node_values)
+                    elif _is_object(this_frame):
+                        match_this = len(node_values) > 0
                     else:
                         match_this = False
 
+            # all non-defaulted values must match if requireAll is set
             if not match_this and flags['requireAll']:
                 return False
 
@@ -6240,31 +6308,30 @@ def _is_string(v):
     return isinstance(v, str)
 
 
-def _validate_type_value(v):
+def _validate_type_value(v, is_frame):
     """
     Raises an exception if the given value is not a valid @type value.
 
     :param v: the value to check.
     """
-    # must be a string or empty object
-    if (_is_string(v) or _is_empty_object(v)):
+    if _is_string(v):
         return
 
-    # must be an array
-    is_valid = False
-    if _is_array(v):
-        # must contain only strings
-        is_valid = True
-        for e in v:
-            if not _is_string(e):
-                is_valid = False
-                break
+    if _is_array(v) and all([_is_string(vv) for vv in v]):
+        return
 
-    if not is_valid:
-        raise JsonLdError(
-            'Invalid JSON-LD syntax; "@type" value must be a string, an array '
-            'of strings, or an empty object.',
-            'jsonld.SyntaxError', {'value': v}, code='invalid type value')
+    if is_frame and _is_object(v):
+        if len(v) == 0:
+            return
+        if (len(v) == 1 and
+                '@default' in v and
+                all(_is_string(vv) for vv in v['@default'])):
+            return
+
+    raise JsonLdError(
+        'Invalid JSON-LD syntax; "@type" value must be a string, an array '
+        'of strings, or an empty object.',
+        'jsonld.SyntaxError', {'value': v}, code='invalid type value')
 
 
 def _is_bool(v):

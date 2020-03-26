@@ -80,6 +80,8 @@
   * Change `_remove_preserve` to `_cleanup_preserve` which happens before
     compaction.
   * Add `_cleanup_null` which happens after compaction.
+  * Update frame matching to 1.1 spec.
+  * Support `@included`.
 * ToRdf:
   * Support for I18N direction.
   * Support for Lists of Lists.

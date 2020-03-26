@@ -682,44 +682,44 @@ TEST_TYPES = {
         'pending': {
             'idRegex': [
                 ## html
-                '.*html-manifest.jsonld#te001$',
-                '.*html-manifest.jsonld#te002$',
-                '.*html-manifest.jsonld#te003$',
-                '.*html-manifest.jsonld#te004$',
-                '.*html-manifest.jsonld#te005$',
-                '.*html-manifest.jsonld#te007$',
-                '.*html-manifest.jsonld#te010$',
-                '.*html-manifest.jsonld#te014$',
-                '.*html-manifest.jsonld#te015$',
-                '.*html-manifest.jsonld#te016$',
-                '.*html-manifest.jsonld#te017$',
-                '.*html-manifest.jsonld#te018$',
-                '.*html-manifest.jsonld#te019$',
-                '.*html-manifest.jsonld#te020$',
-                '.*html-manifest.jsonld#te021$',
-                '.*html-manifest.jsonld#te022$',
-                '.*html-manifest.jsonld#tex01$',
+                '.*html-manifest#te001$',
+                '.*html-manifest#te002$',
+                '.*html-manifest#te003$',
+                '.*html-manifest#te004$',
+                '.*html-manifest#te005$',
+                '.*html-manifest#te007$',
+                '.*html-manifest#te010$',
+                '.*html-manifest#te014$',
+                '.*html-manifest#te015$',
+                '.*html-manifest#te016$',
+                '.*html-manifest#te017$',
+                '.*html-manifest#te018$',
+                '.*html-manifest#te019$',
+                '.*html-manifest#te020$',
+                '.*html-manifest#te021$',
+                '.*html-manifest#te022$',
+                '.*html-manifest#tex01$',
 
                 # HTML
-                '.*remote-doc-manifest.jsonld#t0013$',
+                '.*remote-doc-manifest#t0013$',
             ]
         },
         'runLocal': [
-            '.*remote-doc-manifest.jsonld#t0003$',
-            '.*remote-doc-manifest.jsonld#t0004$',
-            '.*remote-doc-manifest.jsonld#t0005$',
-            '.*remote-doc-manifest.jsonld#t0006$',
-            '.*remote-doc-manifest.jsonld#t0007$',
-            '.*remote-doc-manifest.jsonld#t0009$',
-            '.*remote-doc-manifest.jsonld#t0010$',
-            '.*remote-doc-manifest.jsonld#t0011$',
-            '.*remote-doc-manifest.jsonld#t0012$',
-            '.*remote-doc-manifest.jsonld#t0013$',
-            '.*remote-doc-manifest.jsonld#tla01$',
-            '.*remote-doc-manifest.jsonld#tla02$',
-            '.*remote-doc-manifest.jsonld#tla03$',
-            '.*remote-doc-manifest.jsonld#tla04$',
-            '.*remote-doc-manifest.jsonld#tla05$',
+            '.*remote-doc-manifest#t0003$',
+            '.*remote-doc-manifest#t0004$',
+            '.*remote-doc-manifest#t0005$',
+            '.*remote-doc-manifest#t0006$',
+            '.*remote-doc-manifest#t0007$',
+            '.*remote-doc-manifest#t0009$',
+            '.*remote-doc-manifest#t0010$',
+            '.*remote-doc-manifest#t0011$',
+            '.*remote-doc-manifest#t0012$',
+            '.*remote-doc-manifest#t0013$',
+            '.*remote-doc-manifest#tla01$',
+            '.*remote-doc-manifest#tla02$',
+            '.*remote-doc-manifest#tla03$',
+            '.*remote-doc-manifest#tla04$',
+            '.*remote-doc-manifest#tla05$',
         ],
         'skip': {
             # skip tests where behavior changed for a 1.1 processor
@@ -738,10 +738,10 @@ TEST_TYPES = {
         'pending': {
             'idRegex': [
                 ## html
-                '.*html-manifest.jsonld#tf001$',
-                '.*html-manifest.jsonld#tf002$',
-                '.*html-manifest.jsonld#tf003$',
-                '.*html-manifest.jsonld#tf004$',
+                '.*html-manifest#tf001$',
+                '.*html-manifest#tf002$',
+                '.*html-manifest#tf003$',
+                '.*html-manifest#tf004$',
             ]
         },
         'skip': {
@@ -761,41 +761,6 @@ TEST_TYPES = {
     'jld:FrameTest': {
         'pending': {
             'idRegex': [
-                # misc
-                '.*frame-manifest.jsonld#t0016$',
-                # graphs
-                '.*frame-manifest.jsonld#t0031$',
-                '.*frame-manifest.jsonld#t0037$',
-                '.*frame-manifest.jsonld#t0038$',
-                '.*frame-manifest.jsonld#t0040$',
-                '.*frame-manifest.jsonld#t0041$',
-                '.*frame-manifest.jsonld#t0045$',
-                # blank nodes
-                '.*frame-manifest.jsonld#t0052$',
-                '.*frame-manifest.jsonld#t0053$',
-                # embed
-                '.*frame-manifest.jsonld#t0054$',
-                # lists
-                '.*frame-manifest.jsonld#t0055$',
-                '.*frame-manifest.jsonld#t0058$',
-                # @embed:@first
-                '.*frame-manifest.jsonld#t0060$',
-                # wildcard
-                '.*frame-manifest.jsonld#t0061$',
-                '.*frame-manifest.jsonld#t0064$',
-                '.*frame-manifest.jsonld#t0065$',
-                '.*frame-manifest.jsonld#t0066$',
-                '.*frame-manifest.jsonld#t0067$',
-                # ex
-                '.*frame-manifest.jsonld#tg010$',
-                # included
-                '.*frame-manifest.jsonld#tin01$',
-                '.*frame-manifest.jsonld#tin02$',
-                '.*frame-manifest.jsonld#tin03$',
-                # requireAll
-                '.*frame-manifest.jsonld#tra01$',
-                '.*frame-manifest.jsonld#tra02$',
-                '.*frame-manifest.jsonld#tra03$',
             ]
         },
         'skip': {
@@ -817,8 +782,8 @@ TEST_TYPES = {
             'specVersion': ['json-ld-1.0'],
             'idRegex': [
                 # direction (compound-literal)
-                '.*fromRdf-manifest.jsonld#tdi11$',
-                '.*fromRdf-manifest.jsonld#tdi12$',
+                '.*fromRdf-manifest#tdi11$',
+                '.*fromRdf-manifest#tdi12$',
             ]
         },
         'fn': 'from_rdf',
@@ -839,37 +804,37 @@ TEST_TYPES = {
         'pending': {
             'idRegex': [
                 # blank node property
-                '.*toRdf-manifest.jsonld#te075$',
-                '.*toRdf-manifest.jsonld#te122$',
+                '.*toRdf-manifest#te075$',
+                '.*toRdf-manifest#te122$',
                 # rel vocab
-                '.*toRdf-manifest.jsonld#te111$',
-                '.*toRdf-manifest.jsonld#te112$',
+                '.*toRdf-manifest#te111$',
+                '.*toRdf-manifest#te112$',
                 # number fixes
-                '.*toRdf-manifest.jsonld#trt01$',
+                '.*toRdf-manifest#trt01$',
                 # type:none
-                '.*toRdf-manifest.jsonld#ttn02$',
+                '.*toRdf-manifest#ttn02$',
                 # well formed
-                '.*toRdf-manifest.jsonld#twf05$',
-                '.*toRdf-manifest.jsonld#twf06$',
+                '.*toRdf-manifest#twf05$',
+                '.*toRdf-manifest#twf06$',
 
                 ## html
-                '.*html-manifest.jsonld#tr001$',
-                '.*html-manifest.jsonld#tr002$',
-                '.*html-manifest.jsonld#tr003$',
-                '.*html-manifest.jsonld#tr004$',
-                '.*html-manifest.jsonld#tr005$',
-                '.*html-manifest.jsonld#tr006$',
-                '.*html-manifest.jsonld#tr007$',
-                '.*html-manifest.jsonld#tr010$',
-                '.*html-manifest.jsonld#tr014$',
-                '.*html-manifest.jsonld#tr015$',
-                '.*html-manifest.jsonld#tr016$',
-                '.*html-manifest.jsonld#tr017$',
-                '.*html-manifest.jsonld#tr018$',
-                '.*html-manifest.jsonld#tr019$',
-                '.*html-manifest.jsonld#tr020$',
-                '.*html-manifest.jsonld#tr021$',
-                '.*html-manifest.jsonld#tr022$',
+                '.*html-manifest#tr001$',
+                '.*html-manifest#tr002$',
+                '.*html-manifest#tr003$',
+                '.*html-manifest#tr004$',
+                '.*html-manifest#tr005$',
+                '.*html-manifest#tr006$',
+                '.*html-manifest#tr007$',
+                '.*html-manifest#tr010$',
+                '.*html-manifest#tr014$',
+                '.*html-manifest#tr015$',
+                '.*html-manifest#tr016$',
+                '.*html-manifest#tr017$',
+                '.*html-manifest#tr018$',
+                '.*html-manifest#tr019$',
+                '.*html-manifest#tr020$',
+                '.*html-manifest#tr021$',
+                '.*html-manifest#tr022$',
             ]
         },
         'skip': {
@@ -878,8 +843,8 @@ TEST_TYPES = {
             'specVersion': ['json-ld-1.0'],
             'idRegex': [
                 # node object direction
-                '.*toRdf-manifest.jsonld#tdi11$',
-                '.*toRdf-manifest.jsonld#tdi12$',
+                '.*toRdf-manifest#tdi11$',
+                '.*toRdf-manifest#tdi12$',
             ]
         },
         'fn': 'to_rdf',
