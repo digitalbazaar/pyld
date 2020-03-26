@@ -470,7 +470,7 @@ def prepend_base(base, iri):
                 # append relative path to the end of the last directory from
                 # base
                 path = path[0:path.rfind('/') + 1]
-                if len(path) > 0 and not path.endswith('/'):
+                if (len(path) > 0 or base.authority) and not path.endswith('/'):
                     path += '/'
                 path += rel.path
 
