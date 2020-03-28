@@ -1,0 +1,1053 @@
+{
+  "@context": {
+    "doap": "http://usefulinc.com/ns/doap#",
+    "foaf": "http://xmlns.com/foaf/0.1/",
+    "dc": "http://purl.org/dc/terms/",
+    "earl": "http://www.w3.org/ns/earl#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "doap:homepage": {
+      "@type": "@id"
+    },
+    "doap:license": {
+      "@type": "@id"
+    },
+    "dc:creator": {
+      "@type": "@id"
+    },
+    "foaf:homepage": {
+      "@type": "@id"
+    },
+    "subjectOf": {
+      "@reverse": "earl:subject"
+    },
+    "earl:assertedBy": {
+      "@type": "@id"
+    },
+    "earl:mode": {
+      "@type": "@id"
+    },
+    "earl:test": {
+      "@type": "@id"
+    },
+    "earl:outcome": {
+      "@type": "@id"
+    },
+    "dc:date": {
+      "@type": "xsd:date"
+    }
+  },
+  "@id": "https://github.com/digitalbazaar/pyld",
+  "@type": [
+    "doap:Project",
+    "earl:TestSubject",
+    "earl:Software"
+  ],
+  "doap:name": "PyLD",
+  "dc:title": "PyLD",
+  "doap:homepage": "https://github.com/digitalbazaar/pyld",
+  "doap:license": "https://github.com/digitalbazaar/pyld/blob/master/LICENSE",
+  "doap:description": "A JSON-LD processor for Python",
+  "doap:programming-language": "Python",
+  "doap:release": {
+    "doap:revision": "1.0.6-dev",
+    "doap:created": {
+      "@value": "2020-03-28",
+      "@type": "xsd:date"
+    }
+  },
+  "dc:creator": "https://github.com/dlongley",
+  "doap:developer": {
+    "@id": "https://github.com/dlongley",
+    "@type": [
+      "foaf:Person",
+      "earl:Assertor"
+    ],
+    "foaf:name": "Dave Longley",
+    "foaf:homepage": "https://github.com/dlongley"
+  },
+  "dc:date": {
+    "@value": "2020-03-28",
+    "@type": "xsd:date"
+  },
+  "subjectOf": [
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0001",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:52.997473",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0002",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:52.998906",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0003",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:52.999900",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0004",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.001342",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0005",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.002790",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0006",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.004156",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0007",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.005541",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0008",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.007458",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0009",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.008795",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0011",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.010059",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0012",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.011205",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0013",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.012058",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0014",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.013131",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0015",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.018551",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0016",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.019478",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0017",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.020840",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0018",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.021608",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0019",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.022838",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0020",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.026046",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0021",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.028362",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0022",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.029115",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0023",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.029995",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0024",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.030877",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0025",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.031945",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0026",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.032750",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0027",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.033646",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0028",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.034632",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0029",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.035665",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0030",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.036768",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0031",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.037397",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0032",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.038184",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0033",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.039149",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0034",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.040055",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0035",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.041208",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0036",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.042325",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0037",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.043821",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0038",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.044706",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0039",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.045496",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0040",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.046142",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0041",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.046836",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0042",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.048040",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0043",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.048904",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0044",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.049733",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0045",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.050651",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0046",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.051549",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0047",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.052463",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0048",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.053592",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0049",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.054832",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0050",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.056342",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0051",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.057409",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0052",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.058309",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0053",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.059209",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0054",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.060225",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0055",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.060907",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0056",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.062845",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0057",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.064972",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0058",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.067465",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0059",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.068489",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0060",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.069582",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0061",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.071061",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0062",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.072637",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0063",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.073694",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0064",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.074242",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0065",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.075390",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0066",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.076637",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0067",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.078308",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#t0068",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.079607",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#teo01",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.080796",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tg001",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.082255",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tg002",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.083937",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tg003",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.085551",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tg004",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.087168",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tg005",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.089048",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tg006",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.091512",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tg007",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.095037",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tg008",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.099200",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tg009",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.100861",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tg010",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.102239",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tin01",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.103351",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tin02",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.104458",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tin03",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.106702",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tp020",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.109079",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tp021",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.111295",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tp046",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.112142",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tp049",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.113350",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tp050",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.114124",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tra01",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.115205",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tra02",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.116284",
+        "earl:outcome": "earl:passed"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": "https://github.com/dlongley",
+      "earl:mode": "earl:automatic",
+      "earl:test": "https://w3c.github.io/json-ld-framing/tests/frame-manifest.jsonld#tra03",
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "dc:date": "2020-03-28T18:41:53.117506",
+        "earl:outcome": "earl:passed"
+      }
+    }
+  ]
+}
