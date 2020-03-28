@@ -537,6 +537,10 @@ class EarlReport():
     """
 
     def __init__(self):
+        about = {}
+        with open(os.path.join(
+                os.path.dirname(__file__), '..', 'lib', 'pyld', '__about__.py')) as fp:
+            exec(fp.read(), about)
         self.report = {
             '@context': {
                 'doap': 'http://usefulinc.com/ns/doap#',
@@ -568,7 +572,7 @@ class EarlReport():
             'doap:description': 'A JSON-LD processor for Python',
             'doap:programming-language': 'Python',
             'doap:release': {
-                'doap:revision': '2.0.0', # FIXME: this should come from a file
+                'doap:revision': about['__version__'],
                 'doap:created': {
                     '@value': datetime.datetime.utcnow().strftime('%Y-%m-%d'),
                     '@type': 'xsd:date'
