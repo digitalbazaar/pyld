@@ -341,6 +341,7 @@ class Test(unittest.TestCase):
             elif self.pending:
                 print('pending')
             else:
+                #import pdb; pdb.set_trace()
                 self.assertEqual(result, expect)
 
 # Compare values with order-insensitive array tests
