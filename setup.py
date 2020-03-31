@@ -30,6 +30,7 @@ setup(
     author_email='support@digitalbazaar.com',
     url='http://github.com/digitalbazaar/pyld',
     packages=[
+        'c14n',
         'pyld',
         'pyld.documentloader'
     ],
@@ -50,5 +51,6 @@ setup(
     extras_require= {
         'requests': ['requests'],
         'aiohttp': ['aiohttp'],
+        'cachetools': ['cachetools'],
     }
 )

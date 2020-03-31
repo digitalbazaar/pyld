@@ -40,7 +40,7 @@ __all__ = [
     'parse_link_header', 'load_document',
     'requests_document_loader', 'aiohttp_document_loader',
     'register_rdf_parser', 'unregister_rdf_parser',
-    'JsonLdProcessor', 'JsonLdError', 'ActiveContextCache'
+    'JsonLdProcessor', 'JsonLdError'
 ]
 
 # XSD constants
@@ -6363,38 +6363,6 @@ def _is_relative_iri(v):
     """
     return _is_string(v)
 
-
-class ActiveContextCache(object):
-    """
-    An ActiveContextCache caches active contexts so they can be reused without
-    the overhead of recomputing them.
-    """
-
-    def __init__(self, size=100):
-        self.order = deque()
-        self.cache = {}
-        self.size = size
-
-    def get(self, active_ctx, local_ctx):
-        key1 = json.dumps(active_ctx)
-        key2 = json.dumps(local_ctx)
-        return self.cache.get(key1, {}).get(key2)
-
-    def set(self, active_ctx, local_ctx, result):
-        if len(self.order) == self.size:
-            entry = self.order.popleft()
-            if (entry['localCtx'] in self.cache[entry['activeCtx']]):
-                del self.cache[entry['activeCtx']][entry['localCtx']]
-        key1 = json.dumps(active_ctx)
-        key2 = json.dumps(local_ctx)
-        self.order.append({'activeCtx': key1, 'localCtx': key2})
-        self.cache.setdefault(key1, {})[key2] = json.loads(json.dumps(result))
-
-
-# Shared in-memory caches.
-_cache = {
-    'activeCtx': ActiveContextCache()
-}
 
 # The default JSON-LD document loader.
 try:
