@@ -40,7 +40,7 @@ __all__ = [
     'parse_link_header', 'load_document',
     'requests_document_loader', 'aiohttp_document_loader',
     'register_rdf_parser', 'unregister_rdf_parser',
-    'JsonLdProcessor', 'JsonLdError'
+    'JsonLdProcessor', 'JsonLdError', 'ContextResolver'
 ]
 
 # XSD constants
