@@ -61,8 +61,8 @@ class ContextResolver:
                     all_resolved.extend(resolved)
                 else:
                     all_resolved.append(resolved)
-            elif ctx is None:
-                all_resolved.append(ResolvedContext(None))
+            elif not ctx:
+                all_resolved.append(ResolvedContext(False))
             elif not isinstance(ctx, dict):
                 raise jsonld.JsonLdError(
                     'Invalid JSON-LD syntax; @context must be an object.',
