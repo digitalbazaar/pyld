@@ -106,7 +106,7 @@ class ContextResolver:
         context, remote_doc = self._fetch_context(active_ctx, url, cycles)
 
         # update base according to remote document and resolve any relative URLs
-        base = remote_doc.get('document_url', url)
+        base = remote_doc.get('documentUrl', url)
         self._resolve_context_urls(context, base)
 
         # resolve, cache, and return context
@@ -186,10 +186,10 @@ class ContextResolver:
         :param context: the context.
         :param base: the base IRI to use to resolve relative IRIs.
         """
-        if not context:
+        if not isinstance(context, dict):
             return
 
-        ctx = context['@context']
+        ctx = context.get('@context')
 
         if isinstance(ctx, str):
             context['@context'] = jsonld.prepend_base(base, ctx)
@@ -208,5 +208,6 @@ class ContextResolver:
             return
 
         # ctx is an object, resolve any context URLs in terms
+        # (Iterate using keys() as items() returns a copy we can't modify)
         for _, definition in ctx.items():
-            self._resolve_context_urls({'@context': definition}, base)
+            self._resolve_context_urls(definition, base)
