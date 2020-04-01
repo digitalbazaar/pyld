@@ -224,7 +224,7 @@ class Test(unittest.TestCase):
         if 'baseIri' in manifest.data:
             data['@id'] = (
                 manifest.data['baseIri'] +
-                os.path.basename(manifest.filename) + data['@id'])
+                os.path.basename(str.replace(manifest.filename, '.jsonld', '')) + data['@id'])
             self.base = self.manifest.data['baseIri'] + data['input']
 
         # skip based on id regular expression
