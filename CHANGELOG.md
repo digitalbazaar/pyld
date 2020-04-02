@@ -15,6 +15,9 @@
   * Improve management of previous contexts.
   * Imported contexts must resolve to an object.
   * Do remote context processing from within _process_contexts, as logic is too complicated for pre-loading. Removes _find_context_urls and _retrieve_context_urls.
+  * Added a ContextResolver which can used a shared LRU cache for storing
+    externally retrieved contexts, and the result of processing them relative
+    to a particular active context.
 * Create Term Definition:
   * Allow `@type` as a term under certain circumstances.
   * Reject and warn on keyword-like terms.

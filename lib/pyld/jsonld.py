@@ -3112,19 +3112,36 @@ class JsonLdProcessor(object):
                         'Invalid JSON-LD syntax; @import must reference a single context.',
                         'jsonld.SyntaxError', {'context': value},
                         code='invalid remote context')
+                resolved_import = resolved_import[0]
 
-                import_ctx = resolved_import[0].document
-                if '@import' in import_ctx:
-                    raise JsonLdError(
-                        'Invalid JSON-LD syntax; @import must not include @import entry',
-                        'jsonld.SyntaxError', {'context': import_ctx},
-                        code='invalid context entry')
+                processed_import = resolved_import.get_processed(active_ctx)
+                if isinstance(processed_import, dict):
+                    # Note: if the same context were used in this active context
+                    # as a reference context, then processed_input might not
+                    # be a dict.
+                    ctx = processed_import
+                else:
+                    import_ctx = resolved_import.document
+                    if '@import' in import_ctx:
+                        raise JsonLdError(
+                            'Invalid JSON-LD syntax; @import must not include @import entry',
+                            'jsonld.SyntaxError', {'context': import_ctx},
+                            code='invalid context entry')
 
-                # value must be an object with '@context'
-                # from _find_context_urls
-                import_ctx.update(ctx)
-                del import_ctx['@import']
-                ctx = import_ctx
+                    # value must be an object with '@context'
+                    # from _find_context_urls
+                    import_ctx.update(ctx)
+                    del import_ctx['@import']
+                    ctx = import_ctx
+
+                    # cache processed result (only Python >= 3.6)
+                    # Note: this could potenially conflict if the import
+                    # were used in the same active context as a referenced
+                    # context and an import. In this case, we
+                    # could override the cached result, but seems unlikely.
+                    if sys.version_info[0] > 3 or sys.version_info[1] >= 6:
+                        resolved_import.set_processed(active_ctx, ctx)
+
                 defined['@import'] = True
 
             # handle @base
