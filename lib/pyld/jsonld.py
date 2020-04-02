@@ -3001,6 +3001,7 @@ class JsonLdProcessor(object):
 
         :return: the new active context.
         """
+        has_related = 'related' in active_ctx['mappings']
         # normalize local context to an array
         if _is_object(local_ctx) and _is_array(local_ctx.get('@context')):
             local_ctx = local_ctx['@context']
@@ -3228,6 +3229,7 @@ class JsonLdProcessor(object):
                     override_protected=override_protected,
                     validate_scoped=validate_scoped)
 
+
                 if _is_object(v) and '@context' in v:
                     key_ctx = v['@context']
                     process = True
@@ -3251,8 +3253,12 @@ class JsonLdProcessor(object):
                                 'jsonld.SyntaxError', {'context': key_ctx, 'term': k},
                                 code='invalid scoped context')
 
-            # cache processed result
-            resolved_context.set_processed(active_ctx, rval)
+            # cache processed result (only Python >= 3.6)
+            if sys.version_info[0] > 3 or sys.version_info[1] >= 6:
+                resolved_context.set_processed(active_ctx, rval)
+
+            if has_related and 'related' not in rval['mappings']:
+                import pdb; pdb.set_trace()
 
         return rval
 
