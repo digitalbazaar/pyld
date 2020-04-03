@@ -109,6 +109,7 @@ MAX_CONTEXT_URLS = 10
 # TODO: consider basing max on context size rather than number
 RESOLVED_CONTEXT_CACHE_MAX_SIZE = 100
 _resolved_context_cache = LRUCache(maxsize=RESOLVED_CONTEXT_CACHE_MAX_SIZE)
+_inverse_context_cache = LRUCache(maxsize=20)
 
 def compact(input_, ctx, options=None):
     """
@@ -3274,9 +3275,6 @@ class JsonLdProcessor(object):
             if sys.version_info[0] > 3 or sys.version_info[1] >= 6:
                 resolved_context.set_processed(active_ctx, rval)
 
-            if has_related and 'related' not in rval['mappings']:
-                import pdb; pdb.set_trace()
-
         return rval
 
     def _revert_to_previous_context(self, active_ctx):
@@ -4521,7 +4519,7 @@ class JsonLdProcessor(object):
                 prefs.append('_' + lang_dir[0].split('_')[-1])
         prefs.append('@none')
 
-        container_map = active_ctx['inverse'][iri]
+        container_map = self._get_inverse_context(active_ctx)[iri]
         for container in containers:
             # skip container if not in map
             if container not in container_map:
@@ -5375,8 +5373,7 @@ class JsonLdProcessor(object):
         return {
             '@base': options['base'],
             'processingMode': options.get('processingMode', None),
-            'mappings': {},
-            'inverse': None
+            'mappings': {}
         }
 
     def _get_inverse_context(self, active_ctx):
@@ -5389,10 +5386,11 @@ class JsonLdProcessor(object):
         :return: the inverse context.
         """
         # inverse context already generated
-        if active_ctx['inverse']:
-            return active_ctx['inverse']
+        inverse = _inverse_context_cache.get(id(active_ctx))
+        if inverse:
+            return inverse
 
-        inverse = active_ctx['inverse'] = {}
+        inverse = {}
 
         # handle default language
         default_language = active_ctx.get('@language', '@none')
@@ -5461,6 +5459,7 @@ class JsonLdProcessor(object):
                     entry['@type'].setdefault('@none', term)
                     entry['@language'].setdefault('@none', term)
 
+        _inverse_context_cache[id(active_ctx)] = inverse
         return inverse
 
     def _clone_active_context(self, active_ctx):
