@@ -1,3 +1,4 @@
 requests
 aiohttp; python_version >= '3.5'
 cachetools
+frozendict

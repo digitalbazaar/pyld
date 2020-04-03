@@ -28,6 +28,7 @@ from cachetools import LRUCache
 from collections import deque, namedtuple
 from functools import cmp_to_key
 from numbers import Integral, Real
+from frozendict import frozendict
 from pyld.__about__ import (__copyright__, __license__, __version__)
 
 def cmp(a, b):
@@ -40,7 +41,8 @@ __all__ = [
     'parse_link_header', 'load_document',
     'requests_document_loader', 'aiohttp_document_loader',
     'register_rdf_parser', 'unregister_rdf_parser',
-    'JsonLdProcessor', 'JsonLdError', 'ContextResolver'
+    'JsonLdProcessor', 'JsonLdError', 'ContextResolver',
+    'freeze'
 ]
 
 # XSD constants
@@ -735,7 +737,6 @@ class JsonLdProcessor(object):
             ctx = ctx['@context']
 
         # build output context
-        ctx = copy.deepcopy(ctx)
         ctx = JsonLdProcessor.arrayify(ctx)
 
         # remove empty contexts
@@ -836,7 +837,7 @@ class JsonLdProcessor(object):
             'remoteContext': remote_doc['contextUrl']
         }
         if 'expandContext' in options:
-            expand_context = copy.deepcopy(options['expandContext'])
+            expand_context = options['expandContext']
             if _is_object(expand_context) and '@context' in expand_context:
                 input_['expandContext'] = expand_context['@context']
             else:
@@ -1009,7 +1010,7 @@ class JsonLdProcessor(object):
 
         try:
             # expand frame
-            opts = copy.deepcopy(options)
+            opts = dict(options)
             opts['isFrame'] = True
             opts['keepFreeFloatingNodes'] = True
             expanded_frame = self.expand(frame, opts)
@@ -1092,7 +1093,7 @@ class JsonLdProcessor(object):
                 dataset = JsonLdProcessor.parse_nquads(input_)
             else:
                 # convert to RDF dataset then do normalization
-                opts = copy.deepcopy(options)
+                opts = dict(options)
                 if 'format' in opts:
                     del opts['format']
                 opts['produceGeneralizedRdf'] = False
@@ -3272,6 +3273,7 @@ class JsonLdProcessor(object):
                                 code='invalid scoped context')
 
             # cache processed result (only Python >= 3.6)
+            rval = freeze(rval)
             if sys.version_info[0] > 3 or sys.version_info[1] >= 6:
                 resolved_context.set_processed(active_ctx, rval)
 
@@ -3280,7 +3282,7 @@ class JsonLdProcessor(object):
     def _revert_to_previous_context(self, active_ctx):
         if 'previousContext' not in active_ctx:
             return active_ctx
-        return copy.deepcopy(active_ctx['previousContext'])
+        return active_ctx['previousContext']
 
     def _processing_mode(self, active_ctx, version):
         """
@@ -3888,12 +3890,12 @@ class JsonLdProcessor(object):
                 for property, values in sorted(node.items()):
                     if property != '@type' and _is_keyword(property):
                         # copy keywords
-                        merged_node[property] = copy.deepcopy(values)
+                        merged_node[property] = values
                     else:
                         # merge objects
                         for value in values:
                             JsonLdProcessor.add_value(
-                                merged_node, property, copy.deepcopy(value),
+                                merged_node, property, value,
                                 {'propertyIsArray': True, 'allowDuplicate': False})
         return merged
 
@@ -3997,7 +3999,7 @@ class JsonLdProcessor(object):
             for prop, objects in sorted(subject.items()):
                 # copy keywords to output
                 if _is_keyword(prop):
-                    output[prop] = copy.deepcopy(subject[prop])
+                    output[prop] = subject[prop]
 
                     if prop == '@type':
                         # count bnode values of @type
@@ -4041,7 +4043,7 @@ class JsonLdProcessor(object):
                             else:
                                 # include other values automatically
                                 self._add_frame_output(
-                                    list_, '@list', copy.deepcopy(o))
+                                    list_, '@list', o)
                         continue
 
                     if _is_subject_reference(o):
@@ -4050,7 +4052,7 @@ class JsonLdProcessor(object):
                             state, [o['@id']], subframe, output, prop)
                     elif self._value_match(subframe[0], o):
                         # include other values automatically, if they match
-                        self._add_frame_output(output, prop, copy.deepcopy(o))
+                        self._add_frame_output(output, prop, o)
 
             # handle defaults in order
             for prop in sorted(frame.keys()):
@@ -4066,7 +4068,7 @@ class JsonLdProcessor(object):
                 if not omit_default_on and prop not in output:
                     preserve = '@null'
                     if '@default' in next:
-                        preserve = copy.deepcopy(next['@default'])
+                        preserve = next['@default']
                     preserve = JsonLdProcessor.arrayify(preserve)
                     output[prop] = [{'@preserve': preserve}]
 
@@ -5471,13 +5473,12 @@ class JsonLdProcessor(object):
         :return: a clone (child) of the active context.
         """
         child = {
-            'mappings': copy.deepcopy(active_ctx['mappings']),
-            'inverse': None
+            'mappings': dict(active_ctx['mappings'])
         }
         if '@base' in active_ctx:
             child['@base'] = active_ctx['@base']
         if 'previousContext' in active_ctx:
-            child['previousContext'] = copy.deepcopy(active_ctx['previousContext'])
+            child['previousContext'] = active_ctx['previousContext']
         if '@language' in active_ctx:
             child['@language'] = active_ctx['@language']
         if '@vocab' in active_ctx:
@@ -6142,7 +6143,7 @@ def _is_object(v):
 
     :return: True if the value is an Object, False if not.
     """
-    return isinstance(v, dict)
+    return isinstance(v, dict) or isinstance(v, frozendict)
 
 
 def _is_empty_object(v):
@@ -6385,6 +6386,10 @@ def _is_relative_iri(v):
     """
     return _is_string(v)
 
+def freeze(value):
+    if isinstance(value, dict):
+        return frozendict(dict([(k, freeze(v)) for (k, v) in value.items()]))
+    return value
 
 # The default JSON-LD document loader.
 try:
