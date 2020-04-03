@@ -8,6 +8,7 @@ Representation for a resolved Context.
 .. moduleauthor:: Gregg Kellogg <gregg@greggkellogg.net>
 """
 
+from pyld import jsonld
 from cachetools import LRUCache
 
 MAX_ACTIVE_CONTEXTS = 10
@@ -35,4 +36,4 @@ class ResolvedContext:
         """
         Sets any processed context for this resolved context relative to an active context.
         """
-        self.cache[id(active_ctx)] = processed_ctx
+        self.cache[id(active_ctx)] = processed_ctx #jsonld.freeze(processed_ctx)
