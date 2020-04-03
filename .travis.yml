@@ -20,6 +20,7 @@ matrix:
       env: LOADER=aiohttp
   allow_failures:
     - python: "3.4"
+    - python: "3.5"
 
 install:
   - pip install -r requirements.txt
