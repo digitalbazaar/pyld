@@ -1781,7 +1781,7 @@ class JsonLdProcessor(object):
             # do value compaction on @values and subject references
             if _is_value(element) or _is_subject_reference(element):
                 rval = self._compact_value(
-                    active_ctx, active_property, element)
+                    active_ctx, active_property, element, options)
                 if options['link'] and _is_subject_reference(element):
                     # store linked element
                     options['link'].setdefault(element['@id'], []).append(
@@ -1848,7 +1848,8 @@ class JsonLdProcessor(object):
                     compacted_value = [
                             self._compact_iri(
                                 active_ctx, expanded_iri,
-                                vocab=False)
+                                vocab=False,
+                                base=options.get('base', ''))
                             for expanded_iri in
                             JsonLdProcessor.arrayify(expanded_value)]
 
@@ -2094,7 +2095,7 @@ class JsonLdProcessor(object):
                                 active_ctx, item_active_property, '@index')
                             if not index_key:
                                 index_key = '@index'
-                            container_key = self._compact_iri(active_ctx, index_key)
+                            container_key = self._compact_iri(active_ctx, index_key, vocab=True)
                             if index_key == '@index':
                                 key = expanded_item.get('@index')
                                 if _is_object(compacted_item) and container_key in compacted_item:
@@ -2115,7 +2116,7 @@ class JsonLdProcessor(object):
                                     else:
                                         compacted_item[index_key] = indexes
                         elif '@id' in container:
-                            id_key = self._compact_iri(active_ctx, '@id')
+                            id_key = self._compact_iri(active_ctx, '@id', base=options.get('base', ''))
                             key = compacted_item.pop(id_key, None)
                         elif '@type' in container:
                             type_key = self._compact_iri(active_ctx, '@type')
@@ -2226,7 +2227,7 @@ class JsonLdProcessor(object):
                 return None
 
             # expand element according to value expansion rules
-            return self._expand_value(active_ctx, active_property, element)
+            return self._expand_value(active_ctx, active_property, element, options)
 
         # expand the active property
         expanded_active_property = self._expand_iri(
@@ -2482,7 +2483,9 @@ class JsonLdProcessor(object):
 
                 expanded_values = []
                 for v in JsonLdProcessor.arrayify(value):
-                    expanded_values.append(v if _is_object(v) else self._expand_iri(active_ctx, v, base=True))
+                    expanded_values.append(v if \
+                        _is_object(v) else \
+                        self._expand_iri(active_ctx, v, base=options.get('base', '')))
 
                 JsonLdProcessor.add_value(
                     expanded_parent, '@id', expanded_values,
@@ -2496,7 +2499,7 @@ class JsonLdProcessor(object):
                     new_value = {}
                     for k, v in value:
                         ek = self._expand_iri(type_scoped_ctx, k, vocab=True)
-                        ev = (self._expand_iri(type_scoped_ctx, vv, vocab=True, base=True)
+                        ev = (self._expand_iri(type_scoped_ctx, vv, vocab=True, base=options.get('base', ''))
                               for vv in JsonLdProcessor.arrayify(v))
                         new_value[ek] = ev
                     value = new_value
@@ -2505,7 +2508,7 @@ class JsonLdProcessor(object):
                 _validate_type_value(value)
                 expanded_values = []
                 for v in value:
-                    expanded_values.append(self._expand_iri(type_scoped_ctx, v, vocab=True, base=True) if _is_string(v) else v)
+                    expanded_values.append(self._expand_iri(type_scoped_ctx, v, vocab=True, base=options.get('base', '')) if _is_string(v) else v)
                 JsonLdProcessor.add_value(
                     expanded_parent, '@type', expanded_values,
                     {'propertyIsArray': options['isFrame']})
@@ -2669,7 +2672,7 @@ class JsonLdProcessor(object):
                     index_key = '@index'
                 property_index = None
                 if index_key != '@index':
-                    property_index = self._expand_iri(active_ctx, index_key, vocab=True)
+                    property_index = self._expand_iri(active_ctx, index_key, vocab=options.get('base', ''))
                 expanded_value = self._expand_index_map(term_ctx, key, value, index_key, as_graph, property_index, options)
             elif '@id' in container and _is_object(value):
                 as_graph = '@graph' in container
@@ -3014,7 +3017,7 @@ class JsonLdProcessor(object):
             return self._clone_active_context(active_ctx)
 
         # resolve contexts
-        resolved = options['contextResolver'].resolve(active_ctx, local_ctx, options.get('base'))
+        resolved = options['contextResolver'].resolve(active_ctx, local_ctx, options.get('base', ''))
 
         # override propagate if first resolved context has `@propagate`
         if _is_object(resolved[0].document) and isinstance(resolved[0].document.get('@propagate'), bool):
@@ -3108,7 +3111,7 @@ class JsonLdProcessor(object):
 
                 # resolve contexts
                 resolved_import = options['contextResolver'].resolve(
-                    active_ctx, value, options.get('base'))
+                    active_ctx, value, options.get('base', ''))
                 if len(resolved_import) != 1:
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; @import must reference a single context.',
@@ -3154,7 +3157,7 @@ class JsonLdProcessor(object):
                 elif _is_absolute_iri(base):
                     base = base
                 elif _is_relative_iri(base):
-                    base = prepend_base(active_ctx['@base'], base)
+                    base = prepend_base(active_ctx.get('@base'), base)
                 else:
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; the value of "@base" in a '
@@ -3182,7 +3185,7 @@ class JsonLdProcessor(object):
                         'jsonld.SyntaxError', {'context': ctx},
                         code='invalid vocab mapping')
                 else:
-                    rval['@vocab'] = self._expand_iri(rval, value, vocab=True, base=True)
+                    rval['@vocab'] = self._expand_iri(rval, value, vocab=True, base=options.get('base', ''))
                 defined['@vocab'] = True
 
             # handle @language
@@ -3376,13 +3379,13 @@ class JsonLdProcessor(object):
                 if k == '@none':
                     expanded_key = '@none'
                 else:
-                    expanded_key = self._expand_value(active_ctx, index_key, k)
+                    expanded_key = self._expand_value(active_ctx, index_key, k, options)
             else:
                 expanded_key = self._expand_iri(active_ctx, k, vocab=True)
 
             if index_key == '@id':
                 # expand document relative
-                k = self._expand_iri(active_ctx, k, base=True)
+                k = self._expand_iri(active_ctx, k, base=options.get('base', ''))
             elif is_type_index:
                 k = expanded_key
 
@@ -3422,7 +3425,7 @@ class JsonLdProcessor(object):
                 rval.append(item)
         return rval
 
-    def _expand_value(self, active_ctx, active_property, value):
+    def _expand_value(self, active_ctx, active_property, value, options):
         """
         Expands the given value by using the coercion and keyword rules in the
         given context.
@@ -3441,9 +3444,9 @@ class JsonLdProcessor(object):
         expanded_property = self._expand_iri(
             active_ctx, active_property, vocab=True)
         if expanded_property == '@id':
-            return self._expand_iri(active_ctx, value, base=True)
+            return self._expand_iri(active_ctx, value, base=options.get('base', ''))
         elif expanded_property == '@type':
-            return self._expand_iri(active_ctx, value, vocab=True, base=True)
+            return self._expand_iri(active_ctx, value, vocab=True, base=options.get('base', ''))
 
         # get type definition from context
         type_ = JsonLdProcessor.get_context_value(
@@ -3451,11 +3454,11 @@ class JsonLdProcessor(object):
 
         # do @id expansion (automatic for @graph)
         if (type_ == '@id' or expanded_property == '@graph') and _is_string(value):
-            return {'@id': self._expand_iri(active_ctx, value, base=True)}
+            return {'@id': self._expand_iri(active_ctx, value, base=options.get('base', ''))}
         # do @id expansion w/vocab
         if type_ == '@vocab' and _is_string(value):
             return {'@id': self._expand_iri(
-                active_ctx, value, vocab=True, base=True)}
+                active_ctx, value, vocab=True, base=options.get('base', ''))}
 
         # do not expand keyword values
         if _is_keyword(expanded_property):
@@ -4536,7 +4539,7 @@ class JsonLdProcessor(object):
         return None
 
     def _compact_iri(
-            self, active_ctx, iri, value=None, vocab=False, reverse=False):
+            self, active_ctx, iri, value=None, vocab=False, base=None, reverse=False):
         """
         Compacts an IRI or keyword into a term or CURIE if it can be. If the
         IRI has an associated value it may be passed.
@@ -4545,6 +4548,7 @@ class JsonLdProcessor(object):
         :param iri: the IRI to compact.
         :param value: the value to check or None.
         :param vocab: True to compact using @vocab if available, False not to.
+        :param base: the absolute URL to use for compacting document-relative IRIs.
         :param reverse: True if a reverse property is being compacted, False if
           not.
 
@@ -4747,12 +4751,19 @@ class JsonLdProcessor(object):
 
         # compact IRI relative to base
         if not vocab:
-            return remove_base(active_ctx['@base'], iri)
+            if '@base' in active_ctx:
+                # The None case preserves rval as potentially relative
+                if active_ctx['@base'] is None:
+                    return iri
+                else:
+                    return remove_base(prepend_base(base, active_ctx['@base']), iri)
+            else:
+                return remove_base(base, iri)
 
         # return IRI as is
         return iri
 
-    def _compact_value(self, active_ctx, active_property, value):
+    def _compact_value(self, active_ctx, active_property, value, options):
         """
         Performs value compaction on an object with @value or @id as the only
         property.
@@ -4843,7 +4854,8 @@ class JsonLdProcessor(object):
         type_ = JsonLdProcessor.get_context_value(
             active_ctx, active_property, '@type')
         compacted = self._compact_iri(
-            active_ctx, value['@id'], vocab=(type_ == '@vocab'))
+            active_ctx, value['@id'], vocab=(type_ == '@vocab'),
+            base=options.get('base', ''))
 
         # compact to scalar
         if type_ in ['@id', '@vocab'] or expanded_property == '@graph':
@@ -4987,7 +4999,7 @@ class JsonLdProcessor(object):
 
             # expand and add @id mapping
             id_ = self._expand_iri(
-                active_ctx, reverse, vocab=True, base=False,
+                active_ctx, reverse, vocab=True,
                 local_ctx=local_ctx, defined=defined)
             if not _is_absolute_iri(id_):
                 raise JsonLdError(
@@ -5022,7 +5034,7 @@ class JsonLdProcessor(object):
             elif id_ != term:
                 # add @id to mapping
                 id_ = self._expand_iri(
-                    active_ctx, id_, vocab=True, base=False,
+                    active_ctx, id_, vocab=True,
                     local_ctx=local_ctx, defined=defined)
                 if not _is_absolute_iri(id_) and not _is_keyword(id_):
                     raise JsonLdError(
@@ -5036,7 +5048,7 @@ class JsonLdProcessor(object):
                     updated_defined = defined.copy()
                     updated_defined.update({term: True})
                     term_iri = self._expand_iri(
-                        active_ctx, term, vocab=True, base=False,
+                        active_ctx, term, vocab=True,
                         local_ctx=local_ctx, defined=updated_defined)
                     if term_iri != id_:
                         raise JsonLdError(
@@ -5289,7 +5301,7 @@ class JsonLdProcessor(object):
 
 
     def _expand_iri(
-            self, active_ctx, value, base=False, vocab=False,
+            self, active_ctx, value, base=None, vocab=False,
             local_ctx=None, defined=None):
         """
         Expands a string value to a full IRI. The string may be a term, a
@@ -5298,7 +5310,8 @@ class JsonLdProcessor(object):
 
         :param active_ctx: the current active context.
         :param value: the string value to expand.
-        :param base: True to resolve IRIs against the base IRI, False not to.
+        :param base: str to expand relative to the active context @base or this value,
+            None to not perform document-relative expansion.
         :param vocab: True to concatenate after @vocab, False not to.
         :param local_ctx: the local context being processed (only given if
           called during context processing).
@@ -5358,8 +5371,12 @@ class JsonLdProcessor(object):
 
         # resolve against base
         rval = value
-        if base and active_ctx.get('@base'):
-            rval = prepend_base(active_ctx['@base'], rval)
+        if base and '@base' in active_ctx:
+            # The None case preserves rval as potentially relative
+            if active_ctx['@base'] is not None:
+                rval = prepend_base(prepend_base(base, active_ctx['@base']), rval)
+        elif base:
+            rval = prepend_base(base, rval)
 
         return rval
 
