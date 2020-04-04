@@ -111,7 +111,10 @@ MAX_CONTEXT_URLS = 10
 # TODO: consider basing max on context size rather than number
 RESOLVED_CONTEXT_CACHE_MAX_SIZE = 100
 _resolved_context_cache = LRUCache(maxsize=RESOLVED_CONTEXT_CACHE_MAX_SIZE)
-_inverse_context_cache = LRUCache(maxsize=20)
+INVERSE_CONTEXT_CACHE_MAX_SIZE = 20
+_inverse_context_cache = LRUCache(maxsize=INVERSE_CONTEXT_CACHE_MAX_SIZE)
+# Initial contexts, defined on first access
+INITIAL_CONTEXTS = {}
 
 def compact(input_, ctx, options=None):
     """
@@ -5389,11 +5392,10 @@ class JsonLdProcessor(object):
 
         :return: the initial context.
         """
-        return {
-            '@base': options['base'],
-            'processingMode': options.get('processingMode', None),
-            'mappings': {}
-        }
+        pm = options.get('processingMode')
+        if pm not in INITIAL_CONTEXTS:
+            INITIAL_CONTEXTS[pm] = freeze({'processingMode': pm, 'mappings': {}})
+        return INITIAL_CONTEXTS[pm]
 
     def _get_inverse_context(self, active_ctx):
         """
