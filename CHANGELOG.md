@@ -32,6 +32,8 @@
   * Don't set `@base` in initial context and don't resolve a relative IRI
     when setting `@base` in a context, so that the document location can
     be kept separate from the context itself.
+  * Use static initial contexts composed of just `mappings` and `processingMode`
+    to enhance preprocessed context cachability.
 * Create Term Definition:
   * Allow `@type` as a term under certain circumstances.
   * Reject and warn on keyword-like terms.
