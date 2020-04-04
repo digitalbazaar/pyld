@@ -29,6 +29,9 @@
     to a particular active context.
   * Return a "frozendict" from context processing and reduce deepcopies.
   * Store inverse context in an LRU cache rather than trying to modify a frozen context.
+  * Don't set `@base` in initial context and don't resolve a relative IRI
+    when setting `@base` in a context, so that the document location can
+    be kept separate from the context itself.
 * Create Term Definition:
   * Allow `@type` as a term under certain circumstances.
   * Reject and warn on keyword-like terms.
@@ -53,6 +56,11 @@
     other `_expand_iri issues`.
   * Fix to detecting relative IRIs.
   * Fix special case where relative path should not have a leading '/'
+  * Pass in document location (through 'base' option) and use when resolving
+    document-relative IRIs.
+* IRI Compaction:
+  * Pass in document location (through 'base' option) and use when compacting
+    document-relative IRIs.
 * Compaction:
   * Compact `@direction`.
   * Compact `@type`: `@none`.
