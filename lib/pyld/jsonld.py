@@ -21,6 +21,7 @@ import re
 import sys
 import traceback
 import warnings
+import uuid
 from .context_resolver import ContextResolver
 from .resolved_context import ResolvedContext
 from c14n.Canonicalize import canonicalize
@@ -3040,6 +3041,8 @@ class JsonLdProcessor(object):
             ctx = resolved_context.document
 
             active_ctx = rval
+            if '_uuid' not in active_ctx:
+                active_ctx['_uuid'] = str(uuid.uuid1())
 
             # reset to initial context
             if not ctx:
@@ -3113,6 +3116,8 @@ class JsonLdProcessor(object):
                         code='invalid @import value')
 
                 # resolve contexts
+                if '_uuid' not in active_ctx:
+                    active_ctx['_uuid'] = str(uuid.uuid1())
                 resolved_import = options['contextResolver'].resolve(
                     active_ctx, value, options.get('base', ''))
                 if len(resolved_import) != 1:
@@ -3141,6 +3146,7 @@ class JsonLdProcessor(object):
                     import_ctx.update(ctx)
                     del import_ctx['@import']
                     ctx = import_ctx
+                    ctx['_uuid'] = str(uuid.uuid1())
 
                     # cache processed result (only Python >= 3.6)
                     # Note: this could potenially conflict if the import
@@ -3148,7 +3154,7 @@ class JsonLdProcessor(object):
                     # context and an import. In this case, we
                     # could override the cached result, but seems unlikely.
                     if sys.version_info[0] > 3 or sys.version_info[1] >= 6:
-                        resolved_import.set_processed(active_ctx, ctx)
+                        resolved_import.set_processed(active_ctx, freeze(ctx))
 
                 defined['@import'] = True
 
@@ -3248,6 +3254,10 @@ class JsonLdProcessor(object):
             # per-definition basis)
             defined['@protected'] = ctx.get('@protected', False)
 
+            if '_uuid' not in rval:
+                rval['_uuid'] = str(uuid.uuid1())
+            defined['_uuid'] = True
+
             # process all other keys
             for k, v in ctx.items():
                 self._create_term_definition(rval, ctx, k, defined, options,
@@ -3279,6 +3289,7 @@ class JsonLdProcessor(object):
                                 code='invalid scoped context')
 
             # cache processed result (only Python >= 3.6)
+            # and give the context a unique identifier
             rval = freeze(rval)
             if sys.version_info[0] > 3 or sys.version_info[1] >= 6:
                 resolved_context.set_processed(active_ctx, rval)
@@ -4985,7 +4996,8 @@ class JsonLdProcessor(object):
             if not _is_string(reverse):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @context @reverse value must be '
-                    'a string.', 'jsonld.SyntaxError', {'context': local_ctx},
+                    'a string.', 'jsonld.SyntaxError',
+                    {'context': local_ctx, 'iri': reverse},
                     code='invalid IRI mapping')
 
             if re.match(KEYWORD_PATTERN, reverse):
@@ -5008,7 +5020,8 @@ class JsonLdProcessor(object):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @context @reverse value must be '
                     'an absolute IRI or a blank node identifier.',
-                    'jsonld.SyntaxError', {'context': local_ctx},
+                    'jsonld.SyntaxError',
+                    {'context': local_ctx, 'iri': id_},
                     code='invalid IRI mapping')
 
             mapping['@id'] = id_
@@ -5019,7 +5032,8 @@ class JsonLdProcessor(object):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @context @id value must be a '
                     'string.', 'jsonld.SyntaxError',
-                    {'context': local_ctx}, code='invalid IRI mapping')
+                    {'context': local_ctx, 'iri': id_},
+                    code='invalid IRI mapping')
 
             if id_ is None:
                 mapping['@id'] = None
@@ -5044,7 +5058,8 @@ class JsonLdProcessor(object):
                         'Invalid JSON-LD syntax; @context @id value must be '
                         'an absolute IRI, a blank node identifier, or a '
                         'keyword.', 'jsonld.SyntaxError',
-                        {'context': local_ctx}, code='invalid IRI mapping')
+                        {'context': local_ctx, 'iri': id_},
+                        code='invalid IRI mapping')
 
                 # if term has the form of an IRI it must map the same
                 if re.match(r'.*((:[^:])|/)', term):
@@ -5058,7 +5073,8 @@ class JsonLdProcessor(object):
                             'Invalid JSON-LD syntax; term in form of IRI must '
                             'expand to definition.',
                             'jsonld.SyntaxError',
-                            {'context': local_ctx}, code='invalid IRI mapping')
+                            {'context': local_ctx, 'iri': id_},
+                            code='invalid IRI mapping')
 
                 mapping['@id'] = id_
                 mapping['_prefix'] = (
@@ -5394,7 +5410,7 @@ class JsonLdProcessor(object):
         """
         pm = options.get('processingMode')
         if pm not in INITIAL_CONTEXTS:
-            INITIAL_CONTEXTS[pm] = freeze({'processingMode': pm, 'mappings': {}})
+            INITIAL_CONTEXTS[pm] = freeze({'_uuid': str(uuid.uuid1()), 'processingMode': pm, 'mappings': {}})
         return INITIAL_CONTEXTS[pm]
 
     def _get_inverse_context(self, active_ctx):

@@ -30,10 +30,10 @@ class ResolvedContext:
         """
         Returns any processed context for this resolved context relative to an active context.
         """
-        return self.cache.get(id(active_ctx))
+        return self.cache.get(active_ctx['_uuid'])
 
     def set_processed(self, active_ctx, processed_ctx):
         """
         Sets any processed context for this resolved context relative to an active context.
         """
-        self.cache[id(active_ctx)] = processed_ctx #jsonld.freeze(processed_ctx)
+        self.cache[active_ctx['_uuid']] = processed_ctx
