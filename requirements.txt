@@ -3,3 +3,4 @@ aiohttp; python_version >= '3.5'
 lxml
 cachetools
 frozendict
+uuid
