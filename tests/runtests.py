@@ -658,10 +658,10 @@ TEST_TYPES = {
         'pending': {
             'idRegex': [
                 # html
-                '.*html-manifest.jsonld#tc001$',
-                '.*html-manifest.jsonld#tc002$',
-                '.*html-manifest.jsonld#tc003$',
-                '.*html-manifest.jsonld#tc004$',
+                '.*html-manifest#tc001$',
+                '.*html-manifest#tc002$',
+                '.*html-manifest#tc003$',
+                '.*html-manifest#tc004$',
             ]
         },
         'skip': {
