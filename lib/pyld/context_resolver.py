@@ -9,6 +9,7 @@ Context Resolver for managing remote contexts.
 """
 
 from frozendict import frozendict
+from c14n.Canonicalize import canonicalize
 from pyld import jsonld
 from .resolved_context import ResolvedContext
 
@@ -71,7 +72,7 @@ class ContextResolver:
                     code='invalid local context')
             else:
                 # context is an object, get/create `ResolvedContext` for it
-                key = id(ctx)
+                key = canonicalize(dict(ctx)).decode('UTF-8')
                 resolved = self._get(key)
                 if not resolved:
                     # create a new static `ResolvedContext` and cache it

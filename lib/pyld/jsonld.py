@@ -6540,7 +6540,7 @@ def _is_relative_iri(v):
 
 def freeze(value):
     if isinstance(value, dict):
-        return frozendict(dict([(k, freeze(v)) for (k, v) in value.items()]))
+        return frozendict(dict([(k, v) for (k, v) in value.items()]))
     return value
 
 # The default JSON-LD document loader.
