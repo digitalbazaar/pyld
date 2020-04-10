@@ -6,7 +6,7 @@
 * Add all keywords and update options.
 * Default processingMode to json-ld-1.1.
 * Implement logic for marking tests as pending, so that it will fail if a pending test passes.
-* Consolidate documentLoader option and defaults into a load_document method to also handle JSON (eventually HTML) parsing.
+* Consolidate documentLoader option and defaults into a `load_document` method to also handle JSON (eventually HTML) parsing.
 * Add support for rel=alternate for non-JSON-LD docs.
 * Context processing:
   * Support `@propagate` in context processing and propagate option.
@@ -14,7 +14,7 @@
   * Make `override_protected` and `propagate` optional arguments to `_create_term_definition` and `_process_context` instead of using option argument.
   * Improve management of previous contexts.
   * Imported contexts must resolve to an object.
-  * Do remote context processing from within _process_contexts, as logic is too complicated for pre-loading. Removes _find_context_urls and _retrieve_context_urls.
+  * Do remote context processing from within `_process_contexts`, as logic is too complicated for pre-loading. Removes `_find_context_urls` and `_retrieve_context_urls`.
 * Create Term Definition:
   * Allow `@type` as a term under certain circumstances.
   * Reject and warn on keyword-like terms.
@@ -28,13 +28,13 @@
   * Validate scoped contexts even if not used.
   * Support relative vocabulary IRIs.
   * Fix check that term has the form of an IRI.
-  * Delay adding mapping to end of _create_term_definition.
+  * Delay adding mapping to end of `_create_term_definition`.
   * If a scoped context is null, wrap it in an array so it doesn't seem to be undefined.
 * IRI Expansion:
   * Find keyword patterns.
   * Don't treat terms starting with a colon as IRIs.
   * Only return a resulting IRI if it is absolute.
-  * Fix _is_absolute_iri to use a reasonable regular expression and some other _expand_iri issues.
+  * Fix `_is_absolute_iri` to use a reasonable regular expression and some other `_expand_iri issues`.
   * Fix to detecting relative IRIs.
   * Fix special case where relative path should not have a leading '/'
 * Compaction:
@@ -48,20 +48,20 @@
   * Catch Absolute IRI confused with prefix.
 * Expansion:
   * Updates to expansion algorithm.
-  * _expand_value adds `@direction` from term definition.
+  * `_expand_value` adds `@direction` from term definition.
   * JSON Literals.
   * support `@direction` when expanding.
   * support lists of lists.
   * support property indexes.
   * improve graph container expansion.
   * Order types when applying scoped contexts.
-  * Use type_scoped_ctx when expanding values of `@type`.
-  * Use propagate and override_protected properly when creating expansion contexts.
+  * Use `type_scoped_ctx` when expanding values of `@type`.
+  * Use propagate and `override_protected` properly when creating expansion contexts.
 * Flattening:
-  * Rewrite _create_node_map based on 1.1 algorithm.
+  * Rewrite `_create_node_map` based on 1.1 algorithm.
   * Flatten `@included`.
   * Flatten lists of lists.
-  * Update merge_node_maps for `@type`.
+  * Update `merge_node_maps` for `@type`.
 * ToRdf:
   * Support for I18N direction.
   * Support for Lists of Lists.
