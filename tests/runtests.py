@@ -85,6 +85,11 @@ class TestRunner(unittest.TextTestRunner):
         # config runner
         self.failfast = self.options.bail
 
+        # Global for saving test numbers to focus on
+        global ONLY_IDENTIFIER
+        if self.options.number:
+          ONLY_IDENTIFIER = self.options.number
+
         if len(self.options.tests):
             # tests given on command line
             test_targets = self.options.tests
@@ -139,11 +144,6 @@ class TestRunner(unittest.TextTestRunner):
         #ROOT_MANIFEST_DIR = os.path.dirname(root_manifest['filename'])
         ROOT_MANIFEST_DIR = root_manifest['filename']
         suite = Manifest(root_manifest, root_manifest['filename']).load()
-
-        # Global for saving test numbers to focus on
-        global ONLY_IDENTIFIER
-        if self.options.number:
-          ONLY_IDENTIFIER = self.options.number
 
         # run tests
         result = self.run(suite)
