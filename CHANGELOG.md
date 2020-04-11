@@ -79,6 +79,12 @@
     * Includes local copy of JCS library, but doesn't load.
   * Lists of Lists.
   * Text Direction 'i18n-datatype'.
+* Testing
+  * Switched to argparse.
+  * **BREAKING**: Removed `-d` and `-m` test runner options in favor of just
+    listing as arguments.
+  * If no test manifests or directories are specified, default to sibling
+    directories for json-ld-api, json-ld-framing, and normalization.
 
 ## 1.0.5 - 2019-05-09
 

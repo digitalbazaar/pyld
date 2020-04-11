@@ -198,17 +198,25 @@ hosted on GitHub:
 - https://github.com/w3c/json-ld-framing
 - https://github.com/json-ld/normalization
 
-Then run the test application using the directories containing the tests:
+If the suites repositories are available as sibling directories of the PyLD
+source directory, then all the tests can be run with the following:
 
 .. code-block:: bash
 
-    python tests/runtests.py -d {PATH_TO_JSON_LD_API/tests}
-    python tests/runtests.py -d {PATH_TO_JSON_LD_FRAMING/tests}
-    python tests/runtests.py -d {PATH_TO_NORMALIZATION/tests}
+    python tests/runtests.py
 
-The test runner supports different document loaders by setting
-``-l requests`` or ``-l aiohttp``. The default document loader is set
-to Requests_.
+If you want to test individual manifest ``.jsonld`` files or directories
+containing a ``manifest.jsonld``, then you can supply these files or
+directories as arguments:
+
+.. code-block:: bash
+
+    python tests/runtests.py TEST_PATH [TEST_PATH...]
+
+The test runner supports different document loaders by setting ``-l requests``
+or ``-l aiohttp``. The default document loader is set to Requests_.
+
+An EARL report can be generated using the ``-e`` or ``--earl`` option.
 
 
 .. _Digital Bazaar: http://digitalbazaar.com/
