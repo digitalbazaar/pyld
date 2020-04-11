@@ -16,7 +16,7 @@ import sys
 import traceback
 import unittest
 import re
-from optparse import OptionParser
+from argparse import ArgumentParser
 from unittest import TextTestResult
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
@@ -44,9 +44,9 @@ class TestRunner(unittest.TextTestRunner):
         unittest.TextTestRunner.__init__(
             self, stream, descriptions, verbosity)
 
-        # command line options
+        # command line args
         self.options = {}
-        self.parser = OptionParser()
+        self.parser = ArgumentParser()
 
     def _makeResult(self):
         return EarlTestResult(self.stream, self.descriptions, self.verbosity)
@@ -56,31 +56,25 @@ class TestRunner(unittest.TextTestRunner):
         print('Use -h or --help to view options.\n')
 
         # add program options
-        self.parser.add_option('-m', '--manifest', dest='manifest',
-            help='The single test manifest to run', metavar='FILE')
-        self.parser.add_option('-d', '--directory', dest='directory',
-            help='The directory with the root manifest to run', metavar='DIR')
-        self.parser.add_option('-e', '--earl', dest='earl',
+        self.parser.add_argument('tests', metavar='TEST', nargs='*',
+            help='A manifest or directory to test')
+        self.parser.add_argument('-e', '--earl', dest='earl',
             help='The filename to write an EARL report to')
-        self.parser.add_option('-b', '--bail', dest='bail',
+        self.parser.add_argument('-b', '--bail', dest='bail',
             action='store_true', default=False,
             help='Bail out as soon as any test fails')
-        self.parser.add_option('-l', '--loader', dest='loader',
+        self.parser.add_argument('-l', '--loader', dest='loader',
             default='requests',
             help='The remote URL document loader: requests, aiohttp '
-                 '[default: %default]')
-        self.parser.add_option('-n', '--number', dest='number',
+                 '[default: %(default)s]')
+        self.parser.add_argument('-n', '--number', dest='number',
             help='Limit tests to those containing the specified test identifier')
-        self.parser.add_option('-v', '--verbose', dest='verbose',
+        self.parser.add_argument('-v', '--verbose', dest='verbose',
             action='store_true', default=False,
             help='Print verbose test data')
 
-        # parse command line options
-        (self.options, args) = self.parser.parse_args()
-
-        # ensure a manifest or a directory was specified
-        if self.options.manifest is None and self.options.directory is None:
-            raise Exception('No test manifest or directory specified.')
+        # parse command line args
+        self.options = self.parser.parse_args()
 
         # Set a default JSON-LD document loader
         if self.options.loader == 'requests':
@@ -91,23 +85,65 @@ class TestRunner(unittest.TextTestRunner):
         # config runner
         self.failfast = self.options.bail
 
-        # get root manifest filename
-        if self.options.manifest:
-            filename = os.path.abspath(self.options.manifest)
+        if len(self.options.tests):
+            # tests given on command line
+            test_targets = self.options.tests
         else:
-            filename = os.path.abspath(
-                os.path.join(self.options.directory, 'manifest.jsonld'))
+            # default to find known sibling test dirs
+            test_targets = []
+            sibling_dirs = [
+                '../json-ld-api/tests/',
+                '../json-ld-framing/tests/',
+                '../normalization/tests/',
+            ]
+            for dir in sibling_dirs:
+                if os.path.exists(dir):
+                    print('Test dir found', dir)
+                    test_targets.append(dir)
+                else:
+                    print('Test dir not found', dir)
+
+        # ensure a manifest or a directory was specified
+        if len(test_targets) == 0:
+            raise Exception('No test manifest or directory specified.')
+
+        # make root manifest with target files and dirs
+        root_manifest = {
+            '@context': 'https://w3c.github.io/tests/context.jsonld',
+            '@id': '',
+            '@type': 'mf:Manifest',
+            'description': 'Top level PyLD test manifest',
+            'name': 'PyLD',
+            'sequence': [],
+            'filename': '/'
+        }
+        for test in test_targets:
+            if os.path.isfile(test):
+                root, ext = os.path.splitext(test)
+                if ext in ['.json', '.jsonld']:
+                    root_manifest['sequence'].append(os.path.abspath(test))
+                    #root_manifest['sequence'].append(test)
+                else:
+                    raise Exception('Unknown test file ext', root, ext)
+            elif os.path.isdir(test):
+                filename = os.path.join(test, 'manifest.jsonld')
+                if os.path.exists(filename):
+                    root_manifest['sequence'].append(os.path.abspath(filename))
+                else:
+                    raise Exception('Manifest not found', filename)
+            else:
+                raise Exception('Unknown test target.', test)
+
+        # load root manifest
+        global ROOT_MANIFEST_DIR
+        #ROOT_MANIFEST_DIR = os.path.dirname(root_manifest['filename'])
+        ROOT_MANIFEST_DIR = root_manifest['filename']
+        suite = Manifest(root_manifest, root_manifest['filename']).load()
 
         # Global for saving test numbers to focus on
         global ONLY_IDENTIFIER
         if self.options.number:
           ONLY_IDENTIFIER = self.options.number
-
-        # load root manifest
-        global ROOT_MANIFEST_DIR
-        ROOT_MANIFEST_DIR = os.path.dirname(filename)
-        root_manifest = read_json(filename)
-        suite = Manifest(root_manifest, filename).load()
 
         # run tests
         result = self.run(suite)
@@ -486,7 +522,8 @@ def create_document_loader(test):
         else:
             #filename = os.path.join(
             #    ROOT_MANIFEST_DIR, doc['documentUrl'][len(base):])
-            filename = ROOT_MANIFEST_DIR + strip_base(doc['documentUrl'])
+            #filename = ROOT_MANIFEST_DIR + strip_base(doc['documentUrl'])
+            filename = test.dirname + strip_base(doc['documentUrl'])
         try:
             doc['document'] = read_json(filename)
         except:
