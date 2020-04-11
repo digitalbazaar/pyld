@@ -30,9 +30,9 @@ install:
 # Download test suite and run tests... submodule? meta testing project with
 # all of the reference implementations?
 script: 
-  - python tests/runtests.py -d ./_json-ld-api/tests -l $LOADER
-  - python tests/runtests.py -d ./_json-ld-framing/tests -l $LOADER
-  - python tests/runtests.py -d ./_normalization/tests -l $LOADER
+  - python tests/runtests.py ./_json-ld-api/tests -l $LOADER
+  - python tests/runtests.py ./_json-ld-framing/tests -l $LOADER
+  - python tests/runtests.py ./_normalization/tests -l $LOADER
 
 notifications:
   email:
