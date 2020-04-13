@@ -10,7 +10,7 @@
 * Consolidate documentLoader option and defaults into a `load_document` method
   to also handle JSON (eventually HTML) parsing.
 * Add support for rel=alternate for non-JSON-LD docs.
-* Use lxml.html to load HTML and parse in load_html.
+* Use lxml.html to load HTML and parse in `load_html`.
   * For HTML, the API base option can be updated from base element.
 * Context processing:
   * Support `@propagate` in context processing and propagate option.
