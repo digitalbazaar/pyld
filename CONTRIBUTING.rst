@@ -10,7 +10,7 @@ Code
 * Try to make the code pass flake8_ checks.
 
   * ``flake8 lib/pyld/jsonld.py``
-  
+
 * Use version X.Y.Z-dev in dev mode.
 * Use version X.Y.Z for releases.
 
