@@ -37,6 +37,6 @@ To ensure a clean upload, use a clean checkout, and run the following:
 * ``git checkout {version}``
 * ``python setup.py sdist upload``
 
-.. _PEP 8 Style Guide: http://www.python.org/dev/peps/pep-0008/
+.. _PEP 8 Style Guide: https://www.python.org/dev/peps/pep-0008/
 .. _flake8: https://pypi.python.org/pypi/flake8
-.. _Semantic Versioning: http://semver.org/
+.. _Semantic Versioning: https://semver.org/
