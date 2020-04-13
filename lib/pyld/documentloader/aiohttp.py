@@ -94,7 +94,7 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
                                 not re.match(r'^application\/(\w*\+)?json$', content_type)):
                             doc['contentType'] = 'application/ld+json'
                             doc['documentUrl'] = jsonld.prepend_base(url, linked_alternate['target'])
-                        
+
                     return doc
         except JsonLdError as e:
             raise e
