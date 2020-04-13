@@ -98,7 +98,7 @@ Quick Examples
     }
 
     # compact a document according to a particular context
-    # see: http://json-ld.org/spec/latest/json-ld/#compacted-document-form
+    # see: https://json-ld.org/spec/latest/json-ld/#compacted-document-form
     compacted = jsonld.compact(doc, context)
 
     print(json.dumps(compacted, indent=2))
@@ -114,7 +114,7 @@ Quick Examples
     jsonld.compact('http://example.org/doc', 'http://example.org/context')
 
     # expand a document, removing its context
-    # see: http://json-ld.org/spec/latest/json-ld/#expanded-document-form
+    # see: https://json-ld.org/spec/latest/json-ld/#expanded-document-form
     expanded = jsonld.expand(compacted)
 
     print(json.dumps(expanded, indent=2))
@@ -129,17 +129,17 @@ Quick Examples
     jsonld.expand('http://example.org/doc')
 
     # flatten a document
-    # see: http://json-ld.org/spec/latest/json-ld/#flattened-document-form
+    # see: https://json-ld.org/spec/latest/json-ld/#flattened-document-form
     flattened = jsonld.flatten(doc)
     # all deep-level trees flattened to the top-level
 
     # frame a document
-    # see: http://json-ld.org/spec/latest/json-ld-framing/#introduction
+    # see: https://json-ld.org/spec/latest/json-ld-framing/#introduction
     framed = jsonld.frame(doc, frame)
     # document transformed into a particular tree structure per the given frame
 
     # normalize a document using the RDF Dataset Normalization Algorithm
-    # (URDNA2015), see: http://json-ld.github.io/normalization/spec/
+    # (URDNA2015), see: https://json-ld.github.io/normalization/spec/
     normalized = jsonld.normalize(
         doc, {'algorithm': 'URDNA2015', 'format': 'application/n-quads'})
     # normalized is a string that is a canonical representation of the document
@@ -182,7 +182,7 @@ Source
 The source code for the Python implementation of the JSON-LD API
 is available at:
 
-http://github.com/digitalbazaar/pyld
+https://github.com/digitalbazaar/pyld
 
 Tests
 -----
@@ -219,7 +219,7 @@ or ``-l aiohttp``. The default document loader is set to Requests_.
 An EARL report can be generated using the ``-e`` or ``--earl`` option.
 
 
-.. _Digital Bazaar: http://digitalbazaar.com/
+.. _Digital Bazaar: https://digitalbazaar.com/
 
 .. _JSON-LD WG 1.1 API: https://www.w3.org/TR/json-ld11-api/
 .. _JSON-LD WG 1.1 Framing: https://www.w3.org/TR/json-ld11-framing/
@@ -234,7 +234,7 @@ An EARL report can be generated using the ``-e`` or ``--earl`` option.
 .. _JSON-LD: https://json-ld.org/
 .. _Microdata: http://www.w3.org/TR/microdata/
 .. _Microformats: http://microformats.org/
-.. _Python: http://www.python.org/
+.. _Python: https://www.python.org/
 .. _Requests: http://docs.python-requests.org/
 .. _aiohttp: https://aiohttp.readthedocs.io/
 .. _RDFa: http://www.w3.org/TR/rdfa-core/

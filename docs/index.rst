@@ -44,14 +44,14 @@ Contribute
 
 Source code is available:
 
-    http://github.com/digitalbazaar/pyld
+    https://github.com/digitalbazaar/pyld
 
 License
 -------
 
 PyLD is licensed under a `BSD 3-Clause license`_.
 
-.. _JSON-LD: http://json-ld.org/
-.. _Digital Bazaar: http://digitalbazaar.com/
-.. _Python: http://www.python.org/
-.. _BSD 3-Clause License: http://www.opensource.org/licenses/BSD-3-Clause
+.. _JSON-LD: https://json-ld.org/
+.. _Digital Bazaar: https://digitalbazaar.com/
+.. _Python: https://www.python.org/
+.. _BSD 3-Clause License: https://opensource.org/licenses/BSD-3-Clause

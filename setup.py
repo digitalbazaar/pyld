@@ -5,8 +5,8 @@ PyLD
 
 PyLD_ is a Python JSON-LD_ library.
 
-.. _PyLD: http://github.com/digitalbazaar/pyld
-.. _JSON-LD: http://json-ld.org/
+.. _PyLD: https://github.com/digitalbazaar/pyld
+.. _JSON-LD: https://json-ld.org/
 """
 
 from distutils.core import setup
@@ -28,7 +28,7 @@ setup(
     long_description=long_description,
     author='Digital Bazaar',
     author_email='support@digitalbazaar.com',
-    url='http://github.com/digitalbazaar/pyld',
+    url='https://github.com/digitalbazaar/pyld',
     packages=[
         'c14n',
         'pyld',
