@@ -138,7 +138,7 @@ class ContextResolver:
 
         # track cycles
         cycles.add(url)
-        
+
         try:
             remote_doc = jsonld.load_document(url,
                 {'documentLoader': self.document_loader},

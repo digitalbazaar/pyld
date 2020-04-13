@@ -2287,10 +2287,10 @@ class JsonLdProcessor(object):
                     # subject reference found, do not revert
                     must_revert = False
                     break
-        
+
         if must_revert:
             active_ctx = self._revert_to_previous_context(active_ctx)
-        
+
         # apply property-scoped context after reverting term-scoped context
         if property_scoped_ctx is not None:
             active_ctx = self._process_context(
@@ -3100,7 +3100,7 @@ class JsonLdProcessor(object):
 
             # TODO: there is likely a `previousContext` cloning optimization that
             # could be applied here (no need to copy it under certain conditions)
-            
+
             rval = self._clone_active_context(rval)
 
             # define context mappings for keys in local context
@@ -3294,7 +3294,7 @@ class JsonLdProcessor(object):
                 if _is_object(v) and '@context' in v:
                     key_ctx = v['@context']
                     process = True
-                    
+
                     if _is_string(key_ctx):
                         url = prepend_base(options['base'], key_ctx)
                         if url in cycles:
