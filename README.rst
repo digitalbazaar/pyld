@@ -66,7 +66,7 @@ Requirements
 Installation
 ------------
 
-PyLD can be installed with pip_:
+PyLD can be installed with a pip_ `package <https://pypi.org/project/PyLD/>`_
 
 .. code-block:: bash
 
