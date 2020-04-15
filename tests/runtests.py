@@ -606,7 +606,8 @@ class EarlReport():
                 'earl:mode': {'@type': '@id'},
                 'earl:test': {'@type': '@id'},
                 'earl:outcome': {'@type': '@id'},
-                'dc:date': {'@type': 'xsd:date'}
+                'dc:date': {'@type': 'xsd:date'},
+                'doap:created': {'@type': 'xsd:date'}
             },
             '@id': 'https://github.com/digitalbazaar/pyld',
             '@type': [
@@ -620,13 +621,6 @@ class EarlReport():
             'doap:license': 'https://github.com/digitalbazaar/pyld/blob/master/LICENSE',
             'doap:description': 'A JSON-LD processor for Python',
             'doap:programming-language': 'Python',
-            'doap:release': {
-                'doap:revision': about['__version__'],
-                'doap:created': {
-                    '@value': self.now.strftime('%Y-%m-%d'),
-                    '@type': 'xsd:date'
-                }
-            },
             'dc:creator': 'https://github.com/dlongley',
             'doap:developer': {
                 '@id': 'https://github.com/dlongley',
@@ -637,9 +631,10 @@ class EarlReport():
                 'foaf:name': 'Dave Longley',
                 'foaf:homepage': 'https://github.com/dlongley'
             },
-            'dc:date': {
-                '@value': self.now.strftime('%Y-%m-%d'),
-                '@type': 'xsd:date'
+            'doap:release': {
+                'doap:name': 'PyLD ' + about['__version__'],
+                'doap:revision': about['__version__'],
+                'doap:created': self.now.strftime('%Y-%m-%d')
             },
             'subjectOf': []
         }
@@ -652,7 +647,7 @@ class EarlReport():
             'earl:test': test.data.get('id', test.data.get('@id')),
             'earl:result': {
                 '@type': 'earl:TestResult',
-                'dc:date': self.now.isoformat(),
+                'dc:date': self.now.isoformat() + 'Z',
                 'earl:outcome': 'earl:passed' if success else 'earl:failed'
             }
         })

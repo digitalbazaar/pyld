@@ -1,5 +1,8 @@
 # pyld ChangeLog
 
+### Changed
+- Improve EARL output.
+
 ## 2.0.0 - 2020-04-15
 
 ### Notes
