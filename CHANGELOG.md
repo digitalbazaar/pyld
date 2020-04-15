@@ -4,13 +4,13 @@
 * **BREAKING**: Versions of Python before 3.6 are no longer supported.
 * Update conformance docs.
 * Add all keywords and update options.
-* Default processingMode to json-ld-1.1.
+* Default `processingMode` to `json-ld-1.1`.
 * Implement logic for marking tests as pending, so that it will fail if a
   pending test passes.
-* Consolidate documentLoader option and defaults into a `load_document` method
+* Consolidate `documentLoader` option and defaults into a `load_document` method
   to also handle JSON (eventually HTML) parsing.
 * Add support for rel=alternate for non-JSON-LD docs.
-* Use lxml.html to load HTML and parse in `load_html`.
+* Use `lxml.html` to load HTML and parse in `load_html`.
   * For HTML, the API base option can be updated from base element.
 * Context processing:
   * Support `@propagate` in context processing and propagate option.
@@ -27,7 +27,7 @@
   * Added a `ContextResolver` which can use a shared LRU cache for storing
     externally retrieved contexts, and the result of processing them relative
     to a particular active context.
-  * Return a "frozendict" from context processing and reduce deepcopies.
+  * Return a `frozendict` from context processing and reduce deepcopies.
   * Store inverse context in an LRU cache rather than trying to modify a frozen context.
   * Don't set `@base` in initial context and don't resolve a relative IRI
     when setting `@base` in a context, so that the document location can
@@ -76,10 +76,10 @@
   * Updates to expansion algorithm.
   * `_expand_value` adds `@direction` from term definition.
   * JSON Literals.
-  * support `@direction` when expanding.
-  * support lists of lists.
-  * support property indexes.
-  * improve graph container expansion.
+  * Support `@direction` when expanding.
+  * Support lists of lists.
+  * Support property indexes.
+  * Improve graph container expansion.
   * Order types when applying scoped contexts.
   * Use `type_scoped_ctx` when expanding values of `@type`.
   * Use propagate and `override_protected` properly when creating expansion
@@ -90,9 +90,9 @@
   * Flatten lists of lists.
   * Update `merge_node_maps` for `@type`.
 * Framing:
-  * Change default for 'requireAll' from True to False.
+  * Change default for `requireAll` from True to False.
   * Change default for 'embed' from '@last' to '@once'.
-  * Add defaults for 'omitGraph' and 'pruneBlankNodeIdentifiers'
+  * Add defaults for `omitGraph` and `pruneBlankNodeIdentifiers`
     based on processing mode.
   * Change `_remove_preserve` to `_cleanup_preserve` which happens before
     compaction.
