@@ -1,5 +1,7 @@
 # pyld ChangeLog
 
+## 2.0.0 - 2020-04-15
+
 ### Notes
 - This release adds JSON-LD 1.1 support. Significant thanks goes to Gregg
   Kellogg!
