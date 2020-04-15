@@ -53,6 +53,5 @@ setup(
         'aiohttp': ['aiohttp'],
         'cachetools': ['cachetools'],
         'frozendict': ['frozendict'],
-        'uuid': ['uuid'],
     }
 )
