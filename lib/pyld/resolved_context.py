@@ -8,7 +8,6 @@ Representation for a resolved Context.
 .. moduleauthor:: Gregg Kellogg <gregg@greggkellogg.net>
 """
 
-from pyld import jsonld
 from cachetools import LRUCache
 
 MAX_ACTIVE_CONTEXTS = 10
