@@ -1,5 +1,12 @@
 # pyld ChangeLog
 
+### Notes
+- This release adds JSON-LD 1.1 support. Significant thanks goes to Gregg
+  Kellogg!
+- **BREAKING**: It is highly recommended to do proper testing when upgrading
+  from the previous version. The framing API in particular now follows the 1.1
+  spec and some of the defaults changed.
+
 ### Changed
 * **BREAKING**: Versions of Python before 3.6 are no longer supported.
 * Update conformance docs.
