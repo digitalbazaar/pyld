@@ -42,7 +42,7 @@ Implementation Report Process
 -----------------------------
 
 As of early 2020, the process to generate an EARL report for the official
-`JSON-LD 1.1 Processor Conformance`_ page is:
+`JSON-LD Processor Conformance`_ page is:
 
 * Run the tests on the ``json-ld-api`` and ``json-ld-framing`` test repos to
   generate a ``.jsonld`` test report:
@@ -57,7 +57,7 @@ As of early 2020, the process to generate an EARL report for the official
   inspection.
 * Submit a PR to the `json-ld-api repository`_ with at least the ``.ttl``:
 
-.. _JSON-LD 1.1 Processor Conformance: https://w3c.github.io/json-ld-api/reports/
+.. _JSON-LD Processor Conformance: https://w3c.github.io/json-ld-api/reports/
 .. _PEP 8 Style Guide: https://www.python.org/dev/peps/pep-0008/
 .. _Semantic Versioning: https://semver.org/
 .. _flake8: https://pypi.python.org/pypi/flake8
