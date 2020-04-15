@@ -47,7 +47,11 @@ setup(
         'Topic :: Internet',
         'Topic :: Software Development :: Libraries',
     ],
-    install_requires=[],
+    install_requires=[
+        'cachetools',
+        'frozendict',
+        'lxml',
+    ],
     extras_require={
         'requests': ['requests'],
         'aiohttp': ['aiohttp'],
