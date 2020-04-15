@@ -23,10 +23,9 @@ import traceback
 import warnings
 import uuid
 from .context_resolver import ContextResolver
-from .resolved_context import ResolvedContext
 from c14n.Canonicalize import canonicalize
 from cachetools import LRUCache
-from collections import deque, namedtuple
+from collections import namedtuple
 from functools import cmp_to_key
 import lxml.html
 from numbers import Integral, Real
@@ -6568,7 +6567,6 @@ def load_document(url,
 
     :return: True if the value is an absolute IRI, False if not.
     """
-    extractAllScripts = options.get('extractAllScripts', False)
     headers = {
         'Accept': 'application/ld+json, application/json;q=0.5'
     }
