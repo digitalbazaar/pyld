@@ -605,7 +605,7 @@ def remove_dot_segments(path):
     # note that if the path includes no segments, the entire path is removed
     if len(output) > 0 and path.startswith('/') and output[0] != '':
         output.insert(0, '')
-    if len(output) is 1 and output[0] == '':
+    if len(output) == 1 and output[0] == '':
         return '/'
 
     return '/'.join(output)
