@@ -589,6 +589,7 @@ class EarlReport():
         with open(os.path.join(
                 os.path.dirname(__file__), '..', 'lib', 'pyld', '__about__.py')) as fp:
             exec(fp.read(), about)
+        self.now = datetime.datetime.utcnow().replace(microsecond=0)
         self.report = {
             '@context': {
                 'doap': 'http://usefulinc.com/ns/doap#',
@@ -622,7 +623,7 @@ class EarlReport():
             'doap:release': {
                 'doap:revision': about['__version__'],
                 'doap:created': {
-                    '@value': datetime.datetime.utcnow().strftime('%Y-%m-%d'),
+                    '@value': self.now.strftime('%Y-%m-%d'),
                     '@type': 'xsd:date'
                 }
             },
@@ -637,7 +638,7 @@ class EarlReport():
                 'foaf:homepage': 'https://github.com/dlongley'
             },
             'dc:date': {
-                '@value': datetime.datetime.utcnow().strftime('%Y-%m-%d'),
+                '@value': self.now.strftime('%Y-%m-%d'),
                 '@type': 'xsd:date'
             },
             'subjectOf': []
@@ -651,7 +652,7 @@ class EarlReport():
             'earl:test': test.data.get('id', test.data.get('@id')),
             'earl:result': {
                 '@type': 'earl:TestResult',
-                'dc:date': datetime.datetime.utcnow().isoformat(),
+                'dc:date': self.now.isoformat(),
                 'earl:outcome': 'earl:passed' if success else 'earl:failed'
             }
         })
