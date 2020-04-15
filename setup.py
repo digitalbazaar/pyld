@@ -32,7 +32,7 @@ setup(
     packages=[
         'c14n',
         'pyld',
-        'pyld.documentloader'
+        'pyld.documentloader',
     ],
     package_dir={'': 'lib'},
     license='BSD 3-Clause license',
@@ -48,7 +48,7 @@ setup(
         'Topic :: Software Development :: Libraries',
     ],
     install_requires=[],
-    extras_require= {
+    extras_require={
         'requests': ['requests'],
         'aiohttp': ['aiohttp'],
         'cachetools': ['cachetools'],
