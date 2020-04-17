@@ -5540,7 +5540,7 @@ class JsonLdProcessor(object):
         :return: the inverse context.
         """
         # inverse context already generated
-        inverse = _inverse_context_cache.get(id(active_ctx))
+        inverse = _inverse_context_cache.get(active_ctx['_uuid'])
         if inverse:
             return inverse
 
@@ -5613,7 +5613,7 @@ class JsonLdProcessor(object):
                     entry['@type'].setdefault('@none', term)
                     entry['@language'].setdefault('@none', term)
 
-        _inverse_context_cache[id(active_ctx)] = inverse
+        _inverse_context_cache[active_ctx['_uuid']] = inverse
         return inverse
 
     def _clone_active_context(self, active_ctx):
