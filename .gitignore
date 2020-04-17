@@ -12,3 +12,5 @@ dist
 docs/_build
 lib/PyLD.egg-info
 profiler
+tests/test_caching.py
+tests/data/test_caching.json
