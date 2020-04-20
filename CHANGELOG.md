@@ -1,5 +1,7 @@
 # pyld ChangeLog
 
+## 2.0.2 - 2020-04-20
+
 ### Fixed
 * Fix inverse context cache indexing to use the uuid field.
 
