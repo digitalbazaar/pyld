@@ -71,7 +71,7 @@ def requests_document_loader(secure=False, **kwargs):
                 'contentType': content_type,
                 'contextUrl': None,
                 'documentUrl': response.url,
-                'document': response.json()
+                'document': response.json() if content_type in headers['Accept'] else None
             }
             link_header = response.headers.get('link')
             if link_header:
@@ -95,6 +95,9 @@ def requests_document_loader(secure=False, **kwargs):
                         not re.match(r'^application\/(\w*\+)?json$', content_type)):
                     doc['contentType'] = 'application/ld+json'
                     doc['documentUrl'] = iri_resolver.resolve(linked_alternate['target'], url)
+                    if content_type not in headers['Accept']:
+                        # Original was not JSON/JSON-LD; fetch linked JSON-LD
+                        return loader(doc['documentUrl'], options=options)
             return doc
         except JsonLdError as e:
             raise e
