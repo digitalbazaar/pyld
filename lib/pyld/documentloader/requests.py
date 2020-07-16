@@ -60,7 +60,8 @@ def requests_document_loader(secure=False, **kwargs):
                 headers = {
                     'Accept': 'application/ld+json, application/json'
                 }
-            response = requests.get(url, headers=headers, **kwargs)
+                kwargs['headers'] = headers
+            response = requests.get(url, **kwargs)
 
             content_type = response.headers.get('content-type')
             if not content_type:
