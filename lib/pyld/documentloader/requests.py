@@ -69,11 +69,10 @@ def requests_document_loader(secure=False, max_link_follows=2, **kwargs):
                 'documentUrl': response.url,
                 'document': None
             }
-            try:
+            # Try loading the JSON if the content_type matches
+            # A failure here means the response body is not valid json
+            if re.match(r'^application\/(\w*\+)?json$', content_type):
                 doc['document'] = response.json()
-            except JSONDecodeError as e:
-                # document body is not parseable, continue to check link headers
-                pass
             # if content_type in headers['Accept']:
             #    doc['document'] = response.json()
             link_header = response.headers.get('link')
