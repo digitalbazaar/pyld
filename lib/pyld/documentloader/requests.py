@@ -12,8 +12,9 @@ Remote document loader using Requests.
 import string
 import re
 import urllib.parse as urllib_parse
+from json import JSONDecodeError
 
-from pyld.jsonld import (JsonLdError, parse_link_header, LINK_HEADER_REL)
+from pyld.jsonld import (JsonLdError, parse_link_header, prepend_base, LINK_HEADER_REL)
 
 
 def requests_document_loader(secure=False, max_link_follows=2, **kwargs):
@@ -70,7 +71,7 @@ def requests_document_loader(secure=False, max_link_follows=2, **kwargs):
             }
             try:
                 doc['document'] = response.json()
-            except json.JSONDecodeError as e:
+            except JSONDecodeError as e:
                 # document body is not parseable, continue to check link headers
                 pass
             # if content_type in headers['Accept']:
@@ -96,7 +97,7 @@ def requests_document_loader(secure=False, max_link_follows=2, **kwargs):
                         linked_alternate.get('type') == 'application/ld+json' and
                         not re.match(r'^application\/(\w*\+)?json$', content_type)):
                     doc['contentType'] = 'application/ld+json'
-                    doc['documentUrl'] = jsonld.prepend_base(url, linked_alternate['target'])
+                    doc['documentUrl'] = prepend_base(url, linked_alternate['target'])
                     if link_follow_count >= max_link_follows:
                         raise requests.TooManyRedirects(f"Exceeded maximum link header redirects ({max_link_follows})")
                     return loader(doc['documentUrl'], options=options, link_follow_count=link_follow_count + 1)
