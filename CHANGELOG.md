@@ -3,7 +3,7 @@
 ## 2.0.2 - 2020-04-20
 
 ### Fixed
-* Fix inverse context cache indexing to use the uuid field.
+- Fix inverse context cache indexing to use the uuid field.
 
 ## 2.0.1 - 2020-04-15
 
@@ -20,116 +20,116 @@
   spec and some of the defaults changed.
 
 ### Changed
-* **BREAKING**: Versions of Python before 3.6 are no longer supported.
-* Update conformance docs.
-* Add all keywords and update options.
-* Default `processingMode` to `json-ld-1.1`.
-* Implement logic for marking tests as pending, so that it will fail if a
+- **BREAKING**: Versions of Python before 3.6 are no longer supported.
+- Update conformance docs.
+- Add all keywords and update options.
+- Default `processingMode` to `json-ld-1.1`.
+- Implement logic for marking tests as pending, so that it will fail if a
   pending test passes.
-* Consolidate `documentLoader` option and defaults into a `load_document` method
+- Consolidate `documentLoader` option and defaults into a `load_document` method
   to also handle JSON (eventually HTML) parsing.
-* Add support for `rel=alternate` for non-JSON-LD docs.
-* Use `lxml.html` to load HTML and parse in `load_html`.
-  * For HTML, the API base option can be updated from base element.
-* Context processing:
-  * Support `@propagate` in context processing and propagate option.
-  * Support for `@import`. (Some issues confusing recursion errors for invalid
+- Add support for `rel=alternate` for non-JSON-LD docs.
+- Use `lxml.html` to load HTML and parse in `load_html`.
+  - For HTML, the API base option can be updated from base element.
+- Context processing:
+  - Support `@propagate` in context processing and propagate option.
+  - Support for `@import`. (Some issues confusing recursion errors for invalid
     contexts).
-  * Make `override_protected` and `propagate` optional arguments to
+  - Make `override_protected` and `propagate` optional arguments to
     `_create_term_definition` and `_process_context` instead of using option
     argument.
-  * Improve management of previous contexts.
-  * Imported contexts must resolve to an object.
-  * Do remote context processing from within `_process_contexts`, as logic is
+  - Improve management of previous contexts.
+  - Imported contexts must resolve to an object.
+  - Do remote context processing from within `_process_contexts`, as logic is
     too complicated for pre-loading. Removes `_find_context_urls` and
     `_retrieve_context_urls`.
-  * Added a `ContextResolver` which can use a shared LRU cache for storing
+  - Added a `ContextResolver` which can use a shared LRU cache for storing
     externally retrieved contexts, and the result of processing them relative
     to a particular active context.
-  * Return a `frozendict` from context processing and reduce deepcopies.
-  * Store inverse context in an LRU cache rather than trying to modify a frozen context.
-  * Don't set `@base` in initial context and don't resolve a relative IRI
+  - Return a `frozendict` from context processing and reduce deepcopies.
+  - Store inverse context in an LRU cache rather than trying to modify a frozen context.
+  - Don't set `@base` in initial context and don't resolve a relative IRI
     when setting `@base` in a context, so that the document location can
     be kept separate from the context itself.
-  * Use static initial contexts composed of just `mappings` and `processingMode`
+  - Use static initial contexts composed of just `mappings` and `processingMode`
     to enhance preprocessed context cachability.
-* Create Term Definition:
-  * Allow `@type` as a term under certain circumstances.
-  * Reject and warn on keyword-like terms.
-  * Support protected term definitions.
-  * Look for keyword patterns and warn/return.
-  * Look for terms that are compact IRIs that don't expand to the same thing.
-  * Basic support for `@json` and `@none` as values of `@type`.
-  * If `@container` includes `@type`, `@type` must be `@id` or `@vocab`.
-  * Support `@index` and `@direction`.
-  * Corner-case checking for `@prefix`.
-  * Validate scoped contexts even if not used.
-  * Support relative vocabulary IRIs.
-  * Fix check that term has the form of an IRI.
-  * Delay adding mapping to end of `_create_term_definition`.
-  * If a scoped context is null, wrap it in an array so it doesn't seem to be
+- Create Term Definition:
+  - Allow `@type` as a term under certain circumstances.
+  - Reject and warn on keyword-like terms.
+  - Support protected term definitions.
+  - Look for keyword patterns and warn/return.
+  - Look for terms that are compact IRIs that don't expand to the same thing.
+  - Basic support for `@json` and `@none` as values of `@type`.
+  - If `@container` includes `@type`, `@type` must be `@id` or `@vocab`.
+  - Support `@index` and `@direction`.
+  - Corner-case checking for `@prefix`.
+  - Validate scoped contexts even if not used.
+  - Support relative vocabulary IRIs.
+  - Fix check that term has the form of an IRI.
+  - Delay adding mapping to end of `_create_term_definition`.
+  - If a scoped context is null, wrap it in an array so it doesn't seem to be
     undefined.
-* IRI Expansion:
-  * Find keyword patterns.
-  * Don't treat terms starting with a colon as IRIs.
-  * Only return a resulting IRI if it is absolute.
-  * Fix `_is_absolute_iri` to use a reasonable regular expression and some
+- IRI Expansion:
+  - Find keyword patterns.
+  - Don't treat terms starting with a colon as IRIs.
+  - Only return a resulting IRI if it is absolute.
+  - Fix `_is_absolute_iri` to use a reasonable regular expression and some
     other `_expand_iri issues`.
-  * Fix to detecting relative IRIs.
-  * Fix special case where relative path should not have a leading '/'
-  * Pass in document location (through 'base' option) and use when resolving
+  - Fix to detecting relative IRIs.
+  - Fix special case where relative path should not have a leading '/'
+  - Pass in document location (through 'base' option) and use when resolving
     document-relative IRIs.
-* IRI Compaction:
-  * Pass in document location (through 'base' option) and use when compacting
+- IRI Compaction:
+  - Pass in document location (through 'base' option) and use when compacting
     document-relative IRIs.
-* Compaction:
-  * Compact `@direction`.
-  * Compact `@type`: `@none`.
-  * Compact `@included`.
-  * Honor `@container`: `@set` on `@type`.
-  * Lists of Lists.
-  * Improve handling of scoped contexts and propagate.
-  * Improve map compaction, including indexed properties.
-  * Catch Absolute IRI confused with prefix.
-* Expansion:
-  * Updates to expansion algorithm.
-  * `_expand_value` adds `@direction` from term definition.
-  * JSON Literals.
-  * Support `@direction` when expanding.
-  * Support lists of lists.
-  * Support property indexes.
-  * Improve graph container expansion.
-  * Order types when applying scoped contexts.
-  * Use `type_scoped_ctx` when expanding values of `@type`.
-  * Use propagate and `override_protected` properly when creating expansion
+- Compaction:
+  - Compact `@direction`.
+  - Compact `@type`: `@none`.
+  - Compact `@included`.
+  - Honor `@container`: `@set` on `@type`.
+  - Lists of Lists.
+  - Improve handling of scoped contexts and propagate.
+  - Improve map compaction, including indexed properties.
+  - Catch Absolute IRI confused with prefix.
+- Expansion:
+  - Updates to expansion algorithm.
+  - `_expand_value` adds `@direction` from term definition.
+  - JSON Literals.
+  - Support `@direction` when expanding.
+  - Support lists of lists.
+  - Support property indexes.
+  - Improve graph container expansion.
+  - Order types when applying scoped contexts.
+  - Use `type_scoped_ctx` when expanding values of `@type`.
+  - Use propagate and `override_protected` properly when creating expansion
     contexts.
-* Flattening:
-  * Rewrite `_create_node_map` based on 1.1 algorithm.
-  * Flatten `@included`.
-  * Flatten lists of lists.
-  * Update `merge_node_maps` for `@type`.
-* Framing:
-  * Change default for `requireAll` from True to False.
-  * Change default for 'embed' from '@last' to '@once'.
-  * Add defaults for `omitGraph` and `pruneBlankNodeIdentifiers`
+- Flattening:
+  - Rewrite `_create_node_map` based on 1.1 algorithm.
+  - Flatten `@included`.
+  - Flatten lists of lists.
+  - Update `merge_node_maps` for `@type`.
+- Framing:
+  - Change default for `requireAll` from True to False.
+  - Change default for 'embed' from '@last' to '@once'.
+  - Add defaults for `omitGraph` and `pruneBlankNodeIdentifiers`
     based on processing mode.
-  * Change `_remove_preserve` to `_cleanup_preserve` which happens before
+  - Change `_remove_preserve` to `_cleanup_preserve` which happens before
     compaction.
-  * Add `_cleanup_null` which happens after compaction.
-  * Update frame matching to 1.1 spec.
-  * Support `@included`.
-* ToRdf:
-  * Support for I18N direction.
-  * Support for Lists of Lists.
-  * Partial support for JSON canonicalization of JSON literals.
-    * Includes local copy of JCS library, but doesn't load.
-  * Lists of Lists.
-  * Text Direction 'i18n-datatype'.
-* Testing
-  * Switched to argparse.
-  * **BREAKING**: Removed `-d` and `-m` test runner options in favor of just
+  - Add `_cleanup_null` which happens after compaction.
+  - Update frame matching to 1.1 spec.
+  - Support `@included`.
+- ToRdf:
+  - Support for I18N direction.
+  - Support for Lists of Lists.
+  - Partial support for JSON canonicalization of JSON literals.
+    - Includes local copy of JCS library, but doesn't load.
+  - Lists of Lists.
+  - Text Direction 'i18n-datatype'.
+- Testing
+  - Switched to argparse.
+  - **BREAKING**: Removed `-d` and `-m` test runner options in favor of just
     listing as arguments.
-  * If no test manifests or directories are specified, default to sibling
+  - If no test manifests or directories are specified, default to sibling
     directories for json-ld-api, json-ld-framing, and normalization.
 
 ## 1.0.5 - 2019-05-09
