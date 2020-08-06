@@ -1,5 +1,7 @@
 # pyld ChangeLog
 
+## 2.0.3 - 2020-08-06
+
 ### Fixed
 - Fix deprecation warnings due to invalid escape sequences.
 
