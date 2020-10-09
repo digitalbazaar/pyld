@@ -8,7 +8,7 @@ Context Resolver for managing remote contexts.
 .. moduleauthor:: Gregg Kellogg <gregg@greggkellogg.net>
 """
 
-from frozendict import frozendict
+from immutabledict import immutabledict
 from c14n.Canonicalize import canonicalize
 from pyld import jsonld
 from .resolved_context import ResolvedContext
@@ -42,7 +42,7 @@ class ContextResolver:
             cycles = set()
 
         # process `@context`
-        if (isinstance(context, dict) or isinstance(context, frozendict)) and '@context' in context:
+        if (isinstance(context, dict) or isinstance(context, immutabledict)) and '@context' in context:
             context = context['@context']
 
         # context is one or more contexts
@@ -65,7 +65,7 @@ class ContextResolver:
                     all_resolved.append(resolved)
             elif not ctx:
                 all_resolved.append(ResolvedContext(False))
-            elif not isinstance(ctx, dict) and not isinstance(ctx, frozendict):
+            elif not isinstance(ctx, dict) and not isinstance(ctx, immutabledict):
                 raise jsonld.JsonLdError(
                     'Invalid JSON-LD syntax; @context must be an object.',
                     'jsonld.SyntaxError', {'context': ctx},
@@ -157,7 +157,7 @@ class ContextResolver:
                 code='loading remote context failed')
 
         # ensure ctx is an object
-        if not isinstance(context, dict) and not isinstance(context, frozendict):
+        if not isinstance(context, dict) and not isinstance(context, immutabledict):
             raise jsonld.JsonLdError(
                 'Dereferencing a URL did not result in a JSON object. The ' +
                 'response was valid JSON, but it was not a JSON object.',
@@ -188,7 +188,7 @@ class ContextResolver:
         :param context: the context.
         :param base: the base IRI to use to resolve relative IRIs.
         """
-        if not isinstance(context, dict) and not isinstance(context, frozendict):
+        if not isinstance(context, dict) and not isinstance(context, immutabledict):
             return
 
         ctx = context.get('@context')
@@ -201,11 +201,11 @@ class ContextResolver:
             for num, element in enumerate(ctx):
                 if isinstance(element, str):
                     ctx[num] = jsonld.prepend_base(base, element)
-                elif isinstance(element, dict) or isinstance(element, frozendict):
+                elif isinstance(element, dict) or isinstance(element, immutabledict):
                     self. _resolve_context_urls({'@context': element}, base)
             return
 
-        if not isinstance(ctx, dict) and not isinstance(ctx, frozendict):
+        if not isinstance(ctx, dict) and not isinstance(ctx, immutabledict):
             # no @context URLs can be found in non-object
             return
 

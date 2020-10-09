@@ -49,13 +49,13 @@ setup(
     ],
     install_requires=[
         'cachetools',
-        'frozendict',
+        'immutabledict',
         'lxml',
     ],
     extras_require={
         'requests': ['requests'],
         'aiohttp': ['aiohttp'],
         'cachetools': ['cachetools'],
-        'frozendict': ['frozendict'],
+        'immutabledict': ['immutabledict'],
     }
 )
