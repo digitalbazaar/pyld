@@ -61,7 +61,7 @@ Requirements
 
 - Python_ (3.6 or later)
 - Requests_ (optional)
-- aiohttp_ (optional, Python 3.5 or later)
+- aiohttp_ (optional)
 
 Installation
 ------------

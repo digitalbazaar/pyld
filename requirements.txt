@@ -1,5 +1,5 @@
 requests
-aiohttp; python_version >= '3.5'
+aiohttp
 lxml
 cachetools
 frozendict
