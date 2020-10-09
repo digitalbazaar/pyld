@@ -3173,13 +3173,12 @@ class JsonLdProcessor(object):
                     ctx = import_ctx
                     ctx['_uuid'] = str(uuid.uuid1())
 
-                    # cache processed result (only Python >= 3.6)
+                    # cache processed result
                     # Note: this could potenially conflict if the import
                     # were used in the same active context as a referenced
                     # context and an import. In this case, we
                     # could override the cached result, but seems unlikely.
-                    if sys.version_info[0] > 3 or sys.version_info[1] >= 6:
-                        resolved_import.set_processed(active_ctx, freeze(ctx))
+                    resolved_import.set_processed(active_ctx, freeze(ctx))
 
                 defined['@import'] = True
 
@@ -3313,11 +3312,10 @@ class JsonLdProcessor(object):
                                 'jsonld.SyntaxError', {'context': key_ctx, 'term': k},
                                 code='invalid scoped context')
 
-            # cache processed result (only Python >= 3.6)
+            # cache processed result
             # and give the context a unique identifier
             rval = freeze(rval)
-            if sys.version_info[0] > 3 or sys.version_info[1] >= 6:
-                resolved_context.set_processed(active_ctx, rval)
+            resolved_context.set_processed(active_ctx, rval)
 
         return rval
 

@@ -2,11 +2,10 @@ dist: xenial
 language: python
 cache: pip
 python:
-  - "3.4"
-  - "3.5"
   - "3.6"
   - "3.7"
   - "3.8"
+  - "3.9"
   - "pypy3"
 sudo: false
 
@@ -14,14 +13,6 @@ sudo: false
 env:
   - LOADER=requests
   - LOADER=aiohttp
-
-matrix:
-  exclude:
-    - python: "3.4"
-      env: LOADER=aiohttp
-  allow_failures:
-    - python: "3.4"
-    - python: "3.5"
 
 install:
   - pip install -r requirements.txt
