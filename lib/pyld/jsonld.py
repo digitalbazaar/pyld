@@ -29,7 +29,7 @@ from collections import namedtuple
 from functools import cmp_to_key
 import lxml.html
 from numbers import Integral, Real
-from frozendict import frozendict
+from immutabledict import immutabledict
 from pyld.__about__ import (__copyright__, __license__, __version__)
 
 def cmp(a, b):
@@ -6295,7 +6295,7 @@ def _is_object(v):
 
     :return: True if the value is an Object, False if not.
     """
-    return isinstance(v, dict) or isinstance(v, frozendict)
+    return isinstance(v, dict) or isinstance(v, immutabledict)
 
 
 def _is_empty_object(v):
@@ -6539,7 +6539,7 @@ def _is_relative_iri(v):
 
 def freeze(value):
     if isinstance(value, dict):
-        return frozendict(dict([(k, v) for (k, v) in value.items()]))
+        return immutabledict(dict([(k, v) for (k, v) in value.items()]))
     return value
 
 # The default JSON-LD document loader.
