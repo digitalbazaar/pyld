@@ -14,6 +14,9 @@ import urllib.parse as urllib_parse
 
 from pyld.jsonld import (JsonLdError, parse_link_header, LINK_HEADER_REL)
 
+DEFAULT_HEADERS = {
+    'Accept': 'application/ld+json, application/json'
+}
 
 def requests_document_loader(secure=False, **kwargs):
     """
@@ -55,12 +58,16 @@ def requests_document_loader(secure=False, **kwargs):
                     'the URL\'s scheme is not "https".',
                     'jsonld.InvalidUrl', {'url': url},
                     code='loading document failed')
-            headers = options.get('headers')
-            if headers is None:
-                headers = {
-                    'Accept': 'application/ld+json, application/json'
-                }
-            response = requests.get(url, headers=headers, **kwargs)
+            
+            headers = {} if 'headers' in kwargs else ({
+                'headers': (
+                    options.get('headers', None)
+                    or DEFAULT_HEADERS
+                )
+            })
+
+            response = requests.get(url, **kwargs, **headers)
+
 
             content_type = response.headers.get('content-type')
             if not content_type:
