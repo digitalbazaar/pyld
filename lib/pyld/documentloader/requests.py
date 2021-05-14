@@ -41,11 +41,11 @@ def requests_document_loader(secure=False, **kwargs):
             # validate URL
             pieces = urllib_parse.urlparse(url)
             if (not all([pieces.scheme, pieces.netloc]) or
-                pieces.scheme not in ['http', 'https'] or
+                pieces.scheme not in ['http', 'https', 'ipfs'] or
                 set(pieces.netloc) > set(
                     string.ascii_letters + string.digits + '-.:')):
                 raise JsonLdError(
-                    'URL could not be dereferenced; only "http" and "https" '
+                    'URL could not be dereferenced; only "http", "https" and "ipfs" '
                     'URLs are supported.',
                     'jsonld.InvalidUrl', {'url': url},
                     code='loading document failed')
@@ -60,7 +60,22 @@ def requests_document_loader(secure=False, **kwargs):
                 headers = {
                     'Accept': 'application/ld+json, application/json'
                 }
-            response = requests.get(url, headers=headers, **kwargs)
+
+            if pieces.scheme == "ipfs":
+
+                # only import if using ipfs
+                import ipfshttpclient
+                import json 
+
+                # connect to local instance
+                client = ipfshttpclient.connect()
+                ipfs_response = client.get_json(pieces.netloc)
+                response = requests.Response()
+                response._content=bytes(json.dumps(ipfs_response), "utf8")
+                response.status_code = 200
+                response.headers = {}
+            else:
+                response = requests.get(url, headers=headers, **kwargs)
 
             content_type = response.headers.get('content-type')
             if not content_type:
