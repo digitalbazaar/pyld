@@ -44,14 +44,23 @@ Implementation Report Process
 As of early 2020, the process to generate an EARL report for the official
 `JSON-LD Processor Conformance`_ page is:
 
+* Check out a local copy of the test suites::
+
+    > mkdir ../w3c
+    > cd ../w3c
+    > git clone https://github.com/w3c/json-ld-api.git
+    > git clone https://github.com/w3c/json-ld-framing.git
+    > cd ../pyld
+
+
 * Run the tests on the ``json-ld-api`` and ``json-ld-framing`` test repos to
   generate a ``.jsonld`` test report:
 
-  * ``python tests/runtests.py ../json-ld-api/tests/ ../json-ld-framing/tests/ -e pyld-earl.jsonld``
+  > ``python tests/runtests.py ..w3c/json-ld-api/tests/ ../w3c/json-ld-framing/tests/ -e pyld-earl.jsonld``
 
 * Use the rdf_ tool to generate a ``.ttl``:
 
-  * ``rdf serialize pyld-earl.jsonld --output-format turtle -o pyld-earl.ttl``
+  > ``rdf serialize pyld-earl.jsonld --output-format turtle -o pyld-earl.ttl``
 
 * Optionally follow the `report instructions`_ to generate the HTML report for
   inspection.
