@@ -56,7 +56,7 @@ As of early 2020, the process to generate an EARL report for the official
 * Run the tests on the ``json-ld-api`` and ``json-ld-framing`` test repos to
   generate a ``.jsonld`` test report:
 
-  > ``python tests/runtests.py ..w3c/json-ld-api/tests/ ../w3c/json-ld-framing/tests/ -e pyld-earl.jsonld``
+  > ``python tests/runtests.py ../w3c/json-ld-api/tests/ ../w3c/json-ld-framing/tests/ -e pyld-earl.jsonld``
 
 * Use the rdf_ tool to generate a ``.ttl``:
 
