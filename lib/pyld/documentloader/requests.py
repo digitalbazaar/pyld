@@ -65,6 +65,9 @@ def requests_document_loader(secure=False, **kwargs):
                 headers.update(kwargs['headers'])
                 del kwargs['headers']
             session = options.get('session', requests)
+            if 'session' in kwargs:
+                session = kwargs['session']
+                del kwargs['session']
             response = session.get(url, headers=headers, **kwargs)
 
             content_type = response.headers.get('content-type')
