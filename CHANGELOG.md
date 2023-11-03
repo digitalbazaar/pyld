@@ -1,5 +1,10 @@
 # pyld ChangeLog
 
+## 3.0.0 - 2024-xx-xx
+
+### Changed
+- **BREAKING**: Require supported Python version >= 3.8.
+
 ## 2.0.4 - 2024-02-16
 
 ### Fixed
