@@ -18,6 +18,7 @@ import unittest
 import re
 from argparse import ArgumentParser
 from pathlib import Path
+from typing import List
 from unittest import TextTestResult
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
@@ -37,7 +38,7 @@ LOCAL_BASES = [
 ]
 
 
-def default_test_targets() -> list[Path]:
+def default_test_targets() -> List[Path]:
     """Default test directories from specifications."""
     specifications = Path(__file__).parent.parent / 'specifications'
     return [
