@@ -190,16 +190,24 @@ Tests
 This library includes a sample testing utility which may be used to verify
 that changes to the processor maintain the correct output.
 
-To run the sample tests you will need to get the test suite files by cloning
-the ``json-ld-api``, ``json-ld-framing``, and ``normalization`` repositories
-hosted on GitHub:
+To run the sample tests you will need the test suite files provided in the
+``json-ld-api``, ``json-ld-framing``, and ``rdf-canon`` repositories hosted
+on GitHub:
 
 - https://github.com/w3c/json-ld-api
 - https://github.com/w3c/json-ld-framing
-- https://github.com/json-ld/normalization
+- https://github.com/w3c/rdf-canon
 
-If the suites repositories are available as sibling directories of the PyLD
-source directory, then all the tests can be run with the following:
+They are included beneath ``specifications`` directory of this repository as
+Git submodules. By default, ``git clone`` does
+not retrieve submodules; to download them, please issue the following command:
+
+.. code-block:: bash
+
+    git submodule update --init --recursive
+
+If the suites repositories are available then all the tests can be run with
+the following:
 
 .. code-block:: bash
 
