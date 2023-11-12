@@ -17,6 +17,7 @@ import traceback
 import unittest
 import re
 from argparse import ArgumentParser
+from pathlib import Path
 from unittest import TextTestResult
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
@@ -32,8 +33,19 @@ ONLY_IDENTIFIER = None
 LOCAL_BASES = [
     'https://w3c.github.io/json-ld-api/tests',
     'https://w3c.github.io/json-ld-framing/tests',
-    'https://github.com/json-ld/normalization/tests'
+    'https://w3c.github.io/rdf-canon/tests/',
 ]
+
+
+def default_test_targets() -> list[Path]:
+    """Default test directories from specifications."""
+    specifications = Path(__file__).parent.parent / 'specifications'
+    return [
+        specifications / 'json-ld-api/tests',
+        specifications / 'json-ld-framing/tests',
+        specifications / 'rdf-canon/tests',
+    ]
+
 
 class TestRunner(unittest.TextTestRunner):
     """
@@ -95,18 +107,7 @@ class TestRunner(unittest.TextTestRunner):
             test_targets = self.options.tests
         else:
             # default to find known sibling test dirs
-            test_targets = []
-            sibling_dirs = [
-                '../json-ld-api/tests/',
-                '../json-ld-framing/tests/',
-                '../normalization/tests/',
-            ]
-            for dir in sibling_dirs:
-                if os.path.exists(dir):
-                    print('Test dir found', dir)
-                    test_targets.append(dir)
-                else:
-                    print('Test dir not found', dir)
+            test_targets = default_test_targets()
 
         # ensure a manifest or a directory was specified
         if len(test_targets) == 0:
