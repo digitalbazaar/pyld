@@ -1,0 +1,5 @@
+adr:resolution:
+  - decision: on-key-dropped-argument
+    by: anatoly-scherbakov
+    date: 2023-11-12
+    status: accepted
