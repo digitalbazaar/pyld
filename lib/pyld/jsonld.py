@@ -14,6 +14,7 @@ JSON-LD.
 .. moduleauthor:: Gregg Kellogg <gregg@greggkellogg.net>
 """
 
+import logging
 import copy
 import hashlib
 import json
@@ -22,6 +23,8 @@ import sys
 import traceback
 import warnings
 import uuid
+from typing import Optional, Callable
+
 from .context_resolver import ContextResolver
 from c14n.Canonicalize import canonicalize
 from cachetools import LRUCache
@@ -31,6 +34,8 @@ import lxml.html
 from numbers import Integral, Real
 from frozendict import frozendict
 from pyld.__about__ import (__copyright__, __license__, __version__)
+
+logger = logging.getLogger('pyld.jsonld')
 
 def cmp(a, b):
     return (a > b) - (a < b)
@@ -117,6 +122,19 @@ _inverse_context_cache = LRUCache(maxsize=INVERSE_CONTEXT_CACHE_MAX_SIZE)
 # Initial contexts, defined on first access
 INITIAL_CONTEXTS = {}
 
+
+# Handler to call if a key was dropped during expansion
+OnKeyDropped = Callable[[Optional[str]], ...]
+
+
+def log_on_key_dropped(key: Optional[str]):
+    """Default behavior on ignored JSON-LD keys is to log them."""
+    logger.debug(
+        'Key `%s` was not mapped to an absolute IRI and was ignored.',
+        key,
+    )
+
+
 def compact(input_, ctx, options=None):
     """
     Performs JSON-LD compaction.
@@ -142,7 +160,11 @@ def compact(input_, ctx, options=None):
     return JsonLdProcessor().compact(input_, ctx, options)
 
 
-def expand(input_, options=None):
+def expand(
+    input_,
+    options=None,
+    on_key_dropped: OnKeyDropped = log_on_key_dropped,
+):
     """
     Performs JSON-LD expansion.
 
@@ -157,10 +179,17 @@ def expand(input_, options=None):
         defaults to 'json-ld-1.1'.
       [documentLoader(url, options)] the document loader
         (default: _default_document_loader).
+    :param [on_key_dropped] Callable to invoke for every JSON-LD key that was
+        ignored.
 
     :return: the expanded JSON-LD output.
     """
-    return JsonLdProcessor().expand(input_, options)
+    return JsonLdProcessor(
+        on_key_dropped=on_key_dropped,
+    ).expand(
+        input_=input_,
+        options=options,
+    )
 
 
 def flatten(input_, ctx=None, options=None):
@@ -645,17 +674,22 @@ def unparse_url(parsed):
     return rval
 
 
-class JsonLdProcessor(object):
+class JsonLdProcessor:
     """
     A JSON-LD processor.
     """
 
-    def __init__(self):
+    def __init__(self, on_key_dropped: OnKeyDropped = log_on_key_dropped):
         """
         Initialize the JSON-LD processor.
+
+        :param [on_key_dropped] Callable to invoke for every JSON-LD key that
+            was ignored.
         """
         # processor-specific RDF parsers
         self.rdf_parsers = None
+
+        self.on_key_dropped = on_key_dropped
 
     def compact(self, input_, ctx, options):
         """
@@ -2191,10 +2225,15 @@ class JsonLdProcessor(object):
         return element
 
     def _expand(
-            self, active_ctx, active_property, element, options,
-            inside_list=False,
-            inside_index=False,
-            type_scoped_ctx=None):
+        self,
+        active_ctx,
+        active_property,
+        element,
+        options,
+        inside_list=False,
+        inside_index=False,
+        type_scoped_ctx=None,
+    ):
         """
         Recursively expands an element using the given context. Any context in
         the element will be removed. All context URLs must have been retrieved
@@ -2234,7 +2273,8 @@ class JsonLdProcessor(object):
                     active_ctx, active_property, e, options,
                     inside_list=inside_list,
                     inside_index=inside_index,
-                    type_scoped_ctx=type_scoped_ctx)
+                    type_scoped_ctx=type_scoped_ctx,
+                )
                 if inside_list and _is_array(e):
                     e = {'@list': e}
                 # drop None values
@@ -2460,10 +2500,11 @@ class JsonLdProcessor(object):
                 active_ctx, key, vocab=True)
 
             # drop non-absolute IRI keys that aren't keywords
-            if (expanded_property is None or
-                not (
-                    _is_absolute_iri(expanded_property) or
-                    _is_keyword(expanded_property))):
+            if expanded_property is None or (
+                not _is_absolute_iri(expanded_property)
+                and not _is_keyword(expanded_property)
+            ):
+                self.on_key_dropped(expanded_property)
                 continue
 
             if _is_keyword(expanded_property):
@@ -3411,7 +3452,8 @@ class JsonLdProcessor(object):
                 JsonLdProcessor.arrayify(v),
                 options,
                 inside_list=False,
-                inside_index=True)
+                inside_index=True,
+            )
 
             expanded_key = None
             if property_index:
