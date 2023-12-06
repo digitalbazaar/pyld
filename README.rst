@@ -204,7 +204,9 @@ not retrieve submodules; to download them, please issue the following command:
 
 .. code-block:: bash
 
-    git submodule update --init --recursive
+    make upgrade-submodules
+
+Issue the same command to update each submodule to the latest available commit.
 
 If the suites repositories are available then all the tests can be run with
 the following:
