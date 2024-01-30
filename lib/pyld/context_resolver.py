@@ -63,7 +63,7 @@ class ContextResolver:
                     all_resolved.extend(resolved)
                 else:
                     all_resolved.append(resolved)
-            elif not ctx:
+            elif ctx is None:
                 all_resolved.append(ResolvedContext(False))
             elif not isinstance(ctx, dict) and not isinstance(ctx, frozendict):
                 raise jsonld.JsonLdError(
