@@ -2320,7 +2320,7 @@ class JsonLdProcessor(object):
                 for type_ in sorted(types):
                     ctx = JsonLdProcessor.get_context_value(
                         type_scoped_ctx, type_, '@context')
-                    if ctx:
+                    if ctx is not None and ctx is not False:
                         active_ctx = self._process_context(
                             active_ctx, ctx, options, propagate=False)
 
@@ -3070,7 +3070,7 @@ class JsonLdProcessor(object):
                 active_ctx['_uuid'] = str(uuid.uuid1())
 
             # reset to initial context
-            if ctx is None:
+            if ctx is None or ctx is False:
                 if (not override_protected and
                      any(v.get('protected') for v in rval['mappings'].values())):
                     raise JsonLdError(
