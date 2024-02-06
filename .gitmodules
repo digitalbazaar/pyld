@@ -9,3 +9,7 @@
 [submodule "specifications/rdf-canon"]
 	path = specifications/rdf-canon
 	url = git@github.com:w3c/rdf-canon.git
+
+[submodule "specifications/rdf-dataset-canonicalization"]
+	path = specifications/rdf-dataset-canonicalization
+	url = git@github.com:w3c-ccg/rdf-dataset-canonicalization.git
