@@ -139,7 +139,7 @@ Quick Examples
     # document transformed into a particular tree structure per the given frame
 
     # normalize a document using the RDF Dataset Normalization Algorithm
-    # (URDNA2015), see: https://www.w3.org/TR/rdf-canon/
+    # (URDNA2015), see: https://json-ld.github.io/normalization/spec/
     normalized = jsonld.normalize(
         doc, {'algorithm': 'URDNA2015', 'format': 'application/n-quads'})
     # normalized is a string that is a canonical representation of the document
@@ -196,6 +196,7 @@ on GitHub:
 
 - https://github.com/w3c/json-ld-api
 - https://github.com/w3c/json-ld-framing
+- https://github.com/w3c-ccg/rdf-dataset-canonicalization
 - https://github.com/w3c/rdf-canon
 
 They are included beneath ``specifications`` directory of this repository as
