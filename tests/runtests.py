@@ -34,7 +34,7 @@ ONLY_IDENTIFIER = None
 LOCAL_BASES = [
     'https://w3c.github.io/json-ld-api/tests',
     'https://w3c.github.io/json-ld-framing/tests',
-    'https://w3c.github.io/rdf-canon/tests/',
+    'https://w3c.github.io/rdf-canon/tests',
 ]
 
 
