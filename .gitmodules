@@ -1,0 +1,11 @@
+[submodule "specifications/json-ld-api"]
+	path = specifications/json-ld-api
+	url = git@github.com:w3c/json-ld-api.git
+
+[submodule "specifications/json-ld-framing"]
+	path = specifications/json-ld-framing
+	url = git@github.com:w3c/json-ld-framing.git
+
+[submodule "specifications/rdf-dataset-canonicalization"]
+	path = specifications/rdf-dataset-canonicalization
+	url = git@github.com:w3c-ccg/rdf-dataset-canonicalization.git

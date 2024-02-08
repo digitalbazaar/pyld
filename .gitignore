@@ -14,3 +14,9 @@ lib/PyLD.egg-info
 profiler
 tests/test_caching.py
 tests/data/test_caching.json
+
+# Local Python version with `pyenv`
+.python-version
+
+# PyCharm & other JetBrains IDEs
+.idea
