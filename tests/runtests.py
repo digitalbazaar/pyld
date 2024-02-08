@@ -35,7 +35,6 @@ LOCAL_BASES = [
     'https://w3c.github.io/json-ld-api/tests',
     'https://w3c.github.io/json-ld-framing/tests',
     'https://github.com/w3c-ccg/rdf-dataset-canonicalization/tree/main/tests',
-    'https://w3c.github.io/rdf-canon/tests',
 ]
 
 
@@ -46,9 +45,6 @@ def default_test_targets() -> List[Path]:
         specifications / 'json-ld-api/tests',
         specifications / 'json-ld-framing/tests',
         specifications / 'rdf-dataset-canonicalization/tests',
-
-        # TODO: Replace the above to use the newer RDF Canonicalization spec.
-        # specifications / 'rdf-canon/tests',
     ]
 
 
