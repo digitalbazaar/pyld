@@ -1,5 +1,11 @@
 # pyld ChangeLog
 
+## 2.0.4 - 2024-02-16
+
+### Fixed
+- Use explicit `None` or `False` for context checks. Fixes an issue while
+  framing with an empty context.
+
 ## 2.0.3 - 2020-08-06
 
 ### Fixed
