@@ -5609,9 +5609,9 @@ class JsonLdProcessor(object):
                 else:
                     # add an entry for the default language
                     entry['@language'].setdefault(default_language, term)
-                    # add entries for no type and no language
-                    entry['@type'].setdefault('@none', term)
-                    entry['@language'].setdefault('@none', term)
+                # add entries for no type and no language
+                entry['@type'].setdefault('@none', term)
+                entry['@language'].setdefault('@none', term)
 
         _inverse_context_cache[active_ctx['_uuid']] = inverse
         return inverse
