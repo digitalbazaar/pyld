@@ -514,6 +514,10 @@ def prepend_base(base, iri):
     if rval == '':
         rval = './'
 
+    # Relative IRIs must not have the form a of keyword
+    elif rval[0] == '@':
+        rval = './' + rval
+
     return rval
 
 
@@ -558,6 +562,10 @@ def remove_base(base, iri):
 
     # prepend remaining segments
     rval += '/'.join(iri_segments)
+
+    # Relative IRIs must not have the form a of keyword
+    if rval and rval[0] == '@':
+        rval = './' + rval
 
     return unparse_url((None, None, rval, rel.query, rel.fragment)) or './'
 
