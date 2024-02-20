@@ -55,12 +55,19 @@ def requests_document_loader(secure=False, **kwargs):
                     'the URL\'s scheme is not "https".',
                     'jsonld.InvalidUrl', {'url': url},
                     code='loading document failed')
-            headers = options.get('headers')
-            if headers is None:
-                headers = {
-                    'Accept': 'application/ld+json, application/json'
-                }
-            response = requests.get(url, headers=headers, **kwargs)
+
+            headers = {
+                'Accept': 'application/ld+json, application/json'
+            }
+            headers.update(options.get('headers', {}))
+            if 'headers' in kwargs:
+                headers.update(kwargs['headers'])
+                del kwargs['headers']
+            session = options.get('session', requests)
+            if 'session' in kwargs:
+                session = kwargs['session']
+                del kwargs['session']
+            response = session.get(url, headers=headers, **kwargs)
 
             content_type = response.headers.get('content-type')
             if not content_type:
