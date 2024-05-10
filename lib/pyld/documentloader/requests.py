@@ -9,6 +9,7 @@ Remote document loader using Requests.
 .. moduleauthor:: Tim McNamara <tim.mcnamara@okfn.org>
 .. moduleauthor:: Olaf Conradi <olaf@conradi.org>
 """
+
 import string
 import urllib.parse as urllib_parse
 
@@ -40,66 +41,76 @@ def requests_document_loader(secure=False, **kwargs):
         try:
             # validate URL
             pieces = urllib_parse.urlparse(url)
-            if (not all([pieces.scheme, pieces.netloc]) or
-                pieces.scheme not in ['http', 'https'] or
-                set(pieces.netloc) > set(
-                    string.ascii_letters + string.digits + '-.:')):
+            if (
+                not all([pieces.scheme, pieces.netloc])
+                or pieces.scheme not in ["http", "https"]
+                or set(pieces.netloc)
+                > set(string.ascii_letters + string.digits + "-.:")
+            ):
                 raise JsonLdError(
                     'URL could not be dereferenced; only "http" and "https" '
-                    'URLs are supported.',
-                    'jsonld.InvalidUrl', {'url': url},
-                    code='loading document failed')
-            if secure and pieces.scheme != 'https':
+                    "URLs are supported.",
+                    "jsonld.InvalidUrl",
+                    {"url": url},
+                    code="loading document failed",
+                )
+            if secure and pieces.scheme != "https":
                 raise JsonLdError(
-                    'URL could not be dereferenced; secure mode enabled and '
+                    "URL could not be dereferenced; secure mode enabled and "
                     'the URL\'s scheme is not "https".',
-                    'jsonld.InvalidUrl', {'url': url},
-                    code='loading document failed')
-            headers = options.get('headers')
+                    "jsonld.InvalidUrl",
+                    {"url": url},
+                    code="loading document failed",
+                )
+            headers = options.get("headers")
             if headers is None:
-                headers = {
-                    'Accept': 'application/ld+json, application/json'
-                }
+                headers = {"Accept": "application/ld+json, application/json"}
             response = requests.get(url, headers=headers, **kwargs)
 
-            content_type = response.headers.get('content-type')
+            content_type = response.headers.get("content-type")
             if not content_type:
-                content_type = 'application/octet-stream'
+                content_type = "application/octet-stream"
             doc = {
-                'contentType': content_type,
-                'contextUrl': None,
-                'documentUrl': response.url,
-                'document': response.json()
+                "contentType": content_type,
+                "contextUrl": None,
+                "documentUrl": response.url,
+                "document": response.json(),
             }
-            link_header = response.headers.get('link')
+            link_header = response.headers.get("link")
             if link_header:
-                linked_context = parse_link_header(link_header).get(
-                    LINK_HEADER_REL)
+                linked_context = parse_link_header(link_header).get(LINK_HEADER_REL)
                 # only 1 related link header permitted
-                if linked_context and content_type != 'application/ld+json':
-                  if isinstance(linked_context, list):
-                      raise JsonLdError(
-                          'URL could not be dereferenced, '
-                          'it has more than one '
-                          'associated HTTP Link Header.',
-                          'jsonld.LoadDocumentError',
-                          {'url': url},
-                          code='multiple context link headers')
-                  doc['contextUrl'] = linked_context['target']
-                linked_alternate = parse_link_header(link_header).get('alternate')
+                if linked_context and content_type != "application/ld+json":
+                    if isinstance(linked_context, list):
+                        raise JsonLdError(
+                            "URL could not be dereferenced, "
+                            "it has more than one "
+                            "associated HTTP Link Header.",
+                            "jsonld.LoadDocumentError",
+                            {"url": url},
+                            code="multiple context link headers",
+                        )
+                    doc["contextUrl"] = linked_context["target"]
+                linked_alternate = parse_link_header(link_header).get("alternate")
                 # if not JSON-LD, alternate may point there
-                if (linked_alternate and
-                        linked_alternate.get('type') == 'application/ld+json' and
-                        not re.match(r'^application\/(\w*\+)?json$', content_type)):
-                    doc['contentType'] = 'application/ld+json'
-                    doc['documentUrl'] = jsonld.prepend_base(url, linked_alternate['target'])
+                if (
+                    linked_alternate
+                    and linked_alternate.get("type") == "application/ld+json"
+                    and not re.match(r"^application\/(\w*\+)?json$", content_type)
+                ):
+                    doc["contentType"] = "application/ld+json"
+                    doc["documentUrl"] = jsonld.prepend_base(
+                        url, linked_alternate["target"]
+                    )
             return doc
         except JsonLdError as e:
             raise e
         except Exception as cause:
             raise JsonLdError(
-                'Could not retrieve a JSON-LD document from the URL.',
-                'jsonld.LoadDocumentError', code='loading document failed',
-                cause=cause)
+                "Could not retrieve a JSON-LD document from the URL.",
+                "jsonld.LoadDocumentError",
+                code="loading document failed",
+                cause=cause,
+            )
 
     return loader
