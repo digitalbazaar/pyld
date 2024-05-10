@@ -10,7 +10,7 @@ Remote document loader using aiohttp.
 import string
 import urllib.parse as urllib_parse
 
-from pyld.jsonld import (JsonLdError, parse_link_header, LINK_HEADER_REL)
+from pyld.jsonld import LINK_HEADER_REL, JsonLdError, parse_link_header
 
 
 def aiohttp_document_loader(loop=None, secure=False, **kwargs):
@@ -24,6 +24,7 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
     :return: the RemoteDocument loader function.
     """
     import asyncio
+
     import aiohttp
 
     if loop is None:

@@ -20,17 +20,21 @@ import json
 import re
 import sys
 import traceback
-import warnings
 import uuid
-from .context_resolver import ContextResolver
-from c14n.Canonicalize import canonicalize
-from cachetools import LRUCache
+import warnings
 from collections import namedtuple
 from functools import cmp_to_key
-import lxml.html
 from numbers import Integral, Real
+
+import lxml.html
+from c14n.Canonicalize import canonicalize
+from cachetools import LRUCache
 from frozendict import frozendict
-from pyld.__about__ import (__copyright__, __license__, __version__)
+
+from pyld.__about__ import __copyright__, __license__, __version__
+
+from .context_resolver import ContextResolver
+
 
 def cmp(a, b):
     return (a > b) - (a < b)

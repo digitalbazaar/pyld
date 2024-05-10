@@ -9,8 +9,8 @@ PyLD_ is a Python JSON-LD_ library.
 .. _JSON-LD: https://json-ld.org/
 """
 
-from distutils.core import setup
 import os
+from distutils.core import setup
 
 # get meta data
 about = {}

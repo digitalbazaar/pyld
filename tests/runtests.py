@@ -12,10 +12,10 @@ Test runner for JSON-LD.
 import datetime
 import json
 import os
+import re
 import sys
 import traceback
 import unittest
-import re
 from argparse import ArgumentParser
 from unittest import TextTestResult
 
