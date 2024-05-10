@@ -1,5 +1,5 @@
-requests
-aiohttp; python_version >= '3.5'
-lxml
-cachetools
-frozendict
+aiohttp~=3.9.5
+cachetools~=5.3.3
+frozendict~=2.4.4
+lxml~=5.2.1
+requests~=2.31.0
