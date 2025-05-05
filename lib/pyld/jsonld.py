@@ -2512,7 +2512,7 @@ class JsonLdProcessor(object):
                 for v in JsonLdProcessor.arrayify(value):
                     expanded_values.append(v if \
                         _is_object(v) else \
-                        self._expand_iri(active_ctx, v, base=options.get('base', '')))
+                        self._expand_iri(active_ctx, v, base=options.get('base', ''), vocab=True))
 
                 JsonLdProcessor.add_value(
                     expanded_parent, '@id', expanded_values,
