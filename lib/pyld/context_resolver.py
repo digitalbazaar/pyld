@@ -28,7 +28,7 @@ class ContextResolver:
         self.shared_cache = shared_cache
         self.document_loader = document_loader
 
-    def resolve(self, active_ctx, context, base, cycles=None):
+    def resolve(self, active_ctx, context, path, base, cycles=None):
         """
         Resolve a context.
 
@@ -56,7 +56,7 @@ class ContextResolver:
                 resolved = self._get(ctx)
                 if not resolved:
                     resolved = self._resolve_remote_context(
-                        active_ctx, ctx, base, cycles)
+                        active_ctx, path, ctx,  base, cycles)
 
                 # add to output and continue
                 if isinstance(resolved, list):
@@ -72,7 +72,7 @@ class ContextResolver:
                     code='invalid local context')
             else:
                 # context is an object, get/create `ResolvedContext` for it
-                key = canonicalize(dict(ctx)).decode('UTF-8')
+                key = canonicalize([*path, dict(ctx)]).decode('UTF-8')
                 resolved = self._get(key)
                 if not resolved:
                     # create a new static `ResolvedContext` and cache it
@@ -102,7 +102,7 @@ class ContextResolver:
             tag_map[tag] = resolved
         return resolved
 
-    def _resolve_remote_context(self, active_ctx, url, base, cycles):
+    def _resolve_remote_context(self, active_ctx, path, url, base, cycles):
         # resolve relative URL and fetch context
         url = jsonld.prepend_base(base, url)
         context, remote_doc = self._fetch_context(active_ctx, url, cycles)
@@ -112,7 +112,7 @@ class ContextResolver:
         self._resolve_context_urls(context, base)
 
         # resolve, cache, and return context
-        resolved = self.resolve(active_ctx, context, base, cycles)
+        resolved = self.resolve(active_ctx, context, path, base, cycles)
         self._cache_resolved_context(url, resolved, remote_doc.get('tag'))
         return resolved
 
