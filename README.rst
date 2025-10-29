@@ -59,7 +59,7 @@ yet supported.
 Requirements
 ------------
 
-- Python_ (3.8 or later)
+- Python_ (3.10 or later)
 - Requests_ (optional)
 - aiohttp_ (optional, Python 3.5 or later)
 
