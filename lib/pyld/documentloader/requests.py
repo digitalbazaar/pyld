@@ -12,8 +12,7 @@ Remote document loader using Requests.
 import string
 import urllib.parse as urllib_parse
 
-from pyld.jsonld import (JsonLdError, parse_link_header, LINK_HEADER_REL)
-
+from pyld.jsonld import (JsonLdError, parse_link_header, prepend_base, LINK_HEADER_REL)
 
 def requests_document_loader(secure=False, **kwargs):
     """
@@ -28,6 +27,7 @@ def requests_document_loader(secure=False, **kwargs):
     :return: the RemoteDocument loader function.
     """
     import requests
+    import re
 
     def loader(url, options={}):
         """
@@ -69,7 +69,7 @@ def requests_document_loader(secure=False, **kwargs):
                 'contentType': content_type,
                 'contextUrl': None,
                 'documentUrl': response.url,
-                'document': response.json()
+                'document': response.json() if content_type in headers['Accept'] else None
             }
             link_header = response.headers.get('link')
             if link_header:
@@ -92,7 +92,10 @@ def requests_document_loader(secure=False, **kwargs):
                         linked_alternate.get('type') == 'application/ld+json' and
                         not re.match(r'^application\/(\w*\+)?json$', content_type)):
                     doc['contentType'] = 'application/ld+json'
-                    doc['documentUrl'] = jsonld.prepend_base(url, linked_alternate['target'])
+                    doc['documentUrl'] = prepend_base(url, linked_alternate['target'])
+                    if content_type not in headers['Accept']:
+                        # Original was not JSON/JSON-LD; fetch linked JSON-LD
+                        return loader(doc['documentUrl'], options=options)
             return doc
         except JsonLdError as e:
             raise e
