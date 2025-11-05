@@ -168,7 +168,7 @@ class TestResolve:
         assert resolve('', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/d;p?q'
 
     def test_dot_relative_with_complex_base(self):
-        assert resolve('.', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/d;p?q'
+        assert resolve('.', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/'
 
     def test_dot_slash_relative_with_complex_base(self):
         assert resolve('./', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/'
@@ -210,7 +210,7 @@ class TestResolve:
         assert resolve('/../g', 'file:///a/bb/ccc/d;p?q') == 'file:///g'
 
     def test_dot_suffix_relative_with_complex_base(self):
-        assert resolve('g.', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/g'
+        assert resolve('g.', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/g.'
 
     def test_dot_prefix_relative_with_complex_base(self):
         assert resolve('.g', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/.g'
@@ -326,7 +326,7 @@ class TestRemoveDotSegments:
         assert remove_dot_segments('/abc#abcdef') == '/abc#abcdef'
 
     def test_not_modify_paths_in_fragments(self):
-        assert remove_dot_segments('/abc#abcdef') == '/abc#a/bc/def'
+        assert remove_dot_segments('/abc#a/bc/def') == '/abc#a/bc/def'
 
     def test_not_modify_current_paths_in_fragments(self):
         assert remove_dot_segments('/abc#a/./bc/def') == '/abc#a/./bc/def'
