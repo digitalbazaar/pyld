@@ -4,6 +4,10 @@
 
 ### Changed
 - **BREAKING**: Require supported Python version >= 3.10.
+- Update aiohttp document loader to work with Python 3.14.
+  - Minimize async related changes to library code in this release.
+  - In sync environment use `asyncio.run`.
+  - In async environment use background thread.
 
 ## 2.0.4 - 2024-02-16
 
