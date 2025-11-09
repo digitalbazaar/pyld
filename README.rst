@@ -59,7 +59,7 @@ yet supported.
 Requirements
 ------------
 
-- Python_ (3.8 or later)
+- Python_ (3.10 or later)
 - Requests_ (optional)
 - aiohttp_ (optional, Python 3.5 or later)
 
@@ -139,7 +139,7 @@ Quick Examples
     # document transformed into a particular tree structure per the given frame
 
     # normalize a document using the RDF Dataset Normalization Algorithm
-    # (URDNA2015), see: https://json-ld.github.io/normalization/spec/
+    # (URDNA2015), see: https://www.w3.org/TR/rdf-canon/
     normalized = jsonld.normalize(
         doc, {'algorithm': 'URDNA2015', 'format': 'application/n-quads'})
     # normalized is a string that is a canonical representation of the document

@@ -673,6 +673,12 @@ TEST_TYPES = {
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
             'idRegex': [
+                # uncategorized
+                '.*compact-manifest#t0112$',
+                '.*compact-manifest#tm023$',
+                '.*compact-manifest#t0111$',
+                '.*compact-manifest#t0113$',
+                '.*compact-manifest#tc028$',
             ]
         },
         'fn': 'compact',
@@ -709,6 +715,12 @@ TEST_TYPES = {
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
             'idRegex': [
+                # uncategorized
+                '.*expand-manifest#tc036$',
+                '.*expand-manifest#tc037$',
+                '.*expand-manifest#tc038$',
+                '.*expand-manifest#ter54$',
+                '.*expand-manifest#ter56$',
             ]
         },
         'fn': 'expand',
@@ -727,6 +739,8 @@ TEST_TYPES = {
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
             'idRegex': [
+                # uncategorized html
+                '.*html-manifest#tf004$',
             ]
         },
         'fn': 'flatten',
@@ -746,6 +760,8 @@ TEST_TYPES = {
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
             'idRegex': [
+                # uncategorized
+                '.*frame-manifest#t0069$',
             ]
         },
         'fn': 'frame',
@@ -762,6 +778,8 @@ TEST_TYPES = {
                 # direction (compound-literal)
                 '.*fromRdf-manifest#tdi11$',
                 '.*fromRdf-manifest#tdi12$',
+                # uncategorized
+                '.*fromRdf-manifest#t0027$',
             ]
         },
         'fn': 'from_rdf',
@@ -794,6 +812,14 @@ TEST_TYPES = {
                 # well formed
                 '.*toRdf-manifest#twf05$',
                 '.*toRdf-manifest#twf06$',
+                # uncategorized
+                '.*toRdf-manifest#tc038$',
+                '.*toRdf-manifest#ter54$',
+                '.*toRdf-manifest#ter56$',
+                '.*toRdf-manifest#tli12$',
+                '.*toRdf-manifest#tli14$',
+                '.*toRdf-manifest#tc036$',
+                '.*toRdf-manifest#tc037$',
             ]
         },
         'skip': {

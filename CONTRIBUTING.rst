@@ -35,8 +35,18 @@ Release Process
 To ensure a clean `package <https://pypi.org/project/PyLD/>`_ upload to PyPI_,
 use a clean checkout, and run the following:
 
+* For more info, look at the packaging
+  `guide <https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/>`_.
+* Setup an `API token <https://pypi.org/help/#apitoken>`_.  Recommend using a
+  specific "PyLD" token and set it up as a "repository" in your
+  `~/.pypirc <https://packaging.python.org/en/latest/specifications/pypirc/>`_
+  for use in the upload command.
+* The below builds and uploads a sdist and wheel. Adjust as needed depending
+  on how you manage and clean "dist/" dir files.
 * ``git checkout {version}``
-* ``python setup.py sdist upload``
+* ``python3 -m build``
+* ``twine check dist/*``
+* ``twine upload -r PyLD dist/*``
 
 Implementation Report Process
 -----------------------------
