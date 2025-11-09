@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # Update specifications' submodules
+  # https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+  - package-ecosystem: "submodules"
+    directory: "/"
+    schedule:
+      interval: "weekly"
