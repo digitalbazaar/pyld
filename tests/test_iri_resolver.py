@@ -1,7 +1,8 @@
 import pytest
-from pyld.iri_resolver import resolve, remove_dot_segments 
+from pyld.iri_resolver import resolve, unresolve, remove_dot_segments 
 
 # Tests ported from relative-to-absolute-iri.js: https://github.com/rubensworks/relative-to-absolute-iri.js/blob/master/test/Resolve-test.ts
+# (c) Ruben Taelman <stevenlevithan.com>
 
 # ---------- Tests for resolve() ----------
 class TestResolve:
@@ -274,6 +275,49 @@ class TestResolve:
 
     def test_questionmark_prefix_relative_with_complex_base_with_dot(self):
         assert resolve('?y','http://a/bb/ccc/./d;p?q') == 'http://a/bb/ccc/./d;p?y'
+
+# ---------- Tests for unresolve() ----------
+class TestUnresolve:
+    def test_absolute_iri_no_base(self):
+        assert unresolve('http://example.org/') == 'http://example.org/'
+
+    def test_absolute_iri_empty_base(self):
+        assert unresolve('http://example.org/', '') == 'http://example.org/'
+
+    def test_absolute_iri_with_base(self):
+        assert unresolve('http://example.org/', 'http://base.org/') == 'http://example.org/'
+
+    def test_empty_value_uses_base(self):
+        assert unresolve('', 'http://base.org/') == ''
+
+    def test_absolute_with_base(self):
+        assert unresolve('http://base.org/abc', 'http://base.org/') == 'abc'
+
+    def test_absolute_with_fragment_base(self):
+        assert unresolve('http://base.org/abc', 'http://base.org/#frag') == 'abc'
+
+    def test_hash_absolute(self):
+        assert unresolve('http://base.org/#abc', 'http://base.org/') == '#abc'
+
+    def test_colon_in_value_ignores_base(self):
+        assert unresolve('http:abc', 'http://base.org/') == 'http:abc'
+
+    def test_colon_in_value_removes_dots(self):
+        assert unresolve('http://abc/../../', 'http://base.org/') == 'http://abc/'
+
+    # def test_non_absolute_base_error(self):
+    #     with pytest.raises(ValueError, match=r"Found invalid baseIRI 'def' for value 'abc'"):
+    #         unresolve('abc', 'def')
+
+    # def test_non_absolute_base_empty_value_error(self):
+    #     with pytest.raises(ValueError, match=r"Found invalid baseIRI 'def' for value ''"):
+    #         unresolve('', 'def')
+
+    def test_base_without_path_slash(self):
+        assert unresolve('http://base.org/abc', 'http://base.org') == 'abc'
+
+    def test_base_with_path_slash(self):
+        assert unresolve('http://base.org/abc/', 'http://base.org') == 'abc/'
 
 # ---------- Tests for remove_dot_segments() ----------
 class TestRemoveDotSegments:

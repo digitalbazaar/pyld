@@ -1,6 +1,11 @@
 """
-The functions 'remove_dot_segments()', 'resolve()' and 'is_character_allowed_after_relative_path_segment()' are direct ports from [relative-to-absolute-iri.js](https://github.com/rubensworks/relative-to-absolute-iri.js)
+- The functions 'remove_dot_segments()', 'resolve()' and 'is_character_allowed_after_relative_path_segment()' are direct ports from [relative-to-absolute-iri.js](https://github.com/rubensworks/relative-to-absolute-iri.js) (c) Ruben Taelman <ruben.taelman@ugent.be>
+- The 'unresolve()' function is a move and rename of the 'remove_base()' function from 'jsonld.py'
 """
+
+from collections import namedtuple
+import re
+
 
 def is_character_allowed_after_relative_path_segment(ch: str) -> bool:
     """Return True if a character is valid after '.' or '..' in a path segment."""
@@ -205,3 +210,78 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
     relative_iri = remove_dot_segments(relative_iri)
 
     return base_iri[:base_slash_after_colon_pos] + relative_iri
+
+def unresolve(absolute_iri: str, base_iri: str = ""):
+    """
+    Unresolves a given absolute IRI to an IRI relative to the given base IRI.
+
+    :param base: the base IRI.
+    :param iri: the absolute IRI.
+
+    :return: the relative IRI if relative to base, otherwise the absolute IRI.
+    """
+    # TODO: better sync with jsonld.js version
+    # skip IRI processing
+    if base_iri is None:
+        return absolute_iri
+
+    base = parse_url(base_iri)
+    rel = parse_url(absolute_iri)
+
+    # schemes and network locations (authorities) don't match, don't alter IRI
+    if not (base.scheme == rel.scheme and base.authority == rel.authority):
+        return absolute_iri
+
+    # remove path segments that match (do not remove last segment unless there
+    # is a hash or query
+    base_segments = remove_dot_segments(base.path).split('/')
+    iri_segments = remove_dot_segments(rel.path).split('/')
+    last = 0 if (rel.fragment or rel.query) else 1
+    while (len(base_segments) and len(iri_segments) > last and
+            base_segments[0] == iri_segments[0]):
+        base_segments.pop(0)
+        iri_segments.pop(0)
+
+    # use '../' for each non-matching base segment
+    rval = ''
+    if len(base_segments):
+        # don't count the last segment (if it ends with '/' last path doesn't
+        # count and if it doesn't end with '/' it isn't a path)
+        base_segments.pop()
+        rval += '../' * len(base_segments)
+
+    # prepend remaining segments
+    rval += '/'.join(iri_segments)
+
+    return unparse_url((None, None, rval, rel.query, rel.fragment)) or './'
+
+ParsedUrl = namedtuple(
+    'ParsedUrl', ['scheme', 'authority', 'path', 'query', 'fragment'])
+
+def parse_url(url):
+    # regex from RFC 3986
+    p = r'^(?:([^:/?#]+):)?(?://([^/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?'
+    m = re.match(p, url)
+    # remove default http and https ports
+    g = list(m.groups())
+    if ((g[0] == 'https' and g[1].endswith(':443')) or
+            (g[0] == 'http' and g[1].endswith(':80'))):
+        g[1] = g[1][:g[1].rfind(':')]
+    return ParsedUrl(*g)
+
+def unparse_url(parsed):
+    if isinstance(parsed, dict):
+        parsed = ParsedUrl(**parsed)
+    elif isinstance(parsed, list) or isinstance(parsed, tuple):
+        parsed = ParsedUrl(*parsed)
+    rval = ''
+    if parsed.scheme:
+        rval += parsed.scheme + ':'
+    if parsed.authority is not None:
+        rval += '//' + parsed.authority
+    rval += parsed.path
+    if parsed.query is not None:
+        rval += '?' + parsed.query
+    if parsed.fragment is not None:
+        rval += '#' + parsed.fragment
+    return rval
