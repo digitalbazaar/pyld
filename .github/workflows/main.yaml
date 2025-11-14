@@ -6,16 +6,11 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    strategy:
-      matrix:
-        python-version:
-          - '3.14'
     steps:
     - uses: actions/checkout@v5
-    - name: Use Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+    - uses: actions/setup-python@v6
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.14'
         cache: 'pip'
     - name: Install testing dependencies
       run: |
@@ -26,8 +21,6 @@ jobs:
       continue-on-error: true
       run: |
         flake8 lib/pyld tests --count --show-source --statistics
-      env:
-        LOADER: ${{ matrix.loader }}
   test:
     runs-on: ubuntu-latest
     needs: [lint]
