@@ -43,6 +43,17 @@ Key classes and functions
 .. moduleauthor:: Olaf Conradi <olaf@conradi.org>
 """
 
+# TODO: The code below contains a small CLI test-runner (`TestRunner`), a
+# unittest-based `EarlTestResult`, and the `__main__` entrypoint. This file
+# is still kept to reuse `Manifest`, `Test` and `EarlReport` from the
+# original runner, but when running under `pytest` the separate
+# `tests/conftest.py` + `tests/test_manifests.py` integration is used to
+# drive tests. The `TestRunner` and `EarlTestResult` blocks can be removed
+# (or converted to a separate backward-compatibility script) once the
+# pytest migration is complete.
+# Also, the module docstring can be updated to reflect the pytest-based
+# testing approach once the legacy runner is removed.
+
 import datetime
 import json
 import os
@@ -50,6 +61,10 @@ import sys
 import traceback
 import unittest
 import re
+# NOTE: ArgumentParser and TextTestResult were used by the original
+# TestRunner / EarlTestResult classes. They are obsolete because
+# pytest now provides the test harness; these imports can be removed
+# once the legacy CLI runner is deleted.
 from argparse import ArgumentParser
 from unittest import TextTestResult
 
@@ -63,16 +78,21 @@ ROOT_MANIFEST_DIR = None
 SKIP_TESTS = []
 ONLY_IDENTIFIER = None
 
+# `LOCAL_BASES` lists remote bases used by the official JSON-LD test
+# repositories. When a test refers to a URL starting with one of these
+# bases the runner attempts to map that URL to a local file in the
+# test-suite tree (when possible) so tests can be run offline.
+
+
 LOCAL_BASES = [
     'https://w3c.github.io/json-ld-api/tests',
     'https://w3c.github.io/json-ld-framing/tests',
     'https://github.com/json-ld/normalization/tests'
 ]
 
-# `LOCAL_BASES` lists remote bases used by the official JSON-LD test
-# repositories. When a test refers to a URL starting with one of these
-# bases the runner attempts to map that URL to a local file in the
-# test-suite tree (when possible) so tests can be run offline.
+# NOTE: The following TestRunner class can be removed because pytest now
+# provides the test harness; this class can be removed once the legacy
+# CLI runner is deleted.
 
 class TestRunner(unittest.TextTestRunner):
     """
@@ -94,7 +114,7 @@ class TestRunner(unittest.TextTestRunner):
 
     def main(self):
         print('PyLD Tests')
-        print('Use -h or --help to view options.\n')
+        print('Use -h or --help to view options.\\n')
 
         # add program options
         self.parser.add_argument('tests', metavar='TEST', nargs='*',
@@ -715,7 +735,9 @@ def create_document_loader(test):
 
     return local_loader
 
-
+# NOTE: The EarlTestResult class can be removed because pytest now
+# provides the test harness; this class can be removed once the legacy
+# CLI runner is deleted.
 class EarlTestResult(TextTestResult):
     """
     A `TextTestResult` subclass that records EARL assertions as tests run.
@@ -1054,5 +1076,8 @@ TEST_TYPES = {
 }
 
 
+# NOTE: The legacy command-line entrypoint can be removed because pytest is used to
+# run the test-suite. Keep this here for reference; it can be removed once
+# the pytest migration is finalized.
 if __name__ == '__main__':
     TestRunner(verbosity=2).main()
