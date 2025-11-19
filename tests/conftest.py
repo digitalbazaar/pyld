@@ -72,7 +72,7 @@ def pytest_generate_tests(metafunc):
     if len(test_targets) == 0:
         pytest.skip('No test manifest or directory specified (use --tests)')
 
-    # Build a root manifest structure like the original runner did.
+    # Build a root manifest structure with target files and dirs (equivalent to the original runner).
     root_manifest = {
         '@context': 'https://w3c.github.io/tests/context.jsonld',
         '@id': '',
@@ -105,13 +105,12 @@ def pytest_generate_tests(metafunc):
 
 
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
-def pytest_runtest_makereport(item, call):
+def pytest_runtest_makereport(item):
     # Hookwrapper gives us the final test report via `outcome.get_result()`.
     outcome = yield
     rep = outcome.get_result()
-    # We handle failures/errors that occur during setup as well as the
-    # main call phase so EARL reflects tests that fail before the test
-    # body runs. We intentionally do not record skipped tests to match
+    
+    # We only handle the main call phase to match
     # the behaviour of the original runner which only reported passes
     # and failures/errors.
     if rep.when not in ('call'):
