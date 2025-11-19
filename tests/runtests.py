@@ -1,9 +1,43 @@
 #!/usr/bin/env python
 """
-Test runner for JSON-LD.
+Test runner for the JSON-LD test-suite.
+
+This module provides a small command-line test harness used to execute the
+JSON-LD test manifests that accompany the project and to produce an EARL
+(Evaluation and Report Language) report summarizing results.
+
+Behavior and features
+- Loads one or more JSON-LD test manifest files (or directories containing a
+    `manifest.jsonld`) and constructs a `unittest.TestSuite` from the entries.
+- Supports running tests from the local test directories bundled with the
+    repository or from manifests passed on the command line.
+- Uses the `pyld` library under test to run each test case (expand, compact,
+    frame, normalize, to_rdf, etc.), then compares results against expected
+    outputs. Comparison is order-insensitive where appropriate.
+- Can write an EARL report using `--earl <file>` for CI / interoperability
+    with W3C testing tools.
+
+Usage
+- Run the script directly: `python tests/runtests.py [MANIFEST_OR_DIR ...]`
+- Common options (see `-h` for full list):
+    - `-e, --earl <file>` : write an EARL report to `<file>`
+    - `-b, --bail`       : stop at the first failing test
+    - `-l, --loader`     : choose the network loader (`requests` or `aiohttp`)
+    - `-n, --number`     : focus on tests containing the given test identifier
+    - `-v, --verbose`    : print verbose test data
+
+Key classes and functions
+- `TestRunner`: command-line entrypoint; builds the root manifest and runs the
+    test suite.
+- `Manifest`: loads a manifest document and converts its entries into
+    `unittest.TestSuite` / `Test` instances.
+- `Test` (subclass of `unittest.TestCase`): encapsulates execution and
+    verification logic for a single JSON-LD test case.
+- Utility helpers: `read_json`, `read_file`, `create_document_loader`, and
+    `equalUnordered` (used for order-insensitive comparisons).
 
 .. module:: runtests
-  :synopsis: Test harness for pyld
+    :synopsis: Test harness for pyld
 
 .. moduleauthor:: Dave Longley
 .. moduleauthor:: Olaf Conradi <olaf@conradi.org>
@@ -35,6 +69,11 @@ LOCAL_BASES = [
     'https://github.com/json-ld/normalization/tests'
 ]
 
+# `LOCAL_BASES` lists remote bases used by the official JSON-LD test
+# repositories. When a test refers to a URL starting with one of these
+# bases the runner attempts to map that URL to a local file in the
+# test-suite tree (when possible) so tests can be run offline.
+
 class TestRunner(unittest.TextTestRunner):
     """
     Loads test manifests and runs tests.
@@ -44,7 +83,9 @@ class TestRunner(unittest.TextTestRunner):
         unittest.TextTestRunner.__init__(
             self, stream, descriptions, verbosity)
 
-        # command line args
+        # The runner uses an ArgumentParser to accept a list of manifests or
+        # test directories and several runner-specific flags (e.g. which
+        # document loader to use or whether to bail on failure).
         self.options = {}
         self.parser = ArgumentParser()
 
@@ -81,6 +122,11 @@ class TestRunner(unittest.TextTestRunner):
             jsonld._default_document_loader = jsonld.requests_document_loader()
         elif self.options.loader == 'aiohttp':
             jsonld._default_document_loader = jsonld.aiohttp_document_loader()
+
+        # The document loader drives how remote HTTP documents are fetched.
+        # Tests can choose to run using the 'requests' based loader or the
+        # 'aiohttp' async loader; here we select the default based on the
+        # CLI option.
 
         # config runner
         self.failfast = self.options.bail
@@ -143,6 +189,9 @@ class TestRunner(unittest.TextTestRunner):
         global ROOT_MANIFEST_DIR
         #ROOT_MANIFEST_DIR = os.path.dirname(root_manifest['filename'])
         ROOT_MANIFEST_DIR = root_manifest['filename']
+        # Build a Manifest object from the root manifest structure. The
+        # Manifest will recursively load manifests and produce a
+        # `unittest.TestSuite` containing all discovered tests.
         suite = Manifest(root_manifest, root_manifest['filename']).load()
 
         # run tests
@@ -189,16 +238,29 @@ class Manifest:
             if is_jsonld_type(entry, 'mf:Manifest'):
                 self.suite = unittest.TestSuite(
                     [self.suite, Manifest(entry, filename).load()])
+            # If the entry is itself a manifest, recurse into it and
+            # append its TestSuite. This mirrors the structure of the
+            # W3C test manifests where manifests can include other
+            # manifests via 'entries' or 'sequence'.
             # don't add tests that are not focused
 
             # assume entry is a test
             elif not ONLY_IDENTIFIER or ONLY_IDENTIFIER in entry['@id']:
                 self.suite.addTest(Test(self, entry, filename))
 
+            # For simple test entries we construct a `Test` object which
+            # wraps the execution and assertion logic for that test case.
+
         return self.suite
 
 
 class Test(unittest.TestCase):
+    """
+    # A Test instance stores the manifest and test description (as
+    # loaded from the JSON-LD manifest). The boolean flags below are
+    # used to distinguish positive/negative/syntax tests so the
+    # runner knows whether an exception is the expected outcome.
+    """
     def __init__(self, manifest, data, filename):
         unittest.TestCase.__init__(self)
         #self.maxDiff = None
@@ -263,6 +325,10 @@ class Test(unittest.TestCase):
                 os.path.basename(str.replace(manifest.filename, '.jsonld', '')) + data['@id'])
             self.base = self.manifest.data['baseIri'] + data['input']
 
+        # When manifests define a `baseIri` the runner patches the test
+        # `@id` and computes a `base` URL used by the document loader so
+        # relative references are resolved consistently during testing.
+
         # skip based on id regular expression
         skip_id_re = test_info.get('skip', {}).get('idRegex', [])
         for regex in skip_id_re:
@@ -300,6 +366,11 @@ class Test(unittest.TestCase):
             if re.match(regex, data.get('@id', data.get('id', ''))):
                 data['runLocal'] = True
 
+        # Tests listed under 'runLocal' are forced to use the local file
+        # loader variant rather than fetching remote URLs. This is useful
+        # for reproducing the official test-suite behavior without network
+        # access.
+
     def runTest(self):
         data = self.data
         global TEST_TYPES
@@ -315,8 +386,20 @@ class Test(unittest.TestCase):
         else:
             expect = read_test_property(self._get_expect_property())(self)
 
+        # The following try/except handles three primary scenarios:
+        # - Positive tests: compute the result and compare to expected JSON
+        #   (order-insensitive where appropriate).
+        # - Negative tests: assert that the library raises the expected
+        #   JSON-LD error code.
+        # - Pending tests: tests expected to fail are marked 'pending' and
+        #   their unexpected success is reported specially.
+
         try:
             result = getattr(jsonld, fn)(*params)
+            # Invoke the tested pyld function (e.g. `expand`, `compact`,
+            # `normalize`). `fn` is the function name and `params` is a
+            # list of callables that are invoked with `self` to produce
+            # the actual arguments (this allows lazy file loading).
             if self.is_negative and not self.pending:
                 raise AssertionError('Expected an error; one was not raised')
             if self.is_syntax and not self.pending:
@@ -382,6 +465,11 @@ class Test(unittest.TestCase):
 
 # Compare values with order-insensitive array tests
 def equalUnordered(result, expect):
+    """
+    `equalUnordered` implements a simple structural equivalence check that
+    ignores ordering in lists. It is used to compare JSON-LD results where
+    arrays are considered unordered by the test-suite semantics.
+    """
     if isinstance(result, list) and isinstance(expect, list):
         return(len(result) == len(expect) and
             all(any(equalUnordered(v1, v2) for v2 in expect) for v1 in result))
@@ -390,6 +478,8 @@ def equalUnordered(result, expect):
             all(k in expect and equalUnordered(v, expect[k]) for k, v in result.items()))
     else:
         return(result == expect)
+
+
 
 def is_jsonld_type(node, type_):
     node_types = []
@@ -400,6 +490,20 @@ def is_jsonld_type(node, type_):
 
 
 def get_jsonld_values(node, property):
+    """
+    Safely extract a (possibly multi-valued) property from a JSON-LD node.
+
+    The JSON-LD manifests sometimes use single values or lists for the same
+    properties. This helper returns a list in either case so callers can
+    uniformly iterate over the returned value.
+
+    Args:
+        node: dict-like JSON-LD node.
+        property: property name to extract (string).
+
+    Returns:
+        A list of values for the property (empty list if property missing).
+    """
     rval = []
     if property in node:
         rval = node[property]
@@ -409,6 +513,13 @@ def get_jsonld_values(node, property):
 
 
 def get_jsonld_error_code(err):
+    """
+    Walk a JsonLdError chain to extract the most specific error `code`.
+
+    Many pyld error types wrap a cause. This helper attempts to return the
+    structured `code` attribute from a `jsonld.JsonLdError` (if present),
+    otherwise it falls back to stringifying the exception.
+    """
     if isinstance(err, jsonld.JsonLdError):
         if err.code:
             return err.code
@@ -418,11 +529,22 @@ def get_jsonld_error_code(err):
 
 
 def read_json(filename):
+    """Read and parse a JSON file from `filename`.
+
+    Returns the parsed Python object.
+    """
     with open(filename) as f:
         return json.load(f)
 
 
 def read_file(filename):
+    """Read a file and return its contents as text.
+
+    This wrapper ensures consistent text handling across Python 2/3 by
+    decoding bytes for older Python versions. In the current project we
+    expect Python 3, but the compatibility guard is kept to match the
+    original test-runner behavior.
+    """
     with open(filename) as f:
         if sys.version_info[0] >= 3:
             return f.read()
@@ -431,6 +553,14 @@ def read_file(filename):
 
 
 def read_test_url(property):
+    """
+    Return a callable that reads a URL-like property from a test entry.
+
+    Some test entries store input locations as relative paths resolved
+    against the manifest's `baseIri`. This factory returns a function that
+    accepts a `Test` instance and returns the fully-resolved URL (or
+    `None` if the property is missing).
+    """
     def read(test):
         if property not in test.data:
             return None
@@ -442,6 +572,15 @@ def read_test_url(property):
 
 
 def read_test_property(property):
+    """
+    Return a callable that reads a test-local property and returns either
+    parsed JSON (for `.jsonld`) or raw text.
+
+    The returned function accepts a `Test` instance and resolves the
+    filename relative to the test's directory. If the file ends with
+    `.jsonld` it is parsed as JSON; otherwise the raw file contents are
+    returned.
+    """
     def read(test):
         if property not in test.data:
             return None
@@ -454,6 +593,15 @@ def read_test_property(property):
 
 
 def create_test_options(opts=None):
+    """
+    Factory returning a function that builds options for a pyld API call.
+
+    The returned callable accepts a `Test` instance and produces the
+    options dictionary consumed by functions such as `expand`/`compact`.
+    It merges explicit test `option` values with any additional `opts`
+    passed to the factory, wires in the test-specific `documentLoader`,
+    and resolves `expandContext` files when present.
+    """
     def create(test):
         http_options = ['contentType', 'httpLink', 'httpStatus', 'redirectTo']
         test_options = test.data.get('option', {})
@@ -471,7 +619,17 @@ def create_test_options(opts=None):
 
 
 def create_document_loader(test):
+    """
+    create_document_loader returns a callable compatible with the JSON-LD
+    API's document loader interface. The returned `local_loader` will
+    decide whether to load a URL from the local test-tree (mapping
+    `LOCAL_BASES` to local files) or delegate to the normal network
+    loader. This enables deterministic tests without requiring network
+    access for suite-hosted resources.
+    """
     loader = jsonld.get_document_loader()
+
+    
 
     def is_test_suite_url(url):
         return any(url.startswith(base) for base in LOCAL_BASES)
@@ -559,6 +717,14 @@ def create_document_loader(test):
 
 
 class EarlTestResult(TextTestResult):
+    """
+    A `TextTestResult` subclass that records EARL assertions as tests run.
+
+    This result object forwards normal test outcome bookkeeping to the
+    base `TextTestResult` and additionally records each assertion in an
+    `EarlReport` instance so a machine-readable report can be emitted at
+    the end of a test run.
+    """
     def __init__(self, stream, descriptions, verbosity):
         TextTestResult.__init__(self, stream, descriptions, verbosity)
         self.report = EarlReport()
@@ -585,11 +751,16 @@ class EarlReport():
     """
 
     def __init__(self):
+        # Load package metadata (version) from the library's __about__.py
         about = {}
         with open(os.path.join(
                 os.path.dirname(__file__), '..', 'lib', 'pyld', '__about__.py')) as fp:
             exec(fp.read(), about)
+        # Timestamp used for test results
         self.now = datetime.datetime.utcnow().replace(microsecond=0)
+        # Build the base EARL report structure. The report is a JSON-LD
+        # document describing the project and the assertions made about
+        # test outcomes.
         self.report = {
             '@context': {
                 'doap': 'http://usefulinc.com/ns/doap#',
@@ -640,6 +811,8 @@ class EarlReport():
         }
 
     def add_assertion(self, test, success):
+        # Append an EARL assertion describing a single test outcome. The
+        # `earl:outcome` is either `earl:passed` or `earl:failed`.
         self.report['subjectOf'].append({
             '@type': 'earl:Assertion',
             'earl:assertedBy': self.report['doap:developer']['@id'],
@@ -654,6 +827,7 @@ class EarlReport():
         return self
 
     def write(self, filename):
+        # Serialize the EARL report as pretty-printed JSON-LD.
         with open(filename, 'w') as f:
             f.write(json.dumps(self.report, indent=2))
             f.close()
