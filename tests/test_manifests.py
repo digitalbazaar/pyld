@@ -4,7 +4,6 @@ import unittest
 # Reuse the existing Test wrapper from `runtests.py`. The pytest test
 # simply calls `setUp()` and `runTest()` on the original Test instance
 # so that all existing behavior and comparison logic remains unchanged.
-from . import runtests
 
 
 def _call_test(testcase):
