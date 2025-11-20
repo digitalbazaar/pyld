@@ -3661,12 +3661,33 @@ class JsonLdProcessor(object):
             elif _is_bool(value):
                 object['value'] = 'true' if value else 'false'
                 object['datatype'] = datatype or XSD_BOOLEAN
-            elif _is_double(value) or datatype == XSD_DOUBLE:
-                # canonical double representation
-                object['value'] = re.sub(
-                    r'(\d)0*E\+?0*(\d)', r'\1E\2',
-                    ('%1.15E' % value))
-                object['datatype'] = datatype or XSD_DOUBLE
+
+            elif _is_double(value):
+                return {
+                    **object,
+                    'value': _canonicalize_double(value),
+                    'datatype': datatype or XSD_DOUBLE,
+                }
+
+            elif datatype == XSD_DOUBLE:
+                # Since the previous branch did not activate, we know that `value` is not a float number.
+                try:
+                    float_value = float(value)
+                except (ValueError, TypeError):
+                    # If `value` is not convertible to float, we will return it as-is.
+                    return {
+                        **object,
+                        'value': value,
+                        'datatype': XSD_DOUBLE,
+                    }
+                else:
+                    # We have a float, and canonicalization may proceed.
+                    return {
+                        **object,
+                        'value': _canonicalize_double(float_value),
+                        'datatype': XSD_DOUBLE,
+                    }
+
             elif _is_integer(value):
                 object['value'] = str(value)
                 object['datatype'] = datatype or XSD_INTEGER
@@ -6388,6 +6409,13 @@ def _is_double(v):
     :return: True if the value is a Double, False if not.
     """
     return not isinstance(v, Integral) and isinstance(v, Real)
+
+
+def _canonicalize_double(value: float) -> str:
+    """Convert a float value to canonical lexical form of `xsd:double`."""
+    return re.sub(
+        r'(\d)0*E\+?0*(\d)', r'\1E\2',
+        ('%1.15E' % value))
 
 
 def _is_numeric(v):
