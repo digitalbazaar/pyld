@@ -222,10 +222,14 @@ def unresolve(absolute_iri: str, base_iri: str = ""):
     """
     # TODO: better sync with jsonld.js version
     # skip IRI processing
-    if base_iri is None:
+    if not base_iri:
         return absolute_iri
 
     base = parse_url(base_iri)
+
+    if not base.scheme:
+        raise ValueError(f"Found invalid baseIRI '{base_iri}' for value '{absolute_iri}'")
+    
     rel = parse_url(absolute_iri)
 
     # schemes and network locations (authorities) don't match, don't alter IRI
@@ -264,7 +268,8 @@ def parse_url(url):
     m = re.match(p, url)
     # remove default http and https ports
     g = list(m.groups())
-    if ((g[0] == 'https' and g[1].endswith(':443')) or
+    
+    if g[1] is not None and ((g[0] == 'https' and g[1].endswith(':443')) or
             (g[0] == 'http' and g[1].endswith(':80'))):
         g[1] = g[1][:g[1].rfind(':')]
     return ParsedUrl(*g)
