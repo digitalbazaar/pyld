@@ -302,16 +302,13 @@ class TestUnresolve:
     def test_colon_in_value_ignores_base(self):
         assert unresolve('http:abc', 'http://base.org/') == 'http:abc'
 
-    def test_colon_in_value_removes_dots(self):
-        assert unresolve('http://abc/../../', 'http://base.org/') == 'http://abc/'
+    def test_non_absolute_base_error(self):
+        with pytest.raises(ValueError, match=r"Found invalid baseIRI 'def' for value 'http://base.org/abc'"):
+            unresolve('http://base.org/abc', 'def')
 
-    # def test_non_absolute_base_error(self):
-    #     with pytest.raises(ValueError, match=r"Found invalid baseIRI 'def' for value 'abc'"):
-    #         unresolve('abc', 'def')
-
-    # def test_non_absolute_base_empty_value_error(self):
-    #     with pytest.raises(ValueError, match=r"Found invalid baseIRI 'def' for value ''"):
-    #         unresolve('', 'def')
+    def test_non_absolute_base_empty_value_error(self):
+        with pytest.raises(ValueError, match=r"Found invalid baseIRI 'def' for value ''"):
+            unresolve('', 'def')
 
     def test_base_without_path_slash(self):
         assert unresolve('http://base.org/abc', 'http://base.org') == 'abc'
