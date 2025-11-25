@@ -10,7 +10,7 @@ Context Resolver for managing remote contexts.
 
 from frozendict import frozendict
 from c14n.Canonicalize import canonicalize
-from pyld import jsonld
+from pyld import jsonld, iri_resolver
 from .resolved_context import ResolvedContext
 
 MAX_CONTEXT_URLS = 10
@@ -104,7 +104,7 @@ class ContextResolver:
 
     def _resolve_remote_context(self, active_ctx, url, base, cycles):
         # resolve relative URL and fetch context
-        url = jsonld.prepend_base(base, url)
+        url = iri_resolver.resolve(url, base)
         context, remote_doc = self._fetch_context(active_ctx, url, cycles)
 
         # update base according to remote document and resolve any relative URLs
@@ -194,13 +194,13 @@ class ContextResolver:
         ctx = context.get('@context')
 
         if isinstance(ctx, str):
-            context['@context'] = jsonld.prepend_base(base, ctx)
+            context['@context'] = iri_resolver.resolve(ctx, base)
             return
 
         if isinstance(ctx, list):
             for num, element in enumerate(ctx):
                 if isinstance(element, str):
-                    ctx[num] = jsonld.prepend_base(base, element)
+                    ctx[num] = iri_resolver.resolve(element, base)
                 elif isinstance(element, dict) or isinstance(element, frozendict):
                     self. _resolve_context_urls({'@context': element}, base)
             return
