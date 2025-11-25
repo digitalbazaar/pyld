@@ -31,7 +31,7 @@ import lxml.html
 from numbers import Integral, Real
 from frozendict import frozendict
 from pyld.__about__ import (__copyright__, __license__, __version__)
-from .iri_resolver import resolve 
+from .iri_resolver import parse_url, resolve, unresolve
 
 def cmp(a, b):
     return (a > b) - (a < b)
@@ -442,134 +442,6 @@ def unregister_rdf_parser(content_type):
     global _rdf_parsers
     if content_type in _rdf_parsers:
         del _rdf_parsers[content_type]
-
-
-def remove_base(base, iri):
-    """
-    Removes a base IRI from the given absolute IRI.
-
-    :param base: the base IRI.
-    :param iri: the absolute IRI.
-
-    :return: the relative IRI if relative to base, otherwise the absolute IRI.
-    """
-    # TODO: better sync with jsonld.js version
-    # skip IRI processing
-    if base is None:
-        return iri
-
-    base = parse_url(base)
-    rel = parse_url(iri)
-
-    # schemes and network locations (authorities) don't match, don't alter IRI
-    if not (base.scheme == rel.scheme and base.authority == rel.authority):
-        return iri
-
-    # remove path segments that match (do not remove last segment unless there
-    # is a hash or query
-    base_segments = remove_dot_segments(base.path).split('/')
-    iri_segments = remove_dot_segments(rel.path).split('/')
-    last = 0 if (rel.fragment or rel.query) else 1
-    while (len(base_segments) and len(iri_segments) > last and
-            base_segments[0] == iri_segments[0]):
-        base_segments.pop(0)
-        iri_segments.pop(0)
-
-    # use '../' for each non-matching base segment
-    rval = ''
-    if len(base_segments):
-        # don't count the last segment (if it ends with '/' last path doesn't
-        # count and if it doesn't end with '/' it isn't a path)
-        base_segments.pop()
-        rval += '../' * len(base_segments)
-
-    # prepend remaining segments
-    rval += '/'.join(iri_segments)
-
-    return unparse_url((None, None, rval, rel.query, rel.fragment)) or './'
-
-
-def remove_dot_segments(path):
-    """
-    Removes dot segments from a URL path.
-
-    :param path: the path to remove dot segments from.
-
-    :return: a path with normalized dot segments.
-    """
-
-    # RFC 3986 5.2.4 (reworked)
-
-    # empty path shortcut
-    if len(path) == 0:
-        return ''
-
-    input = path.split('/')
-    output = []
-
-    while len(input) > 0:
-        next = input.pop(0)
-        done = len(input) == 0
-
-        if next == '.':
-            if done:
-                # ensure output has trailing /
-                output.append('')
-            continue
-
-        if next == '..':
-            if len(output) > 0:
-                output.pop()
-            if done:
-                # ensure output has trailing /
-                output.append('')
-            continue
-
-        output.append(next)
-
-    # ensure output has leading /
-    # merge path segments from section 5.2.3
-    # note that if the path includes no segments, the entire path is removed
-    if len(output) > 0 and path.startswith('/') and output[0] != '':
-        output.insert(0, '')
-    if len(output) == 1 and output[0] == '':
-        return '/'
-
-    return '/'.join(output)
-
-
-ParsedUrl = namedtuple(
-    'ParsedUrl', ['scheme', 'authority', 'path', 'query', 'fragment'])
-
-
-def parse_url(url):
-    # regex from RFC 3986
-    p = r'^(?:([^:/?#]+):)?(?://([^/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?'
-    m = re.match(p, url)
-    # remove default http and https ports
-    g = list(m.groups())
-    if ((g[0] == 'https' and g[1].endswith(':443')) or
-            (g[0] == 'http' and g[1].endswith(':80'))):
-        g[1] = g[1][:g[1].rfind(':')]
-    return ParsedUrl(*g)
-
-
-def unparse_url(parsed):
-    if isinstance(parsed, dict):
-        parsed = ParsedUrl(**parsed)
-    elif isinstance(parsed, list) or isinstance(parsed, tuple):
-        parsed = ParsedUrl(*parsed)
-    rval = ''
-    if parsed.scheme:
-        rval += parsed.scheme + ':'
-    if parsed.authority is not None:
-        rval += '//' + parsed.authority
-    rval += parsed.path
-    if parsed.query is not None:
-        rval += '?' + parsed.query
-    if parsed.fragment is not None:
-        rval += '#' + parsed.fragment
-    return rval
 
 
 class JsonLdProcessor(object):
@@ -4814,9 +4686,9 @@ class JsonLdProcessor(object):
                 if active_ctx['@base'] is None:
                     return iri
                 else:
-                    return remove_base(resolve(active_ctx['@base'], base), iri)
+                    return unresolve(iri, resolve(active_ctx['@base'], base))
             else:
-                return remove_base(base, iri)
+                return unresolve(iri, base)
 
         # return IRI as is
         return iri
