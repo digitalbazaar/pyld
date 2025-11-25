@@ -31,6 +31,7 @@ import lxml.html
 from numbers import Integral, Real
 from frozendict import frozendict
 from pyld.__about__ import (__copyright__, __license__, __version__)
+from .iri_resolver import resolve 
 
 def cmp(a, b):
     return (a > b) - (a < b)
@@ -441,80 +442,6 @@ def unregister_rdf_parser(content_type):
     global _rdf_parsers
     if content_type in _rdf_parsers:
         del _rdf_parsers[content_type]
-
-
-def prepend_base(base, iri):
-    """
-    Prepends a base IRI to the given relative IRI.
-
-    :param base: the base IRI.
-    :param iri: the relative IRI.
-
-    :return: the absolute IRI.
-    """
-    # skip IRI processing
-    if base is None:
-        return iri
-
-    # already an absolute iri
-    if _is_absolute_iri(iri):
-        return iri
-
-    # parse IRIs
-    base = parse_url(base)
-    rel = parse_url(iri)
-
-    # per RFC3986 5.2.2
-    transform = {
-        'scheme': base.scheme
-    }
-
-    if rel.authority is not None:
-        transform['authority'] = rel.authority
-        transform['path'] = rel.path
-        transform['query'] = rel.query
-    else:
-        transform['authority'] = base.authority
-
-        if rel.path == '':
-            transform['path'] = base.path
-            if rel.query is not None:
-                transform['query'] = rel.query
-            else:
-                transform['query'] = base.query
-        else:
-            if rel.path.startswith('/'):
-                # IRI represents an absolute path
-                transform['path'] = rel.path
-            else:
-                # merge paths
-                path = base.path
-
-                # append relative path to the end of the last directory from
-                # base
-                path = path[0:path.rfind('/') + 1]
-                if (len(path) > 0 or base.authority) and not path.endswith('/'):
-                    path += '/'
-                path += rel.path
-
-                transform['path'] = path
-
-            transform['query'] = rel.query
-
-    if rel.path != '':
-        # normalize path
-        transform['path'] = remove_dot_segments(transform['path'])
-
-    transform['fragment'] = rel.fragment
-
-    # construct URL
-    rval = unparse_url(transform)
-
-    # handle empty base case
-    if rval == '':
-        rval = './'
-
-    return rval
 
 
 def remove_base(base, iri):
@@ -3188,10 +3115,10 @@ class JsonLdProcessor(object):
                 base = ctx['@base']
                 if base is None:
                     base = None
-                elif _is_absolute_iri(base):
+                elif _is_absolute_iri(base) or (_is_relative_iri(base) and active_ctx.get('@base') is None):
                     base = base
-                elif _is_relative_iri(base):
-                    base = prepend_base(active_ctx.get('@base'), base)
+                elif _is_relative_iri(base) and active_ctx.get('@base') is not None:
+                    base = resolve(base, active_ctx.get('@base'))
                 else:
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; the value of "@base" in a '
@@ -3295,7 +3222,7 @@ class JsonLdProcessor(object):
                     process = True
 
                     if _is_string(key_ctx):
-                        url = prepend_base(options['base'], key_ctx)
+                        url = resolve(key_ctx, options['base'])
                         if url in cycles:
                             process = False
                         else:
@@ -4887,7 +4814,7 @@ class JsonLdProcessor(object):
                 if active_ctx['@base'] is None:
                     return iri
                 else:
-                    return remove_base(prepend_base(base, active_ctx['@base']), iri)
+                    return remove_base(resolve(active_ctx['@base'], base), iri)
             else:
                 return remove_base(base, iri)
 
@@ -5510,9 +5437,10 @@ class JsonLdProcessor(object):
         if base and '@base' in active_ctx:
             # The None case preserves rval as potentially relative
             if active_ctx['@base'] is not None:
-                rval = prepend_base(prepend_base(base, active_ctx['@base']), rval)
+                resolved_base = active_ctx['@base'] if _is_absolute_iri(active_ctx['@base']) else resolve(active_ctx['@base'], base)
+                rval = resolve(rval, resolved_base)
         elif base:
-            rval = prepend_base(base, rval)
+            rval = resolve(rval, base)
 
         return rval
 
@@ -6642,7 +6570,7 @@ def load_html(input, url, profile, options):
         # use either specified base, or document location
         effective_base = options.get('base', url)
         if effective_base:
-            html_base = prepend_base(effective_base, html_base[0])
+            html_base = resolve(html_base[0], effective_base)
         options['base'] = html_base
 
     url_elements = parse_url(url)
