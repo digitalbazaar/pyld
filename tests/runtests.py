@@ -69,7 +69,7 @@ from argparse import ArgumentParser
 from unittest import TextTestResult
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
-from pyld import jsonld
+from pyld import jsonld, iri_resolver
 
 __copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
@@ -707,7 +707,7 @@ def create_document_loader(test):
                         linked_alternate.get('type') == 'application/ld+json' and
                         not re.match(r'^application\/(\w*\+)?json$', content_type)):
                     doc['contentType'] = 'application/ld+json'
-                    doc['documentUrl'] = jsonld.prepend_base(url, linked_alternate['target'])
+                    doc['documentUrl'] = iri_resolver.resolve(linked_alternate['target'], url)
         global ROOT_MANIFEST_DIR
         if doc['documentUrl'].find(':') == -1:
             filename = os.path.join(ROOT_MANIFEST_DIR, doc['documentUrl'])
