@@ -20,6 +20,7 @@ import json
 import re
 import sys
 import traceback
+from urllib.parse import urlparse
 import warnings
 import uuid
 from .context_resolver import ContextResolver
@@ -31,7 +32,7 @@ import lxml.html
 from numbers import Integral, Real
 from frozendict import frozendict
 from pyld.__about__ import (__copyright__, __license__, __version__)
-from .iri_resolver import parse_url, resolve, unresolve
+from .iri_resolver import resolve, unresolve
 
 def cmp(a, b):
     return (a > b) - (a < b)
@@ -6445,7 +6446,7 @@ def load_html(input, url, profile, options):
             html_base = resolve(html_base[0], effective_base)
         options['base'] = html_base
 
-    url_elements = parse_url(url)
+    url_elements = urlparse(url)
     if url_elements.fragment:
         # FIXME: CGI decode
         id = url_elements.fragment

@@ -3,8 +3,7 @@
 - The 'unresolve()' function is a move and rename of the 'remove_base()' function from 'jsonld.py'
 """
 
-from collections import namedtuple
-import re
+from urllib.parse import urlparse, urlunparse
 
 
 def is_character_allowed_after_relative_path_segment(ch: str) -> bool:
@@ -220,20 +219,24 @@ def unresolve(absolute_iri: str, base_iri: str = ""):
 
     :return: the relative IRI if relative to base, otherwise the absolute IRI.
     """
-    # TODO: better sync with jsonld.js version
     # skip IRI processing
     if not base_iri:
         return absolute_iri
 
-    base = parse_url(base_iri)
+    base = urlparse(base_iri)
 
     if not base.scheme:
         raise ValueError(f"Found invalid baseIRI '{base_iri}' for value '{absolute_iri}'")
-    
-    rel = parse_url(absolute_iri)
+
+    # compute authority (netloc) and strip default ports
+    base_authority = parse_authority(base)
+
+    rel = urlparse(absolute_iri)
+    # compute authority (netloc) and strip default ports
+    rel_authority = parse_authority(rel)
 
     # schemes and network locations (authorities) don't match, don't alter IRI
-    if not (base.scheme == rel.scheme and base.authority == rel.authority):
+    if not (base.scheme == rel.scheme and base_authority == rel_authority):
         return absolute_iri
 
     # remove path segments that match (do not remove last segment unless there
@@ -257,36 +260,25 @@ def unresolve(absolute_iri: str, base_iri: str = ""):
     # prepend remaining segments
     rval += '/'.join(iri_segments)
 
-    return unparse_url((None, None, rval, rel.query, rel.fragment)) or './'
+    # build relative IRI using urlunparse with empty scheme/netloc
+    return urlunparse(('', '', rval, '', rel.query or '', rel.fragment or '')) or './'
 
-ParsedUrl = namedtuple(
-    'ParsedUrl', ['scheme', 'authority', 'path', 'query', 'fragment'])
-
-def parse_url(url):
-    # regex from RFC 3986
-    p = r'^(?:([^:/?#]+):)?(?://([^/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?'
-    m = re.match(p, url)
-    # remove default http and https ports
-    g = list(m.groups())
+def parse_authority(parsed_iri) -> str:
+    """
+    Compute authority (netloc) and strip default ports
     
-    if g[1] is not None and ((g[0] == 'https' and g[1].endswith(':443')) or
-            (g[0] == 'http' and g[1].endswith(':80'))):
-        g[1] = g[1][:g[1].rfind(':')]
-    return ParsedUrl(*g)
-
-def unparse_url(parsed):
-    if isinstance(parsed, dict):
-        parsed = ParsedUrl(**parsed)
-    elif isinstance(parsed, list) or isinstance(parsed, tuple):
-        parsed = ParsedUrl(*parsed)
-    rval = ''
-    if parsed.scheme:
-        rval += parsed.scheme + ':'
-    if parsed.authority is not None:
-        rval += '//' + parsed.authority
-    rval += parsed.path
-    if parsed.query is not None:
-        rval += '?' + parsed.query
-    if parsed.fragment is not None:
-        rval += '#' + parsed.fragment
-    return rval
+    :param parsed_iri: Description
+    :return: Description
+    :rtype: str
+    """ 
+    base_authority = parsed_iri.netloc or None
+    
+    try:
+        base_port = parsed_iri.port
+    except Exception:
+        base_port = None
+    
+    if base_authority is not None and base_port is not None:
+        if (parsed_iri.scheme == 'https' and base_port == 443) or (parsed_iri.scheme == 'http' and base_port == 80):
+            base_authority = base_authority.rsplit(':', 1)[0]
+    return base_authority
