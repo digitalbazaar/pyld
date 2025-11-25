@@ -272,6 +272,9 @@ class TestResolve:
     def test_relative_with_triple_dot_segment_and_2x_double_dot_and_base(self):
         assert resolve('../.../../../', 'http://example.org/a/b/c/') == 'http://example.org/a/'
 
+    def test_questionmark_prefix_relative_with_complex_base_with_dot(self):
+        assert resolve('?y','http://a/bb/ccc/./d;p?q') == 'http://a/bb/ccc/./d;p?y'
+
 # ---------- Tests for remove_dot_segments() ----------
 class TestRemoveDotSegments:
     def test_no_slash(self):

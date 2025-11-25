@@ -116,7 +116,7 @@ def remove_dot_segments_of_path(iri: str, colon_position: int) -> str:
     # Remove dot segments from the path
     return base + remove_dot_segments(path)
 
-def resolve(relative_iri: str, base_iri: str = "") -> str:
+def resolve(relative_iri: str, base_iri: str = None) -> str:
     #     """
     #     Resolves a given relative IRI to an absolute IRI.
 
@@ -125,7 +125,7 @@ def resolve(relative_iri: str, base_iri: str = "") -> str:
 
     #     :return: the absolute IRI.
     #     """
-
+    base_iri = base_iri or ''
     base_fragment_pos = base_iri.find("#")
 
     # Ignore any fragments in the base IRI
