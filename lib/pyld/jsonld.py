@@ -6568,10 +6568,10 @@ def load_document(url,
     :return: True if the value is an absolute IRI, False if not.
     """
     headers = {
-        'Accept': 'application/ld+json, application/json;q=0.5'
+        'Accept': 'application/ld+json, application/json;q=0.8'
     }
     # FIXME: only if html5lib loaded?
-    headers['Accept'] = headers['Accept'] + ', text/html;q=0.8, application/xhtml+xml;q=0.8'
+    headers['Accept'] = headers['Accept'] + ', text/html;q=0.5, application/xhtml+xml;q=0.5'
 
     if requestProfile:
         headers['Accept'] = ('application/ld+json;profile=%s, ' % requestProfile) + headers['Accept']
