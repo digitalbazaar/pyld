@@ -19,6 +19,8 @@ def _call_test(testcase):
 
     try:
         testcase.runTest()
+        if testcase.pending:
+            pytest.xfail(reason=testcase.pending)
     except unittest.SkipTest as e:
         pytest.skip(str(e))
 
