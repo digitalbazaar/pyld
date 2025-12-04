@@ -90,6 +90,12 @@ LOCAL_BASES = [
     'https://github.com/json-ld/normalization/tests'
 ]
 
+SIBLING_DIRS = [
+    '../specifications/json-ld-api/tests/',
+    '../specifications/json-ld-framing/tests/',
+    '../specifications/normalization/tests/',
+]
+
 # NOTE: The following TestRunner class can be removed because pytest now
 # provides the test harness; this class can be removed once the legacy
 # CLI runner is deleted.
@@ -162,12 +168,7 @@ class TestRunner(unittest.TextTestRunner):
         else:
             # default to find known sibling test dirs
             test_targets = []
-            sibling_dirs = [
-                './specifications/json-ld-api/tests/',
-                './specifications/json-ld-framing/tests/',
-                './specifications/normalization/tests/',
-            ]
-            for dir in sibling_dirs:
+            for dir in SIBLING_DIRS:
                 if os.path.exists(dir):
                     print('Test dir found', dir)
                     test_targets.append(dir)
