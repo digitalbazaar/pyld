@@ -90,6 +90,12 @@ LOCAL_BASES = [
     'https://github.com/json-ld/normalization/tests'
 ]
 
+SPEC_DIRS = [
+    '../specifications/json-ld-api/tests/',
+    '../specifications/json-ld-framing/tests/',
+    '../specifications/normalization/tests/',
+]
+
 # NOTE: The following TestRunner class can be removed because pytest now
 # provides the test harness; this class can be removed once the legacy
 # CLI runner is deleted.
@@ -162,12 +168,7 @@ class TestRunner(unittest.TextTestRunner):
         else:
             # default to find known test suite directories
             test_targets = []
-            spec_dirs = [
-                './specifications/json-ld-api/tests/',
-                './specifications/json-ld-framing/tests/',
-                './specifications/normalization/tests/',
-            ]
-            for dir in spec_dirs:
+            for dir in SPEC_DIRS:
                 if os.path.exists(dir):
                     print('Test dir found', dir)
                     test_targets.append(dir)
