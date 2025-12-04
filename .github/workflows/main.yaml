@@ -17,6 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v5
       with:
+        submodules: recursive
         persist-credentials: false
     - uses: actions/setup-python@v6
       with:
@@ -48,6 +49,7 @@ jobs:
     steps:
     - uses: actions/checkout@v5
       with:
+        submodules: recursive
         persist-credentials: false
     - name: Use Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
@@ -61,16 +63,10 @@ jobs:
     - name: Install testing dependencies
       run: |
         pip install -r requirements-test.txt
-    - name: Fetch test suites
-      run: |
-        git clone --depth 1 https://github.com/w3c/json-ld-api.git _json-ld-api
-        git clone --depth 1 https://github.com/w3c/json-ld-framing.git _json-ld-framing
-        git clone --depth 1 https://github.com/json-ld/normalization.git _normalization
     - name: Test with Python=${{ matrix.python-version }} Loader=${{ matrix.loader }}
       run: |
-        python tests/runtests.py ./_json-ld-api/tests -l ${{ matrix.loader }}
-        python tests/runtests.py ./_json-ld-framing/tests -l ${{ matrix.loader }}
-        python tests/runtests.py ./_normalization/tests -l ${{ matrix.loader }}
+        python tests/runtests.py ./specifications/json-ld-api/tests -l ${{ matrix.loader }}
+        python tests/runtests.py ./specifications/json-ld-framing/tests -l ${{ matrix.loader }}
       env:
         LOADER: ${{ matrix.loader }}
   #coverage:
