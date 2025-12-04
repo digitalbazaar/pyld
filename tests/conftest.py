@@ -58,16 +58,16 @@ def pytest_generate_tests(metafunc):
     if len(tests_arg):
         test_targets = tests_arg
     else:
-        # Default sibling directories used by the original runner
-        sibling_dirs = [
-            '../specifications/json-ld-api/tests/',
-            '../specifications/json-ld-framing/tests/',
-            '../specifications/normalization/tests/',
-        ]
+        # Default sibling directories used by the original runner. Keep the
+        # original relative strings but resolve them relative to this
+        # `conftest.py` so tests can be discovered regardless of cwd.
+        base_path = os.path.abspath(os.path.dirname(__file__))
+
         test_targets = []
-        for d in sibling_dirs:
-            if os.path.exists(d):
-                test_targets.append(d)
+        for d in runtests.SPEC_DIRS:
+            d_path = os.path.abspath(os.path.join(base_path, d))
+            if os.path.exists(d_path):
+                test_targets.append(d_path)
 
     if len(test_targets) == 0:
         pytest.skip('No test manifest or directory specified (use --tests)')
