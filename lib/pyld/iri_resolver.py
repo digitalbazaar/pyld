@@ -1,6 +1,10 @@
 """
-The functions 'remove_dot_segments()', 'resolve()' and 'is_character_allowed_after_relative_path_segment()' are direct ports from [relative-to-absolute-iri.js](https://github.com/rubensworks/relative-to-absolute-iri.js)
+- The functions 'remove_dot_segments()', 'resolve()' and 'is_character_allowed_after_relative_path_segment()' are direct ports from [relative-to-absolute-iri.js](https://github.com/rubensworks/relative-to-absolute-iri.js) (c) Ruben Taelman <ruben.taelman@ugent.be>
+- The 'unresolve()' function is a move and rename of the 'remove_base()' function from 'jsonld.py'
 """
+
+from urllib.parse import ParseResult, urlparse, urlunparse
+
 
 def is_character_allowed_after_relative_path_segment(ch: str) -> bool:
     """Return True if a character is valid after '.' or '..' in a path segment."""
@@ -205,3 +209,76 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
     relative_iri = remove_dot_segments(relative_iri)
 
     return base_iri[:base_slash_after_colon_pos] + relative_iri
+
+def unresolve(absolute_iri: str, base_iri: str = ""):
+    """
+    Unresolves a given absolute IRI to an IRI relative to the given base IRI.
+
+    :param base: the base IRI.
+    :param iri: the absolute IRI.
+
+    :return: the relative IRI if relative to base, otherwise the absolute IRI.
+    """
+    # skip IRI processing
+    if not base_iri:
+        return absolute_iri
+
+    base = urlparse(base_iri)
+
+    if not base.scheme:
+        raise ValueError(f"Found invalid baseIRI '{base_iri}' for value '{absolute_iri}'")
+
+    # compute authority (netloc) and strip default ports
+    base_authority = parse_authority(base)
+
+    rel = urlparse(absolute_iri)
+    # compute authority (netloc) and strip default ports
+    rel_authority = parse_authority(rel)
+
+    # schemes and network locations (authorities) don't match, don't alter IRI
+    if not (base.scheme == rel.scheme and base_authority == rel_authority):
+        return absolute_iri
+
+    # remove path segments that match (do not remove last segment unless there
+    # is a hash or query
+    base_segments = remove_dot_segments(base.path).split('/')
+    iri_segments = remove_dot_segments(rel.path).split('/')
+    last = 0 if (rel.fragment or rel.query) else 1
+    while (len(base_segments) and len(iri_segments) > last and
+            base_segments[0] == iri_segments[0]):
+        base_segments.pop(0)
+        iri_segments.pop(0)
+
+    # use '../' for each non-matching base segment
+    rval = ''
+    if len(base_segments):
+        # don't count the last segment (if it ends with '/' last path doesn't
+        # count and if it doesn't end with '/' it isn't a path)
+        base_segments.pop()
+        rval += '../' * len(base_segments)
+
+    # prepend remaining segments
+    rval += '/'.join(iri_segments)
+
+    # build relative IRI using urlunparse with empty scheme/netloc
+    return urlunparse(('', '', rval, '', rel.query or '', rel.fragment or '')) or './'
+
+def parse_authority(parsed_iri: ParseResult) -> str:
+    """
+    Compute authority (netloc) and strip default ports
+    
+    :param parsed_iri: Description
+    :return: Description
+    :rtype: str
+    """ 
+    base_authority = parsed_iri.netloc or None
+    
+    try:
+        base_port = parsed_iri.port
+    except Exception:
+        base_port = None
+    
+    if base_authority is not None and base_port is not None:
+        if (parsed_iri.scheme == 'https' and base_port == 443) or (parsed_iri.scheme == 'http' and base_port == 80):
+            base_authority = base_authority.rsplit(':', 1)[0]
+    return base_authority
