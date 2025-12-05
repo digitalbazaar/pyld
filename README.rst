@@ -227,11 +227,46 @@ if you do not clone them into the default ``specifications/`` folder, you will
 need to provide the paths to the test runner as arguments when running the 
 tests, as explained below
 
-Running the tests
-####################
+Running the sample test suites and unittests using pytest
+#########################################################
 
 If the suites repositories are available in the `specifications/` folder of the 
-PyLD source directory, then all the tests can be run with the following:
+PyLD source directory, then all unittests, including the sample test suites, 
+can be run with pytest_:
+
+.. code-block:: bash
+
+    pytest 
+
+If you wish to store the test suites in a different location than the default
+``specifications/`` folder, or you want to test individual manifest ``.jsonld``
+files or directories containing a ``manifest.jsonld``, then you can supply
+these files or directories as arguments:
+
+.. code-block:: bash
+
+    # use: pytest --tests=TEST_PATH [--tests=TEST_PATH...]
+    pytest --tests=./specifications/json-ld-api/tests
+
+The test runner supports different document loaders by setting 
+``--loader requests`` or ``--loader aiohttp``. The default document loader is
+set to Requests_.
+
+.. code-block:: bash
+    
+    pytest --loader=requests --tests=./specifications/json-ld-api/tests
+
+An EARL report can be generated using the ``--earl`` option.
+
+.. code-block:: bash
+
+    pytest --earl=./earl-report.json
+
+Running the sample test suites using the original test runner
+#############################################################
+
+You can also run the JSON-LD test suites using the original test runner script
+provided:
 
 .. code-block:: bash
 
@@ -249,7 +284,15 @@ these files or directories as arguments:
 The test runner supports different document loaders by setting ``-l requests``
 or ``-l aiohttp``. The default document loader is set to Requests_.
 
+.. code-block:: bash
+
+    python tests/runtests.py -l requests ./specifications/json-ld-api/tests
+
 An EARL report can be generated using the ``-e`` or ``--earl`` option.
+
+.. code-block:: bash
+
+    python tests/runtests.py -e ./earl-report.json
 
 
 .. _Digital Bazaar: https://digitalbazaar.com/
