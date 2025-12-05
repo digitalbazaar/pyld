@@ -4,3 +4,6 @@
 [submodule "specifications/json-ld-framing"]
 	path = specifications/json-ld-framing
 	url = https://github.com/w3c/json-ld-framing.git
+[submodule "specifications/normalization"]
+	path = specifications/normalization
+	url = https://github.com/json-ld/normalization.git
