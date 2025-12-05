@@ -208,11 +208,17 @@ If you have cloned the repository without the submodules, you can initialize the
 
 You can also avoid using git submodules by manually cloning
 the ``json-ld-api``, ``json-ld-framing``, and ``normalization`` repositories
-hosted on GitHub:
+hosted on GitHub using the following commands:
 
-- https://github.com/w3c/json-ld-api
-- https://github.com/w3c/json-ld-framing
-- https://github.com/json-ld/normalization
+.. code-block:: bash
+
+    git clone https://github.com/w3c/json-ld-api ./specifications/json-ld-api
+    git clone https://github.com/w3c/json-ld-framing ./specifications/json-ld-framing
+    git clone https://github.com/json-ld/normalization ./specifications/normalization
+
+Note that you can clone these repositories into any location you wish; however,
+if you do not clone them into the default ``specifications/`` folder, you will
+need to provide the paths to the test runner as arguments when running the tests, as explained below
 
 ## Running the tests
 
@@ -223,7 +229,8 @@ source directory, then all the tests can be run with the following:
 
     python tests/runtests.py
 
-If you want to test individual manifest ``.jsonld`` files or directories
+If you wish to store the test suites in a different location than the default
+``specifications/`` folder, or you want to test individual manifest ``.jsonld`` files or directories
 containing a ``manifest.jsonld``, then you can supply these files or
 directories as arguments:
 
