@@ -3,7 +3,7 @@
 - The 'unresolve()' function is a move and rename of the 'remove_base()' function from 'jsonld.py'
 """
 
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import ParseResult, urlparse, urlunparse
 
 
 def is_character_allowed_after_relative_path_segment(ch: str) -> bool:
@@ -263,7 +263,7 @@ def unresolve(absolute_iri: str, base_iri: str = ""):
     # build relative IRI using urlunparse with empty scheme/netloc
     return urlunparse(('', '', rval, '', rel.query or '', rel.fragment or '')) or './'
 
-def parse_authority(parsed_iri) -> str:
+def parse_authority(parsed_iri: ParseResult) -> str:
     """
     Compute authority (netloc) and strip default ports
     
