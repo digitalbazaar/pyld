@@ -190,7 +190,23 @@ Tests
 This library includes a sample testing utility which may be used to verify
 that changes to the processor maintain the correct output.
 
-To run the sample tests you will need to get the test suite files by cloning
+To run the sample tests you will need to get the test suite files, which by default, are stored in the `specifications/` folder.
+The test suites can be obtained by either using git submodules or by cloning them manually.
+
+## Using git submodules
+
+The test suites are included as git submodules to ensure versions are in sync.  When cloning the repository, use the ``--recurse-submodules`` flag to
+automatically clone the submodules.
+If you have cloned the repository without the submodules, you can initialize them with the following commands:
+
+.. code-block:: bash
+
+    git submodule init
+    git submodule update
+
+## Cloning manually
+
+You can also avoid using git submodules by manually cloning
 the ``json-ld-api``, ``json-ld-framing``, and ``normalization`` repositories
 hosted on GitHub:
 
@@ -198,7 +214,9 @@ hosted on GitHub:
 - https://github.com/w3c/json-ld-framing
 - https://github.com/json-ld/normalization
 
-If the suites repositories are available as sibling directories of the PyLD
+## Running the tests
+
+If the suites repositories are available in the `specifications/` folder of the PyLD
 source directory, then all the tests can be run with the following:
 
 .. code-block:: bash
