@@ -13,6 +13,7 @@ import string
 import threading
 import urllib.parse as urllib_parse
 
+from pyld import iri_resolver
 from pyld.jsonld import (JsonLdError, parse_link_header, LINK_HEADER_REL)
 
 
@@ -114,7 +115,7 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
                                 linked_alternate.get('type') == 'application/ld+json' and
                                 not re.match(r'^application\/(\w*\+)?json$', content_type)):
                             doc['contentType'] = 'application/ld+json'
-                            doc['documentUrl'] = jsonld.prepend_base(url, linked_alternate['target'])
+                            doc['documentUrl'] = iri_resolver.resolve(linked_alternate['target'], url)
 
                     return doc
         except JsonLdError as e:

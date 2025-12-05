@@ -9,9 +9,11 @@ Remote document loader using Requests.
 .. moduleauthor:: Tim McNamara <tim.mcnamara@okfn.org>
 .. moduleauthor:: Olaf Conradi <olaf@conradi.org>
 """
+import re
 import string
 import urllib.parse as urllib_parse
 
+from pyld import iri_resolver
 from pyld.jsonld import (JsonLdError, parse_link_header, LINK_HEADER_REL)
 
 
@@ -92,7 +94,7 @@ def requests_document_loader(secure=False, **kwargs):
                         linked_alternate.get('type') == 'application/ld+json' and
                         not re.match(r'^application\/(\w*\+)?json$', content_type)):
                     doc['contentType'] = 'application/ld+json'
-                    doc['documentUrl'] = jsonld.prepend_base(url, linked_alternate['target'])
+                    doc['documentUrl'] = iri_resolver.resolve(linked_alternate['target'], url)
             return doc
         except JsonLdError as e:
             raise e
