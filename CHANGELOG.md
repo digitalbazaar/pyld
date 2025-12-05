@@ -8,6 +8,7 @@
   - Minimize async related changes to library code in this release.
   - In sync environment use `asyncio.run`.
   - In async environment use background thread.
+- Add ability to run test suites using pytest and make pytest the default way for running (unit)tests.
 
 ## 2.0.4 - 2024-02-16
 
