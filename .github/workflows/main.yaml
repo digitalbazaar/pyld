@@ -67,6 +67,7 @@ jobs:
       run: |
         python tests/runtests.py ./specifications/json-ld-api/tests -l ${{ matrix.loader }}
         python tests/runtests.py ./specifications/json-ld-framing/tests -l ${{ matrix.loader }}
+        python tests/runtests.py ./specifications/normalization/tests -l ${{ matrix.loader }}
       env:
         LOADER: ${{ matrix.loader }}
   #coverage:

@@ -97,9 +97,9 @@ class TestRunner(unittest.TextTestRunner):
             # default to find known sibling test dirs
             test_targets = []
             sibling_dirs = [
-                '../json-ld-api/tests/',
-                '../json-ld-framing/tests/',
-                '../normalization/tests/',
+                './specifications/json-ld-api/tests/',
+                './specifications/json-ld-framing/tests/',
+                './specifications/normalization/tests/',
             ]
             for dir in sibling_dirs:
                 if os.path.exists(dir):
