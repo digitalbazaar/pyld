@@ -195,7 +195,8 @@ by default, are stored in the `specifications/` folder.
 The test suites can be obtained by either using git submodules or by cloning 
 them manually.
 
-## Using git submodules
+Using git submodules
+####################
 
 The test suites are included as git submodules to ensure versions are in sync.  
 When cloning the repository, use the ``--recurse-submodules`` flag to
@@ -208,7 +209,8 @@ them with the following commands:
     git submodule init
     git submodule update
 
-## Cloning manually
+Cloning manually
+####################
 
 You can also avoid using git submodules by manually cloning
 the ``json-ld-api``, ``json-ld-framing``, and ``normalization`` repositories
@@ -225,7 +227,8 @@ if you do not clone them into the default ``specifications/`` folder, you will
 need to provide the paths to the test runner as arguments when running the 
 tests, as explained below
 
-## Running the tests
+Running the tests
+####################
 
 If the suites repositories are available in the `specifications/` folder of the 
 PyLD source directory, then all the tests can be run with the following:
