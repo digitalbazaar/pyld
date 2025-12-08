@@ -8,8 +8,20 @@
   - Minimize async related changes to library code in this release.
   - In sync environment use `asyncio.run`.
   - In async environment use background thread.
-- The default test manifests or directories now default to the `./specifications` directory.
-- Add ability to run test suites using pytest and make pytest the default way for running (unit)tests.
+- The default test manifests or directories now default to the
+  `./specifications` directory.
+- Add ability to run test suites using pytest and make pytest the default way 
+  for running (unit)tests.
+- The functionality to resolve relative IRIs to absolute IRIs has been moved 
+  from `context_resolver.py` to `iri_resolver.py` so it can be maintained 
+  and tested separately.
+  - Migrate the `prepend_base(base, iri)` function to the `resolve(iri, base)` 
+    function.
+  - Update code to use `resolve(iri, base)` instead. Invalid base IRIs
+    (including `None`) are no longer allowed, hence missing base IRIs in the 
+    JSON-LD context are now handled outside the function call.
+  - Move the existing function `remove_dot_segments(path)`
+  - Add unittests
 
 ## 2.0.4 - 2024-02-16
 
