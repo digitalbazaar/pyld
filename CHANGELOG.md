@@ -17,10 +17,14 @@
   and tested separately.
   - Migrate the `prepend_base(base, iri)` function to the `resolve(iri, base)` 
     function.
-  - Update code to use `resolve(iri, base)` instead. Invalid base IRIs
+  - Move the existing function `remove_dot_segments(path)` and update the 
+    implementation.
+  - Migrate the `remove_base(base, iri)` function to the `unresolve(iri, base)` 
+    function and update the implementation to use stdlib `urllib.parse` and 
+    `urllib.unparse` to replace the custom implementation.
+  - Update code to use `resolve(iri, base)` and `unresolve(iri, base)` instead. Invalid base IRIs
     (including `None`) are no longer allowed, hence missing base IRIs in the 
     JSON-LD context are now handled outside the function call.
-  - Move the existing function `remove_dot_segments(path)`
   - Add unittests
 
 ## 2.0.4 - 2024-02-16
