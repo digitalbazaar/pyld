@@ -260,6 +260,10 @@ def unresolve(absolute_iri: str, base_iri: str = ""):
     # prepend remaining segments
     rval += '/'.join(iri_segments)
 
+    # relative IRIs must not have the form of a keyword
+    if rval and rval[0] == '@':
+        rval = './' + rval
+
     # build relative IRI using urlunparse with empty scheme/netloc
     return urlunparse(('', '', rval, '', rel.query or '', rel.fragment or '')) or './'
 
