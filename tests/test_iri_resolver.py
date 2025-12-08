@@ -316,6 +316,9 @@ class TestUnresolve:
     def test_base_with_path_slash(self):
         assert unresolve('http://base.org/abc/', 'http://base.org') == 'abc/'
 
+    def test_absolute_iri_with_keyword(self):
+        assert unresolve('http://base.org/@abc', 'http://base.org/') == './@abc'
+
 # ---------- Tests for remove_dot_segments() ----------
 class TestRemoveDotSegments:
     def test_no_slash(self):
