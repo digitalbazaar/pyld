@@ -8,6 +8,7 @@
   - Minimize async related changes to library code in this release.
   - In sync environment use `asyncio.run`.
   - In async environment use background thread.
+- The default test manifests or directories now default to the `./specifications`.
 
 ## 2.0.4 - 2024-02-16
 

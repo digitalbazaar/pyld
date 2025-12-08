@@ -94,14 +94,14 @@ class TestRunner(unittest.TextTestRunner):
             # tests given on command line
             test_targets = self.options.tests
         else:
-            # default to find known sibling test dirs
+            # default to find known test suite directories
             test_targets = []
-            sibling_dirs = [
+            spec_dirs = [
                 './specifications/json-ld-api/tests/',
                 './specifications/json-ld-framing/tests/',
                 './specifications/normalization/tests/',
             ]
-            for dir in sibling_dirs:
+            for dir in spec_dirs:
                 if os.path.exists(dir):
                     print('Test dir found', dir)
                     test_targets.append(dir)
