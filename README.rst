@@ -190,14 +190,18 @@ Tests
 This library includes a sample testing utility which may be used to verify
 that changes to the processor maintain the correct output.
 
-To run the sample tests you will need to get the test suite files, which by default, are stored in the `specifications/` folder.
-The test suites can be obtained by either using git submodules or by cloning them manually.
+To run the sample tests you will need to get the test suite files, which 
+by default, are stored in the `specifications/` folder.
+The test suites can be obtained by either using git submodules or by cloning 
+them manually.
 
 ## Using git submodules
 
-The test suites are included as git submodules to ensure versions are in sync.  When cloning the repository, use the ``--recurse-submodules`` flag to
+The test suites are included as git submodules to ensure versions are in sync.  
+When cloning the repository, use the ``--recurse-submodules`` flag to
 automatically clone the submodules.
-If you have cloned the repository without the submodules, you can initialize them with the following commands:
+If you have cloned the repository without the submodules, you can initialize 
+them with the following commands:
 
 .. code-block:: bash
 
@@ -218,21 +222,22 @@ hosted on GitHub using the following commands:
 
 Note that you can clone these repositories into any location you wish; however,
 if you do not clone them into the default ``specifications/`` folder, you will
-need to provide the paths to the test runner as arguments when running the tests, as explained below
+need to provide the paths to the test runner as arguments when running the 
+tests, as explained below
 
 ## Running the tests
 
-If the suites repositories are available in the `specifications/` folder of the PyLD
-source directory, then all the tests can be run with the following:
+If the suites repositories are available in the `specifications/` folder of the 
+PyLD source directory, then all the tests can be run with the following:
 
 .. code-block:: bash
 
     python tests/runtests.py
 
 If you wish to store the test suites in a different location than the default
-``specifications/`` folder, or you want to test individual manifest ``.jsonld`` files or directories
-containing a ``manifest.jsonld``, then you can supply these files or
-directories as arguments:
+``specifications/`` folder, or you want to test individual manifest ``.jsonld``
+files or directories containing a ``manifest.jsonld``, then you can supply 
+these files or directories as arguments:
 
 .. code-block:: bash
 
