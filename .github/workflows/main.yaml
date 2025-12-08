@@ -65,9 +65,10 @@ jobs:
         pip install -r requirements-test.txt
     - name: Test with Python=${{ matrix.python-version }} Loader=${{ matrix.loader }}
       run: |
-        pytest --tests=./specifications/json-ld-api/tests --loader=${{ matrix.loader }}
-        pytest --tests=./specifications/json-ld-framing/tests --loader=${{ matrix.loader }}
-        pytest --tests=./specifications/normalization/tests --loader=${{ matrix.loader }}
+        pytest tests/test_manifests.py --tests=./specifications/json-ld-api/tests --loader=${{ matrix.loader }}
+        pytest tests/test_manifests.py --tests=./specifications/json-ld-framing/tests --loader=${{ matrix.loader }}
+        pytest tests/test_manifests.py --tests=./specifications/normalization/tests --loader=${{ matrix.loader }}
+        pytest --ignore ./tests/test_manifests.py
       env:
         LOADER: ${{ matrix.loader }}
   #coverage:
