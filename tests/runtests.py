@@ -871,7 +871,6 @@ TEST_TYPES = {
                 # uncategorized
                 '.*compact-manifest#t0112$',
                 '.*compact-manifest#tm023$',
-                '.*compact-manifest#t0111$',
                 '.*compact-manifest#t0113$',
                 '.*compact-manifest#tc028$',
             ]
