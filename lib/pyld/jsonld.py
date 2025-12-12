@@ -901,7 +901,7 @@ class JsonLdProcessor(object):
         options.setdefault('extractAllScripts', True)
         options.setdefault('processingMode', 'json-ld-1.1')
 
-        if not options['algorithm'] in ['URDNA2015', 'URGNA2012']:
+        if options['algorithm'] not in ['URDNA2015', 'URGNA2012']:
             raise JsonLdError(
                 'Unsupported normalization algorithm.',
                 'jsonld.NormalizeError')
@@ -964,9 +964,9 @@ class JsonLdProcessor(object):
         if 'format' in options:
             # supported formats (processor-specific and global)
             if ((self.rdf_parsers is not None and
-                not options['format'] in self.rdf_parsers) or
+                options['format'] not in self.rdf_parsers) or
                 (self.rdf_parsers is None and
-                    not options['format'] in _rdf_parsers)):
+                    options['format'] not in _rdf_parsers)):
                 raise JsonLdError(
                     'Unknown input format.',
                     'jsonld.UnknownFormat', {'format': options['format']})
@@ -1251,10 +1251,8 @@ class JsonLdProcessor(object):
         """
         # 1. equal primitives
         if not _is_object(v1) and not _is_object(v2) and v1 == v2:
-            type1 = type(v1)
-            type2 = type(v2)
-            if type1 == bool or type2 == bool:
-                return type1 == type2
+            if isinstance(v1, bool) or isinstance(v2, bool):
+                return type(v1) is type(v2)
             return True
 
         # 2. equal @values
@@ -1263,10 +1261,9 @@ class JsonLdProcessor(object):
                 v1.get('@type') == v2.get('@type') and
                 v1.get('@language') == v2.get('@language') and
                 v1.get('@index') == v2.get('@index')):
-            type1 = type(v1['@value'])
-            type2 = type(v2['@value'])
-            if type1 == bool or type2 == bool:
-                return type1 == type2
+
+            if isinstance(v1['@value'], bool) or isinstance(v2['@value'], bool):
+                return type(v1['@value']) is type(v2['@value'])
             return True
 
         # 3. equal @ids
@@ -2830,7 +2827,6 @@ class JsonLdProcessor(object):
 
         :return: the new active context.
         """
-        has_related = 'related' in active_ctx['mappings']
         # normalize local context to an array
         if _is_object(local_ctx) and _is_array(local_ctx.get('@context')):
             local_ctx = local_ctx['@context']
@@ -3062,7 +3058,7 @@ class JsonLdProcessor(object):
                         'json-ld-1.0',
                         'jsonld.SyntaxError', {'context': ctx},
                         code='invalid context entry')
-                if type(value) != bool:
+                if not isinstance(value, bool):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; @propagate value must be a boolean.',
                         'jsonld.SyntaxError', {'context': ctx},
@@ -3106,7 +3102,7 @@ class JsonLdProcessor(object):
                             raise JsonLdError(
                                 'Invalid JSON-LD syntax; invalid scoped context.',
                                 'jsonld.SyntaxError', {'context': key_ctx, 'term': k},
-                                code='invalid scoped context')
+                                code='invalid scoped context', cause=cause)
 
             # cache processed result (only Python >= 3.6)
             # and give the context a unique identifier
@@ -3772,7 +3768,7 @@ class JsonLdProcessor(object):
             # when the property is None, which only occurs at the top-level.
             if property is None:
                 state['uniqueEmbeds'] = {state['graph']: {}}
-            elif not state['graph'] in state['uniqueEmbeds']:
+            elif state['graph'] not in state['uniqueEmbeds']:
                 state['uniqueEmbeds'][state['graph']] = {}
 
             if flags['embed'] == '@link' and id_ in link:
@@ -3847,9 +3843,7 @@ class JsonLdProcessor(object):
                     recurse = state['graph'] != '@merged'
                     subframe = {}
                 else:
-                    subframe = frame['@graph'][0]
-                    if not _is_object(subframe):
-                        subFrame = {}
+                    subframe = frame['@graph'][0] if not _is_object(subframe) else {}
                     recurse = not (id_ == '@merged' or id_ == '@default')
 
                 if recurse:
@@ -5126,7 +5120,7 @@ class JsonLdProcessor(object):
             mapping['@container'] = container
 
         if '@index' in value:
-            if not '@container' in value or not '@index' in mapping['@container']:
+            if '@container' not in value or '@index' not in mapping['@container']:
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @index without @index in @container.',
                     'jsonld.SyntaxError',
