@@ -26,16 +26,11 @@ import uuid
 from .context_resolver import ContextResolver
 from c14n.Canonicalize import canonicalize
 from cachetools import LRUCache
-from collections import namedtuple
-from functools import cmp_to_key
 import lxml.html
 from numbers import Integral, Real
 from frozendict import frozendict
 from pyld.__about__ import (__copyright__, __license__, __version__)
 from .iri_resolver import resolve, unresolve
-
-def cmp(a, b):
-    return (a > b) - (a < b)
 
 __all__ = [
     '__copyright__', '__license__', '__version__',
@@ -4663,7 +4658,7 @@ class JsonLdProcessor(object):
             # lexicographically less than the current choice
             if (is_usable_curie and (
                     candidate is None or
-                    _compare_shortest_least(curie, candidate) < 0)):
+                    (len(curie), curie) < (len(candidate), candidate))):
                 candidate = curie
 
         # return curie candidate
@@ -5353,8 +5348,8 @@ class JsonLdProcessor(object):
         # create term selections for each mapping in the context, ordered by
         # shortest and then lexicographically least
         for term, mapping in sorted(
-                active_ctx['mappings'].items(),
-                key=cmp_to_key(_compare_shortest_least)):
+            active_ctx['mappings'].items(),
+            key=lambda kv: (len(kv[0]), kv[0])):
             if mapping is None or not mapping.get('@id'):
                 continue
 
@@ -5649,8 +5644,7 @@ class URDNA2015(object):
 
             # 6.3) For each result in the hash path list,
             # lexicographically-sorted by the hash in result:
-            cmp_hashes = cmp_to_key(lambda x, y: cmp(x['hash'], y['hash']))
-            for result in sorted(hash_path_list, key=cmp_hashes):
+            for result in sorted(hash_path_list, key=lambda r: r['hash']):
                 # 6.3.1) For each blank node identifier, existing identifier,
                 # that was issued a temporary identifier by identifier issuer
                 # in result, issue a canonical identifier, in the same order,
@@ -6060,19 +6054,7 @@ def permutations(elements):
                 left[elements[i]] = not left[elements[i]]
 
 
-def _compare_shortest_least(a, b):
-    """
-    Compares two strings first based on length and then lexicographically.
 
-    :param a: the first string.
-    :param b: the second string.
-
-    :return: -1 if a < b, 1 if a > b, 0 if a == b.
-    """
-    rval = cmp(len(a), len(b))
-    if rval == 0:
-        rval = cmp(a, b)
-    return rval
 
 
 def _is_keyword(v):
