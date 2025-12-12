@@ -26,16 +26,11 @@ import uuid
 from .context_resolver import ContextResolver
 from c14n.Canonicalize import canonicalize
 from cachetools import LRUCache
-from collections import namedtuple
-from functools import cmp_to_key
 import lxml.html
 from numbers import Integral, Real
 from frozendict import frozendict
 from pyld.__about__ import (__copyright__, __license__, __version__)
 from .iri_resolver import resolve, unresolve
-
-def cmp(a, b):
-    return (a > b) - (a < b)
 
 __all__ = [
     '__copyright__', '__license__', '__version__',
@@ -906,7 +901,7 @@ class JsonLdProcessor(object):
         options.setdefault('extractAllScripts', True)
         options.setdefault('processingMode', 'json-ld-1.1')
 
-        if not options['algorithm'] in ['URDNA2015', 'URGNA2012']:
+        if options['algorithm'] not in ['URDNA2015', 'URGNA2012']:
             raise JsonLdError(
                 'Unsupported normalization algorithm.',
                 'jsonld.NormalizeError')
@@ -969,9 +964,9 @@ class JsonLdProcessor(object):
         if 'format' in options:
             # supported formats (processor-specific and global)
             if ((self.rdf_parsers is not None and
-                not options['format'] in self.rdf_parsers) or
+                options['format'] not in self.rdf_parsers) or
                 (self.rdf_parsers is None and
-                    not options['format'] in _rdf_parsers)):
+                    options['format'] not in _rdf_parsers)):
                 raise JsonLdError(
                     'Unknown input format.',
                     'jsonld.UnknownFormat', {'format': options['format']})
@@ -1256,10 +1251,8 @@ class JsonLdProcessor(object):
         """
         # 1. equal primitives
         if not _is_object(v1) and not _is_object(v2) and v1 == v2:
-            type1 = type(v1)
-            type2 = type(v2)
-            if type1 == bool or type2 == bool:
-                return type1 == type2
+            if isinstance(v1, bool) or isinstance(v2, bool):
+                return type(v1) is type(v2)
             return True
 
         # 2. equal @values
@@ -1268,10 +1261,9 @@ class JsonLdProcessor(object):
                 v1.get('@type') == v2.get('@type') and
                 v1.get('@language') == v2.get('@language') and
                 v1.get('@index') == v2.get('@index')):
-            type1 = type(v1['@value'])
-            type2 = type(v2['@value'])
-            if type1 == bool or type2 == bool:
-                return type1 == type2
+
+            if isinstance(v1['@value'], bool) or isinstance(v2['@value'], bool):
+                return type(v1['@value']) is type(v2['@value'])
             return True
 
         # 3. equal @ids
@@ -2835,7 +2827,6 @@ class JsonLdProcessor(object):
 
         :return: the new active context.
         """
-        has_related = 'related' in active_ctx['mappings']
         # normalize local context to an array
         if _is_object(local_ctx) and _is_array(local_ctx.get('@context')):
             local_ctx = local_ctx['@context']
@@ -3067,7 +3058,7 @@ class JsonLdProcessor(object):
                         'json-ld-1.0',
                         'jsonld.SyntaxError', {'context': ctx},
                         code='invalid context entry')
-                if type(value) != bool:
+                if not isinstance(value, bool):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; @propagate value must be a boolean.',
                         'jsonld.SyntaxError', {'context': ctx},
@@ -3111,7 +3102,7 @@ class JsonLdProcessor(object):
                             raise JsonLdError(
                                 'Invalid JSON-LD syntax; invalid scoped context.',
                                 'jsonld.SyntaxError', {'context': key_ctx, 'term': k},
-                                code='invalid scoped context')
+                                code='invalid scoped context', cause=cause)
 
             # cache processed result (only Python >= 3.6)
             # and give the context a unique identifier
@@ -3777,7 +3768,7 @@ class JsonLdProcessor(object):
             # when the property is None, which only occurs at the top-level.
             if property is None:
                 state['uniqueEmbeds'] = {state['graph']: {}}
-            elif not state['graph'] in state['uniqueEmbeds']:
+            elif state['graph'] not in state['uniqueEmbeds']:
                 state['uniqueEmbeds'][state['graph']] = {}
 
             if flags['embed'] == '@link' and id_ in link:
@@ -3852,9 +3843,7 @@ class JsonLdProcessor(object):
                     recurse = state['graph'] != '@merged'
                     subframe = {}
                 else:
-                    subframe = frame['@graph'][0]
-                    if not _is_object(subframe):
-                        subFrame = {}
+                    subframe = frame['@graph'][0] if not _is_object(subframe) else {}
                     recurse = not (id_ == '@merged' or id_ == '@default')
 
                 if recurse:
@@ -4663,7 +4652,7 @@ class JsonLdProcessor(object):
             # lexicographically less than the current choice
             if (is_usable_curie and (
                     candidate is None or
-                    _compare_shortest_least(curie, candidate) < 0)):
+                    (len(curie), curie) < (len(candidate), candidate))):
                 candidate = curie
 
         # return curie candidate
@@ -5131,7 +5120,7 @@ class JsonLdProcessor(object):
             mapping['@container'] = container
 
         if '@index' in value:
-            if not '@container' in value or not '@index' in mapping['@container']:
+            if '@container' not in value or '@index' not in mapping['@container']:
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; @index without @index in @container.',
                     'jsonld.SyntaxError',
@@ -5353,8 +5342,8 @@ class JsonLdProcessor(object):
         # create term selections for each mapping in the context, ordered by
         # shortest and then lexicographically least
         for term, mapping in sorted(
-                active_ctx['mappings'].items(),
-                key=cmp_to_key(_compare_shortest_least)):
+            active_ctx['mappings'].items(),
+            key=lambda kv: (len(kv[0]), kv[0])):
             if mapping is None or not mapping.get('@id'):
                 continue
 
@@ -5649,8 +5638,7 @@ class URDNA2015(object):
 
             # 6.3) For each result in the hash path list,
             # lexicographically-sorted by the hash in result:
-            cmp_hashes = cmp_to_key(lambda x, y: cmp(x['hash'], y['hash']))
-            for result in sorted(hash_path_list, key=cmp_hashes):
+            for result in sorted(hash_path_list, key=lambda r: r['hash']):
                 # 6.3.1) For each blank node identifier, existing identifier,
                 # that was issued a temporary identifier by identifier issuer
                 # in result, issue a canonical identifier, in the same order,
@@ -6060,19 +6048,7 @@ def permutations(elements):
                 left[elements[i]] = not left[elements[i]]
 
 
-def _compare_shortest_least(a, b):
-    """
-    Compares two strings first based on length and then lexicographically.
 
-    :param a: the first string.
-    :param b: the second string.
-
-    :return: -1 if a < b, 1 if a > b, 0 if a == b.
-    """
-    rval = cmp(len(a), len(b))
-    if rval == 0:
-        rval = cmp(a, b)
-    return rval
 
 
 def _is_keyword(v):
