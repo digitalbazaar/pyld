@@ -4346,7 +4346,7 @@ class JsonLdProcessor(object):
                         idx = options['link'][id_].index(input_)
                         # already visited
                         return options['link'][id_][idx]
-                    except:
+                    except ValueError:
                         # prevent circular visitation
                         options['link'][id_].append(input_)
                 else:
@@ -4386,7 +4386,7 @@ class JsonLdProcessor(object):
                         idx = options['link'][id_].index(input_)
                         # already visited
                         return options['link'][id_][idx]
-                    except:
+                    except ValueError:
                         # prevent circular visitation
                         options['link'][id_].append(input_)
                 else:
@@ -5019,7 +5019,7 @@ class JsonLdProcessor(object):
                 mapping['@id'] = active_ctx['@vocab'] + term
 
         if (value.get('@protected') or
-            (defined.get('@protected') and value.get('@protected') != False)):
+            (defined.get('@protected') and value.get('@protected', True))):
             mapping['protected'] = True
 
         if '@type' in value:
@@ -6046,9 +6046,6 @@ def permutations(elements):
         for i in range(length):
             if elements[i] > k:
                 left[elements[i]] = not left[elements[i]]
-
-
-
 
 
 def _is_keyword(v):
