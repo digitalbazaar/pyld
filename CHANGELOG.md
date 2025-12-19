@@ -22,13 +22,18 @@
   - Migrate the `remove_base(base, iri)` function to the `unresolve(iri, base)` 
     function and update the implementation to use stdlib `urllib.parse` and 
     `urllib.unparse` to replace the custom implementation.
-  - Update code to use `resolve(iri, base)` and `unresolve(iri, base)` instead. Invalid base IRIs
-    (including `None`) are no longer allowed, hence missing base IRIs in the 
-    JSON-LD context are now handled outside the function call.
+  - Update code to use `resolve(iri, base)` and `unresolve(iri, base)` instead.
+    Invalid base IRIs (including `None`) are no longer allowed, hence missing 
+    base IRIs in the  JSON-LD context are now handled outside the function call.
   - Add unittests
 - **BREAKING**: the custom `cause` and `traceback` attributes on `JsonLdError` 
   are replaced by Python [exception chaining](https://peps.python.org/pep-3134/) 
   and the built-in `__cause__` attribute.
+- **BREAKING**: The `IdentifierIssuer` class was moved to `identifier_issuer.py`. 
+  It's now available at `pyld.identifier_issuer`.
+- **BREAKING**: The classes `URDNA2015` and `URGNA2012` were moved to `canon.py`. 
+  They are now available at `pyld.canon`. 
+
 ## 2.0.4 - 2024-02-16
 
 ### Fixed
