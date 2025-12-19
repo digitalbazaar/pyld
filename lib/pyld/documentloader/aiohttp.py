@@ -123,8 +123,8 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
         except Exception as cause:
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
-                'jsonld.LoadDocumentError', code='loading document failed',
-                cause=cause)
+                'jsonld.LoadDocumentError', 
+                code='loading document failed') from cause
 
     def loader(url, options=None):
         """
