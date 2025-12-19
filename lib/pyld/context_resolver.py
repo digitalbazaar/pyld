@@ -153,8 +153,8 @@ class ContextResolver:
                 'non-JSON response, or more than one HTTP Link Header was ' +
                 'provided for a remote context.',
                 'jsonld.InvalidUrl',
-                {'url': url, 'cause': cause},
-                code='loading remote context failed')
+                {'url': url},
+                code='loading remote context failed') from cause
 
         # ensure ctx is an object
         if not isinstance(context, dict) and not isinstance(context, frozendict):

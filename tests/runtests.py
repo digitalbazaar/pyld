@@ -544,8 +544,8 @@ def get_jsonld_error_code(err):
     if isinstance(err, jsonld.JsonLdError):
         if err.code:
             return err.code
-        elif err.cause:
-            return get_jsonld_error_code(err.cause)
+        elif err.__cause__:
+            return get_jsonld_error_code(err.__cause__)
     return str(err)
 
 
@@ -716,8 +716,8 @@ def create_document_loader(test):
             filename = test.dirname + strip_fragment(strip_base(doc['documentUrl']))
         try:
             doc['document'] = read_file(filename)
-        except:
-            raise Exception('loading document failed')
+        except Exception as e:
+            raise Exception('loading document failed') from e
         return doc
 
     def local_loader(url, headers):

@@ -19,7 +19,6 @@ import hashlib
 import json
 import re
 import sys
-import traceback
 from urllib.parse import urlparse
 import warnings
 import uuid
@@ -513,7 +512,7 @@ class JsonLdProcessor(object):
             except JsonLdError as cause:
                 raise JsonLdError(
                     'Could not expand input before compaction.',
-                    'jsonld.CompactError', cause=cause)
+                    'jsonld.CompactError') from cause
 
         # process context
         active_ctx = self._get_initial_context(options)
@@ -522,7 +521,7 @@ class JsonLdProcessor(object):
         except JsonLdError as cause:
             raise JsonLdError(
                 'Could not process context before compaction.',
-                'jsonld.CompactError', cause=cause)
+                'jsonld.CompactError') from cause
 
         # do compaction
         compacted = self._compact(active_ctx, None, expanded, options)
@@ -629,8 +628,7 @@ class JsonLdProcessor(object):
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
                 'jsonld.LoadDocumentError',
-                {'remoteDoc': remote_doc}, code='loading document failed',
-                cause=cause)
+                {'remoteDoc': remote_doc}, code='loading document failed') from cause
 
         # set default base
         options.setdefault('base', remote_doc['documentUrl'] or '')
@@ -708,7 +706,7 @@ class JsonLdProcessor(object):
         except Exception as cause:
             raise JsonLdError(
                 'Could not expand input before flattening.',
-                'jsonld.FlattenError', cause=cause)
+                'jsonld.FlattenError') from cause
 
         # do flattening
         flattened = self._flatten(expanded)
@@ -724,7 +722,7 @@ class JsonLdProcessor(object):
         except Exception as cause:
             raise JsonLdError(
                 'Could not compact flattened output.',
-                'jsonld.FlattenError', cause=cause)
+                'jsonld.FlattenError') from cause
 
         return compacted
 
@@ -791,8 +789,7 @@ class JsonLdProcessor(object):
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
                 'jsonld.LoadDocumentError',
-                {'remoteDoc': remote_frame}, code='loading document failed',
-                cause=cause)
+                {'remoteDoc': remote_frame}, code='loading document failed') from cause
 
         # preserve frame context
         frame = remote_frame['document']
@@ -814,7 +811,7 @@ class JsonLdProcessor(object):
         except JsonLdError as cause:
             raise JsonLdError(
                 'Could not process context before framing.',
-                'jsonld.FrameError', cause=cause)
+                'jsonld.FrameError') from cause
 
         # mode specific defaluts
         if 'omitGraph' not in options:
@@ -828,7 +825,7 @@ class JsonLdProcessor(object):
         except JsonLdError as cause:
             raise JsonLdError(
                 'Could not expand input before framing.',
-                'jsonld.FrameError', cause=cause)
+                'jsonld.FrameError') from cause
 
         try:
             # expand frame
@@ -839,7 +836,7 @@ class JsonLdProcessor(object):
         except JsonLdError as cause:
             raise JsonLdError(
                 'Could not expand frame before framing.',
-                'jsonld.FrameError', cause=cause)
+                'jsonld.FrameError') from cause
 
         # if the unexpanded frame includes a key expanding to @graph, frame the
         # default graph, otherwise, the merged graph
@@ -865,7 +862,7 @@ class JsonLdProcessor(object):
         except JsonLdError as cause:
             raise JsonLdError(
                 'Could not compact framed output.',
-                'jsonld.FrameError', cause=cause)
+                'jsonld.FrameError') from cause
 
         options['link'] = {}
         return self._cleanup_null(result, options)
@@ -924,7 +921,7 @@ class JsonLdProcessor(object):
         except JsonLdError as cause:
             raise JsonLdError(
                 'Could not convert input to RDF dataset before normalization.',
-                'jsonld.NormalizeError', cause=cause)
+                'jsonld.NormalizeError') from cause
 
         # do normalization
         if options['algorithm'] == 'URDNA2015':
@@ -1015,7 +1012,7 @@ class JsonLdProcessor(object):
         except JsonLdError as cause:
             raise JsonLdError(
                 'Could not expand input before serialization to '
-                'RDF.', 'jsonld.RdfError', cause=cause)
+                'RDF.', 'jsonld.RdfError') from cause
 
         # create node map for default graph (and any named graphs)
         issuer = IdentifierIssuer('_:b')
@@ -3102,7 +3099,7 @@ class JsonLdProcessor(object):
                             raise JsonLdError(
                                 'Invalid JSON-LD syntax; invalid scoped context.',
                                 'jsonld.SyntaxError', {'context': key_ctx, 'term': k},
-                                code='invalid scoped context', cause=cause)
+                                code='invalid scoped context') from cause
 
             # cache processed result (only Python >= 3.6)
             # and give the context a unique identifier
@@ -3530,8 +3527,7 @@ class JsonLdProcessor(object):
                         'JSON literal could not be parsed.',
                         'jsonld.InvalidJsonLiteral',
                         {"value": rval['@value']},
-                        code='invalid JSON literal',
-                        cause=cause)
+                        code='invalid JSON literal') from cause
 
             # use native types for certain xsd types
             if use_native_types:
@@ -5433,13 +5429,11 @@ class JsonLdError(Exception):
     Base class for JSON-LD errors.
     """
 
-    def __init__(self, message, type_, details=None, code=None, cause=None):
+    def __init__(self, message, type_, details=None, code=None):
         Exception.__init__(self, message)
         self.type = type_
         self.details = details
         self.code = code
-        self.cause = cause
-        self.causeTrace = traceback.extract_tb(*sys.exc_info()[2:])
 
     def __str__(self):
         rval = str(self.args)
@@ -5448,9 +5442,6 @@ class JsonLdError(Exception):
             rval += '\nCode: ' + self.code
         if self.details:
             rval += '\nDetails: ' + repr(self.details)
-        if self.cause:
-            rval += '\nCause: ' + str(self.cause)
-            rval += ''.join(traceback.format_list(self.causeTrace))
         return rval
 
 
@@ -6386,8 +6377,7 @@ def load_document(url,
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
                 'jsonld.LoadDocumentError',
-                {'remoteDoc': remote_doc}, code='loading document failed',
-                cause=cause)
+                {'remoteDoc': remote_doc}, code='loading document failed') from cause
 
     return remote_doc
 
@@ -6442,7 +6432,7 @@ def load_html(input, url, profile, options):
             raise JsonLdError(
                 'Invalid JSON syntax.',
                 'jsonld.SyntaxError',
-                {'content': content}, code='invalid script element', cause=cause)
+                {'content': content}, code='invalid script element') from cause
 
     elements = []
     if profile:
@@ -6462,7 +6452,7 @@ def load_html(input, url, profile, options):
                 raise JsonLdError(
                     'Invalid JSON syntax.',
                     'jsonld.SyntaxError',
-                    {'content': element.text}, code='invalid script element', cause=cause)
+                    {'content': element.text}, code='invalid script element') from cause
         return result
     elif elements:
         try:
@@ -6471,7 +6461,7 @@ def load_html(input, url, profile, options):
             raise JsonLdError(
                 'Invalid JSON syntax.',
                 'jsonld.SyntaxError',
-                {'content': elements[0].text}, code='invalid script element', cause=cause)
+                {'content': elements[0].text}, code='invalid script element') from cause
     else:
         raise JsonLdError(
             'No script tag found.',
