@@ -9,8 +9,10 @@ Context Resolver for managing remote contexts.
 """
 
 from frozendict import frozendict
+
 from c14n.Canonicalize import canonicalize
-from pyld import jsonld, iri_resolver
+from pyld import iri_resolver, jsonld
+
 from .resolved_context import ResolvedContext
 
 MAX_CONTEXT_URLS = 10
