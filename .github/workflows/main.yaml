@@ -28,10 +28,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements-test.txt
     - name: Lint
-      # FIXME
-      continue-on-error: true
-      run: |
-        flake8 lib/pyld tests --count --show-source --statistics
+      run: make lint
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
