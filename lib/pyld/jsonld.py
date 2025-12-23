@@ -628,7 +628,8 @@ class JsonLdProcessor(object):
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
                 'jsonld.LoadDocumentError',
-                {'remoteDoc': remote_doc}, code='loading document failed') from cause
+                {'remoteDoc': remote_doc}, 
+                code='loading document failed') from cause
 
         # set default base
         options.setdefault('base', remote_doc['documentUrl'] or '')
@@ -789,7 +790,8 @@ class JsonLdProcessor(object):
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
                 'jsonld.LoadDocumentError',
-                {'remoteDoc': remote_frame}, code='loading document failed') from cause
+                {'remoteDoc': remote_frame}, 
+                code='loading document failed') from cause
 
         # preserve frame context
         frame = remote_frame['document']
@@ -6377,7 +6379,8 @@ def load_document(url,
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
                 'jsonld.LoadDocumentError',
-                {'remoteDoc': remote_doc}, code='loading document failed') from cause
+                {'remoteDoc': remote_doc}, 
+                code='loading document failed') from cause
 
     return remote_doc
 
@@ -6432,7 +6435,8 @@ def load_html(input, url, profile, options):
             raise JsonLdError(
                 'Invalid JSON syntax.',
                 'jsonld.SyntaxError',
-                {'content': content}, code='invalid script element') from cause
+                {'content': content}, 
+                code='invalid script element') from cause
 
     elements = []
     if profile:
@@ -6452,7 +6456,8 @@ def load_html(input, url, profile, options):
                 raise JsonLdError(
                     'Invalid JSON syntax.',
                     'jsonld.SyntaxError',
-                    {'content': element.text}, code='invalid script element') from cause
+                    {'content': element.text}, 
+                    code='invalid script element') from cause
         return result
     elif elements:
         try:
@@ -6461,7 +6466,8 @@ def load_html(input, url, profile, options):
             raise JsonLdError(
                 'Invalid JSON syntax.',
                 'jsonld.SyntaxError',
-                {'content': elements[0].text}, code='invalid script element') from cause
+                {'content': elements[0].text}, 
+                code='invalid script element') from cause
     else:
         raise JsonLdError(
             'No script tag found.',
