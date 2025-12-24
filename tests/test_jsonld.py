@@ -2,6 +2,8 @@ import pytest
 
 import pyld.jsonld as jsonld
 
+def raise_this(value):
+    raise ValueError(value)
 
 class TestExpand:
     # Issue 50 - PR: https://github.com/digitalbazaar/pyld/pull/51
@@ -29,13 +31,13 @@ class TestExpand:
         got = jsonld.expand(input, {"expandContext": context})
         assert got == expected
 
-    def test_strict_fails(self):
+    def test_dropped_keys_fails(self):
         input = {"fooo": "bar"}
         context = {"foo": {"@id": "http://example.com/foo"}}
         with pytest.raises(ValueError):
-            jsonld.expand(input, {"expandContext": context, "strict": True})
+            jsonld.expand(input, {"expandContext": context}, on_key_dropped=raise_this)
 
-    def test_strict_fails_complex(self):
+    def test_dropped_keys_fails_complex(self):
         input = {
             "@id": "foo",
             "foo": "bar",
@@ -44,15 +46,15 @@ class TestExpand:
         }
         context = {"foo": {"@id": "http://example.com/foo"}}
         with pytest.raises(ValueError):
-            jsonld.expand(input, {"expandContext": context, "strict": True})
+            jsonld.expand(input, {"expandContext": context}, on_key_dropped=raise_this)
 
     def test_dropped_keys(self):
         input = {"fooo": "bar"}
         context = {"foo": {"@id": "http://example.com/foo"}}
-        dk = set()
-        got = jsonld.expand(input, {"expandContext": context, "droppedKeys": dk})
+        dropped_keys = set()
+        got = jsonld.expand(input, {"expandContext": context}, on_key_dropped=dropped_keys.add)
         assert got == []
-        assert dk == {"fooo"}
+        assert dropped_keys == {"fooo"}
 
     def test_dropped_keys_complex(self):
         input = {
@@ -69,10 +71,10 @@ class TestExpand:
             }
         ]
         context = {"foo": {"@id": "http://example.com/foo"}}
-        dk = set()
-        got = jsonld.expand(input, {"expandContext": context, "droppedKeys": dk})
+        dropped_keys = set()
+        got = jsonld.expand(input, {"expandContext": context}, on_key_dropped=dropped_keys.add)
         assert got == expected
-        assert dk == {"fooo"}
+        assert dropped_keys == {"fooo"}
 
     # Issue 187
     def test_missing_base(self):
