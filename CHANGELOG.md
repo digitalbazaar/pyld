@@ -33,6 +33,7 @@
   It's now available at `pyld.identifier_issuer`.
 - **BREAKING**: The classes `URDNA2015` and `URGNA2012` were moved to `canon.py`. 
   They are now available at `pyld.canon`. 
+- `jsonld.expand()` now accepts a `on_key_dropped` parameter which is a handler called on every ignored key.
 
 ## 2.0.4 - 2024-02-16
 

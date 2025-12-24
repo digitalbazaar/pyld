@@ -16,12 +16,14 @@ JSON-LD.
 
 import copy
 import json
+import logging
 import re
 import sys
 from urllib.parse import urlparse
 import warnings
 import uuid
 
+from typing import Optional, Callable
 from pyld.canon import URDNA2015, URGNA2012, UnknownFormatError
 from pyld.nquads import ParserError, parse_nquads, serialize_nquad, serialize_nquads
 from pyld.identifier_issuer import IdentifierIssuer
@@ -33,6 +35,8 @@ from numbers import Integral, Real
 from frozendict import frozendict
 from pyld.__about__ import (__copyright__, __license__, __version__)
 from .iri_resolver import resolve, unresolve
+
+logger = logging.getLogger('pyld.jsonld')
 
 __all__ = [
     '__copyright__', '__license__', '__version__',
@@ -116,6 +120,17 @@ _inverse_context_cache = LRUCache(maxsize=INVERSE_CONTEXT_CACHE_MAX_SIZE)
 # Initial contexts, defined on first access
 INITIAL_CONTEXTS = {}
 
+# Handler to call if a key was dropped during expansion
+OnKeyDropped = Callable[[Optional[str]], ...]
+
+
+def log_on_key_dropped(key: Optional[str]):
+    """Default behavior on ignored JSON-LD keys is to log them."""
+    logger.debug(
+        'Key `%s` was not mapped to an absolute IRI and was ignored.',
+        key,
+    )
+
 def compact(input_, ctx, options=None):
     """
     Performs JSON-LD compaction.
@@ -141,7 +156,7 @@ def compact(input_, ctx, options=None):
     return JsonLdProcessor().compact(input_, ctx, options)
 
 
-def expand(input_, options=None):
+def expand(input_, options=None, on_key_dropped: OnKeyDropped = log_on_key_dropped):
     """
     Performs JSON-LD expansion.
 
@@ -159,7 +174,9 @@ def expand(input_, options=None):
 
     :return: the expanded JSON-LD output.
     """
-    return JsonLdProcessor().expand(input_, options)
+    return JsonLdProcessor(
+        on_key_dropped=on_key_dropped
+    ).expand(input_, options)
 
 
 def flatten(input_, ctx=None, options=None):
@@ -442,17 +459,18 @@ def unregister_rdf_parser(content_type):
         del _rdf_parsers[content_type]
 
 
-class JsonLdProcessor(object):
+class JsonLdProcessor:
     """
     A JSON-LD processor.
     """
 
-    def __init__(self):
+    def __init__(self, on_key_dropped: OnKeyDropped = log_on_key_dropped):
         """
         Initialize the JSON-LD processor.
         """
         # processor-specific RDF parsers
         self.rdf_parsers = None
+        self.on_key_dropped = on_key_dropped
 
     def compact(self, input_, ctx, options):
         """
@@ -2076,6 +2094,7 @@ class JsonLdProcessor(object):
                 not (
                     _is_absolute_iri(expanded_property) or
                     _is_keyword(expanded_property))):
+                self.on_key_dropped(expanded_property)
                 continue
 
             if _is_keyword(expanded_property):

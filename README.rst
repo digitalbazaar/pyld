@@ -170,6 +170,21 @@ If Requests_ is not available, the loader is set to aiohttp_. The fallback
 document loader is a dummy document loader that raises an exception on every
 invocation.
 
+Handling ignored keys during JSON-LD expansion
+----------------------------------------------
+
+If a key in a JSON-LD document does not map to an absolute IRI then it is ignored and logged by default. 
+You can customize this behaviour by passing a customizable handler to `on_key_dropped` parameter of `jsonld.expand()`.
+
+For example, you can introduce a strict mode by raising a ValueError on every dropped key:
+
+```python
+def raise_this(value):
+    raise ValueError(value)
+
+jsonld.expand(doc, None, on_key_dropped=raise_this)
+```
+
 Commercial Support
 ------------------
 
