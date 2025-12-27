@@ -2,8 +2,8 @@
 # Target Python version
 target-version = "py310"
 
-# Line length (matching common Python style guides)
-line-length = 79
+# Line length (matching rdflib's flake8 config)
+line-length = 88
 
 # Include and exclude patterns
 include = ["*.py"]
@@ -33,7 +33,8 @@ select = [
 
 # Ignore specific rules if needed
 ignore = [
-    "E501",  # line too long (handled by formatter)
+    "E501",  # line too long (handled by formatter, matches rdflib's flake8)
+    "F821",  # undefined name (matches rdflib's flake8 W806 ignore)
     "Q000",  # quote style (preserved by formatter)
     "Q001",  # quote style (preserved by formatter)
     "Q002",  # quote style (preserved by formatter)
