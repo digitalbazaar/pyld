@@ -819,11 +819,11 @@ class JsonLdProcessor:
         if frame is not None:
             ctx = frame.get('@context', {})
             if remote_frame['contextUrl'] is not None:
-                if ctx is not None:
-                    ctx = remote_frame['contextUrl']
-                else:
+                if ctx:
                     ctx = JsonLdProcessor.arrayify(ctx)
                     ctx.append(remote_frame['contextUrl'])
+                else:
+                    ctx = remote_frame['contextUrl']
                 frame['@context'] = ctx
 
         # process context
