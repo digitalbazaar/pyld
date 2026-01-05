@@ -108,6 +108,9 @@ JSON_LD_NS = 'http://www.w3.org/ns/json-ld#'
 # JSON-LD link header rel
 LINK_HEADER_REL = JSON_LD_NS + 'context'
 
+# Default base IRI if none is provided through input or options
+DEFAULT_BASE_IRI = 'http://example.org/base/'
+
 # Restraints
 MAX_CONTEXT_URLS = 10
 
@@ -5147,11 +5150,14 @@ class JsonLdProcessor:
 
         # resolve against base
         rval = value
-        if base and '@base' in active_ctx:
+        if '@base' in active_ctx:
             # The None case preserves rval as potentially relative
             if active_ctx['@base'] is not None:
                 resolved_base = active_ctx['@base'] if _is_absolute_iri(active_ctx['@base']) else resolve(active_ctx['@base'], base)
                 rval = resolve(rval, resolved_base)
+        # fallback to document base if the base is absent or set to null
+        elif base == '':
+            rval = resolve(rval, DEFAULT_BASE_IRI)
         elif base:
             rval = resolve(rval, base)
 
