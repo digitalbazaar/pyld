@@ -349,7 +349,7 @@ class TestFrame:
             else:
                 raise Exception("Unknown URL: {}".format(url))
 
-        options = {"documentLoader": fake_loader}
+        options = {"documentLoader": fake_loader, "omitGraph": False}
         framed = jsonld.frame(input, "http://example.com/frame.json", options=options)
 
         assert framed == expected
