@@ -23,7 +23,7 @@ from urllib.parse import urlparse
 import warnings
 import uuid
 
-from typing import Optional, Callable
+from typing import Optional, Callable, Any
 from pyld.canon import URDNA2015, URGNA2012, UnknownFormatError
 from pyld.nquads import ParserError, parse_nquads, serialize_nquad, serialize_nquads
 from pyld.identifier_issuer import IdentifierIssuer
@@ -124,8 +124,7 @@ _inverse_context_cache = LRUCache(maxsize=INVERSE_CONTEXT_CACHE_MAX_SIZE)
 INITIAL_CONTEXTS = {}
 
 # Handler to call if a key was dropped during expansion
-OnKeyDropped = Callable[[Optional[str]], ...]
-
+OnKeyDropped = Callable[[Optional[str]], Any]
 
 def log_on_key_dropped(key: Optional[str]):
     """Default behavior on ignored JSON-LD keys is to log them."""
