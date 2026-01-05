@@ -10,7 +10,7 @@ class TestExpand:
     def test_silently_ignored(self):
         input = {"fooo": "bar"}
         context = {"foo": {"@id": "http://example.com/foo"}}
-        got = jsonld.expand(input, {"expandContext": context})
+        got = jsonld.expand(input, {"expandContext": context, "base": None})
         assert got == []
 
     def test_silently_ignored_complex(self):
@@ -28,14 +28,14 @@ class TestExpand:
             }
         ]
         context = {"foo": {"@id": "http://example.com/foo"}}
-        got = jsonld.expand(input, {"expandContext": context})
+        got = jsonld.expand(input, {"expandContext": context, "base": None})
         assert got == expected
 
     def test_dropped_keys_fails(self):
         input = {"fooo": "bar"}
         context = {"foo": {"@id": "http://example.com/foo"}}
         with pytest.raises(ValueError):
-            jsonld.expand(input, {"expandContext": context}, on_key_dropped=raise_this)
+            jsonld.expand(input, {"expandContext": context, "base": None}, on_key_dropped=raise_this)
 
     def test_dropped_keys_fails_complex(self):
         input = {
@@ -46,13 +46,13 @@ class TestExpand:
         }
         context = {"foo": {"@id": "http://example.com/foo"}}
         with pytest.raises(ValueError):
-            jsonld.expand(input, {"expandContext": context}, on_key_dropped=raise_this)
+            jsonld.expand(input, {"expandContext": context, "base": None}, on_key_dropped=raise_this)
 
     def test_dropped_keys(self):
         input = {"fooo": "bar"}
         context = {"foo": {"@id": "http://example.com/foo"}}
         dropped_keys = set()
-        got = jsonld.expand(input, {"expandContext": context}, on_key_dropped=dropped_keys.add)
+        got = jsonld.expand(input, {"expandContext": context, "base": None}, on_key_dropped=dropped_keys.add)
         assert got == []
         assert dropped_keys == {"fooo"}
 
@@ -72,7 +72,7 @@ class TestExpand:
         ]
         context = {"foo": {"@id": "http://example.com/foo"}}
         dropped_keys = set()
-        got = jsonld.expand(input, {"expandContext": context}, on_key_dropped=dropped_keys.add)
+        got = jsonld.expand(input, {"expandContext": context, "base": None}, on_key_dropped=dropped_keys.add)
         assert got == expected
         assert dropped_keys == {"fooo"}
 
@@ -105,9 +105,9 @@ class TestExpand:
 
         expected = [
             {
-                "@id": "https://w3c.github.io/json-ld-api/tests/document-relative",
+                "@id": "http://example.org/document-relative",
                 "@type": [
-                    "https://w3c.github.io/json-ld-api/tests/expand/0060-in.jsonld#document-relative"
+                    "http://example.org/base/#document-relative"
                 ],
                 "http://example.com/vocab#property": [
                     {
@@ -115,9 +115,9 @@ class TestExpand:
                         "@type": ["http://example.org/test/#document-base-overwritten"],
                         "http://example.com/vocab#property": [
                             {
-                                "@id": "https://w3c.github.io/json-ld-api/tests/document-relative",
+                                "@id": "http://example.org/document-relative",
                                 "@type": [
-                                    "https://w3c.github.io/json-ld-api/tests/expand/0060-in.jsonld#document-relative"
+                                    "http://example.org/base/#document-relative"
                                 ],
                             },
                             {
