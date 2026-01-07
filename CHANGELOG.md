@@ -26,7 +26,9 @@
     (including `None`) are no longer allowed, hence missing base IRIs in the 
     JSON-LD context are now handled outside the function call.
   - Add unittests
-
+- **BREAKING**: the custom `cause` and `traceback` attributes on `JsonLdError` 
+  are replaced by Python [exception chaining](https://peps.python.org/pep-3134/) 
+  and the built-in `__cause__` attribute.
 ## 2.0.4 - 2024-02-16
 
 ### Fixed
