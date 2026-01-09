@@ -173,10 +173,12 @@ invocation.
 Handling ignored keys during JSON-LD expansion
 ----------------------------------------------
 
-If a key in a JSON-LD document does not map to an absolute IRI then it is ignored and logged by default. 
-You can customize this behaviour by passing a customizable handler to `on_key_dropped` parameter of `jsonld.expand()`.
+If a key in a JSON-LD document does not map to an absolute IRI then it is 
+ignored. You can customize this behaviour by passing a customizable handler to 
+`on_key_dropped` parameter of `jsonld.expand()`.
 
-For example, you can introduce a strict mode by raising a ValueError on every dropped key:
+For example, you can introduce a strict mode by raising a ValueError on every 
+dropped key:
 
 ```python
 def raise_this(value):

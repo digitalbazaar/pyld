@@ -16,7 +16,6 @@ JSON-LD.
 
 import copy
 import json
-import logging
 import re
 import sys
 from urllib.parse import urlparse
@@ -35,8 +34,6 @@ from numbers import Integral, Real
 from frozendict import frozendict
 from pyld.__about__ import (__copyright__, __license__, __version__)
 from .iri_resolver import resolve, unresolve
-
-logger = logging.getLogger('pyld.jsonld')
 
 __all__ = [
     '__copyright__', '__license__', '__version__',
@@ -126,12 +123,9 @@ INITIAL_CONTEXTS = {}
 # Handler to call if a key was dropped during expansion
 OnKeyDropped = Callable[[Optional[str]], Any]
 
-def log_on_key_dropped(key: Optional[str]):
-    """Default behavior on ignored JSON-LD keys is to log them."""
-    logger.debug(
-        'Key `%s` was not mapped to an absolute IRI and was ignored.',
-        key,
-    )
+def noop(*args, **kwargs):
+    return None
+    
 
 def compact(input_, ctx, options=None):
     """
@@ -158,7 +152,7 @@ def compact(input_, ctx, options=None):
     return JsonLdProcessor().compact(input_, ctx, options)
 
 
-def expand(input_, options=None, on_key_dropped: OnKeyDropped = log_on_key_dropped):
+def expand(input_, options=None, on_key_dropped: OnKeyDropped = noop):
     """
     Performs JSON-LD expansion.
 
@@ -466,7 +460,7 @@ class JsonLdProcessor:
     A JSON-LD processor.
     """
 
-    def __init__(self, on_key_dropped: OnKeyDropped = log_on_key_dropped):
+    def __init__(self, on_key_dropped: OnKeyDropped = noop):
         """
         Initialize the JSON-LD processor.
         """
