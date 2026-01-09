@@ -33,8 +33,8 @@
   It's now available at `pyld.identifier_issuer`.
 - **BREAKING**: The classes `URDNA2015` and `URGNA2012` were moved to `canon.py`. 
   They are now available at `pyld.canon`. 
-- `jsonld.expand()` now accepts a `on_key_dropped` parameter which is a handler
-  called on every ignored key.
+- `jsonld.expand()` now accepts a `on_property_dropped` parameter which is a handler
+  called on every ignored JSON property.
 - **BREAKING**: In cases where there is no document base (for instance, when 
   using a string as input), 'http://example.org/base/' is used as the base IRI 
   when `@base` is absent or explicitely set to `null`.

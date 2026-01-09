@@ -8,12 +8,22 @@ def raise_this(value):
 class TestExpand:
     # Issue 50 - PR: https://github.com/digitalbazaar/pyld/pull/51
     def test_silently_ignored(self):
+        """
+        Simple example with keys not in the context should silently ignore 
+        dropped keys during expansion when no on_property_dropped handler was 
+        passed.
+        """
         input = {"fooo": "bar"}
         context = {"foo": {"@id": "http://example.com/foo"}}
         got = jsonld.expand(input, {"expandContext": context, "base": None})
         assert got == []
 
     def test_silently_ignored_complex(self):
+        """
+        Complex example with keys not in the context should silently ignore 
+        dropped keys during expansion when no on_property_dropped handler was 
+        passed.
+        """
         input = {
             "@id": "foo",
             "foo": "bar",
@@ -32,12 +42,21 @@ class TestExpand:
         assert got == expected
 
     def test_dropped_keys_fails(self):
+        """
+        Simple example with keys not in the context should fail during
+        expansion when on_property_dropped handler raises error.
+        """
         input = {"fooo": "bar"}
         context = {"foo": {"@id": "http://example.com/foo"}}
         with pytest.raises(ValueError):
-            jsonld.expand(input, {"expandContext": context, "base": None}, on_key_dropped=raise_this)
+            jsonld.expand(input, {"expandContext": context, "base": None}, 
+                          on_property_dropped=raise_this)
 
     def test_dropped_keys_fails_complex(self):
+        """
+        Complex example with keys not in the context should fail during
+        expansion when on_property_dropped handler raises error.
+        """
         input = {
             "@id": "foo",
             "foo": "bar",
@@ -46,17 +65,27 @@ class TestExpand:
         }
         context = {"foo": {"@id": "http://example.com/foo"}}
         with pytest.raises(ValueError):
-            jsonld.expand(input, {"expandContext": context, "base": None}, on_key_dropped=raise_this)
+            jsonld.expand(input, {"expandContext": context, "base": None}, 
+                          on_property_dropped=raise_this)
 
     def test_dropped_keys(self):
+        """
+        Simple example with keys not in the context should correctly store 
+        dropped keys during expansion using the on_property_dropped handler.
+        """
         input = {"fooo": "bar"}
         context = {"foo": {"@id": "http://example.com/foo"}}
         dropped_keys = set()
-        got = jsonld.expand(input, {"expandContext": context, "base": None}, on_key_dropped=dropped_keys.add)
+        got = jsonld.expand(input, {"expandContext": context, "base": None}, 
+                            on_property_dropped=dropped_keys.add)
         assert got == []
         assert dropped_keys == {"fooo"}
 
     def test_dropped_keys_complex(self):
+        """
+        Complex example with keys not in the context should correctly store 
+        dropped keys during expansion using the on_property_dropped handler.
+        """
         input = {
             "@id": "foo",
             "foo": "bar",
@@ -72,7 +101,8 @@ class TestExpand:
         ]
         context = {"foo": {"@id": "http://example.com/foo"}}
         dropped_keys = set()
-        got = jsonld.expand(input, {"expandContext": context, "base": None}, on_key_dropped=dropped_keys.add)
+        got = jsonld.expand(input, {"expandContext": context, "base": None}, 
+                            on_property_dropped=dropped_keys.add)
         assert got == expected
         assert dropped_keys == {"fooo"}
 

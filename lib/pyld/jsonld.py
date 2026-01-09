@@ -120,8 +120,8 @@ _inverse_context_cache = LRUCache(maxsize=INVERSE_CONTEXT_CACHE_MAX_SIZE)
 # Initial contexts, defined on first access
 INITIAL_CONTEXTS = {}
 
-# Handler to call if a key was dropped during expansion
-OnKeyDropped = Callable[[Optional[str]], Any]
+# Handler to call if a property was dropped during expansion
+OnPropertyDropped = Callable[[Optional[str]], Any]
 
 def noop(*args, **kwargs):
     return None
@@ -152,7 +152,7 @@ def compact(input_, ctx, options=None):
     return JsonLdProcessor().compact(input_, ctx, options)
 
 
-def expand(input_, options=None, on_key_dropped: OnKeyDropped = noop):
+def expand(input_, options=None, on_property_dropped: OnPropertyDropped = noop):
     """
     Performs JSON-LD expansion.
 
@@ -167,11 +167,12 @@ def expand(input_, options=None, on_key_dropped: OnKeyDropped = noop):
         defaults to 'json-ld-1.1'.
       [documentLoader(url, options)] the document loader
         (default: _default_document_loader).
+    :param [on_property_dropped]: handler called on every ignored property.
 
     :return: the expanded JSON-LD output.
     """
     return JsonLdProcessor(
-        on_key_dropped=on_key_dropped
+        on_property_dropped=on_property_dropped
     ).expand(input_, options)
 
 
@@ -460,13 +461,13 @@ class JsonLdProcessor:
     A JSON-LD processor.
     """
 
-    def __init__(self, on_key_dropped: OnKeyDropped = noop):
+    def __init__(self, on_property_dropped: OnPropertyDropped = noop):
         """
         Initialize the JSON-LD processor.
         """
         # processor-specific RDF parsers
         self.rdf_parsers = None
-        self.on_key_dropped = on_key_dropped
+        self.on_property_dropped = on_property_dropped
 
     def compact(self, input_, ctx, options):
         """
@@ -2090,7 +2091,7 @@ class JsonLdProcessor:
                 not (
                     _is_absolute_iri(expanded_property) or
                     _is_keyword(expanded_property))):
-                self.on_key_dropped(expanded_property)
+                self.on_property_dropped(expanded_property)
                 continue
 
             if _is_keyword(expanded_property):
