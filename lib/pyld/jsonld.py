@@ -23,7 +23,7 @@ import warnings
 import uuid
 
 from pyld.canon import URDNA2015, URGNA2012, UnknownFormatError
-from pyld.nquads import ParserError, parse_nquads, to_nquad, to_nquads
+from pyld.nquads import ParserError, parse_nquads, serialize_nquad, serialize_nquads
 from pyld.identifier_issuer import IdentifierIssuer
 from .context_resolver import ContextResolver
 from c14n.Canonicalize import canonicalize
@@ -1351,11 +1351,11 @@ class JsonLdProcessor(object):
 
         :return: the N-Quads string.
         """
-        return to_nquads(dataset)
+        return serialize_nquads(dataset)
 
     @staticmethod
     def to_nquad(triple, graph_name=None):
-        return to_nquad(triple, graph_name)
+        return serialize_nquad(triple, graph_name)
 
     @staticmethod
     def arrayify(value):
