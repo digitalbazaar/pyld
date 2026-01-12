@@ -2,15 +2,17 @@ import pytest
 
 import pyld.jsonld as jsonld
 
+
 def raise_this(value):
     raise ValueError(value)
+
 
 class TestExpand:
     # Issue 50 - PR: https://github.com/digitalbazaar/pyld/pull/51
     def test_silently_ignored(self):
         """
-        Simple example with keys not in the context should silently ignore 
-        dropped keys during expansion when no on_property_dropped handler was 
+        Simple example with keys not in the context should silently ignore
+        dropped keys during expansion when no on_property_dropped handler was
         passed.
         """
         input = {"fooo": "bar"}
@@ -20,8 +22,8 @@ class TestExpand:
 
     def test_silently_ignored_complex(self):
         """
-        Complex example with keys not in the context should silently ignore 
-        dropped keys during expansion when no on_property_dropped handler was 
+        Complex example with keys not in the context should silently ignore
+        dropped keys during expansion when no on_property_dropped handler was
         passed.
         """
         input = {
@@ -49,8 +51,11 @@ class TestExpand:
         input = {"fooo": "bar"}
         context = {"foo": {"@id": "http://example.com/foo"}}
         with pytest.raises(ValueError):
-            jsonld.expand(input, {"expandContext": context, "base": None}, 
-                          on_property_dropped=raise_this)
+            jsonld.expand(
+                input,
+                {"expandContext": context, "base": None},
+                on_property_dropped=raise_this,
+            )
 
     def test_dropped_keys_fails_complex(self):
         """
@@ -65,25 +70,31 @@ class TestExpand:
         }
         context = {"foo": {"@id": "http://example.com/foo"}}
         with pytest.raises(ValueError):
-            jsonld.expand(input, {"expandContext": context, "base": None}, 
-                          on_property_dropped=raise_this)
+            jsonld.expand(
+                input,
+                {"expandContext": context, "base": None},
+                on_property_dropped=raise_this,
+            )
 
     def test_dropped_keys(self):
         """
-        Simple example with keys not in the context should correctly store 
+        Simple example with keys not in the context should correctly store
         dropped keys during expansion using the on_property_dropped handler.
         """
         input = {"fooo": "bar"}
         context = {"foo": {"@id": "http://example.com/foo"}}
         dropped_keys = set()
-        got = jsonld.expand(input, {"expandContext": context, "base": None}, 
-                            on_property_dropped=dropped_keys.add)
+        got = jsonld.expand(
+            input,
+            {"expandContext": context, "base": None},
+            on_property_dropped=dropped_keys.add,
+        )
         assert got == []
         assert dropped_keys == {"fooo"}
 
     def test_dropped_keys_complex(self):
         """
-        Complex example with keys not in the context should correctly store 
+        Complex example with keys not in the context should correctly store
         dropped keys during expansion using the on_property_dropped handler.
         """
         input = {
@@ -101,13 +112,21 @@ class TestExpand:
         ]
         context = {"foo": {"@id": "http://example.com/foo"}}
         dropped_keys = set()
-        got = jsonld.expand(input, {"expandContext": context, "base": None}, 
-                            on_property_dropped=dropped_keys.add)
+        got = jsonld.expand(
+            input,
+            {"expandContext": context, "base": None},
+            on_property_dropped=dropped_keys.add,
+        )
         assert got == expected
         assert dropped_keys == {"fooo"}
 
     # Issue 187
     def test_missing_base(self):
+        """
+        Document where `@base` is absent or explicitely set to `null` should
+        use the default base IRI 'http://example.org/base/'
+        when no base parameter is set during expansion .
+        """
         input = {
             "@context": {"property": "http://example.com/vocab#property"},
             "@id": "../document-relative",
@@ -136,9 +155,7 @@ class TestExpand:
         expected = [
             {
                 "@id": "http://example.org/document-relative",
-                "@type": [
-                    "http://example.org/base/#document-relative"
-                ],
+                "@type": ["http://example.org/base/#document-relative"],
                 "http://example.com/vocab#property": [
                     {
                         "@id": "http://example.org/document-base-overwritten",
@@ -146,9 +163,7 @@ class TestExpand:
                         "http://example.com/vocab#property": [
                             {
                                 "@id": "http://example.org/document-relative",
-                                "@type": [
-                                    "http://example.org/base/#document-relative"
-                                ],
+                                "@type": ["http://example.org/base/#document-relative"],
                             },
                             {
                                 "@id": "../document-relative",
@@ -168,11 +183,11 @@ class TestExpand:
 
 class TestFrame:
     # Issue 11 - PR: https://github.com/digitalbazaar/pyld/issues/149
+    """
+    Example with @id alias in an inner context should not change when framing.
+    """
 
-    # Conversion to json-ld: https://tinyurl.com/yyw2ktyf
-    # Reverse conversion: https://tinyurl.com/y6fo3clj
-
-    def test_processing_id_with_expand_then_frame(self):
+    def test_processing_id_in_inner_context(self):
         input = {
             "@type": "Package",
             "system": [
@@ -210,19 +225,17 @@ class TestFrame:
             "@type": "https://hotecosystem.org/termci/Package",
         }
 
-        options = dict(expandContext=context, base="https://hotecosystem.org/termci/")
-
-        # Start with system 'namespace' and contents 'uri'
-        assert "namespace" in input["system"][0]
-        assert "uri" in input["system"][0]["contents"][0]
-
-        # Take the vanilla JSON and convert it to RDF
-        expanded = jsonld.expand(input, options=options)
-
         # Convert the RDF back into vanilla JSON
-        output_json = jsonld.frame(expanded, context, options=options)
+        output_json = jsonld.frame(
+            input,
+            context,
+            options={
+                "expandContext": context,
+                "base": "https://hotecosystem.org/termci/",
+            },
+        )
 
-        # Observe that system.contents.uri has changed to system.contents.namespace
+        # Observe that system.contents.uri did not change to system.contents.namespace
         assert "namespace" in output_json["system"][0]
         assert "uri" in output_json["system"][0]["contents"][0]
 
@@ -285,82 +298,7 @@ class TestFrame:
 
     FRAME_0001_FRAME_PARTIAL_CONTEXT = {"@context": {"ex": "http://example.org/vocab#"}}
 
-    FRAME_0001_OUT_WITH_REMOTE_CONTEXT = {
-        "@context": "http://example.com/frame-context.json",
-        "@graph": [
-            {
-                "@id": "http://example.org/test/#library",
-                "@type": "ex:Library",
-                "ex:contains": {
-                    "@id": "http://example.org/test#book",
-                    "@type": "ex:Book",
-                    "dc:contributor": "Writer",
-                    "dc:title": "My Book",
-                    "ex:contains": {
-                        "@id": "http://example.org/test#chapter",
-                        "@type": "ex:Chapter",
-                        "dc:description": "Fun",
-                        "dc:title": "Chapter One",
-                    },
-                },
-            }
-        ],
-    }
-
-    FRAME_0001_OUT_WITH_LOCAL_AND_REMOTE_CONTEXT = {
-        "@context": [
-            {
-                "dc": "http://purl.org/dc/elements/1.1/",
-                "ex": "http://example.org/vocab#",
-            },
-            "http://example.com/frame-context.json",
-        ],
-        "@graph": [
-            {
-                "@id": "http://example.org/test/#library",
-                "@type": "ex:Library",
-                "ex:contains": {
-                    "@id": "http://example.org/test#book",
-                    "@type": "ex:Book",
-                    "dc:contributor": "Writer",
-                    "dc:title": "My Book",
-                    "ex:contains": {
-                        "@id": "http://example.org/test#chapter",
-                        "@type": "ex:Chapter",
-                        "dc:description": "Fun",
-                        "dc:title": "Chapter One",
-                    },
-                },
-            }
-        ],
-    }
-
-    FRAME_0001_OUT_WITH_HALF_LOCAL_AND_HALF_REMOTE_CONTEXT = {
-        "@context": [
-            {"dc": "http://purl.org/dc/elements/1.1/"},
-            "http://example.com/frame-context.json",
-        ],
-        "@graph": [
-            {
-                "@id": "http://example.org/test/#library",
-                "@type": "ex:Library",
-                "ex:contains": {
-                    "@id": "http://example.org/test#book",
-                    "@type": "ex:Book",
-                    "dc:contributor": "Writer",
-                    "dc:title": "My Book",
-                    "ex:contains": {
-                        "@id": "http://example.org/test#chapter",
-                        "@type": "ex:Chapter",
-                        "dc:description": "Fun",
-                        "dc:title": "Chapter One",
-                    },
-                },
-            }
-        ],
-    }
-
-    def _test_remote_context_with(self, input, frame, context, expected):
+    def _frame_with_remote_context(self, input, frame, context):
         def fake_loader(url, options):
             if url == "http://example.com/frame.json":
                 return {
@@ -380,36 +318,125 @@ class TestFrame:
                 raise Exception("Unknown URL: {}".format(url))
 
         options = {"documentLoader": fake_loader, "omitGraph": False}
-        framed = jsonld.frame(input, "http://example.com/frame.json", options=options)
+        return jsonld.frame(input, "http://example.com/frame.json", options=options)
+
+    def test_remote_context_local_and_remote_context_equal(self):
+        """
+        Example with both local and remote context should combine both contexts
+        correctly when framing.
+        """
+        expected = {
+            "@context": [
+                {
+                    "dc": "http://purl.org/dc/elements/1.1/",
+                    "ex": "http://example.org/vocab#",
+                },
+                "http://example.com/frame-context.json",
+            ],
+            "@graph": [
+                {
+                    "@id": "http://example.org/test/#library",
+                    "@type": "ex:Library",
+                    "ex:contains": {
+                        "@id": "http://example.org/test#book",
+                        "@type": "ex:Book",
+                        "dc:contributor": "Writer",
+                        "dc:title": "My Book",
+                        "ex:contains": {
+                            "@id": "http://example.org/test#chapter",
+                            "@type": "ex:Chapter",
+                            "dc:description": "Fun",
+                            "dc:title": "Chapter One",
+                        },
+                    },
+                }
+            ],
+        }
+
+        framed = self._frame_with_remote_context(
+            self.FRAME_0001_IN, self.FRAME_0001_FRAME, self.FRAME_0001_FRAME_CONTEXT
+        )
 
         assert framed == expected
 
-    def test_remote_context_local_and_remote_context_equal(self):
-        self._test_remote_context_with(
-            self.FRAME_0001_IN,
-            self.FRAME_0001_FRAME,
-            self.FRAME_0001_FRAME_CONTEXT,
-            self.FRAME_0001_OUT_WITH_LOCAL_AND_REMOTE_CONTEXT,
-        )
-
     def test_remote_context_remote_context_only(self):
-        self._test_remote_context_with(
+        """
+        Example with only remote context should use remote context correctly
+        when framing.
+        """
+        expected = {
+            "@context": "http://example.com/frame-context.json",
+            "@graph": [
+                {
+                    "@id": "http://example.org/test/#library",
+                    "@type": "ex:Library",
+                    "ex:contains": {
+                        "@id": "http://example.org/test#book",
+                        "@type": "ex:Book",
+                        "dc:contributor": "Writer",
+                        "dc:title": "My Book",
+                        "ex:contains": {
+                            "@id": "http://example.org/test#chapter",
+                            "@type": "ex:Chapter",
+                            "dc:description": "Fun",
+                            "dc:title": "Chapter One",
+                        },
+                    },
+                }
+            ],
+        }
+
+        framed = self._frame_with_remote_context(
             self.FRAME_0001_IN,
             self.FRAME_0001_FRAME_WITHOUT_CONTEXT,
             self.FRAME_0001_FRAME_CONTEXT,
-            self.FRAME_0001_OUT_WITH_REMOTE_CONTEXT,
         )
 
+        assert framed == expected
+
     def test_remote_context_half_context_local_and_half_remote(self):
-        self._test_remote_context_with(
+        """
+        Example with partial local and partial remote context should combine both contexts
+        correctly when framing.
+        """
+        expected = {
+            "@context": [
+                {"dc": "http://purl.org/dc/elements/1.1/"},
+                "http://example.com/frame-context.json",
+            ],
+            "@graph": [
+                {
+                    "@id": "http://example.org/test/#library",
+                    "@type": "ex:Library",
+                    "ex:contains": {
+                        "@id": "http://example.org/test#book",
+                        "@type": "ex:Book",
+                        "dc:contributor": "Writer",
+                        "dc:title": "My Book",
+                        "ex:contains": {
+                            "@id": "http://example.org/test#chapter",
+                            "@type": "ex:Chapter",
+                            "dc:description": "Fun",
+                            "dc:title": "Chapter One",
+                        },
+                    },
+                }
+            ],
+        }
+
+        framed = self._frame_with_remote_context(
             self.FRAME_0001_IN,
             self.FRAME_0001_FRAME_WITH_PARTIAL_CONTEXT,
             self.FRAME_0001_FRAME_PARTIAL_CONTEXT,
-            self.FRAME_0001_OUT_WITH_HALF_LOCAL_AND_HALF_REMOTE_CONTEXT,
         )
+
+        assert framed == expected
 
     # Issue 59 - PR: https://github.com/digitalbazaar/pyld/pull/60
     def test_do_not_compact_dates_without_datatype(self):
+        """
+        Dates without explicit datatype should not be compacted during framing,
+        """
         input = {
             "http://schema.org/name": "Buster the Cat",
             "http://schema.org/birthDate": "2012",
@@ -429,6 +456,9 @@ class TestFrame:
         assert framed == expected
 
     def test_compact_dates_with_datatype(self):
+        """
+        Dates with explicit datatype should be compacted during framing.
+        """
         input = {
             "http://schema.org/name": "Buster the Cat",
             "http://schema.org/birthDate": {
@@ -459,8 +489,7 @@ class TestToRdf:
 
     def test_double_and_float_values(self):
         """
-        Test case for to_rdf functionality with double/float values.
-        String values with @type: "xsd:double" should be converted to float.
+        String values with @type: "xsd:double" should be converted to float value during to_rdf.
         """
         input = {
             "@context": {"xsd": "http://www.w3.org/2001/XMLSchema#"},
@@ -495,8 +524,12 @@ class TestToRdf:
 
 class TestCompact:
     # Issue 59 - PR: https://github.com/digitalbazaar/pyld/pull/60
+    """
+    Values with explicit datatypes should be compacted during compaction while values
+    without explicit dataypes should not.
+    """
 
-    def test_simple_compaction(self):
+    def test_simple_compaction_with_datatypes(self):
         input = {
             "http://example.org/a": "A",
             "http://example.org/b": "B",
