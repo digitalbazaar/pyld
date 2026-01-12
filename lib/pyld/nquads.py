@@ -118,7 +118,7 @@ def parse_nquads(input_):
 
     return dataset
 
-def to_nquads(dataset):
+def serialize_nquads(dataset):
     """
     Converts an RDF dataset to N-Quads.
 
@@ -131,11 +131,11 @@ def to_nquads(dataset):
         for triple in triples:
             if graph_name == '@default':
                 graph_name = None
-            quads.append(to_nquad(triple, graph_name))
+            quads.append(serialize_nquad(triple, graph_name))
     quads.sort()
     return ''.join(quads)
 
-def to_nquad(triple, graph_name=None):
+def serialize_nquad(triple, graph_name=None):
     """
     Converts an RDF triple and graph name to an N-Quad string (a single
     quad).

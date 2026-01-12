@@ -1,6 +1,6 @@
 
 import hashlib
-from pyld.nquads import parse_nquads, to_nquad
+from pyld.nquads import parse_nquads, serialize_nquad
 from pyld.identifier_issuer import IdentifierIssuer
 import copy
 
@@ -164,7 +164,7 @@ class URDNA2015(object):
                         component['value'])
 
             # 7.2) Add quad copy to the normalized dataset.
-            normalized.append(to_nquad(quad))
+            normalized.append(serialize_nquad(quad))
 
         # sort normalized output
         normalized.sort()
@@ -208,7 +208,7 @@ class URDNA2015(object):
                 # identifier _:z.
                 copy[key] = self.modify_first_degree_component(
                     id_, component, key)
-            nquads.append(to_nquad(copy))
+            nquads.append(serialize_nquad(copy))
 
         # 4) Sort nquads in lexicographical order.
         nquads.sort()
