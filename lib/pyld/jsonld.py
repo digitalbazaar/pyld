@@ -48,6 +48,15 @@ XSD_DOUBLE = 'http://www.w3.org/2001/XMLSchema#double'
 XSD_INTEGER = 'http://www.w3.org/2001/XMLSchema#integer'
 XSD_STRING = 'http://www.w3.org/2001/XMLSchema#string'
 
+# Derived datatypes from integer.
+XSD_LONG = 'http://www.w3.org/2001/XMLSchema#long'
+XSD_INT = 'http://www.w3.org/2001/XMLSchema#int'
+XSD_INTEGER_DERIVED = (
+    XSD_INTEGER,
+    XSD_LONG,
+    XSD_INT,
+)
+
 # RDF constants
 RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
 RDF_LIST = RDF + 'List'
@@ -3539,14 +3548,14 @@ class JsonLdProcessor(object):
                     elif rval['@value'] == 'false':
                         rval['@value'] = False
                 elif _is_numeric(rval['@value']):
-                    if type_ == XSD_INTEGER:
+                    if type_ in XSD_INTEGER_DERIVED:
                         if rval['@value'].isdigit():
                             rval['@value'] = int(rval['@value'])
                     elif type_ == XSD_DOUBLE:
                         rval['@value'] = float(rval['@value'])
                 # do not add native type
                 if type_ not in [
-                        XSD_BOOLEAN, XSD_INTEGER, XSD_DOUBLE, XSD_STRING]:
+                        XSD_BOOLEAN, XSD_DOUBLE, XSD_STRING, *XSD_INTEGER_DERIVED]:
                     rval['@type'] = type_
             elif (rdf_direction == 'i18n-datatype' and
                 type_.startswith('https://www.w3.org/ns/i18n#')):
