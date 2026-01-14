@@ -1046,7 +1046,6 @@ TEST_TYPES = {
         },
         'skip': {
             'idRegex': [
-                '.*manifest-urdna2015#test059$',
                 '.*manifest-urdna2015#test060$',
             ]
         },
