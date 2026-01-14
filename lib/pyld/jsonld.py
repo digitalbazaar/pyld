@@ -123,6 +123,7 @@ INITIAL_CONTEXTS = {}
 # Handler to call if a property was dropped during expansion
 OnPropertyDropped = Callable[[Optional[str]], Any]
 
+# No-op function to use as default handler and other purposes
 def noop(*args, **kwargs):
     return None
     
@@ -816,6 +817,7 @@ class JsonLdProcessor:
         if frame is not None:
             ctx = frame.get('@context', {})
             if remote_frame['contextUrl'] is not None:
+                # Use the remote frame from context if there is one
                 if ctx:
                     ctx = JsonLdProcessor.arrayify(ctx)
                     ctx.append(remote_frame['contextUrl'])
@@ -2091,6 +2093,7 @@ class JsonLdProcessor:
                 not (
                     _is_absolute_iri(expanded_property) or
                     _is_keyword(expanded_property))):
+                # call handler with dropped key
                 self.on_property_dropped(expanded_property)
                 continue
 
@@ -3288,22 +3291,24 @@ class JsonLdProcessor:
             elif _is_bool(value):
                 object['value'] = 'true' if value else 'false'
                 object['datatype'] = datatype or XSD_BOOLEAN
+            # if `value` is a float number, 
             elif _is_double(value):
-                # canonical double representation
+                # use the canonical double representation
                 object['value'] = _canonicalize_double(value)
+                # add the double datatype if none is given
                 object['datatype'] = datatype or XSD_DOUBLE
                 return object
             elif datatype == XSD_DOUBLE:
-                # Since the previous branch did not activate, we know that `value` is not a float number.
+                # since the previous branch did not activate, we know that `value` is not a float number.
                 try:
                     float_value = float(value)
                 except (ValueError, TypeError):
-                    # If `value` is not convertible to float, we will return it as-is.
+                    # if `value` is not convertible to float, we will return it as-is.
                     object['value'] = value
                     object['datatype'] = XSD_DOUBLE
                     return object
                 else:
-                    # We have a float, and canonicalization may proceed.
+                    # we have a float, and canonicalization may proceed.
                     object['value'] = _canonicalize_double(float_value)
                     object['datatype'] = XSD_DOUBLE
                     return object
@@ -5144,14 +5149,17 @@ class JsonLdProcessor:
 
         # resolve against base
         rval = value
+        # if there is a base in the active context, use that
         if '@base' in active_ctx:
-            # The None case preserves rval as potentially relative
+            # the None case preserves rval as potentially relative
             if active_ctx['@base'] is not None:
                 resolved_base = active_ctx['@base'] if _is_absolute_iri(active_ctx['@base']) else resolve(active_ctx['@base'], base)
                 rval = resolve(rval, resolved_base)
-        # fallback to document base if the base is absent or set to null
+        # if `base` is an empty string, the base is absent or set to null and
+        # we should fallback to document base
         elif base == '':
             rval = resolve(rval, DEFAULT_BASE_IRI)
+        # in other cases, use the base that was passed to this function
         elif base:
             rval = resolve(rval, base)
 
