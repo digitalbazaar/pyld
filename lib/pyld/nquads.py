@@ -15,7 +15,7 @@ def parse_nquads(input_):
     """
     # define partial regexes
     iri = '(?:<([^:]+:[^>]*)>)'
-    bnode = '(_:(?:[A-Za-z][A-Za-z0-9]*))'
+    bnode = '(_:(?:[A-Za-z0-9_][A-Za-z0-9_.-]*))'
     plain = '"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"'
     datatype = '(?:\\^\\^' + iri + ')'
     language = '(?:@([a-zA-Z]+(?:-[a-zA-Z0-9]+)*))'
