@@ -4504,7 +4504,7 @@ class JsonLdProcessor(object):
 
         if not v2 and not t2 and not l2:
             return True
-        if not (v1 in v2 or not v2 or _is_empty_object(v2[0])):
+        if not (v1 in v2 or (v2 and _is_empty_object(v2[0]))):
             return False
         if not ((not t1 and not t2) or (t1 in t2) or (t1 and t2 and _is_empty_object(t2[0]))):
             return False
