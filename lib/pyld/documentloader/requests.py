@@ -14,7 +14,7 @@ import string
 import urllib.parse as urllib_parse
 
 from pyld import iri_resolver
-from pyld.jsonld import (JsonLdError, parse_link_header, LINK_HEADER_REL)
+from pyld.jsonld import JsonLdError, parse_link_header, LINK_HEADER_REL
 
 
 def requests_document_loader(secure=False, **kwargs):
@@ -104,7 +104,7 @@ def requests_document_loader(secure=False, **kwargs):
         except Exception as cause:
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
-                'jsonld.LoadDocumentError', 
+                'jsonld.LoadDocumentError',
                 code='loading document failed') from cause
 
     return loader
