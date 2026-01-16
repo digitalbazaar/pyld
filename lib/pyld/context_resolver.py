@@ -44,7 +44,7 @@ class ContextResolver:
             cycles = set()
 
         # process `@context`
-        if (isinstance(context, dict) or isinstance(context, frozendict)) and '@context' in context:
+        if isinstance(context, (dict, frozendict)) and '@context' in context:
             context = context['@context']
 
         # context is one or more contexts
@@ -203,7 +203,7 @@ class ContextResolver:
             for num, element in enumerate(ctx):
                 if isinstance(element, str):
                     ctx[num] = iri_resolver.resolve(element, base)
-                elif isinstance(element, dict) or isinstance(element, frozendict):
+                elif isinstance(element, (dict, frozendict)):
                     self. _resolve_context_urls({'@context': element}, base)
             return
 
