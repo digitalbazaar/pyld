@@ -6334,11 +6334,18 @@ def load_document(url,
 
     :return: True if the value is an absolute IRI, False if not.
     """
+    # Prefer JSON-LD and JSON (q=0.8) over HTML (q=0.5) to ensure proper
+    # content negotiation with servers that serve both formats at the same URL,
+    # such as https://www.w3.org/ns/activitystreams
+    # See: https://github.com/digitalbazaar/pyld/pull/170
     headers = {
-        'Accept': 'application/ld+json, application/json;q=0.8'
+        'Accept': (
+            'application/ld+json, '
+            'application/json;q=0.8, '
+            'text/html;q=0.5, '
+            'application/xhtml+xml;q=0.5'
+        )
     }
-    # FIXME: only if html5lib loaded?
-    headers['Accept'] = headers['Accept'] + ', text/html;q=0.5, application/xhtml+xml;q=0.5'
 
     if requestProfile:
         headers['Accept'] = ('application/ld+json;profile=%s, ' % requestProfile) + headers['Accept']
