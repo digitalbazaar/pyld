@@ -9,10 +9,7 @@ test:
 upgrade-submodules:
 	git submodule update --remote --init --recursive
 
-# At this stage, we are limiting our formatting efforts to one file. We need to ensure that:
-# * our formatting rules are sane,
-# * we are not introducing conflicts with currently open PRs,
-# * and the PR introducing `ruff` is not too large.
+# TODO: Expand to lib/ and tests/ as linting issues are resolved.
 RUFF_TARGET = lib/pyld/context_resolver.py
 
 lint:
