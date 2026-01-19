@@ -17,6 +17,11 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
+    # Register custom markers
+    config.addinivalue_line(
+        "markers", "network: marks tests as requiring network access (may be slow)"
+    )
+
     # Apply loader choice and selected test number globally so that the
     # existing `runtests` helpers behave the same as the CLI runner.
     loader = config.getoption('loader')
