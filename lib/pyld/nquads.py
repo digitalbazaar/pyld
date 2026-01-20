@@ -5,7 +5,27 @@ XSD_STRING = 'http://www.w3.org/2001/XMLSchema#string'
 RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
 RDF_LANGSTRING = RDF + 'langString'
 
-def parse_nquads(input_):
+def escape(value: str):
+    return (
+        value.replace("\\", "\\\\")
+        .replace("\t", "\\t")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace('"', '\\"')
+    )
+
+
+def unescape(value: str):
+    return (
+        value.replace('\\"', '"')
+        .replace("\\t", "\t")
+        .replace("\\n", "\n")
+        .replace("\\r", "\r")
+        .replace("\\\\", "\\")
+    )
+
+
+def parse_nquads(input_: str):
     """
     Parses RDF in the form of N-Quads.
 
@@ -22,7 +42,6 @@ def parse_nquads(input_):
     literal = '(?:' + plain + '(?:' + datatype + '|' + language + ')?)'
     ws = '[ \\t]+'
     wso = '[ \\t]*'
-    eoln = r'(?:\r\n)|(?:\n)|(?:\r)'
     empty = r'^' + wso + '$'
 
     # define quad part regexes
@@ -45,7 +64,7 @@ def parse_nquads(input_):
     dataset = {}
 
     # split N-Quad input into lines
-    lines = re.split(eoln, input_)
+    lines = input_.splitlines(True)
     line_number = 0
     for line in lines:
         line_number += 1
@@ -57,7 +76,7 @@ def parse_nquads(input_):
         # parse quad
         match = re.search(quad, line)
         if match is None:
-            raise ParserError('Error while parsing N-Quads invalid quad.', line_number=line_number)
+            raise ParserError(f'Error while parsing N-Quads invalid quad {line} at line {line_number}.', line_number=line_number)
         match = match.groups()
 
         # create RDF triple
@@ -79,13 +98,7 @@ def parse_nquads(input_):
             triple['object'] = {'type': 'blank node', 'value': match[4]}
         else:
             triple['object'] = {'type': 'literal'}
-            unescaped = (
-                match[5]
-                .replace('\\"', '\"')
-                .replace('\\t', '\t')
-                .replace('\\n', '\n')
-                .replace('\\r', '\r')
-                .replace('\\\\', '\\'))
+            unescaped = unescape(match[5])
             if match[6] is not None:
                 triple['object']['datatype'] = match[6]
             elif match[7] is not None:
@@ -176,13 +189,7 @@ def serialize_nquad(triple, graph_name=None):
     elif(o['type'] == 'blank node'):
         quad += o['value']
     else:
-        escaped = (
-            o['value']
-            .replace('\\', '\\\\')
-            .replace('\t', '\\t')
-            .replace('\n', '\\n')
-            .replace('\r', '\\r')
-            .replace('\"', '\\"'))
+        escaped = escape(o['value'])
         quad += '"' + escaped + '"'
         if o['datatype'] == RDF_LANGSTRING:
             if o['language']:
