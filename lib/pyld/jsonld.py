@@ -524,7 +524,7 @@ class JsonLdProcessor(object):
                 'jsonld.CompactError') from cause
 
         # do compaction
-        compacted = self._compact(active_ctx, None, expanded, options)
+        compacted = self._compact(active_ctx, [], expanded, options)
 
         if (options['compactArrays'] and not options['graph'] and
                 _is_array(compacted)):
@@ -661,7 +661,7 @@ class JsonLdProcessor(object):
                 active_ctx, remote_context, options)
 
         # do expansion
-        expanded = self._expand(active_ctx, None, document, options,
+        expanded = self._expand(active_ctx, [], document, options,
             inside_list=False)
 
         # optimize away @graph with no other properties
@@ -1064,7 +1064,7 @@ class JsonLdProcessor(object):
         options.setdefault('contextResolver',
             ContextResolver(_resolved_context_cache, options['documentLoader']))
 
-        return self._process_context(active_ctx, local_ctx, options)
+        return self._process_context(active_ctx, local_ctx, [], options)
 
     def register_rdf_parser(self, content_type, parser):
         """
@@ -1548,7 +1548,7 @@ class JsonLdProcessor(object):
 
         return True
 
-    def _compact(self, active_ctx, active_property, element, options):
+    def _compact(self, active_ctx, path, element, options):
         """
         Recursively compacts an element using the given active context. All
         values must be in expanded form before this method is called.
@@ -1561,12 +1561,14 @@ class JsonLdProcessor(object):
 
         :return: the compacted value.
         """
+        active_property = path[-1] if len(path) > 0 else None
+
         # recursively compact array
         if _is_array(element):
             rval = []
             for e in element:
                 # compact, dropping any None values
-                e = self._compact(active_ctx, active_property, e, options)
+                e = self._compact(active_ctx, path, e, options)
                 if e is not None:
                     rval.append(e)
             if options['compactArrays'] and len(rval) == 1:
@@ -1583,7 +1585,7 @@ class JsonLdProcessor(object):
                 active_ctx, active_property, '@context')
         if ctx is not None:
             active_ctx = self._process_context(
-                active_ctx, ctx, options,
+                active_ctx, ctx, path, options,
                 propagate=True,
                 override_protected=True)
 
@@ -1614,7 +1616,7 @@ class JsonLdProcessor(object):
                     JsonLdProcessor.get_context_value(
                         active_ctx, active_property, '@container'))
                 if '@list' in container:
-                    return self._compact(active_ctx, active_property, element['@list'], options)
+                    return self._compact(active_ctx, path, element['@list'], options)
 
             # FIXME: avoid misuse of active property as an expanded property?
             inside_reverse = (active_property == '@reverse')
@@ -1633,7 +1635,7 @@ class JsonLdProcessor(object):
                 input_ctx, active_property, '@context')
             if property_scoped_ctx is not None:
                 active_ctx = self._process_context(
-                    active_ctx, property_scoped_ctx, options,
+                    active_ctx, property_scoped_ctx, path, options,
                     propagate=True,
                     override_protected=True)
 
@@ -1657,7 +1659,7 @@ class JsonLdProcessor(object):
                         input_ctx, compacted_type, '@context')
                 if ctx is not None:
                     active_ctx = self._process_context(
-                            active_ctx, ctx, options,
+                            active_ctx, ctx, [*path, compacted_type], options,
                             propagate=False)
 
             # recursively process element keys in order
@@ -1706,7 +1708,7 @@ class JsonLdProcessor(object):
                 if expanded_property == '@reverse':
                     # recursively compact expanded value
                     compacted_value = self._compact(
-                        active_ctx, '@reverse', expanded_value, options)
+                        active_ctx, [*path, '@reverse'], expanded_value, options)
 
                     # handle double-reversed properties
                     for compacted_property, value in \
@@ -1736,7 +1738,7 @@ class JsonLdProcessor(object):
                 if expanded_property == '@preserve':
                     # compact using active_property
                     compacted_value = self._compact(
-                        active_ctx, active_property, expanded_value, options)
+                        active_ctx, path, expanded_value, options)
                     if not (_is_array(compacted_value) and len(compacted_value) == 0):
                         JsonLdProcessor.add_value(rval, expanded_property, compacted_value)
                     continue
@@ -1820,7 +1822,7 @@ class JsonLdProcessor(object):
 
                     # recursively compact expanded item
                     compacted_item = self._compact(
-                        active_ctx, item_active_property,
+                        active_ctx, [*path, item_active_property],
                         inner_ if (is_list or is_graph) else expanded_item, options)
 
                     # handle @list
@@ -1948,7 +1950,7 @@ class JsonLdProcessor(object):
                             # whose key maps to @id, recompact without @type
                             if len(compacted_item.keys()) == 1 and '@id' in expanded_item:
                                 compacted_item = self._compact(
-                                    active_ctx, item_active_property,
+                                    active_ctx, [*path, item_active_property],
                                     {'@id': expanded_item['@id']}, options)
 
                         key = key or self._compact_iri(active_ctx, '@none')
@@ -1982,7 +1984,7 @@ class JsonLdProcessor(object):
         return element
 
     def _expand(
-            self, active_ctx, active_property, element, options,
+            self, active_ctx, path, element, options,
             inside_list=False,
             inside_index=False,
             type_scoped_ctx=None):
@@ -2004,6 +2006,7 @@ class JsonLdProcessor(object):
 
         :return: the expanded value.
         """
+        active_property = path[-1] if len(path) > 0 else None
         # nothing to expand
         if element is None:
             return element
@@ -2022,7 +2025,7 @@ class JsonLdProcessor(object):
             for e in element:
                 # expand element
                 e = self._expand(
-                    active_ctx, active_property, e, options,
+                    active_ctx, path, e, options,
                     inside_list=inside_list,
                     inside_index=inside_index,
                     type_scoped_ctx=type_scoped_ctx)
@@ -2084,14 +2087,14 @@ class JsonLdProcessor(object):
         # apply property-scoped context after reverting term-scoped context
         if property_scoped_ctx is not None:
             active_ctx = self._process_context(
-                active_ctx, property_scoped_ctx, options,
+                active_ctx, property_scoped_ctx, path, options,
                 override_protected=True)
 
         # recursively expand object
         # if element has a context, process it
         if '@context' in element:
             active_ctx = self._process_context(
-                active_ctx, element['@context'], options)
+                active_ctx, element['@context'], path, options)
 
         # set the type-scoped context to the context on input, for use later
         type_scoped_ctx = active_ctx
@@ -2113,12 +2116,12 @@ class JsonLdProcessor(object):
                         type_scoped_ctx, type_, '@context')
                     if ctx is not None and ctx is not False:
                         active_ctx = self._process_context(
-                            active_ctx, ctx, options, propagate=False)
+                            active_ctx, ctx, [*path, key],  options, propagate=False)
 
         # process each key and value in element, ignoring @nest content
         rval = {}
         self._expand_object(
-            active_ctx, active_property, expanded_active_property,
+            active_ctx, path, expanded_active_property,
             element, rval, options,
             inside_list,
             type_key,
@@ -2211,7 +2214,7 @@ class JsonLdProcessor(object):
         return rval
 
     def _expand_object(
-            self, active_ctx, active_property, expanded_active_property,
+            self, active_ctx, path, expanded_active_property,
             element, expanded_parent, options,
             inside_list=False,
             type_key=None,
@@ -2229,6 +2232,7 @@ class JsonLdProcessor(object):
 
         :return: the expanded value.
         """
+        active_property = path[-1] if len(path) > 0 else None
 
         nests = []
         unexpanded_value = None
@@ -2338,7 +2342,7 @@ class JsonLdProcessor(object):
             if (expanded_property == '@included' and
                 self._processing_mode(active_ctx, 1.1)):
                 included_result = JsonLdProcessor.arrayify(
-                    self._expand(active_ctx, active_property, value, options))
+                    self._expand(active_ctx, path, value, options))
                 if not all(_is_subject(v) for v in included_result):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; "values of @included '
@@ -2427,7 +2431,7 @@ class JsonLdProcessor(object):
                         code='invalid @reverse value')
 
                 expanded_value = self._expand(
-                    active_ctx, '@reverse', value, options,
+                    active_ctx, [*path, '@reverse'], value, options,
                     inside_list=inside_list)
 
                 # properties double-reversed
@@ -2471,7 +2475,7 @@ class JsonLdProcessor(object):
             term_ctx = active_ctx
             ctx = JsonLdProcessor.get_context_value(active_ctx, key, '@context')
             if ctx is not None:
-                term_ctx = self._process_context(active_ctx, ctx, options,
+                term_ctx = self._process_context(active_ctx, ctx, [*path, key], options,
                     propagate=True, override_protected=True)
 
             container = JsonLdProcessor.arrayify(
@@ -2491,14 +2495,14 @@ class JsonLdProcessor(object):
                 property_index = None
                 if index_key != '@index':
                     property_index = self._expand_iri(active_ctx, index_key, vocab=options.get('base', ''))
-                expanded_value = self._expand_index_map(term_ctx, key, value, index_key, as_graph, property_index, options)
+                expanded_value = self._expand_index_map(term_ctx, [*path, key], value, index_key, as_graph, property_index, options)
             elif '@id' in container and _is_object(value):
                 as_graph = '@graph' in container
-                expanded_value = self._expand_index_map(term_ctx, key, value, '@id', as_graph, None, options)
+                expanded_value = self._expand_index_map(term_ctx, [*path, key], value, '@id', as_graph, None, options)
             elif '@type' in container and _is_object(value):
                 expanded_value = self._expand_index_map(
                     self._revert_to_previous_context(term_ctx),
-                    key, value, '@type', False, None, options)
+                    [*path, key], value, '@type', False, None, options)
             else:
                 # recurse into @list or @set
                 is_list = (expanded_property == '@list')
@@ -2507,7 +2511,7 @@ class JsonLdProcessor(object):
                     if is_list and expanded_active_property == '@graph':
                         next_active_property = None
                     expanded_value = self._expand(
-                        term_ctx, next_active_property, value, options,
+                        term_ctx, [*path, next_active_property], value, options,
                         inside_list=is_list)
                 elif JsonLdProcessor.get_context_value(active_ctx, key, '@type') == '@json':
                     expanded_value = {
@@ -2517,7 +2521,7 @@ class JsonLdProcessor(object):
                 else:
                     # recursively expand value w/key as new active property
                     expanded_value = self._expand(
-                        term_ctx, key, value, options,
+                        term_ctx, [*path, key], value, options,
                         inside_list=False)
 
             # drop None values if property is not @value (dropped below)
@@ -2589,7 +2593,7 @@ class JsonLdProcessor(object):
                         'jsonld.SyntaxError', {'value': nv},
                         code='invalid @nest value')
                 self._expand_object(
-                    active_ctx, active_property, expanded_active_property,
+                    active_ctx, path, expanded_active_property,
                     nv, expanded_parent, options,
                     inside_list=inside_list,
                     type_key=type_key,
@@ -2804,7 +2808,7 @@ class JsonLdProcessor(object):
 
         return result
 
-    def _process_context(self, active_ctx, local_ctx, options,
+    def _process_context(self, active_ctx, local_ctx, path, options,
             override_protected=False,
             propagate=True,
             validate_scoped=True,
@@ -2836,7 +2840,7 @@ class JsonLdProcessor(object):
             return self._clone_active_context(active_ctx)
 
         # resolve contexts
-        resolved = options['contextResolver'].resolve(active_ctx, local_ctx, options.get('base', ''))
+        resolved = options['contextResolver'].resolve(active_ctx, local_ctx, path, options.get('base', ''))
 
         # override propagate if first resolved context has `@propagate`
         if _is_object(resolved[0].document) and isinstance(resolved[0].document.get('@propagate'), bool):
@@ -2934,7 +2938,7 @@ class JsonLdProcessor(object):
                 if '_uuid' not in active_ctx:
                     active_ctx['_uuid'] = str(uuid.uuid1())
                 resolved_import = options['contextResolver'].resolve(
-                    active_ctx, value, options.get('base', ''))
+                    active_ctx, value, path, options.get('base', ''))
                 if len(resolved_import) != 1:
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; @import must reference a single context.',
@@ -3094,7 +3098,7 @@ class JsonLdProcessor(object):
                     if process:
                         try:
                             self._process_context(
-                                rval, key_ctx, options,
+                                rval, key_ctx,[*path, k] ,options,
                                 override_protected=True,
                                 cycles=cycles)
                         except Exception as cause:
@@ -3175,7 +3179,7 @@ class JsonLdProcessor(object):
                 rval.append(val)
         return rval
 
-    def _expand_index_map(self, active_ctx, active_property, value, index_key, as_graph, property_index, options):
+    def _expand_index_map(self, active_ctx, path, value, index_key, as_graph, property_index, options):
         """
         Expands in index, id or type map.
 
@@ -3186,6 +3190,7 @@ class JsonLdProcessor(object):
         :param as_graph: contents should form a named graph
         :param property_index: index is a property
         """
+        active_property = path[-1] if len(path) > 0 else None
         rval = []
         is_type_index = index_key == '@type'
         for k, v in sorted(value.items()):
@@ -3193,11 +3198,11 @@ class JsonLdProcessor(object):
                 ctx = JsonLdProcessor.get_context_value(
                     active_ctx, k, '@context')
                 if ctx is not None:
-                    active_ctx = self._process_context(active_ctx, ctx, options,
+                    active_ctx = self._process_context(active_ctx, ctx, path, options,
                         propagate=False)
 
             v = self._expand(
-                active_ctx, active_property,
+                active_ctx, path,
                 JsonLdProcessor.arrayify(v),
                 options,
                 inside_list=False,
@@ -5294,7 +5299,7 @@ class JsonLdProcessor(object):
 
         # resolve against base
         rval = value
-        if base and '@base' in active_ctx:
+        if base != None and '@base' in active_ctx:
             # The None case preserves rval as potentially relative
             if active_ctx['@base'] is not None:
                 resolved_base = active_ctx['@base'] if _is_absolute_iri(active_ctx['@base']) else resolve(active_ctx['@base'], base)
