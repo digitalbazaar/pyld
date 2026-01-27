@@ -192,7 +192,7 @@ def serialize_nquad(triple, graph_name=None):
         escaped = escape(o['value'])
         quad += '"' + escaped + '"'
         if o['datatype'] == RDF_LANGSTRING:
-            if o['language']:
+            if o.get('language'):
                 quad += '@' + o['language']
         elif o['datatype'] != XSD_STRING:
             quad += '^^<' + o['datatype'] + '>'
