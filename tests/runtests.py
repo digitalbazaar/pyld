@@ -859,10 +859,7 @@ class EarlReport():
 # supported test types
 TEST_TYPES = {
     'jld:CompactTest': {
-        'pending': {
-            'idRegex': [
-            ]
-        },
+        'pending': {},
         'skip': {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata
@@ -883,10 +880,7 @@ TEST_TYPES = {
         ]
     },
     'jld:ExpandTest': {
-        'pending': {
-            'idRegex': [
-            ]
-        },
+        'pending': {},
         'runLocal': [
             '.*remote-doc-manifest#t0003$',
             '.*remote-doc-manifest#t0004$',
@@ -924,10 +918,7 @@ TEST_TYPES = {
         ]
     },
     'jld:FlattenTest': {
-        'pending': {
-            'idRegex': [
-            ]
-        },
+        'pending': {},
         'skip': {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata
@@ -945,10 +936,7 @@ TEST_TYPES = {
         ]
     },
     'jld:FrameTest': {
-        'pending': {
-            'idRegex': [
-            ]
-        },
+        'pending': {},
         'skip': {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata
@@ -1005,7 +993,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest#ttn02$',
                 # well formed
                 '.*toRdf-manifest#twf05$',
-                '.*toRdf-manifest#twf06$',
                 # uncategorized
                 '.*toRdf-manifest#tc038$',
                 '.*toRdf-manifest#ter54$',
