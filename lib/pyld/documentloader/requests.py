@@ -67,11 +67,13 @@ def requests_document_loader(secure=False, **kwargs):
             content_type = response.headers.get('content-type')
             if not content_type:
                 content_type = 'application/octet-stream'
+            # Media type only (strip parameters like ; charset=utf-8) for Accept match
+            content_media_type = content_type.split(';')[0].strip()
             doc = {
                 'contentType': content_type,
                 'contextUrl': None,
                 'documentUrl': response.url,
-                'document': response.json() if content_type in headers['Accept'] else None
+                'document': response.json() if content_media_type in headers['Accept'] else None
             }
             link_header = response.headers.get('link')
             if link_header:
