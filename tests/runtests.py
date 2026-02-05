@@ -91,12 +91,14 @@ LOCAL_BASES = [
     'https://w3c.github.io/json-ld-api/tests',
     'https://w3c.github.io/json-ld-framing/tests',
     'https://github.com/json-ld/normalization/tests',
+    'https://w3c.github.io/rdf-canon/tests/vocab#'
 ]
 
 SPEC_DIRS = [
     '../specifications/json-ld-api/tests/',
     '../specifications/json-ld-framing/tests/',
     '../specifications/normalization/tests/',
+    '../specifications/rdf-canon/tests/'
 ]
 
 # NOTE: The following TestRunner class can be removed because pytest now
@@ -1094,6 +1096,44 @@ TEST_TYPES = {
             ),
         ],
     },
+    'rdfc:RDFC10EvalTest': {
+        'pending': {
+            'idRegex': [
+                '.*#test060c$',
+                '.*#test075c$'
+            ]
+        },
+        'skip': {
+            'idRegex': []
+        },
+        'fn': 'normalize',
+        'params': [
+            read_test_property('action'),
+            create_test_options({
+                'algorithm': 'RDFC10',
+                'inputFormat': 'application/n-quads',
+                'format': 'application/n-quads'
+            })
+        ]
+    },
+    # 'rdfc:RDFC10MapTest': {
+    #     'pending': {
+    #         'idRegex': [
+    #         ]
+    #     },
+    #     'skip': {
+    #         'idRegex': []
+    #     },
+    #     'fn': 'normalize',
+    #     'params': [
+    #         read_test_property('action'),
+    #         create_test_options({
+    #             'algorithm': 'RDFC10',
+    #             'inputFormat': 'application/n-quads',
+    #             'format': 'application/n-quads'
+    #         })
+    #     ]
+    # }
 }
 
 
