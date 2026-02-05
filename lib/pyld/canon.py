@@ -636,6 +636,14 @@ class RDFC10(URDNA2015):
 
         return '"' + parts + '"'
 
+class RDFC10(URDNA2015):
+    """
+    RDFC10 implements the RDF Canonicalization algorithm version 1.0.
+    """
+    # TODO: Stub that uses URDNA2015 for now
+    def __init__(self):
+        URDNA2015.__init__(self)
+
 
 def permutations(elements):
     """
