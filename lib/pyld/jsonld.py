@@ -23,7 +23,7 @@ import warnings
 import uuid
 
 from typing import Optional, Callable, Any
-from pyld.canon import URDNA2015, URGNA2012, UnknownFormatError
+from pyld.canon import URDNA2015, URGNA2012, RDFC10, UnknownFormatError
 from pyld.nquads import ParserError, parse_nquads, serialize_nquad, serialize_nquads
 from pyld.identifier_issuer import IdentifierIssuer
 from .context_resolver import ContextResolver
@@ -266,8 +266,8 @@ def normalize(input_, options=None):
 
     :param input_: the JSON-LD input to normalize.
     :param [options]: the options to use.
-      [algorithm] the algorithm to use: `URDNA2015` or `URGNA2012`
-        (default: `URGNA2012`).
+      [algorithm] the algorithm to use: `RDFC10`, `URDNA2015` or `URGNA2012`
+        (default: `RDFC10`).
       [base] the base IRI to use.
       [inputFormat] the format if input is not JSON-LD:
         'application/n-quads' for N-Quads.
@@ -897,8 +897,8 @@ class JsonLdProcessor:
 
         :param input_: the JSON-LD input to normalize.
         :param options: the options to use.
-          [algorithm] the algorithm to use: `URDNA2015` or `URGNA2012`
-            (default: `URGNA2012`).
+          [algorithm] the algorithm to use: `RDFC10`, `URDNA2015` or `URGNA2012`
+            (default: `RDFC10`).
           [base] the base IRI to use.
           [contextResolver] internal use only.
           [inputFormat] the format if input is not JSON-LD:
@@ -912,7 +912,7 @@ class JsonLdProcessor:
         """
         # set default options
         options = options.copy() if options else {}
-        options.setdefault('algorithm', 'URGNA2012')
+        options.setdefault('algorithm', 'RDFC10')
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('documentLoader', _default_document_loader)
         options.setdefault('contextResolver',
@@ -920,7 +920,7 @@ class JsonLdProcessor:
         options.setdefault('extractAllScripts', True)
         options.setdefault('processingMode', 'json-ld-1.1')
 
-        if options['algorithm'] not in ['URDNA2015', 'URGNA2012']:
+        if options['algorithm'] not in ['RDFC10', 'URDNA2015', 'URGNA2012']:
             raise JsonLdError(
                 'Unsupported normalization algorithm.',
                 'jsonld.NormalizeError')
@@ -946,17 +946,23 @@ class JsonLdProcessor:
                 'jsonld.NormalizeError') from cause
 
         # do normalization
-        if options['algorithm'] == 'URDNA2015':
-            try:
-                return URDNA2015().main(dataset, options)
-            except UnknownFormatError as cause:
-                raise JsonLdError(
-                    str(cause),
-                    'jsonld.UnknownFormat', 
-                    {'format': cause.format}) from cause
-
+        if options['algorithm'] == 'RDFC10':
+            algorithm = RDFC10()
+        elif options['algorithm'] == 'URDNA2015':
+            algorithm = URDNA2015()
         # assume URGNA2012
-        return URGNA2012().main(dataset, options)
+        else:
+            algorithm = URGNA2012()
+
+        try:
+            # TODO: find a good way to expose identifier map
+            return algorithm.main(dataset, options) #, algorithm.hash_to_blank_nodes
+        except UnknownFormatError as cause:
+            raise JsonLdError(
+                str(cause),
+                'jsonld.UnknownFormat', 
+                {'format': cause.format}) from cause
+
 
     def from_rdf(self, dataset, options):
         """
