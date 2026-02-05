@@ -34,7 +34,7 @@ from frozendict import frozendict
 
 from c14n.Canonicalize import canonicalize
 from pyld.__about__ import __copyright__, __license__, __version__
-from pyld.canon import URDNA2015, URGNA2012, UnknownFormatError
+from pyld.canon import RDFC10, URDNA2015, URGNA2012, UnknownFormatError
 from pyld.identifier_issuer import IdentifierIssuer
 from pyld.nquads import (
     ParserError,
@@ -885,8 +885,8 @@ class JsonLdProcessor:
 
         :param input_: the JSON-LD input to normalize.
         :param options: the options to use.
-          [algorithm] the algorithm to use: `URDNA2015` or `URGNA2012`
-            (default: `URGNA2012`).
+          [algorithm] the algorithm to use: `RDFC10`, `URDNA2015` or `URGNA2012`
+            (default: `RDFC10`).
           [base] the base IRI to use.
           [contextResolver] internal use only.
           [inputFormat] the format if input is not JSON-LD:
@@ -900,7 +900,7 @@ class JsonLdProcessor:
         """
         # set default options
         options = options.copy() if options else {}
-        options.setdefault('algorithm', 'URGNA2012')
+        options.setdefault('algorithm', 'RDFC10')
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('documentLoader', _default_document_loader)
         options.setdefault(
@@ -912,7 +912,7 @@ class JsonLdProcessor:
         # Prevent a custom identifier issuer accidentally messing up normalization.
         options.pop('identifierIssuer', None)
 
-        if options['algorithm'] not in ['URDNA2015', 'URGNA2012']:
+        if options['algorithm'] not in ['RDFC10', 'URDNA2015', 'URGNA2012']:
             raise JsonLdError(
                 'Unsupported normalization algorithm.', 'jsonld.NormalizeError'
             )
@@ -941,16 +941,23 @@ class JsonLdProcessor:
             ) from cause
 
         # do normalization
-        if options['algorithm'] == 'URDNA2015':
-            try:
-                return URDNA2015().main(dataset, options)
-            except UnknownFormatError as cause:
-                raise JsonLdError(
-                    str(cause), 'jsonld.UnknownFormat', {'format': cause.format}
-                ) from cause
-
+        if options['algorithm'] == 'RDFC10':
+            algorithm = RDFC10()
+        elif options['algorithm'] == 'URDNA2015':
+            algorithm = URDNA2015()
         # assume URGNA2012
-        return URGNA2012().main(dataset, options)
+        else:
+            algorithm = URGNA2012()
+
+        try:
+            # TODO: find a good way to expose identifier map
+            return algorithm.main(dataset, options) #, algorithm.hash_to_blank_nodes
+        except UnknownFormatError as cause:
+            raise JsonLdError(
+                str(cause),
+                'jsonld.UnknownFormat', 
+                {'format': cause.format}) from cause
+
 
     def from_rdf(self, dataset, options):
         """
