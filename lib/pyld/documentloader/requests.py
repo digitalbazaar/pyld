@@ -67,13 +67,10 @@ def requests_document_loader(secure=False, **kwargs):
             content_type = response.headers.get('content-type')
             if not content_type:
                 content_type = 'application/octet-stream'
-            # Media type only (strip parameters like ; charset=utf-8) for Accept match
-            content_media_type = content_type.split(';')[0].strip()
             doc = {
                 'contentType': content_type,
                 'contextUrl': None,
                 'documentUrl': response.url,
-                'document': response.json() if content_media_type in headers['Accept'] else None
             }
             link_header = response.headers.get('link')
             if link_header:
@@ -81,15 +78,15 @@ def requests_document_loader(secure=False, **kwargs):
                     LINK_HEADER_REL)
                 # only 1 related link header permitted
                 if linked_context and content_type != 'application/ld+json':
-                  if isinstance(linked_context, list):
-                      raise JsonLdError(
-                          'URL could not be dereferenced, '
-                          'it has more than one '
-                          'associated HTTP Link Header.',
-                          'jsonld.LoadDocumentError',
-                          {'url': url},
-                          code='multiple context link headers')
-                  doc['contextUrl'] = linked_context['target']
+                    if isinstance(linked_context, list):
+                        raise JsonLdError(
+                            'URL could not be dereferenced, '
+                            'it has more than one '
+                            'associated HTTP Link Header.',
+                            'jsonld.LoadDocumentError',
+                            {'url': url},
+                            code='multiple context link headers')
+                    doc['contextUrl'] = linked_context['target']
                 linked_alternate = parse_link_header(link_header).get('alternate')
                 # if not JSON-LD, alternate may point there
                 if (linked_alternate and
@@ -97,9 +94,8 @@ def requests_document_loader(secure=False, **kwargs):
                         not re.match(r'^application\/(\w*\+)?json$', content_type)):
                     doc['contentType'] = 'application/ld+json'
                     doc['documentUrl'] = iri_resolver.resolve(linked_alternate['target'], url)
-                    if content_type not in headers['Accept']:
-                        # Original was not JSON/JSON-LD; fetch linked JSON-LD
-                        return loader(doc['documentUrl'], options=options)
+                    return loader(doc['documentUrl'], options=options)
+            doc['document'] = response.json()
             return doc
         except JsonLdError as e:
             raise e
