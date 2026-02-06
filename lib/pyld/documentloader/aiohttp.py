@@ -82,9 +82,6 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
                 async with session.get(url,
                                        headers=headers,
                                        **kwargs) as response:
-                    # Allow any content_type in trying to parse json
-                    # similar to requests library
-                    json_body = await response.json(content_type=None)
                     content_type = response.headers.get('content-type')
                     if not content_type:
                         content_type = 'application/octet-stream'
@@ -92,7 +89,6 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
                         'contentType': content_type,
                         'contextUrl': None,
                         'documentUrl': response.url.human_repr(),
-                        'document': json_body
                     }
                     link_header = response.headers.get('link')
                     if link_header:
@@ -100,15 +96,15 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
                             LINK_HEADER_REL)
                         # only 1 related link header permitted
                         if linked_context and content_type != 'application/ld+json':
-                          if isinstance(linked_context, list):
-                              raise JsonLdError(
-                                  'URL could not be dereferenced, '
-                                  'it has more than one '
-                                  'associated HTTP Link Header.',
-                                  'jsonld.LoadDocumentError',
-                                  {'url': url},
-                                  code='multiple context link headers')
-                          doc['contextUrl'] = linked_context['target']
+                            if isinstance(linked_context, list):
+                                raise JsonLdError(
+                                    'URL could not be dereferenced, '
+                                    'it has more than one '
+                                    'associated HTTP Link Header.',
+                                    'jsonld.LoadDocumentError',
+                                    {'url': url},
+                                    code='multiple context link headers')
+                            doc['contextUrl'] = linked_context['target']
                         linked_alternate = parse_link_header(link_header).get('alternate')
                         # if not JSON-LD, alternate may point there
                         if (linked_alternate and
@@ -116,7 +112,8 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
                                 not re.match(r'^application\/(\w*\+)?json$', content_type)):
                             doc['contentType'] = 'application/ld+json'
                             doc['documentUrl'] = iri_resolver.resolve(linked_alternate['target'], url)
-
+                            return await async_loader(doc['documentUrl'], headers)
+                    doc['document'] = await response.json(content_type=None)
                     return doc
         except JsonLdError as e:
             raise e
