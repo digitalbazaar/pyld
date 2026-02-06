@@ -17,10 +17,12 @@ from .resolved_context import ResolvedContext
 
 MAX_CONTEXT_URLS = 10
 
+
 class ContextResolver:
     """
     Resolves and caches remote contexts.
     """
+
     def __init__(self, shared_cache, document_loader):
         """
         Creates a ContextResolver.
@@ -58,7 +60,8 @@ class ContextResolver:
                 resolved = self._get(ctx)
                 if not resolved:
                     resolved = self._resolve_remote_context(
-                        active_ctx, ctx, base, cycles)
+                        active_ctx, ctx, base, cycles
+                    )
 
                 # add to output and continue
                 if isinstance(resolved, list):
@@ -70,8 +73,10 @@ class ContextResolver:
             elif not isinstance(ctx, dict) and not isinstance(ctx, frozendict):
                 raise jsonld.JsonLdError(
                     'Invalid JSON-LD syntax; @context must be an object.',
-                    'jsonld.SyntaxError', {'context': ctx},
-                    code='invalid local context')
+                    'jsonld.SyntaxError',
+                    {'context': ctx},
+                    code='invalid local context',
+                )
             else:
                 # context is an object, get/create `ResolvedContext` for it
                 key = canonicalize(dict(ctx)).decode('UTF-8')
@@ -123,49 +128,61 @@ class ContextResolver:
         if len(cycles) > MAX_CONTEXT_URLS:
             raise jsonld.JsonLdError(
                 'Maximum number of @context URLs exceeded.',
-                'jsonld.ContextUrlError', {'max': MAX_CONTEXT_URLS},
-                code=('loading remote context failed'
-                      if active_ctx.get('processingMode') == 'json-ld-1.0'
-                      else 'context overflow'))
+                'jsonld.ContextUrlError',
+                {'max': MAX_CONTEXT_URLS},
+                code=(
+                    'loading remote context failed'
+                    if active_ctx.get('processingMode') == 'json-ld-1.0'
+                    else 'context overflow'
+                ),
+            )
 
         # check for context URL cycle
         # shortcut to avoid extra work that would eventually hit the max above
         if url in cycles:
             raise jsonld.JsonLdError(
                 'Cyclical @context URLs detected.',
-                'jsonld.ContextUrlError', {'url': url},
-                code=('recursive context inclusion'
-                      if active_ctx.get('processingMode') == 'json-ld-1.0'
-                      else 'context overflow'))
+                'jsonld.ContextUrlError',
+                {'url': url},
+                code=(
+                    'recursive context inclusion'
+                    if active_ctx.get('processingMode') == 'json-ld-1.0'
+                    else 'context overflow'
+                ),
+            )
 
         # track cycles
         cycles.add(url)
 
         try:
-            remote_doc = jsonld.load_document(url,
+            remote_doc = jsonld.load_document(
+                url,
                 {'documentLoader': self.document_loader},
-                requestProfile='http://www.w3.org/ns/json-ld#context')
+                requestProfile='http://www.w3.org/ns/json-ld#context',
+            )
             context = remote_doc.get('document', url)
         except Exception as cause:
             raise jsonld.JsonLdError(
-                'Dereferencing a URL did not result in a valid JSON-LD object. ' +
-                'Possible causes are an inaccessible URL perhaps due to ' +
-                'a same-origin policy (ensure the server uses CORS if you are ' +
-                'using client-side JavaScript), too many redirects, a ' +
-                'non-JSON response, or more than one HTTP Link Header was ' +
-                'provided for a remote context.',
+                'Dereferencing a URL did not result in a valid JSON-LD object. '
+                + 'Possible causes are an inaccessible URL perhaps due to '
+                + 'a same-origin policy (ensure the server uses CORS if you are '
+                + 'using client-side JavaScript), too many redirects, a '
+                + 'non-JSON response, or more than one HTTP Link Header was '
+                + 'provided for a remote context.',
                 'jsonld.InvalidUrl',
                 {'url': url},
-                code='loading remote context failed') from cause
+                code='loading remote context failed',
+            ) from cause
 
         # ensure ctx is an object
         if not isinstance(context, dict) and not isinstance(context, frozendict):
             raise jsonld.JsonLdError(
-                'Dereferencing a URL did not result in a JSON object. The ' +
-                'response was valid JSON, but it was not a JSON object.',
+                'Dereferencing a URL did not result in a JSON object. The '
+                + 'response was valid JSON, but it was not a JSON object.',
                 'jsonld.InvalidUrl',
                 {'url': url},
-                code='invalid remote context')
+                code='invalid remote context',
+            )
 
         # use empty context if no @context key is present
         if '@context' not in context:
@@ -180,7 +197,6 @@ class ContextResolver:
             context['@context'].append(remote_doc['contextUrl'])
 
         return (context, remote_doc)
-
 
     def _resolve_context_urls(self, context, base):
         """
@@ -204,7 +220,7 @@ class ContextResolver:
                 if isinstance(element, str):
                     ctx[num] = iri_resolver.resolve(element, base)
                 elif isinstance(element, (dict, frozendict)):
-                    self. _resolve_context_urls({'@context': element}, base)
+                    self._resolve_context_urls({'@context': element}, base)
             return
 
         if not isinstance(ctx, dict) and not isinstance(ctx, frozendict):
