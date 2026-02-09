@@ -12,10 +12,12 @@ from cachetools import LRUCache
 
 MAX_ACTIVE_CONTEXTS = 10
 
+
 class ResolvedContext:
     """
     A cached contex document, with a cache indexed by referencing active context.
     """
+
     def __init__(self, document):
         """
         Creates a ResolvedContext with caching for processed contexts
