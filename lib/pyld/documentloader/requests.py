@@ -57,17 +57,27 @@ def requests_document_loader(secure=False, **kwargs):
                     'the URL\'s scheme is not "https".',
                     'jsonld.InvalidUrl', {'url': url},
                     code='loading document failed')
+            
+            # Set the default headers
             headers = {
                 'Accept': 'application/ld+json, application/json'
             }
-            headers.update(options.get('headers', {}))
+
+            # Merge headers supplied at initialization
             if 'headers' in kwargs:
                 headers.update(kwargs['headers'])
                 del kwargs['headers']
+
+            # Merge headers supplied through options
+            headers.update(options.get('headers', {}))
+
+            # Replace session by custom session supplied through kwargs
             session = options.get('session', requests)
             if 'session' in kwargs:
                 session = kwargs['session']
                 del kwargs['session']
+
+            # Make the request
             response = session.get(url, headers=headers, **kwargs)
 
             content_type = response.headers.get('content-type')
