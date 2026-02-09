@@ -1,9 +1,9 @@
-
 import re
 
 XSD_STRING = 'http://www.w3.org/2001/XMLSchema#string'
 RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
 RDF_LANGSTRING = RDF + 'langString'
+
 
 def escape(value: str):
     return (
@@ -76,7 +76,10 @@ def parse_nquads(input_: str):
         # parse quad
         match = re.search(quad, line)
         if match is None:
-            raise ParserError(f'Error while parsing N-Quads invalid quad {line} at line {line_number}.', line_number=line_number)
+            raise ParserError(
+                f'Error while parsing N-Quads invalid quad {line} at line {line_number}.',
+                line_number=line_number,
+            )
         match = match.groups()
 
         # create RDF triple
@@ -131,6 +134,7 @@ def parse_nquads(input_: str):
 
     return dataset
 
+
 def serialize_nquads(dataset):
     """
     Converts an RDF dataset to N-Quads.
@@ -147,6 +151,7 @@ def serialize_nquads(dataset):
             quads.append(serialize_nquad(triple, graph_name))
     quads.sort()
     return ''.join(quads)
+
 
 def serialize_nquad(triple, graph_name=None):
     """
@@ -186,7 +191,7 @@ def serialize_nquad(triple, graph_name=None):
     # object is IRI, bnode, or literal
     if o['type'] == 'IRI':
         quad += '<' + o['value'] + '>'
-    elif(o['type'] == 'blank node'):
+    elif o['type'] == 'blank node':
         quad += o['value']
     else:
         escaped = escape(o['value'])
@@ -206,7 +211,7 @@ def serialize_nquad(triple, graph_name=None):
 
     quad += ' .\n'
     return quad
-    
+
 
 def _compare_rdf_triples(t1, t2):
     """
@@ -218,16 +223,16 @@ def _compare_rdf_triples(t1, t2):
     :return: True if the triples are the same, False if not.
     """
     for attr in ['subject', 'predicate', 'object']:
-        if(t1[attr]['type'] != t2[attr]['type'] or
-                t1[attr]['value'] != t2[attr]['value']):
+        if (
+            t1[attr]['type'] != t2[attr]['type']
+            or t1[attr]['value'] != t2[attr]['value']
+        ):
             return False
 
     if t1['object'].get('language') != t2['object'].get('language'):
         return False
-    if t1['object'].get('datatype') != t2['object'].get('datatype'):
-        return False
+    return t1['object'].get('datatype') == t2['object'].get('datatype')
 
-    return True
 
 class ParserError(ValueError):
     """
