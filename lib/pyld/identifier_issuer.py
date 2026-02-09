@@ -1,4 +1,4 @@
-class IdentifierIssuer(object):
+class IdentifierIssuer:
     """
     An IdentifierIssuer issues unique identifiers, keeping track of any
     previously issued identifiers.
@@ -23,6 +23,7 @@ class IdentifierIssuer(object):
 
         :return: the new identifier.
         """
+
     def get_id(self, old=None):
         # return existing old identifier
         if old and old in self.existing:
