@@ -99,15 +99,16 @@ def remove_dot_segments_of_path(iri: str, colon_position: int) -> str:
     """
     # Determine where to start looking for the first '/' that indicates the start of the path
     if colon_position >= 0:
-        if len(iri) > colon_position + 2 and iri[colon_position + 1] == '/' and iri[colon_position + 2] == '/':
+        if (
+            len(iri) > colon_position + 2
+            and iri[colon_position + 1] == '/'
+            and iri[colon_position + 2] == '/'
+        ):
             search_offset = colon_position + 3
         else:
             search_offset = colon_position + 1
     else:
-        if len(iri) > 1 and iri[0] == '/' and iri[1] == '/':
-            search_offset = 2
-        else:
-            search_offset = 0
+        search_offset = 2 if len(iri) > 1 and iri[0] == '/' and iri[1] == '/' else 0
 
     # Find the start of the path
     path_separator = iri.find('/', search_offset)
@@ -119,6 +120,7 @@ def remove_dot_segments_of_path(iri: str, colon_position: int) -> str:
 
     # Remove dot segments from the path
     return base + remove_dot_segments(path)
+
 
 def resolve(relative_iri: str, base_iri: str = None) -> str:
     #     """
@@ -139,7 +141,9 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
     # Convert empty value directly to base IRI
     if not relative_iri:
         if ":" not in base_iri:
-            raise ValueError(f"Found invalid baseIRI '{base_iri}' for value '{relative_iri}'")
+            raise ValueError(
+                f"Found invalid baseIRI '{base_iri}' for value '{relative_iri}'"
+            )
         return base_iri
 
     # If the value starts with a query character, concat directly (strip existing query)
@@ -157,7 +161,9 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
     if not base_iri:
         relative_colon_pos = relative_iri.find(":")
         if relative_colon_pos < 0:
-            raise ValueError(f"Found invalid relative IRI '{relative_iri}' for a missing baseIRI")
+            raise ValueError(
+                f"Found invalid relative IRI '{relative_iri}' for a missing baseIRI"
+            )
         return remove_dot_segments_of_path(relative_iri, relative_colon_pos)
 
     # Ignore baseIRI if the value is absolute
@@ -168,9 +174,11 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
     # baseIRI must be absolute
     base_colon_pos = base_iri.find(":")
     if base_colon_pos < 0:
-        raise ValueError(f"Found invalid baseIRI '{base_iri}' for value '{relative_iri}'")
+        raise ValueError(
+            f"Found invalid baseIRI '{base_iri}' for value '{relative_iri}'"
+        )
 
-    base_scheme = base_iri[:base_colon_pos + 1]
+    base_scheme = base_iri[: base_colon_pos + 1]
 
     # Inherit base scheme if relative starts with '//'
     if relative_iri.startswith("//"):
@@ -181,13 +189,21 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
         base_slash_after_colon_pos = base_iri.find("/", base_colon_pos + 3)
         if base_slash_after_colon_pos < 0:
             if len(base_iri) > base_colon_pos + 3:
-                return base_iri + "/" + remove_dot_segments_of_path(relative_iri, value_colon_pos)
+                return (
+                    base_iri
+                    + "/"
+                    + remove_dot_segments_of_path(relative_iri, value_colon_pos)
+                )
             else:
-                return base_scheme + remove_dot_segments_of_path(relative_iri, value_colon_pos)
+                return base_scheme + remove_dot_segments_of_path(
+                    relative_iri, value_colon_pos
+                )
     else:
         base_slash_after_colon_pos = base_iri.find("/", base_colon_pos + 1)
         if base_slash_after_colon_pos < 0:
-            return base_scheme + remove_dot_segments_of_path(relative_iri, value_colon_pos)
+            return base_scheme + remove_dot_segments_of_path(
+                relative_iri, value_colon_pos
+            )
 
     # If relative starts with '/', append after base authority
     if relative_iri.startswith("/"):
@@ -198,17 +214,20 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
 
     # Ignore everything after last '/' in base path
     if last_slash >= 0 and last_slash < len(base_path) - 1:
-        base_path = base_path[:last_slash + 1]
-        if (relative_iri.startswith(".") and 
-            not relative_iri.startswith("..") and 
-            not relative_iri.startswith("./") and 
-            len(relative_iri) > 2):
+        base_path = base_path[: last_slash + 1]
+        if (
+            relative_iri.startswith(".")
+            and not relative_iri.startswith("..")
+            and not relative_iri.startswith("./")
+            and len(relative_iri) > 2
+        ):
             relative_iri = relative_iri[1:]
 
     relative_iri = base_path + relative_iri
     relative_iri = remove_dot_segments(relative_iri)
 
     return base_iri[:base_slash_after_colon_pos] + relative_iri
+
 
 def unresolve(absolute_iri: str, base_iri: str = ""):
     """
@@ -226,7 +245,9 @@ def unresolve(absolute_iri: str, base_iri: str = ""):
     base = urlparse(base_iri)
 
     if not base.scheme:
-        raise ValueError(f"Found invalid baseIRI '{base_iri}' for value '{absolute_iri}'")
+        raise ValueError(
+            f"Found invalid baseIRI '{base_iri}' for value '{absolute_iri}'"
+        )
 
     # compute authority (netloc) and strip default ports
     base_authority = parse_authority(base)
@@ -244,8 +265,11 @@ def unresolve(absolute_iri: str, base_iri: str = ""):
     base_segments = remove_dot_segments(base.path).split('/')
     iri_segments = remove_dot_segments(rel.path).split('/')
     last = 0 if (rel.fragment or rel.query) else 1
-    while (len(base_segments) and len(iri_segments) > last and
-            base_segments[0] == iri_segments[0]):
+    while (
+        len(base_segments)
+        and len(iri_segments) > last
+        and base_segments[0] == iri_segments[0]
+    ):
         base_segments.pop(0)
         iri_segments.pop(0)
 
@@ -267,22 +291,29 @@ def unresolve(absolute_iri: str, base_iri: str = ""):
     # build relative IRI using urlunparse with empty scheme/netloc
     return urlunparse(('', '', rval, '', rel.query or '', rel.fragment or '')) or './'
 
+
 def parse_authority(parsed_iri: ParseResult) -> str:
     """
     Compute authority (netloc) and strip default ports
-    
+
     :param parsed_iri: Description
     :return: Description
     :rtype: str
-    """ 
+    """
     base_authority = parsed_iri.netloc or None
-    
+
     try:
         base_port = parsed_iri.port
     except Exception:
         base_port = None
-    
-    if base_authority is not None and base_port is not None:
-        if (parsed_iri.scheme == 'https' and base_port == 443) or (parsed_iri.scheme == 'http' and base_port == 80):
-            base_authority = base_authority.rsplit(':', 1)[0]
+
+    if (
+        base_authority is not None
+        and base_port is not None
+        and (
+            (parsed_iri.scheme == 'https' and base_port == 443)
+            or (parsed_iri.scheme == 'http' and base_port == 80)
+        )
+    ):
+        base_authority = base_authority.rsplit(':', 1)[0]
     return base_authority
