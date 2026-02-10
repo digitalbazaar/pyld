@@ -433,6 +433,7 @@ class TestFrame:
         assert framed == expected
 
     # Issue 59 - PR: https://github.com/digitalbazaar/pyld/pull/60
+    @pytest.mark.network
     def test_do_not_compact_dates_without_datatype(self):
         """
         Dates without explicit datatype should not be compacted during framing,
@@ -455,6 +456,7 @@ class TestFrame:
         framed = jsonld.frame(input, frame)
         assert framed == expected
 
+    @pytest.mark.network
     def test_compact_dates_with_datatype(self):
         """
         Dates with explicit datatype should be compacted during framing.
