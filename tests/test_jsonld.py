@@ -443,10 +443,10 @@ class TestFrame:
             "http://schema.org/deathDate": "2015-02-25",
         }
 
-        frame = {"@context": "https://schema.org/docs/jsonldcontext.jsonld"}
+        frame = {"@context": "https://schema.org/"}
 
         expected = {
-            "@context": "https://schema.org/docs/jsonldcontext.jsonld",
+            "@context": "https://schema.org/",
             "name": "Buster the Cat",
             "schema:birthDate": "2012",
             "schema:deathDate": "2015-02-25",
@@ -471,10 +471,10 @@ class TestFrame:
             },
         }
 
-        frame = {"@context": "https://schema.org/docs/jsonldcontext.jsonld"}
+        frame = {"@context": "https://schema.org/"}
 
         expected = {
-            "@context": "https://schema.org/docs/jsonldcontext.jsonld",
+            "@context": "https://schema.org/",
             "name": "Buster the Cat",
             "birthDate": "2012",
             "deathDate": "2015-02-25",
