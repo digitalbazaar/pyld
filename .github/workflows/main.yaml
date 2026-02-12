@@ -68,6 +68,32 @@ jobs:
         pytest --ignore ./tests/test_manifests.py
       env:
         LOADER: ${{ matrix.loader }}
-  #coverage:
-  #  needs: [test]
-  # FIXME
+  coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read        # For checkout and comparing commits
+      pull-requests: write  # For creating/updating PR comments
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: 3.12
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Install testing dependencies
+        run: |
+          pip install -r requirements-test.txt
+      - name: Run tests with coverage
+        run: |
+          pytest --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=pyld tests/ | tee pytest-coverage.txt
+      - name: Pytest coverage comment
+        uses: MishaKav/pytest-coverage-comment@ae0e8a539a3f310aefb3bfb6a2209778a21fa42b
+        with:
+          pytest-coverage-path: ./pytest-coverage.txt
+          junitxml-path: ./pytest.xml

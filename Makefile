@@ -4,7 +4,7 @@ install:
 	pip install -e .
 
 test:
-	pytest
+	pytest --cov=pyld
 
 upgrade-submodules:
 	git submodule update --remote --init --recursive
