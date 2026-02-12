@@ -526,12 +526,11 @@ class TestToRdf:
 
 class TestCompact:
     # Issue 59 - PR: https://github.com/digitalbazaar/pyld/pull/60
-    """
-    Values with explicit datatypes should be compacted during compaction while values
-    without explicit dataypes should not.
-    """
-
-    def test_simple_compaction_with_datatypes(self):
+    def test_compaction_with_and_without_explicit_datatypes(self):
+        """
+        Values with explicit datatypes should be compacted during compaction while values
+        without explicit dataypes should not.
+        """
         input = {
             "http://example.org/a": "A",
             "http://example.org/b": "B",
@@ -561,3 +560,12 @@ class TestCompact:
 
         compacted = jsonld.compact(input, context)
         assert compacted == expected
+
+    # Issue 91
+    def test_empty_context(self):
+        """
+        Compacting with an empty context should return the input unchanged.
+        """
+        input = {'http://schema.org/codeRepository': {'@id': 'http:'}}
+        compacted = jsonld.compact(input, {})
+        assert compacted == input
