@@ -433,6 +433,7 @@ class TestFrame:
         assert framed == expected
 
     # Issue 59 - PR: https://github.com/digitalbazaar/pyld/pull/60
+    @pytest.mark.network
     def test_do_not_compact_dates_without_datatype(self):
         """
         Dates without explicit datatype should not be compacted during framing,
@@ -443,10 +444,10 @@ class TestFrame:
             "http://schema.org/deathDate": "2015-02-25",
         }
 
-        frame = {"@context": "https://schema.org/docs/jsonldcontext.jsonld"}
+        frame = {"@context": "https://schema.org/"}
 
         expected = {
-            "@context": "https://schema.org/docs/jsonldcontext.jsonld",
+            "@context": "https://schema.org/",
             "name": "Buster the Cat",
             "schema:birthDate": "2012",
             "schema:deathDate": "2015-02-25",
@@ -455,6 +456,7 @@ class TestFrame:
         framed = jsonld.frame(input, frame)
         assert framed == expected
 
+    @pytest.mark.network
     def test_compact_dates_with_datatype(self):
         """
         Dates with explicit datatype should be compacted during framing.
@@ -471,10 +473,10 @@ class TestFrame:
             },
         }
 
-        frame = {"@context": "https://schema.org/docs/jsonldcontext.jsonld"}
+        frame = {"@context": "https://schema.org/"}
 
         expected = {
-            "@context": "https://schema.org/docs/jsonldcontext.jsonld",
+            "@context": "https://schema.org/",
             "name": "Buster the Cat",
             "birthDate": "2012",
             "deathDate": "2015-02-25",
