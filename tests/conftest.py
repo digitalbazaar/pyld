@@ -1,5 +1,7 @@
 import os
 import unittest
+from contextlib import suppress
+
 import pytest
 
 # Import the existing test runner module so we can reuse Manifest/Test
@@ -10,10 +12,23 @@ from . import runtests
 def pytest_addoption(parser):
     # Do only long options for pytest integration; pytest reserves
     # lowercase single-letter short options for its own CLI flags.
-    parser.addoption('--tests', nargs='*', default=[], help='A manifest or directory to test')
-    parser.addoption('--earl', dest='earl', help='The filename to write an EARL report to')
-    parser.addoption('--loader', dest='loader', default='requests', help='The remote URL document loader: requests, aiohttp')
-    parser.addoption('--number', dest='number', help='Limit tests to those containing the specified test identifier')
+    parser.addoption(
+        '--tests', nargs='*', default=[], help='A manifest or directory to test'
+    )
+    parser.addoption(
+        '--earl', dest='earl', help='The filename to write an EARL report to'
+    )
+    parser.addoption(
+        '--loader',
+        dest='loader',
+        default='requests',
+        help='The remote URL document loader: requests, aiohttp',
+    )
+    parser.addoption(
+        '--number',
+        dest='number',
+        help='Limit tests to those containing the specified test identifier',
+    )
 
 
 def pytest_configure(config):
@@ -26,9 +41,13 @@ def pytest_configure(config):
     # existing `runtests` helpers behave the same as the CLI runner.
     loader = config.getoption('loader')
     if loader == 'requests':
-        runtests.jsonld._default_document_loader = runtests.jsonld.requests_document_loader()
+        runtests.jsonld._default_document_loader = (
+            runtests.jsonld.requests_document_loader()
+        )
     elif loader == 'aiohttp':
-        runtests.jsonld._default_document_loader = runtests.jsonld.aiohttp_document_loader()
+        runtests.jsonld._default_document_loader = (
+            runtests.jsonld.aiohttp_document_loader()
+        )
 
     number = config.getoption('number')
     if number:
@@ -85,7 +104,7 @@ def pytest_generate_tests(metafunc):
         'description': 'Top level PyLD test manifest',
         'name': 'PyLD',
         'sequence': [],
-        'filename': '/'
+        'filename': '/',
     }
 
     for test in test_targets:
@@ -99,7 +118,7 @@ def pytest_generate_tests(metafunc):
             filename = os.path.join(test, 'manifest.jsonld')
             if os.path.exists(filename):
                 root_manifest['sequence'].append(os.path.abspath(filename))
-    
+
     # Use the existing Manifest loader to create a TestSuite and flatten it
     suite = runtests.Manifest(root_manifest, root_manifest['filename']).load()
     tests = list(_flatten_suite(suite))
@@ -114,7 +133,7 @@ def pytest_runtest_makereport(item):
     # Hookwrapper gives us the final test report via `outcome.get_result()`.
     outcome = yield
     rep = outcome.get_result()
-    
+
     # We only handle the main call phase to match
     # the behaviour of the original runner which only reported passes
     # and failures/errors.
@@ -139,12 +158,11 @@ def pytest_runtest_makereport(item):
     if rep.outcome == 'skipped':
         return
 
-    success = (rep.outcome == 'passed')
-    try:
+    success = rep.outcome == 'passed'
+
+    # Don't let EARL bookkeeping break test execution; be quiet on error.
+    with suppress(Exception):
         earl_report.add_assertion(manifest_test, success)
-    except Exception:
-        # Don't let EARL bookkeeping break test execution; be quiet on error.
-        pass
 
 
 def pytest_sessionfinish(session, exitstatus):

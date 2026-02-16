@@ -1,5 +1,6 @@
-import pytest
 import unittest
+
+import pytest
 
 # Reuse the existing Test wrapper from `runtests.py`. The pytest test
 # simply calls `setUp()` and `runTest()` on the original Test instance
