@@ -18,21 +18,24 @@ import copy
 import json
 import re
 import sys
-from urllib.parse import urlparse
-import warnings
 import uuid
-
-from typing import Optional, Callable, Any
-from pyld.canon import URDNA2015, URGNA2012, UnknownFormatError
-from pyld.nquads import ParserError, parse_nquads, serialize_nquad, serialize_nquads
-from pyld.identifier_issuer import IdentifierIssuer
-from .context_resolver import ContextResolver
-from c14n.Canonicalize import canonicalize
-from cachetools import LRUCache
-import lxml.html
+import warnings
+from collections.abc import Callable
 from numbers import Integral, Real
+from typing import Any
+from urllib.parse import urlparse
+
+import lxml.html
+from cachetools import LRUCache
 from frozendict import frozendict
-from pyld.__about__ import (__copyright__, __license__, __version__)
+
+from c14n.Canonicalize import canonicalize
+from pyld.__about__ import __copyright__, __license__, __version__
+from pyld.canon import URDNA2015, URGNA2012, UnknownFormatError
+from pyld.identifier_issuer import IdentifierIssuer
+from pyld.nquads import ParserError, parse_nquads, serialize_nquad, serialize_nquads
+
+from .context_resolver import ContextResolver
 from .iri_resolver import resolve, unresolve
 
 __all__ = [
@@ -121,12 +124,12 @@ _inverse_context_cache = LRUCache(maxsize=INVERSE_CONTEXT_CACHE_MAX_SIZE)
 INITIAL_CONTEXTS = {}
 
 # Handler to call if a property was dropped during expansion
-OnPropertyDropped = Callable[[Optional[str]], Any]
+OnPropertyDropped = Callable[[str | None], Any]
 
 # No-op function to use as default handler and other purposes
 def noop(*args, **kwargs):
     return None
-    
+
 
 def compact(input_, ctx, options=None):
     """
@@ -647,7 +650,7 @@ class JsonLdProcessor:
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
                 'jsonld.LoadDocumentError',
-                {'remoteDoc': remote_doc}, 
+                {'remoteDoc': remote_doc},
                 code='loading document failed') from cause
 
         # set default base
@@ -809,7 +812,7 @@ class JsonLdProcessor:
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
                 'jsonld.LoadDocumentError',
-                {'remoteDoc': remote_frame}, 
+                {'remoteDoc': remote_frame},
                 code='loading document failed') from cause
 
         # preserve frame context
@@ -862,7 +865,7 @@ class JsonLdProcessor:
 
         # if the unexpanded frame includes a key expanding to @graph, frame the
         # default graph, otherwise, the merged graph
-        frame_keys = [self._expand_iri(active_ctx, key) for key in frame.keys()]
+        frame_keys = [self._expand_iri(active_ctx, key) for key in frame]
         options['merged'] = '@graph' not in frame_keys
         options['is11'] = self._processing_mode(active_ctx, 1.1)
 
@@ -952,7 +955,7 @@ class JsonLdProcessor:
             except UnknownFormatError as cause:
                 raise JsonLdError(
                     str(cause),
-                    'jsonld.UnknownFormat', 
+                    'jsonld.UnknownFormat',
                     {'format': cause.format}) from cause
 
         # assume URGNA2012
@@ -1161,7 +1164,7 @@ class JsonLdProcessor:
         return False
 
     @staticmethod
-    def add_value(subject, property, value, options={}):
+    def add_value(subject, property, value, options=None):
         """
         Adds a value to a subject. If the value is an array, all values in the
         array will be added.
@@ -1179,6 +1182,8 @@ class JsonLdProcessor:
             a simple shallow comparison of subject ID or value)
             (default: True).
         """
+        if options is None:
+            options = {}
         options.setdefault('propertyIsArray', False)
         options.setdefault('valueIsArray', False)
         options.setdefault('allowDuplicate', True)
@@ -1233,7 +1238,7 @@ class JsonLdProcessor:
         del subject[property]
 
     @staticmethod
-    def remove_value(subject, property, value, options={}):
+    def remove_value(subject, property, value, options=None):
         """
         Removes a value from a subject.
 
@@ -1244,6 +1249,8 @@ class JsonLdProcessor:
           [propertyIsArray]: True if the property is always an array,
             False if not (default: False).
         """
+        if options is None:
+            options = {}
         options.setdefault('propertyIsArray', False)
 
         # filter out value
@@ -1355,8 +1362,8 @@ class JsonLdProcessor:
             return result
         except ParserError as cause:
             raise JsonLdError(
-                str(cause), 
-                'jsonld.ParseError', 
+                str(cause),
+                'jsonld.ParseError',
                 {'line': cause.line_number}) from cause
 
     @staticmethod
@@ -1903,7 +1910,7 @@ class JsonLdProcessor:
         must_revert = not inside_index
         if (must_revert and type_scoped_ctx and
             len(element) <= 2 and '@context' not in element):
-            for key, value in sorted(element.items()):
+            for key, _value in sorted(element.items()):
                 expanded_property = self._expand_iri(
                     type_scoped_ctx, key, vocab=True)
                 if expanded_property == '@value':
@@ -1938,7 +1945,7 @@ class JsonLdProcessor:
         type_key = None
 
         # look for scoped context on @type
-        for key, value in sorted(element.items()):
+        for key, _value in sorted(element.items()):
             expanded_property = self._expand_iri(
                 active_ctx, key, vocab=True)
             if expanded_property == '@type':
@@ -2035,16 +2042,21 @@ class JsonLdProcessor:
         elif count == 1 and '@language' in rval:
             rval = None
 
-        # drop certain top-level objects that do not occur in lists
-        if (_is_object(rval) and not options.get('keepFreeFloatingNodes') and
-                not inside_list and
-                (active_property is None or
-                    expanded_active_property == '@graph')):
-            # drop empty object or top-level @value/@list,
-            # or object with only @id
-            if (count == 0 or '@value' in rval or '@list' in rval or
-                    (count == 1 and '@id' in rval)):
-                rval = None
+        # drop certain top-level objects that do not occur in lists, or
+        # drop empty object or top-level @value/@list,
+        # or object with only @id
+        if (
+            _is_object(rval)
+            and not options.get('keepFreeFloatingNodes')
+            and not inside_list
+            and (active_property is None or expanded_active_property == '@graph')
+        ) and (
+            count == 0
+            or '@value' in rval
+            or '@list' in rval
+            or (count == 1 and '@id' in rval)
+        ):
+            rval = None
 
         return rval
 
@@ -2410,7 +2422,7 @@ class JsonLdProcessor:
             if expanded_parent.get('@type') == '@json' and self._processing_mode(active_ctx, 1.1):
                 # allow any value, to be verified when the object
                 # is fully expanded and the @type is @json.
-                None
+                pass
             elif ((_is_object(unexpanded_value) or _is_array(unexpanded_value)) and
                     not options['isFrame']):
                 raise JsonLdError(
@@ -2496,12 +2508,12 @@ class JsonLdProcessor:
         # frame the subjects
         framed = []
         self._match_frame(
-            state, sorted(state['subjects'].keys()), frame, framed, None)
+            state, sorted(state['subjects']), frame, framed, None)
 
         # if pruning blank nodes, find those to prune
         if options['pruneBlankNodeIdentifiers']:
             options['bnodesToClear'].extend(
-                [id_ for id_ in state['bnodeMap'].keys() if len(state['bnodeMap'][id_]) == 1])
+                [id_ for id_ in state['bnodeMap'] if len(state['bnodeMap'][id_]) == 1])
 
         return framed
 
@@ -2572,7 +2584,7 @@ class JsonLdProcessor:
                         }
 
         # convert linked lists to @list arrays
-        for name, graph_object in graph_map.items():
+        for _name, graph_object in graph_map.items():
             # no @lists to be converted, continue
             if RDF_NIL not in graph_object:
                 continue
@@ -2634,7 +2646,7 @@ class JsonLdProcessor:
         for subject, node in sorted(default_graph.items()):
             if subject in graph_map:
                 graph = node['@graph'] = []
-                for s, n in sorted(graph_map[subject].items()):
+                for _s, n in sorted(graph_map[subject].items()):
                     # only add full subjects to top-level
                     if not _is_subject_reference(n):
                         graph.append(n)
@@ -2648,7 +2660,7 @@ class JsonLdProcessor:
             override_protected=False,
             propagate=True,
             validate_scoped=True,
-            cycles=set()):
+            cycles=None):
         """
         Processes a local context and returns a new active context.
 
@@ -2666,6 +2678,9 @@ class JsonLdProcessor:
 
         :return: the new active context.
         """
+        if cycles is None:
+            cycles = set()
+
         # normalize local context to an array
         if _is_object(local_ctx) and _is_array(local_ctx.get('@context')):
             local_ctx = local_ctx['@context']
@@ -3064,7 +3079,7 @@ class JsonLdProcessor:
                 if index_key == '@type':
                     if expanded_key == '@none':
                         # ignore @none
-                        item
+                        pass
                     elif item.get('@type'):
                         types = [k]
                         types.extend(item['@type'])
@@ -3211,7 +3226,7 @@ class JsonLdProcessor:
                         })
         return triples
 
-    def _list_to_rdf(self, list_, issuer, triples, rdfDirection):
+    def _list_to_rdf(self, list_, issuer, triples, rdf_direction):
         """
         Converts a @list value into a linked list of blank node RDF triples
         (and RDF collection).
@@ -3219,7 +3234,7 @@ class JsonLdProcessor:
         :param list_: the @list value.
         :param issuer: the IdentifierIssuer for issuing blank node identifiers.
         :param triples: the array of triples to append to.
-        :param rdfDirection: for creating datatyped literals.
+        :param rdf_direction: for creating datatyped literals.
 
         :return: the head of the list
         """
@@ -3233,7 +3248,7 @@ class JsonLdProcessor:
         subject = result
 
         for item in list_:
-            object = self._object_to_rdf(item, issuer, triples, rdfDirection)
+            object = self._object_to_rdf(item, issuer, triples, rdf_direction)
             next = {'type': 'blank node', 'value': issuer.get_id()}
             triples.append({
                 'subject': subject,
@@ -3250,7 +3265,7 @@ class JsonLdProcessor:
 
         # tail of list
         if last:
-            object = self._object_to_rdf(last, issuer, triples, rdfDirection)
+            object = self._object_to_rdf(last, issuer, triples, rdf_direction)
             triples.append({
                 'subject': subject,
                 'predicate': first,
@@ -3264,7 +3279,7 @@ class JsonLdProcessor:
 
         return result
 
-    def _object_to_rdf(self, item, issuer, triples, rdfDirection):
+    def _object_to_rdf(self, item, issuer, triples, rdf_direction):
         """
         Converts a JSON-LD value object to an RDF literal or a JSON-LD string
         or node object to an RDF resource.
@@ -3272,8 +3287,8 @@ class JsonLdProcessor:
         :param item: the JSON-LD value or node object.
         :param issuer: the IdentifierIssuer for issuing blank node identifiers.
         :param triples: the array of triples to append list entries to.
-        :param rdfDirection: for creating datatyped literals.
-        :param rdfDirection: for creating datatyped literals.
+        :param rdf_direction: for creating datatyped literals.
+        :param rdf_direction: for creating datatyped literals.
 
         :return: the RDF literal or RDF resource.
         """
@@ -3291,7 +3306,7 @@ class JsonLdProcessor:
             elif _is_bool(value):
                 object['value'] = 'true' if value else 'false'
                 object['datatype'] = datatype or XSD_BOOLEAN
-            # if `value` is a float number, 
+            # if `value` is a float number,
             elif _is_double(value):
                 # use the canonical double representation
                 object['value'] = _canonicalize_double(value)
@@ -3315,8 +3330,8 @@ class JsonLdProcessor:
             elif _is_integer(value):
                 object['value'] = str(value)
                 object['datatype'] = datatype or XSD_INTEGER
-            elif rdfDirection == 'i18n-datatype' and '@direction' in item:
-                datatype = 'https://www.w3.org/ns/i18n#%s_%s' % (
+            elif rdf_direction == 'i18n-datatype' and '@direction' in item:
+                datatype = 'https://www.w3.org/ns/i18n#{}_{}'.format(
                     item.get('@language', ''),
                     item['@direction']
                 )
@@ -3331,7 +3346,7 @@ class JsonLdProcessor:
                 object['datatype'] = datatype or XSD_STRING
         # convert list object to RDF
         elif _is_list(item):
-            list_ = self._list_to_rdf(item['@list'], issuer, triples, rdfDirection)
+            list_ = self._list_to_rdf(item['@list'], issuer, triples, rdf_direction)
             object['value'] = list_['value']
             object['type'] = list_['type']
         # convert string/node object to RDF
@@ -3409,7 +3424,7 @@ class JsonLdProcessor:
                 if language:
                     rval['@language'] = language
                     if not re.match(REGEX_BCP47, language):
-                        warnings.warn('@language must be valid BCP47')
+                        warnings.warn('@language must be valid BCP47', stacklevel=2)
                 rval['@direction'] = direction
             elif type_ != XSD_STRING:
                 rval['@type'] = type_
@@ -3568,7 +3583,7 @@ class JsonLdProcessor:
         :return: merged graph map.
         """
         merged = {}
-        for name, graph in sorted(graph_map.items()):
+        for _name, graph in sorted(graph_map.items()):
             for id_, node in sorted(graph.items()):
                 if id_ not in merged:
                     merged[id_] = {'@id': id}
@@ -3675,10 +3690,9 @@ class JsonLdProcessor:
                 self._add_frame_output(parent, property, output)
                 continue
 
-            # if only the last match should be embedded
-            if flags['embed'] == '@last':
-                # remove any existing embed
-                if id_ in state['uniqueEmbeds'][state['graph']]:
+            # if only the last match should be embedded,
+            # remove any existing embed
+            if flags['embed'] == '@last' and id_ in state['uniqueEmbeds'][state['graph']]:
                     self._remove_embed(state, id_)
 
             state['uniqueEmbeds'][state['graph']][id_] = {
@@ -3802,7 +3816,7 @@ class JsonLdProcessor:
                         node_values = JsonLdProcessor.get_values(subject_value, reverse_prop)
                         if [v for v in node_values if v['@id'] == id_]:
                             # node has property referencing this subject, recurse
-                            output['@reverse'] = output['@reverse'] if '@reverse' in output else {}
+                            output['@reverse'] = output.get('@reverse', {})
                             JsonLdProcessor.add_value(
                                 output['@reverse'], reverse_prop, [],
                                 {'propertyIsArray': True})
@@ -4150,9 +4164,7 @@ class JsonLdProcessor:
             return False
         if not ((not t1 and not t2) or (t1 in t2) or (t1 and t2 and _is_empty_object(t2[0]))):
             return False
-        if not ((not l1 and not l2) or (l1 in l2) or (l1 and l2 and _is_empty_object(l2[0]))):
-            return False
-        return True
+        return ((not l1 and not l2) or (l1 in l2) or (l1 and l2 and _is_empty_object(l2[0])))
 
     def _cleanup_preserve(self, input_, options):
         """
@@ -4395,7 +4407,7 @@ class JsonLdProcessor:
                         item_type = '@none'
                         if _is_value(item):
                             if '@direction' in item:
-                                item_language = ('%s_%s' % (item.get('@language', ''), item.get('@direction', '')))
+                                item_language = ('{}_{}'.format(item.get('@language', ''), item.get('@direction', '')))
                             elif '@language' in item:
                                 item_language = item['@language']
                             elif '@type' in item:
@@ -4435,11 +4447,11 @@ class JsonLdProcessor:
                     if '@language' in value and '@index' not in value:
                         containers.extend(['@language', '@language@set'])
                         if value.get('@direction'):
-                            type_or_language_value = ('%s_%s' % (value['@language'], value.get('@direction')))
+                            type_or_language_value = ('{}_{}'.format(value['@language'], value.get('@direction')))
                         else:
                             type_or_language_value = value['@language']
                     elif '@direction' in value and '@index' not in value:
-                            type_or_language_value = '_%s' % value['@direction']
+                            type_or_language_value = '_{}'.format(value['@direction'])
                     elif '@type' in value:
                         type_or_language = '@type'
                         type_or_language_value = value['@type']
@@ -4467,8 +4479,7 @@ class JsonLdProcessor:
                 return term
 
         # no term match, use @vocab if available
-        if vocab:
-            if '@vocab' in active_ctx:
+        if vocab and '@vocab' in active_ctx:
                 vocab_ = active_ctx['@vocab']
                 if iri.startswith(vocab_) and iri != vocab_:
                     # use suffix as relative iri if it is not a term in the
@@ -4678,7 +4689,7 @@ class JsonLdProcessor:
             value.get('@container', '@set') == '@set' and
             self._processing_mode(active_ctx, 1.1)):
             if (not value or
-                any(v not in ['@container', '@id', '@protected'] for v in value.keys())):
+                any(v not in ['@container', '@id', '@protected'] for v in value)):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; keywords cannot be overridden.',
                     'jsonld.SyntaxError', {'context': local_ctx, 'term': term},
@@ -4692,7 +4703,7 @@ class JsonLdProcessor:
             warnings.warn(
                 'terms beginning with "@" are reserved'
                 ' for future use and ignored',
-                SyntaxWarning)
+                SyntaxWarning, stacklevel=2)
             return
         elif term == '':
             raise JsonLdError(
@@ -4762,7 +4773,7 @@ class JsonLdProcessor:
             if re.match(KEYWORD_PATTERN, reverse):
                 warnings.warn('values beginning with "@" are reserved'
                     'for future use and ignored',
-                    SyntaxWarning)
+                    SyntaxWarning, stacklevel=2)
 
                 if previous_mapping:
                     active_ctx['mappings'][term] = previous_mapping
@@ -4799,7 +4810,7 @@ class JsonLdProcessor:
             elif not _is_keyword(id_) and re.match(KEYWORD_PATTERN, id_):
                 warnings.warn('values beginning with "@" are reserved'
                     'for future use and ignored',
-                    SyntaxWarning)
+                    SyntaxWarning, stacklevel=2)
 
                 if previous_mapping:
                     active_ctx['mappings'][term] = previous_mapping
@@ -5233,12 +5244,12 @@ class JsonLdProcessor:
                 # term is preferred for values using specific language and direction
                 elif '@language' in mapping and '@direction' in mapping:
                     if mapping['@language'] and mapping['@direction']:
-                        key = ('%s_%s' % (mapping['@language'], mapping['@direction'])).lower()
+                        key = ('{}_{}'.format(mapping['@language'], mapping['@direction'])).lower()
                         entry['@language'].setdefault(key, term)
                     elif mapping['@language']:
                         entry['@language'].setdefault(mapping['@language'].lower(), term)
                     elif mapping['@direction']:
-                        entry['@language'].setdefault(('_%s' % mapping['@direction']), term)
+                        entry['@language'].setdefault(('_{}'.format(mapping['@direction'])), term)
                     else:
                         entry['@language'].setdefault('@null', term)
                 # term is preferred for values using specific language
@@ -5250,7 +5261,7 @@ class JsonLdProcessor:
                 # term is preferred for values using specific direction
                 elif '@direction' in mapping:
                     if mapping['@direction']:
-                        entry['@language'].setdefault(('_%s' % mapping['@direction']), term)
+                        entry['@language'].setdefault(('_{}'.format(mapping['@direction'])), term)
                     else:
                         entry['@language'].setdefault('@none', term)
                 # term is preferred for values w/default language or not type
@@ -5327,7 +5338,7 @@ def _is_object(v):
 
     :return: True if the value is an Object, False if not.
     """
-    return isinstance(v, dict) or isinstance(v, frozendict)
+    return isinstance(v, (dict, frozendict))
 
 
 def _is_empty_object(v):
@@ -5372,7 +5383,7 @@ def _validate_type_value(v, is_frame):
     if _is_string(v):
         return
 
-    if _is_array(v) and all([_is_string(vv) for vv in v]):
+    if _is_array(v) and all(_is_string(vv) for vv in v):
         return
 
     if is_frame and _is_object(v):
@@ -5426,7 +5437,7 @@ def _canonicalize_double(value: float) -> str:
     """Convert a float value to canonical lexical form of `xsd:double`."""
     return re.sub(
         r'(\d)0*E\+?0*(\d)', r'\1E\2',
-        ('%1.15E' % value))
+        (f'{value:1.15E}'))
 
 
 def _is_numeric(v):
@@ -5578,7 +5589,7 @@ def _is_relative_iri(v):
 
 def freeze(value):
     if isinstance(value, dict):
-        return frozendict(dict([(k, v) for (k, v) in value.items()]))
+        return frozendict(value)
     return value
 
 # The default JSON-LD document loader.
@@ -5594,7 +5605,7 @@ def load_document(url,
     options,
     base=None,
     profile=None,
-    requestProfile=None):
+    request_profile=None):
     """
     Uses built-in or provided documentLoader to retrieve a parsed document.
 
@@ -5619,8 +5630,8 @@ def load_document(url,
         )
     }
 
-    if requestProfile:
-        headers['Accept'] = ('application/ld+json;profile=%s, ' % requestProfile) + headers['Accept']
+    if request_profile:
+        headers['Accept'] = (f'application/ld+json;profile={request_profile}, ') + headers['Accept']
 
     # FIXME: add text/html and application/xhtml+xml, if appropriate
 
@@ -5658,7 +5669,7 @@ def load_document(url,
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
                 'jsonld.LoadDocumentError',
-                {'remoteDoc': remote_doc}, 
+                {'remoteDoc': remote_doc},
                 code='loading document failed') from cause
 
     return remote_doc
@@ -5695,7 +5706,7 @@ def load_html(input, url, profile, options):
     if url_elements.fragment:
         # FIXME: CGI decode
         id = url_elements.fragment
-        element = document.xpath('//script[@id="%s"]' % id)
+        element = document.xpath(f'//script[@id="{id}"]')
         if not element:
             raise JsonLdError(
                 'No script tag found for id.',
@@ -5714,12 +5725,12 @@ def load_html(input, url, profile, options):
             raise JsonLdError(
                 'Invalid JSON syntax.',
                 'jsonld.SyntaxError',
-                {'content': content}, 
+                {'content': content},
                 code='invalid script element') from cause
 
     elements = []
     if profile:
-        elements = document.xpath('//script[starts-with(@type, "application/ld+json;profile=%s")]' % profile)
+        elements = document.xpath(f'//script[starts-with(@type, "application/ld+json;profile={profile}")]')
     if not elements:
         elements = document.xpath('//script[starts-with(@type, "application/ld+json")]')
     if options.get('extractAllScripts'):
@@ -5735,7 +5746,7 @@ def load_html(input, url, profile, options):
                 raise JsonLdError(
                     'Invalid JSON syntax.',
                     'jsonld.SyntaxError',
-                    {'content': element.text}, 
+                    {'content': element.text},
                     code='invalid script element') from cause
         return result
     elif elements:
@@ -5745,7 +5756,7 @@ def load_html(input, url, profile, options):
             raise JsonLdError(
                 'Invalid JSON syntax.',
                 'jsonld.SyntaxError',
-                {'content': elements[0].text}, 
+                {'content': elements[0].text},
                 code='invalid script element') from cause
     else:
         raise JsonLdError(
