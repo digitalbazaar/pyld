@@ -1,8 +1,10 @@
 import pytest
-from pyld.iri_resolver import resolve, unresolve, remove_dot_segments 
+
+from pyld.iri_resolver import remove_dot_segments, resolve, unresolve
 
 # Tests ported from relative-to-absolute-iri.js: https://github.com/rubensworks/relative-to-absolute-iri.js/blob/master/test/Resolve-test.ts
 # (c) Ruben Taelman <stevenlevithan.com>
+
 
 # ---------- Tests for resolve() ----------
 class TestResolve:
@@ -13,7 +15,9 @@ class TestResolve:
         assert resolve('http://example.org/', '') == 'http://example.org/'
 
     def test_absolute_iri_with_base(self):
-        assert resolve('http://example.org/', 'http://base.org/') == 'http://example.org/'
+        assert (
+            resolve('http://example.org/', 'http://base.org/') == 'http://example.org/'
+        )
 
     def test_empty_value_uses_base(self):
         assert resolve('', 'http://base.org/') == 'http://base.org/'
@@ -22,7 +26,9 @@ class TestResolve:
         assert resolve('ex:abc') == 'ex:abc'
 
     def test_relative_without_scheme_no_base_error(self):
-        with pytest.raises(ValueError, match=r"Found invalid relative IRI 'abc' for a missing baseIRI"):
+        with pytest.raises(
+            ValueError, match=r"Found invalid relative IRI 'abc' for a missing baseIRI"
+        ):
             resolve('abc')
 
     def test_relative_without_dot_segments_no_base(self):
@@ -44,11 +50,15 @@ class TestResolve:
         assert resolve('http://abc/../../', 'http://base.org/') == 'http://abc/'
 
     def test_non_absolute_base_error(self):
-        with pytest.raises(ValueError, match=r"Found invalid baseIRI 'def' for value 'abc'"):
+        with pytest.raises(
+            ValueError, match=r"Found invalid baseIRI 'def' for value 'abc'"
+        ):
             resolve('abc', 'def')
 
     def test_non_absolute_base_empty_value_error(self):
-        with pytest.raises(ValueError, match=r"Found invalid baseIRI 'def' for value ''"):
+        with pytest.raises(
+            ValueError, match=r"Found invalid baseIRI 'def' for value ''"
+        ):
             resolve('', 'def')
 
     def test_scheme_from_base_if_value_starts_with_slash_slash(self):
@@ -79,7 +89,10 @@ class TestResolve:
         assert resolve('abc/./', 'http:') == 'http:abc/'
 
     def test_absolute_path_ignores_base_path(self):
-        assert resolve('/abc/def/', 'http://base.org/123/456/') == 'http://base.org/abc/def/'
+        assert (
+            resolve('/abc/def/', 'http://base.org/123/456/')
+            == 'http://base.org/abc/def/'
+        )
 
     def test_base_with_last_slash_replacement(self):
         assert resolve('xyz', 'http://aa/a') == 'http://aa/xyz'
@@ -163,7 +176,9 @@ class TestResolve:
         assert resolve('g;x', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/g;x'
 
     def test_semicolon_questionmark_and_hashtag_relative_with_complex_base(self):
-        assert resolve('g;x?y#s', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/g;x?y#s'
+        assert (
+            resolve('g;x?y#s', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/g;x?y#s'
+        )
 
     def test_empty_relative_with_complex_base(self):
         assert resolve('', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/d;p?q'
@@ -176,7 +191,7 @@ class TestResolve:
 
     def test_double_dot_relative_with_complex_base(self):
         assert resolve('..', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/'
-    
+
     def test_double_dot_slash_relative_with_complex_base(self):
         assert resolve('../', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/'
 
@@ -235,46 +250,75 @@ class TestResolve:
         assert resolve('g/../h', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/h'
 
     def test_g_semicolon_x_equals_1_slash_dot_slash_y_relative_with_complex_base(self):
-        assert resolve('g;x=1/./y', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/g;x=1/y'
+        assert (
+            resolve('g;x=1/./y', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/g;x=1/y'
+        )
 
-    def test_g_semicolon_x_equals_1_slash_double_dot_slash_y_relative_with_complex_base(self):
+    def test_g_semicolon_x_equals_1_slash_double_dot_slash_y_relative_with_complex_base(
+        self,
+    ):
         assert resolve('g;x=1/../y', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/y'
 
     def test_g_questionmark_y_slash_dot_slash_x_relative_with_complex_base(self):
-        assert resolve('g?y/./x', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/g?y/./x'
+        assert (
+            resolve('g?y/./x', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/g?y/./x'
+        )
 
     def test_g_questionmark_y_slash_double_dot_slash_x_relative_with_complex_base(self):
-        assert resolve('g?y/../x', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/g?y/../x'
+        assert (
+            resolve('g?y/../x', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/g?y/../x'
+        )
 
     def test_g_hash_s_slash_dot_slash_x_relative_with_complex_base(self):
-        assert resolve('g#s/./x', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/g#s/./x'
+        assert (
+            resolve('g#s/./x', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/g#s/./x'
+        )
 
     def test_g_hash_s_slash_double_dot_slash_x_relative_with_complex_base(self):
-        assert resolve('g#s/../x', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/g#s/../x'
+        assert (
+            resolve('g#s/../x', 'file:///a/bb/ccc/d;p?q') == 'file:///a/bb/ccc/g#s/../x'
+        )
 
     def test_http_colon_g_relative_with_complex_base(self):
         assert resolve('http:g', 'file:///a/bb/ccc/d;p?q') == 'http:g'
 
     def test_complex_relative_with_complex_base(self):
-        assert resolve('//example.org/.././useless/../../scheme-relative', 'http://example.com/some/deep/directory/and/file#with-a-fragment') == 'http://example.org/scheme-relative'
+        assert (
+            resolve(
+                '//example.org/.././useless/../../scheme-relative',
+                'http://example.com/some/deep/directory/and/file#with-a-fragment',
+            )
+            == 'http://example.org/scheme-relative'
+        )
 
     def test_relative_with_complex_base_without_double_slash_after_scheme(self):
         assert resolve('a', 'tag:example') == 'tag:a'
 
-    def test_relative_with_complex_base_without_double_slash_after_scheme_with_one_slash(self):
+    def test_relative_with_complex_base_without_double_slash_after_scheme_with_one_slash(
+        self,
+    ):
         assert resolve('a', 'tag:example/foo') == 'tag:example/a'
 
-    def test_relative_a_with_base_without_double_slash_after_scheme_with_two_slash(self):
+    def test_relative_a_with_base_without_double_slash_after_scheme_with_two_slash(
+        self,
+    ):
         assert resolve('a', 'tag:example/foo/') == 'tag:example/foo/a'
 
     def test_relative_with_triple_dot_segment_and_double_dot_and_base(self):
-        assert resolve('../.../../', 'http://example.org/a/b/c/') == 'http://example.org/a/b/'
+        assert (
+            resolve('../.../../', 'http://example.org/a/b/c/')
+            == 'http://example.org/a/b/'
+        )
 
     def test_relative_with_triple_dot_segment_and_2x_double_dot_and_base(self):
-        assert resolve('../.../../../', 'http://example.org/a/b/c/') == 'http://example.org/a/'
+        assert (
+            resolve('../.../../../', 'http://example.org/a/b/c/')
+            == 'http://example.org/a/'
+        )
 
     def test_questionmark_prefix_relative_with_complex_base_with_dot(self):
-        assert resolve('?y','http://a/bb/ccc/./d;p?q') == 'http://a/bb/ccc/./d;p?y'
+        assert resolve('?y', 'http://a/bb/ccc/./d;p?q') == 'http://a/bb/ccc/./d;p?y'
+
 
 # ---------- Tests for unresolve() ----------
 class TestUnresolve:
@@ -285,7 +329,10 @@ class TestUnresolve:
         assert unresolve('http://example.org/', '') == 'http://example.org/'
 
     def test_absolute_iri_with_base(self):
-        assert unresolve('http://example.org/', 'http://base.org/') == 'http://example.org/'
+        assert (
+            unresolve('http://example.org/', 'http://base.org/')
+            == 'http://example.org/'
+        )
 
     def test_empty_value_uses_base(self):
         assert unresolve('', 'http://base.org/') == ''
@@ -303,11 +350,16 @@ class TestUnresolve:
         assert unresolve('http:abc', 'http://base.org/') == 'http:abc'
 
     def test_non_absolute_base_error(self):
-        with pytest.raises(ValueError, match=r"Found invalid baseIRI 'def' for value 'http://base.org/abc'"):
+        with pytest.raises(
+            ValueError,
+            match=r"Found invalid baseIRI 'def' for value 'http://base.org/abc'",
+        ):
             unresolve('http://base.org/abc', 'def')
 
     def test_non_absolute_base_empty_value_error(self):
-        with pytest.raises(ValueError, match=r"Found invalid baseIRI 'def' for value ''"):
+        with pytest.raises(
+            ValueError, match=r"Found invalid baseIRI 'def' for value ''"
+        ):
             unresolve('', 'def')
 
     def test_base_without_path_slash(self):
@@ -318,6 +370,7 @@ class TestUnresolve:
 
     def test_absolute_iri_with_keyword(self):
         assert unresolve('http://base.org/@abc', 'http://base.org/') == './@abc'
+
 
 # ---------- Tests for remove_dot_segments() ----------
 class TestRemoveDotSegments:
@@ -439,10 +492,17 @@ class TestRemoveDotSegments:
         assert remove_dot_segments('/invalid/.../..') == '/invalid/'
 
     def test_four_dots_as_normal_segment(self):
-        assert remove_dot_segments('/invalid/../..../../../.../.htaccess') == '/.../.htaccess'
+        assert (
+            remove_dot_segments('/invalid/../..../../../.../.htaccess')
+            == '/.../.htaccess'
+        )
 
     def test_segment_with_dot_and_invalid_char_as_normal_segment(self):
-        assert remove_dot_segments('/invalid/../.a/../../.../.htaccess') == '/.../.htaccess'
+        assert (
+            remove_dot_segments('/invalid/../.a/../../.../.htaccess')
+            == '/.../.htaccess'
+        )
+
 
 if __name__ == "__main__":
     pytest.main(["-v", __file__])
