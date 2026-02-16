@@ -57,10 +57,11 @@ Key classes and functions
 import datetime
 import json
 import os
+import re
 import sys
 import traceback
 import unittest
-import re
+
 # NOTE: ArgumentParser and TextTestResult were used by the original
 # TestRunner / EarlTestResult classes. They are obsolete because
 # pytest now provides the test harness; these imports can be removed
@@ -69,7 +70,7 @@ from argparse import ArgumentParser
 from unittest import TextTestResult
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
-from pyld import jsonld, iri_resolver
+from pyld import iri_resolver, jsonld
 
 __copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
@@ -87,7 +88,7 @@ ONLY_IDENTIFIER = None
 LOCAL_BASES = [
     'https://w3c.github.io/json-ld-api/tests',
     'https://w3c.github.io/json-ld-framing/tests',
-    'https://github.com/json-ld/normalization/tests'
+    'https://github.com/json-ld/normalization/tests',
 ]
 
 SPEC_DIRS = [
@@ -100,14 +101,14 @@ SPEC_DIRS = [
 # provides the test harness; this class can be removed once the legacy
 # CLI runner is deleted.
 
+
 class TestRunner(unittest.TextTestRunner):
     """
     Loads test manifests and runs tests.
     """
 
     def __init__(self, stream=sys.stderr, descriptions=True, verbosity=1):
-        unittest.TextTestRunner.__init__(
-            self, stream, descriptions, verbosity)
+        unittest.TextTestRunner.__init__(self, stream, descriptions, verbosity)
 
         # The runner uses an ArgumentParser to accept a list of manifests or
         # test directories and several runner-specific flags (e.g. which
@@ -115,7 +116,7 @@ class TestRunner(unittest.TextTestRunner):
         self.options = {}
         self.parser = ArgumentParser()
 
-    def _makeResult(self):
+    def _makeResult(self):  # noqa: N802
         return EarlTestResult(self.stream, self.descriptions, self.verbosity)
 
     def main(self):
@@ -123,22 +124,42 @@ class TestRunner(unittest.TextTestRunner):
         print('Use -h or --help to view options.\\n')
 
         # add program options
-        self.parser.add_argument('tests', metavar='TEST', nargs='*',
-            help='A manifest or directory to test')
-        self.parser.add_argument('-e', '--earl', dest='earl',
-            help='The filename to write an EARL report to')
-        self.parser.add_argument('-b', '--bail', dest='bail',
-            action='store_true', default=False,
-            help='Bail out as soon as any test fails')
-        self.parser.add_argument('-l', '--loader', dest='loader',
+        self.parser.add_argument(
+            'tests', metavar='TEST', nargs='*', help='A manifest or directory to test'
+        )
+        self.parser.add_argument(
+            '-e', '--earl', dest='earl', help='The filename to write an EARL report to'
+        )
+        self.parser.add_argument(
+            '-b',
+            '--bail',
+            dest='bail',
+            action='store_true',
+            default=False,
+            help='Bail out as soon as any test fails',
+        )
+        self.parser.add_argument(
+            '-l',
+            '--loader',
+            dest='loader',
             default='requests',
             help='The remote URL document loader: requests, aiohttp '
-                 '[default: %(default)s]')
-        self.parser.add_argument('-n', '--number', dest='number',
-            help='Limit tests to those containing the specified test identifier')
-        self.parser.add_argument('-v', '--verbose', dest='verbose',
-            action='store_true', default=False,
-            help='Print verbose test data')
+            '[default: %(default)s]',
+        )
+        self.parser.add_argument(
+            '-n',
+            '--number',
+            dest='number',
+            help='Limit tests to those containing the specified test identifier',
+        )
+        self.parser.add_argument(
+            '-v',
+            '--verbose',
+            dest='verbose',
+            action='store_true',
+            default=False,
+            help='Print verbose test data',
+        )
 
         # parse command line args
         self.options = self.parser.parse_args()
@@ -160,7 +181,7 @@ class TestRunner(unittest.TextTestRunner):
         # Global for saving test numbers to focus on
         global ONLY_IDENTIFIER
         if self.options.number:
-          ONLY_IDENTIFIER = self.options.number
+            ONLY_IDENTIFIER = self.options.number
 
         if len(self.options.tests):
             # tests given on command line
@@ -187,14 +208,14 @@ class TestRunner(unittest.TextTestRunner):
             'description': 'Top level PyLD test manifest',
             'name': 'PyLD',
             'sequence': [],
-            'filename': '/'
+            'filename': '/',
         }
         for test in test_targets:
             if os.path.isfile(test):
                 root, ext = os.path.splitext(test)
                 if ext in ['.json', '.jsonld']:
                     root_manifest['sequence'].append(os.path.abspath(test))
-                    #root_manifest['sequence'].append(test)
+                    # root_manifest['sequence'].append(test)
                 else:
                     raise Exception('Unknown test file ext', root, ext)
             elif os.path.isdir(test):
@@ -208,7 +229,7 @@ class TestRunner(unittest.TextTestRunner):
 
         # load root manifest
         global ROOT_MANIFEST_DIR
-        #ROOT_MANIFEST_DIR = os.path.dirname(root_manifest['filename'])
+        # ROOT_MANIFEST_DIR = os.path.dirname(root_manifest['filename'])
         ROOT_MANIFEST_DIR = root_manifest['filename']
         # Build a Manifest object from the root manifest structure. The
         # Manifest will recursively load manifests and produce a
@@ -221,7 +242,7 @@ class TestRunner(unittest.TextTestRunner):
         # output earl report if specified
         if self.options.earl:
             filename = os.path.abspath(self.options.earl)
-            print('Writing EARL report to: %s' % filename)
+            print(f'Writing EARL report to: {filename}')
             result.writeReport(filename)
 
         if not result.wasSuccessful():
@@ -258,7 +279,8 @@ class Manifest:
             # entry is another manifest
             if is_jsonld_type(entry, 'mf:Manifest'):
                 self.suite = unittest.TestSuite(
-                    [self.suite, Manifest(entry, filename).load()])
+                    [self.suite, Manifest(entry, filename).load()]
+                )
             # If the entry is itself a manifest, recurse into it and
             # append its TestSuite. This mirrors the structure of the
             # W3C test manifests where manifests can include other
@@ -282,9 +304,10 @@ class Test(unittest.TestCase):
     # used to distinguish positive/negative/syntax tests so the
     # runner knows whether an exception is the expected outcome.
     """
+
     def __init__(self, manifest, data, filename):
         unittest.TestCase.__init__(self)
-        #self.maxDiff = None
+        # self.maxDiff = None
         self.manifest = manifest
         self.data = data
         self.filename = filename
@@ -295,19 +318,17 @@ class Test(unittest.TestCase):
         self.test_type = None
         self.pending = False
         global TEST_TYPES
-        for t in TEST_TYPES.keys():
+        for t in TEST_TYPES:
             if is_jsonld_type(data, t):
                 self.test_type = t
                 break
 
     def __str__(self):
-        manifest = self.manifest.data.get(
-                'name', self.manifest.data.get('label'))
+        manifest = self.manifest.data.get('name', self.manifest.data.get('label'))
         test_id = self.data.get('id', self.data.get('@id'))
-        label = self.data.get(
-                'purpose', self.data.get('name', self.data.get('label')))
+        label = self.data.get('purpose', self.data.get('name', self.data.get('label')))
 
-        return ('%s: %s: %s' % (manifest, test_id, label))
+        return f'{manifest}: {test_id}: {label}'
 
     def _get_expect_property(self):
         '''Find the expected output property or raise error.'''
@@ -334,7 +355,7 @@ class Test(unittest.TestCase):
         types.extend(get_jsonld_values(data, '@type'))
         types.extend(get_jsonld_values(data, 'type'))
         if self.test_type is None or self.test_type in SKIP_TESTS:
-            self.skipTest('Test type of %s' % types)
+            self.skipTest(f'Test type of {types}')
 
         global TEST_TYPES
         test_info = TEST_TYPES[self.test_type]
@@ -342,8 +363,10 @@ class Test(unittest.TestCase):
         # expand @id and input base
         if 'baseIri' in manifest.data:
             data['@id'] = (
-                manifest.data['baseIri'] +
-                os.path.basename(str.replace(manifest.filename, '.jsonld', '')) + data['@id'])
+                manifest.data['baseIri']
+                + os.path.basename(str.replace(manifest.filename, '.jsonld', ''))
+                + data['@id']
+            )
             self.base = self.manifest.data['baseIri'] + data['input']
 
         # When manifests define a `baseIri` the runner patches the test
@@ -354,32 +377,31 @@ class Test(unittest.TestCase):
         skip_id_re = test_info.get('skip', {}).get('idRegex', [])
         for regex in skip_id_re:
             if re.match(regex, data.get('@id', data.get('id', ''))):
-                self.skipTest('Test with id regex %s' % regex)
+                self.skipTest(f'Test with id regex {regex}')
 
         # mark tests as pending, meaning that they are expected to fail
         pending_id_re = test_info.get('pending', {}).get('idRegex', [])
         for regex in pending_id_re:
             if re.match(regex, data.get('@id', data.get('id', ''))):
-                self.pending = 'Test with id regex %s' % regex
+                self.pending = f'Test with id regex {regex}'
 
         # skip based on description regular expression
-        skip_description_re = test_info.get('skip', {}).get(
-            'descriptionRegex', [])
+        skip_description_re = test_info.get('skip', {}).get('descriptionRegex', [])
         for regex in skip_description_re:
             if re.match(regex, data.get('description', '')):
-                self.skipTest('Test with description regex %s' % regex)
+                self.skipTest(f'Test with description regex {regex}')
 
         # skip based on processingMode
         skip_pm = test_info.get('skip', {}).get('processingMode', [])
         data_pm = data.get('option', {}).get('processingMode', None)
         if data_pm in skip_pm:
-            self.skipTest('Test with processingMode %s' % data_pm)
+            self.skipTest(f'Test with processingMode {data_pm}')
 
         # skip based on specVersion
         skip_sv = test_info.get('skip', {}).get('specVersion', [])
         data_sv = data.get('option', {}).get('specVersion', None)
         if data_sv in skip_sv:
-            self.skipTest('Test with specVersion %s' % data_sv)
+            self.skipTest(f'Test with specVersion {data_sv}')
 
         # mark tests to run with local loader
         run_remote_re = test_info.get('runLocal', [])
@@ -392,7 +414,7 @@ class Test(unittest.TestCase):
         # for reproducing the official test-suite behavior without network
         # access.
 
-    def runTest(self):
+    def runTest(self):  # noqa: N802
         data = self.data
         global TEST_TYPES
         test_info = TEST_TYPES[self.test_type]
@@ -427,16 +449,22 @@ class Test(unittest.TestCase):
                 self.assertTrue(True)
             elif self.test_type == 'jld:ToRDFTest':
                 # Test normalized results
-                result = jsonld.normalize(result, {
-                    'algorithm': 'URGNA2012',
-                    'inputFormat': 'application/n-quads',
-                    'format': 'application/n-quads'
-                })
-                expect = jsonld.normalize(expect, {
-                    'algorithm': 'URGNA2012',
-                    'inputFormat': 'application/n-quads',
-                    'format': 'application/n-quads'
-                })
+                result = jsonld.normalize(
+                    result,
+                    {
+                        'algorithm': 'URGNA2012',
+                        'inputFormat': 'application/n-quads',
+                        'format': 'application/n-quads',
+                    },
+                )
+                expect = jsonld.normalize(
+                    expect,
+                    {
+                        'algorithm': 'URGNA2012',
+                        'inputFormat': 'application/n-quads',
+                        'format': 'application/n-quads',
+                    },
+                )
                 if result == expect:
                     self.assertTrue(True)
                 else:
@@ -445,7 +473,7 @@ class Test(unittest.TestCase):
                     raise AssertionError('results differ')
             elif not self.is_negative:
                 # Perform order-independent equivalence test
-                if equalUnordered(result, expect):
+                if equal_unordered(result, expect):
                     self.assertTrue(True)
                 else:
                     print('\nEXPECTED: ', json.dumps(expect, indent=2))
@@ -457,15 +485,13 @@ class Test(unittest.TestCase):
                 raise AssertionError('pending positive test passed')
         except AssertionError as e:
             if e.args[0] == 'pending positive test passed':
-              print(e)
-              raise e
+                print(e)
+                raise e
             elif not self.is_negative and not self.pending:
                 print('\nEXPECTED: ', json.dumps(expect, indent=2))
                 print('ACTUAL: ', json.dumps(result, indent=2))
                 raise e
-            elif not self.is_negative:
-                print('pending')
-            elif self.is_negative and self.pending:
+            elif not self.is_negative or (self.is_negative and self.pending):
                 print('pending')
             else:
                 raise e
@@ -477,29 +503,31 @@ class Test(unittest.TestCase):
             result = get_jsonld_error_code(e)
             if self.pending and result == expect:
                 print('pending negative test passed')
-                raise AssertionError('pending negative test passed')
+                raise AssertionError('pending negative test passed') from e
             elif self.pending:
                 print('pending')
             else:
-                #import pdb; pdb.set_trace()
+                # import pdb; pdb.set_trace()
                 self.assertEqual(result, expect)
 
+
 # Compare values with order-insensitive array tests
-def equalUnordered(result, expect):
+def equal_unordered(result, expect):
     """
     `equalUnordered` implements a simple structural equivalence check that
     ignores ordering in lists. It is used to compare JSON-LD results where
     arrays are considered unordered by the test-suite semantics.
     """
     if isinstance(result, list) and isinstance(expect, list):
-        return(len(result) == len(expect) and
-            all(any(equalUnordered(v1, v2) for v2 in expect) for v1 in result))
+        return len(result) == len(expect) and all(
+            any(equal_unordered(v1, v2) for v2 in expect) for v1 in result
+        )
     elif isinstance(result, dict) and isinstance(expect, dict):
-        return(len(result) == len(expect) and
-            all(k in expect and equalUnordered(v, expect[k]) for k, v in result.items()))
+        return len(result) == len(expect) and all(
+            k in expect and equal_unordered(v, expect[k]) for k, v in result.items()
+        )
     else:
-        return(result == expect)
-
+        return result == expect
 
 
 def is_jsonld_type(node, type_):
@@ -559,18 +587,11 @@ def read_json(filename):
 
 
 def read_file(filename):
-    """Read a file and return its contents as text.
-
-    This wrapper ensures consistent text handling across Python 2/3 by
-    decoding bytes for older Python versions. In the current project we
-    expect Python 3, but the compatibility guard is kept to match the
-    original test-runner behavior.
+    """
+    Read a file and return its contents as text.
     """
     with open(filename) as f:
-        if sys.version_info[0] >= 3:
-            return f.read()
-        else:
-            return f.read().decode('utf8')
+        return f.read()
 
 
 def read_test_url(property):
@@ -582,6 +603,7 @@ def read_test_url(property):
     accepts a `Test` instance and returns the fully-resolved URL (or
     `None` if the property is missing).
     """
+
     def read(test):
         if property not in test.data:
             return None
@@ -589,6 +611,7 @@ def read_test_url(property):
             return test.manifest.data['baseIri'] + test.data[property]
         else:
             return test.data[property]
+
     return read
 
 
@@ -602,6 +625,7 @@ def read_test_property(property):
     `.jsonld` it is parsed as JSON; otherwise the raw file contents are
     returned.
     """
+
     def read(test):
         if property not in test.data:
             return None
@@ -610,6 +634,7 @@ def read_test_property(property):
             return read_json(filename)
         else:
             return read_file(filename)
+
     return read
 
 
@@ -623,6 +648,7 @@ def create_test_options(opts=None):
     passed to the factory, wires in the test-specific `documentLoader`,
     and resolves `expandContext` files when present.
     """
+
     def create(test):
         http_options = ['contentType', 'httpLink', 'httpStatus', 'redirectTo']
         test_options = test.data.get('option', {})
@@ -636,6 +662,7 @@ def create_test_options(opts=None):
             filename = os.path.join(test.dirname, options['expandContext'])
             options['expandContext'] = read_json(filename)
         return options
+
     return create
 
 
@@ -650,20 +677,18 @@ def create_document_loader(test):
     """
     loader = jsonld.get_document_loader()
 
-    
-
     def is_test_suite_url(url):
         return any(url.startswith(base) for base in LOCAL_BASES)
 
     def strip_base(url):
         for base in LOCAL_BASES:
             if url.startswith(base):
-                return url[len(base):]
+                return url[len(base) :]
         raise Exception('unkonwn base')
 
     def strip_fragment(url):
         if '#' in url:
-            return url[:url.index('#')]
+            return url[: url.index('#')]
         else:
             return url
 
@@ -684,30 +709,37 @@ def create_document_loader(test):
             'contentType': content_type,
             'contextUrl': None,
             'documentUrl': url,
-            'document': None
+            'document': None,
         }
         if options and url == test.base:
-            if ('redirectTo' in options and options.get('httpStatus') >= 300):
+            if 'redirectTo' in options and options.get('httpStatus') >= 300:
                 doc['documentUrl'] = (
-                    test.manifest.data['baseIri'] + options['redirectTo'])
+                    test.manifest.data['baseIri'] + options['redirectTo']
+                )
             elif 'httpLink' in options:
                 link_header = options.get('httpLink', '')
                 if isinstance(link_header, list):
                     link_header = ','.join(link_header)
-                linked_context = jsonld.parse_link_header(
-                    link_header).get('http://www.w3.org/ns/json-ld#context')
+                linked_context = jsonld.parse_link_header(link_header).get(
+                    'http://www.w3.org/ns/json-ld#context'
+                )
                 if linked_context and content_type != 'application/ld+json':
                     if isinstance(linked_context, list):
                         raise Exception('multiple context link headers')
                     doc['contextUrl'] = linked_context['target']
-                linked_alternate = jsonld.parse_link_header(
-                    link_header).get('alternate')
+                linked_alternate = jsonld.parse_link_header(link_header).get(
+                    'alternate'
+                )
                 # if not JSON-LD, alternate may point there
-                if (linked_alternate and
-                        linked_alternate.get('type') == 'application/ld+json' and
-                        not re.match(r'^application\/(\w*\+)?json$', content_type)):
+                if (
+                    linked_alternate
+                    and linked_alternate.get('type') == 'application/ld+json'
+                    and not re.match(r'^application\/(\w*\+)?json$', content_type)
+                ):
                     doc['contentType'] = 'application/ld+json'
-                    doc['documentUrl'] = iri_resolver.resolve(linked_alternate['target'], url)
+                    doc['documentUrl'] = iri_resolver.resolve(
+                        linked_alternate['target'], url
+                    )
         global ROOT_MANIFEST_DIR
         if doc['documentUrl'].find(':') == -1:
             filename = os.path.join(ROOT_MANIFEST_DIR, doc['documentUrl'])
@@ -723,8 +755,9 @@ def create_document_loader(test):
     def local_loader(url, headers):
         # always load remote-doc tests remotely
         # (some skipped due to lack of reasonable HTTP header support)
-        if (test.manifest.data.get('name') == 'Remote document' and
-            not test.data.get('runLocal')):
+        if test.manifest.data.get('name') == 'Remote document' and not test.data.get(
+            'runLocal'
+        ):
             return loader(url)
 
         # always load non-base tests remotely
@@ -735,6 +768,7 @@ def create_document_loader(test):
         return load_locally(url)
 
     return local_loader
+
 
 # NOTE: The EarlTestResult class can be removed because pytest now
 # provides the test harness; this class can be removed once the legacy
@@ -748,27 +782,28 @@ class EarlTestResult(TextTestResult):
     `EarlReport` instance so a machine-readable report can be emitted at
     the end of a test run.
     """
+
     def __init__(self, stream, descriptions, verbosity):
         TextTestResult.__init__(self, stream, descriptions, verbosity)
         self.report = EarlReport()
 
-    def addError(self, test, err):
+    def addError(self, test, err):  # noqa: N802
         TextTestResult.addError(self, test, err)
         self.report.add_assertion(test, False)
 
-    def addFailure(self, test, err):
+    def addFailure(self, test, err):  # noqa: N802
         TextTestResult.addFailure(self, test, err)
         self.report.add_assertion(test, False)
 
-    def addSuccess(self, test):
+    def addSuccess(self, test):  # noqa: N802
         TextTestResult.addSuccess(self, test)
         self.report.add_assertion(test, True)
 
-    def writeReport(self, filename):
+    def writeReport(self, filename):  # noqa: N802
         self.report.write(filename)
 
 
-class EarlReport():
+class EarlReport:
     """
     Generates an EARL report.
     """
@@ -776,8 +811,9 @@ class EarlReport():
     def __init__(self):
         # Load package metadata (version) from the library's __about__.py
         about = {}
-        with open(os.path.join(
-                os.path.dirname(__file__), '..', 'lib', 'pyld', '__about__.py')) as fp:
+        with open(
+            os.path.join(os.path.dirname(__file__), '..', 'lib', 'pyld', '__about__.py')
+        ) as fp:
             exec(fp.read(), about)
         # Timestamp used for test results
         self.now = datetime.datetime.utcnow().replace(microsecond=0)
@@ -801,14 +837,10 @@ class EarlReport():
                 'earl:test': {'@type': '@id'},
                 'earl:outcome': {'@type': '@id'},
                 'dc:date': {'@type': 'xsd:date'},
-                'doap:created': {'@type': 'xsd:date'}
+                'doap:created': {'@type': 'xsd:date'},
             },
             '@id': 'https://github.com/digitalbazaar/pyld',
-            '@type': [
-                'doap:Project',
-                'earl:TestSubject',
-                'earl:Software'
-            ],
+            '@type': ['doap:Project', 'earl:TestSubject', 'earl:Software'],
             'doap:name': 'PyLD',
             'dc:title': 'PyLD',
             'doap:homepage': 'https://github.com/digitalbazaar/pyld',
@@ -818,35 +850,34 @@ class EarlReport():
             'dc:creator': 'https://github.com/dlongley',
             'doap:developer': {
                 '@id': 'https://github.com/dlongley',
-                '@type': [
-                    'foaf:Person',
-                    'earl:Assertor'
-                ],
+                '@type': ['foaf:Person', 'earl:Assertor'],
                 'foaf:name': 'Dave Longley',
-                'foaf:homepage': 'https://github.com/dlongley'
+                'foaf:homepage': 'https://github.com/dlongley',
             },
             'doap:release': {
                 'doap:name': 'PyLD ' + about['__version__'],
                 'doap:revision': about['__version__'],
-                'doap:created': self.now.strftime('%Y-%m-%d')
+                'doap:created': self.now.strftime('%Y-%m-%d'),
             },
-            'subjectOf': []
+            'subjectOf': [],
         }
 
     def add_assertion(self, test, success):
         # Append an EARL assertion describing a single test outcome. The
         # `earl:outcome` is either `earl:passed` or `earl:failed`.
-        self.report['subjectOf'].append({
-            '@type': 'earl:Assertion',
-            'earl:assertedBy': self.report['doap:developer']['@id'],
-            'earl:mode': 'earl:automatic',
-            'earl:test': test.data.get('id', test.data.get('@id')),
-            'earl:result': {
-                '@type': 'earl:TestResult',
-                'dc:date': self.now.isoformat() + 'Z',
-                'earl:outcome': 'earl:passed' if success else 'earl:failed'
+        self.report['subjectOf'].append(
+            {
+                '@type': 'earl:Assertion',
+                'earl:assertedBy': self.report['doap:developer']['@id'],
+                'earl:mode': 'earl:automatic',
+                'earl:test': test.data.get('id', test.data.get('@id')),
+                'earl:result': {
+                    '@type': 'earl:TestResult',
+                    'dc:date': self.now.isoformat() + 'Z',
+                    'earl:outcome': 'earl:passed' if success else 'earl:failed',
+                },
             }
-        })
+        )
         return self
 
     def write(self, filename):
@@ -870,14 +901,14 @@ TEST_TYPES = {
                 '.*compact-manifest#tm023$',
                 '.*compact-manifest#t0113$',
                 '.*compact-manifest#tc028$',
-            ]
+            ],
         },
         'fn': 'compact',
         'params': [
             read_test_url('input'),
             read_test_property('context'),
-            create_test_options()
-        ]
+            create_test_options(),
+        ],
     },
     'jld:ExpandTest': {
         'pending': {},
@@ -909,13 +940,10 @@ TEST_TYPES = {
                 '.*expand-manifest#tc038$',
                 '.*expand-manifest#ter54$',
                 '.*expand-manifest#ter56$',
-            ]
+            ],
         },
         'fn': 'expand',
-        'params': [
-            read_test_url('input'),
-            create_test_options()
-        ]
+        'params': [read_test_url('input'), create_test_options()],
     },
     'jld:FlattenTest': {
         'pending': {},
@@ -926,14 +954,14 @@ TEST_TYPES = {
             'idRegex': [
                 # uncategorized html
                 '.*html-manifest#tf004$',
-            ]
+            ],
         },
         'fn': 'flatten',
         'params': [
             read_test_url('input'),
             read_test_property('context'),
-            create_test_options()
-        ]
+            create_test_options(),
+        ],
     },
     'jld:FrameTest': {
         'pending': {},
@@ -944,14 +972,14 @@ TEST_TYPES = {
             'idRegex': [
                 # uncategorized
                 '.*frame-manifest#t0069$',
-            ]
+            ],
         },
         'fn': 'frame',
         'params': [
             read_test_url('input'),
             read_test_property('frame'),
-            create_test_options()
-        ]
+            create_test_options(),
+        ],
     },
     'jld:FromRDFTest': {
         'skip': {
@@ -962,21 +990,21 @@ TEST_TYPES = {
                 '.*fromRdf-manifest#tdi12$',
                 # uncategorized
                 '.*fromRdf-manifest#t0027$',
-            ]
+            ],
         },
         'fn': 'from_rdf',
         'params': [
             read_test_property('input'),
-            create_test_options({'format': 'application/n-quads'})
-        ]
+            create_test_options({'format': 'application/n-quads'}),
+        ],
     },
     'jld:NormalizeTest': {
         'skip': {},
         'fn': 'normalize',
         'params': [
             read_test_property('input'),
-            create_test_options({'format': 'application/n-quads'})
-        ]
+            create_test_options({'format': 'application/n-quads'}),
+        ],
     },
     'jld:ToRDFTest': {
         'pending': {
@@ -1011,19 +1039,16 @@ TEST_TYPES = {
                 # node object direction
                 '.*toRdf-manifest#tdi11$',
                 '.*toRdf-manifest#tdi12$',
-            ]
+            ],
         },
         'fn': 'to_rdf',
         'params': [
             read_test_url('input'),
-            create_test_options({'format': 'application/n-quads'})
-        ]
+            create_test_options({'format': 'application/n-quads'}),
+        ],
     },
     'rdfn:Urgna2012EvalTest': {
-        'pending': {
-            'idRegex': [
-            ]
-        },
+        'pending': {'idRegex': []},
         'skip': {
             'idRegex': [
                 '.*manifest-urgna2012#test060$',
@@ -1032,18 +1057,17 @@ TEST_TYPES = {
         'fn': 'normalize',
         'params': [
             read_test_property('action'),
-            create_test_options({
-                'algorithm': 'URGNA2012',
-                'inputFormat': 'application/n-quads',
-                'format': 'application/n-quads'
-            })
-        ]
+            create_test_options(
+                {
+                    'algorithm': 'URGNA2012',
+                    'inputFormat': 'application/n-quads',
+                    'format': 'application/n-quads',
+                }
+            ),
+        ],
     },
     'rdfn:Urdna2015EvalTest': {
-        'pending': {
-            'idRegex': [
-            ]
-        },
+        'pending': {'idRegex': []},
         'skip': {
             'idRegex': [
                 '.*manifest-urdna2015#test060$',
@@ -1052,13 +1076,15 @@ TEST_TYPES = {
         'fn': 'normalize',
         'params': [
             read_test_property('action'),
-            create_test_options({
-                'algorithm': 'URDNA2015',
-                'inputFormat': 'application/n-quads',
-                'format': 'application/n-quads'
-            })
-        ]
-    }
+            create_test_options(
+                {
+                    'algorithm': 'URDNA2015',
+                    'inputFormat': 'application/n-quads',
+                    'format': 'application/n-quads',
+                }
+            ),
+        ],
+    },
 }
 
 

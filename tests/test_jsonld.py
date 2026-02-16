@@ -315,7 +315,7 @@ class TestFrame:
                     "contentType": "application/json+ld",
                 }
             else:
-                raise Exception("Unknown URL: {}".format(url))
+                raise Exception(f"Unknown URL: {url}")
 
         options = {"documentLoader": fake_loader, "omitGraph": False}
         return jsonld.frame(input, "http://example.com/frame.json", options=options)
