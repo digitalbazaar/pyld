@@ -158,7 +158,7 @@ class ContextResolver:
             remote_doc = jsonld.load_document(
                 url,
                 {'documentLoader': self.document_loader},
-                requestProfile='http://www.w3.org/ns/json-ld#context',
+                request_profile='http://www.w3.org/ns/json-ld#context',
             )
             context = remote_doc.get('document', url)
         except Exception as cause:
