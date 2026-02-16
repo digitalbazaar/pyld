@@ -8,6 +8,7 @@ Code
 
 * In general, follow the common `PEP 8 Style Guide`_.
 * Try to make the code pass ruff_ checks.
+  
   * ``make lint`` or ``ruff check lib/pyld/*``
   * you can also apply automatic fixing and formatting 
     using ``make fmt``
