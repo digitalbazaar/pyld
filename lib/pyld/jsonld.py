@@ -517,7 +517,7 @@ class JsonLdProcessor:
         options.setdefault('extractAllScripts', False)
         options.setdefault('processingMode', 'json-ld-1.1')
         options.setdefault('link', False)
-        if options['link']:
+        if isinstance(options['link'], dict):
             # force skip expansion when linking, "link" is not part of the
             # public API, it should only be called from framing
             options['skipExpansion'] = True
@@ -1427,7 +1427,7 @@ class JsonLdProcessor:
 
         # recursively compact object
         if _is_object(element):
-            if(options['link'] and '@id' in element and
+            if(isinstance(options['link'], dict) and '@id' in element and
                     element['@id'] in options['link']):
                 # check for a linked element to reuse
                 linked = options['link'][element['@id']]
@@ -1439,7 +1439,7 @@ class JsonLdProcessor:
             if _is_value(element) or _is_subject_reference(element):
                 rval = self._compact_value(
                     active_ctx, active_property, element, options)
-                if options['link'] and _is_subject_reference(element):
+                if isinstance(options['link'], dict) and _is_subject_reference(element):
                     # store linked element
                     options['link'].setdefault(element['@id'], []).append(
                         {'expanded': element, 'compacted': rval})
@@ -1475,7 +1475,7 @@ class JsonLdProcessor:
                     propagate=True,
                     override_protected=True)
 
-            if options['link'] and '@id' in element:
+            if isinstance(options['link'], dict) and '@id' in element:
                 # store linked element
                 options['link'].setdefault(element['@id'], []).append(
                     {'expanded': element, 'compacted': rval})
