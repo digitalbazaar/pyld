@@ -1,11 +1,11 @@
-
-import hashlib
-from pyld.nquads import parse_nquads, serialize_nquad
-from pyld.identifier_issuer import IdentifierIssuer
 import copy
+import hashlib
+
+from pyld.identifier_issuer import IdentifierIssuer
+from pyld.nquads import parse_nquads, serialize_nquad
 
 
-class URDNA2015(object):
+class URDNA2015:
     """
     URDNA2015 implements the URDNA2015 RDF Dataset Normalization Algorithm.
     """
@@ -20,11 +20,11 @@ class URDNA2015(object):
     # 4.4) Normalization Algorithm
     def main(self, dataset, options):
         # handle invalid output format
-        if 'format' in options:
-            if (options['format'] != 'application/n-quads' and
-                    options['format'] != 'application/nquads'):
-                raise UnknownFormatError(
-                    'Unknown output format.', options['format'])
+        if 'format' in options and (
+            options['format'] != 'application/n-quads'
+            and options['format'] != 'application/nquads'
+        ):
+            raise UnknownFormatError('Unknown output format.', options['format'])
 
         # 1) Create the normalization state.
 
@@ -49,8 +49,9 @@ class URDNA2015(object):
                     if key == 'predicate' or component['type'] != 'blank node':
                         continue
                     id_ = component['value']
-                    self.blank_node_info.setdefault(
-                        id_, {'quads': []})['quads'].append(quad)
+                    self.blank_node_info.setdefault(id_, {'quads': []})['quads'].append(
+                        quad
+                    )
 
         # 3) Create a list of non-normalized blank node identifiers and
         # populate it using the keys from the blank node to quads map.
@@ -105,7 +106,7 @@ class URDNA2015(object):
 
         # 6) For each hash to identifier list mapping in hash to blank nodes
         # map, lexicographically-sorted by hash:
-        for hash, id_list in sorted(self.hash_to_blank_nodes.items()):
+        for _hash, id_list in sorted(self.hash_to_blank_nodes.items()):
             # 6.1) Create hash path list where each item will be a result of
             # running the Hash N-Degree Quads algorithm.
             hash_path_list = []
@@ -157,11 +158,12 @@ class URDNA2015(object):
             for key, component in quad.items():
                 if key == 'predicate':
                     continue
-                if(component['type'] == 'blank node' and not
-                    component['value'].startswith(
-                        self.canonical_issuer.prefix)):
+                if component['type'] == 'blank node' and not component[
+                    'value'
+                ].startswith(self.canonical_issuer.prefix):
                     component['value'] = self.canonical_issuer.get_id(
-                        component['value'])
+                        component['value']
+                    )
 
             # 7.2) Add quad copy to the normalized dataset.
             normalized.append(serialize_nquad(quad))
@@ -170,8 +172,10 @@ class URDNA2015(object):
         normalized.sort()
 
         # 8) Return the normalized dataset.
-        if (options.get('format') == 'application/n-quads' or
-                options.get('format') == 'application/nquads'):
+        if (
+            options.get('format') == 'application/n-quads'
+            or options.get('format') == 'application/nquads'
+        ):
             return ''.join(normalized)
         return parse_nquads(''.join(normalized))
 
@@ -206,8 +210,7 @@ class URDNA2015(object):
                 # matches the reference blank node identifier then use the
                 # blank node identifier _:a, otherwise, use the blank node
                 # identifier _:z.
-                copy[key] = self.modify_first_degree_component(
-                    id_, component, key)
+                copy[key] = self.modify_first_degree_component(id_, component, key)
             nquads.append(serialize_nquad(copy))
 
         # 4) Sort nquads in lexicographical order.
@@ -301,7 +304,7 @@ class URDNA2015(object):
                 for related in permutation:
                     # 5.4.4.1) If a canonical identifier has been issued for
                     # related, append it to path.
-                    if(self.canonical_issuer.has_id(related)):
+                    if self.canonical_issuer.has_id(related):
                         path += self.canonical_issuer.get_id(related)
                     # 5.4.4.2) Otherwise:
                     else:
@@ -320,9 +323,11 @@ class URDNA2015(object):
                     # path is greater than or equal to the length of chosen
                     # path and path is lexicographically greater than chosen
                     # path, then skip to the next permutation.
-                    if(len(chosen_path) != 0 and
-                            len(path) >= len(chosen_path) and
-                            path > chosen_path):
+                    if (
+                        len(chosen_path) != 0
+                        and len(path) >= len(chosen_path)
+                        and path > chosen_path
+                    ):
                         skip_to_next_permutation = True
                         break
 
@@ -352,9 +357,11 @@ class URDNA2015(object):
                     # path is greater than or equal to the length of chosen
                     # path and path is lexicographically greater than chosen
                     # path, then skip to the next permutation.
-                    if(len(chosen_path) != 0 and
-                            len(path) >= len(chosen_path) and
-                            path > chosen_path):
+                    if (
+                        len(chosen_path) != 0
+                        and len(path) >= len(chosen_path)
+                        and path > chosen_path
+                    ):
                         skip_to_next_permutation = True
                         break
 
@@ -394,9 +401,11 @@ class URDNA2015(object):
             # object, and graph name and it is a blank node that is not
             # identified by identifier:
             for key, component in quad.items():
-                if(key != 'predicate' and
-                        component['type'] == 'blank node' and
-                        component['value'] != id_):
+                if (
+                    key != 'predicate'
+                    and component['type'] == 'blank node'
+                    and component['value'] != id_
+                ):
                     # 3.1.1) Set hash to the result of the Hash Related Blank
                     # Node algorithm, passing the blank node identifier for
                     # component as related, quad, path identifier issuer as
@@ -405,8 +414,7 @@ class URDNA2015(object):
                     # respectively.
                     related = component['value']
                     position = self.POSITIONS[key]
-                    hash = self.hash_related_blank_node(
-                        related, quad, issuer, position)
+                    hash = self.hash_related_blank_node(related, quad, issuer, position)
 
                     # 3.1.2) Add a mapping of hash to the blank node identifier
                     # for component to hash to related blank nodes map, adding
@@ -467,8 +475,10 @@ class URGNA2012(URDNA2015):
             # algorithm, passing the blank node identifier for subject as
             # related, quad, path identifier issuer as issuer, and p as
             # position.
-            if(quad['subject']['type'] == 'blank node' and
-                    quad['subject']['value'] != id_):
+            if (
+                quad['subject']['type'] == 'blank node'
+                and quad['subject']['value'] != id_
+            ):
                 related = quad['subject']['value']
                 position = 'p'
             # 3.2) Otherwise, if quad's object is a blank node that does
@@ -476,8 +486,10 @@ class URGNA2012(URDNA2015):
             # Node algorithm, passing the blank node identifier for object
             # as related, quad, path identifier issuer as issuer, and r
             # as position.
-            elif(quad['object']['type'] == 'blank node' and
-                    quad['object']['value'] != id_):
+            elif (
+                quad['object']['type'] == 'blank node'
+                and quad['object']['value'] != id_
+            ):
                 related = quad['object']['value']
                 position = 'r'
             # 3.3) Otherwise, continue to the next quad.
@@ -487,8 +499,7 @@ class URGNA2012(URDNA2015):
             # 3.4) Add a mapping of hash to the blank node identifier for the
             # component that matched (subject or object) to hash to related
             # blank nodes map, adding an entry as necessary.
-            hash = self.hash_related_blank_node(
-                related, quad, issuer, position)
+            hash = self.hash_related_blank_node(related, quad, issuer, position)
             hash_to_related.setdefault(hash, []).append(related)
 
         return hash_to_related
@@ -525,9 +536,10 @@ def permutations(elements):
         for i in range(length):
             e = elements[i]
             is_left = left[e]
-            if((k is None or e > k) and
-                    ((is_left and i > 0 and e > elements[i - 1]) or
-                        (not is_left and i < last and e > elements[i + 1]))):
+            if (k is None or e > k) and (
+                (is_left and i > 0 and e > elements[i - 1])
+                or (not is_left and i < last and e > elements[i + 1])
+            ):
                 k, pos = e, i
 
         # no more permutations
