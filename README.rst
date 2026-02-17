@@ -180,12 +180,12 @@ ignored. You can customize this behaviour by passing a customizable handler to
 For example, you can introduce a strict mode by raising a ValueError on every 
 dropped property:
 
-```python
-def raise_this(value):
-    raise ValueError(value)
+.. code-block:: Python
 
-jsonld.expand(doc, None, on_property_dropped=raise_this)
-```
+   def raise_this(value):
+       raise ValueError(value)
+
+   jsonld.expand(doc, None, on_property_dropped=raise_this)
 
 Commercial Support
 ------------------
