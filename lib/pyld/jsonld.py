@@ -3175,10 +3175,16 @@ class JsonLdProcessor:
                     continue
 
                 for item in items:
-                    # skip relative IRI subjects and predicates
+                    # All IDs should be absolute at this point in time
                     if not (_is_absolute_iri(id_) and
                             _is_absolute_iri(property)):
-                        continue
+                        raise JsonLdError(
+                            'JSON-LD graph conversion error; '
+                            'invalid IRI for property or ID, '
+                            'IRIs must be absolute',
+                            'jsonld.RdfError',
+                            {'@id': id_, 'property': property},
+                            code='invalid IRI')
 
                     # RDF subject
                     subject = {}
