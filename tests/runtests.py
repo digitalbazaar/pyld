@@ -67,6 +67,7 @@ import unittest
 # pytest now provides the test harness; these imports can be removed
 # once the legacy CLI runner is deleted.
 from argparse import ArgumentParser
+from typing import override
 from unittest import TextTestResult
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
@@ -116,7 +117,8 @@ class TestRunner(unittest.TextTestRunner):
         self.options = {}
         self.parser = ArgumentParser()
 
-    def _makeResult(self):  # noqa: N802
+    @override
+    def _makeResult(self):
         return EarlTestResult(self.stream, self.descriptions, self.verbosity)
 
     def main(self):
@@ -346,6 +348,7 @@ class Test(unittest.TestCase):
         else:
             raise Exception('No expectErrorCode property found')
 
+    @override
     def setUp(self):
         data = self.data
         manifest = self.manifest
@@ -414,7 +417,8 @@ class Test(unittest.TestCase):
         # for reproducing the official test-suite behavior without network
         # access.
 
-    def runTest(self):  # noqa: N802
+    @override
+    def runTest(self):
         data = self.data
         global TEST_TYPES
         test_info = TEST_TYPES[self.test_type]
@@ -787,19 +791,23 @@ class EarlTestResult(TextTestResult):
         TextTestResult.__init__(self, stream, descriptions, verbosity)
         self.report = EarlReport()
 
-    def addError(self, test, err):  # noqa: N802
+    @override
+    def addError(self, test, err):
         TextTestResult.addError(self, test, err)
         self.report.add_assertion(test, False)
 
-    def addFailure(self, test, err):  # noqa: N802
+    @override
+    def addFailure(self, test, err):
         TextTestResult.addFailure(self, test, err)
         self.report.add_assertion(test, False)
 
-    def addSuccess(self, test):  # noqa: N802
+    @override
+    def addSuccess(self, test):
         TextTestResult.addSuccess(self, test)
         self.report.add_assertion(test, True)
 
-    def writeReport(self, filename):  # noqa: N802
+    @override
+    def writeReport(self, filename):
         self.report.write(filename)
 
 
