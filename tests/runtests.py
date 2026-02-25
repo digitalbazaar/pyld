@@ -67,8 +67,9 @@ import unittest
 # pytest now provides the test harness; these imports can be removed
 # once the legacy CLI runner is deleted.
 from argparse import ArgumentParser
-from typing import override
 from unittest import TextTestResult
+
+from typing_extensions import override
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from pyld import iri_resolver, jsonld
