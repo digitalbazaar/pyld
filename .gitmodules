@@ -7,3 +7,6 @@
 [submodule "specifications/normalization"]
 	path = specifications/normalization
 	url = https://github.com/json-ld/normalization.git
+[submodule "specifications/rdf-canon"]
+	path = specifications/rdf-canon
+	url = https://github.com/w3c/rdf-canon.git
