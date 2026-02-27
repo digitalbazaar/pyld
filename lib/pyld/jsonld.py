@@ -1148,24 +1148,29 @@ class JsonLdProcessor:
 
         :return: True if the value exists, False if not.
         """
+        # Localize the method lookup to avoids repeated class-attribute resolution in the loop/logic and increase performance
+        compare = JsonLdProcessor.compare_values
+
         if JsonLdProcessor.has_property(subject, property):
             val = subject[property]
+
+            # 1. Normalize @list objects
             # Avoid double checking if val is a list.
             # If val is a list, then we treat is as an array (i.e. if value occurs in the list, has_value returns true)
-            # TODO: is this desirable behavior?
             if _is_list(val):
                 val = val['@list']
 
+            # 2. Handle Collection (Array/List)
             if _is_array(val):
-                for v in val:
-                    # Avoid in depth comparison if the types are not the same
-                    if type(v) == type(value):
-                        return JsonLdProcessor.compare_values(value, v)
-            # avoid matching the set of values with an array value parameter
-            # TODO: this means that if `value` is an array, there will be no comparison at all and we default to False
-            # is this desirable behavior?
-            elif not _is_array(value) and type(val) == type(value):
-                return JsonLdProcessor.compare_values(value, val)
+                # 'any' with a localized function is the fastest way to loop in Python
+                return any(compare(value, v) for v in val)
+
+            # 3. Handle Single Value
+            # If the parameter 'value' is an array, JSON-LD has_value usually
+            # returns False unless comparing against another array (which is rare here)
+            if not _is_array(value):
+                return compare(value, val)
+
         return False
 
     @staticmethod
