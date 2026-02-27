@@ -1050,7 +1050,6 @@ class JsonLdProcessor:
         issuer = IdentifierIssuer('_:b')
         node_map = {'@default': {}}
         self._create_node_map(expanded, node_map, '@default', issuer)
-
         # output RDF dataset
         dataset = {}
         for graph_name, graph in sorted(node_map.items()):
@@ -1282,27 +1281,31 @@ class JsonLdProcessor:
 
         :return: True if v1 and v2 are considered equal, False if not.
         """
-        # 1. equal primitives
-        if not _is_object(v1) and not _is_object(v2) and v1 == v2:
-            if isinstance(v1, bool) or isinstance(v2, bool):
-                return type(v1) is type(v2)
+        # 0. Quick identity check (Performance boost)
+        if v1 is v2:
             return True
+
+        # Helper for strict type checking (prevents 1 == True)
+        def _strict_eq(a, b):
+            return a == b and (type(a) is type(b) if isinstance(a, bool) or isinstance(b, bool) else True)
+
+        # 1. equal primitives
+        if not _is_object(v1) and not _is_object(v2):
+            return _strict_eq(v1, v2)
 
         # 2. equal @values
-        if (_is_value(v1) and _is_value(v2) and
-                v1['@value'] == v2['@value'] and
-                v1.get('@type') == v2.get('@type') and
-                v1.get('@language') == v2.get('@language') and
-                v1.get('@index') == v2.get('@index')):
+        if _is_value(v1) and _is_value(v2):
+            # Using tuples is faster than using and
+            t1 = (v1.get('@type'), v1.get('@language'), v1.get('@index'))
+            t2 = (v2.get('@type'), v2.get('@language'), v2.get('@index'))
 
-            if isinstance(v1['@value'], bool) or isinstance(v2['@value'], bool):
-                return type(v1['@value']) is type(v2['@value'])
-            return True
+            return t1 == t2 and _strict_eq(v1['@value'], v2['@value'])
 
         # 3. equal @ids
-        if (_is_object(v1) and '@id' in v1 and
-                _is_object(v2) and '@id' in v2):
-            return v1['@id'] == v2['@id']
+        if _is_object(v1) and _is_object(v2):
+            # If both are objects, try to get the @id
+            id1, id2 = v1.get('@id'), v2.get('@id')
+            return id1 == id2 if id1 is not None else False
 
         return False
 
