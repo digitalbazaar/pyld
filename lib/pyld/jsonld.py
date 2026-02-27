@@ -1287,31 +1287,31 @@ class JsonLdProcessor:
 
         :return: True if v1 and v2 are considered equal, False if not.
         """
-
-        # 1. equal primitives (= equal anything)
-        # This should just be equality...
-        # The previous version also returned true if one of the value types was bool and they were equal
-        # but they should only be equal if the types correspond as well.
-        # If they are both objects and they are equal in all respects, then they *are* equal (even if they are not primitives)
-        if v1 == v2:
+        # 0. Quick identity check (Performance boost)
+        if v1 is v2:
             return True
 
+        # Helper for strict type checking (prevents 1 == True)
+        def _strict_eq(a, b):
+            return a == b and (type(a) is type(b) if isinstance(a, bool) or isinstance(b, bool) else True)
+
+        # 1. equal primitives
+        if not _is_object(v1) and not _is_object(v2):
+            return _strict_eq(v1, v2)
+
+        # 2. equal @values
+        if _is_value(v1) and _is_value(v2):
+            # Using tuples is faster than using and
+            t1 = (v1.get('@type'), v1.get('@language'), v1.get('@index'))
+            t2 = (v2.get('@type'), v2.get('@language'), v2.get('@index'))
+
+            return t1 == t2 and _strict_eq(v1['@value'], v2['@value'])
+
         # 3. equal @ids
-        # equal @ids only compares on one key, and is therefore preferred to do
-        # so let's do that first, and then only if there's a key error (i.e. no '@id'), we assume it's a value comparison.
-        try:
-            # If v1 and v2 have the same @id, they are the same
-            v1['@id'] == v2['@id']
-        except KeyError:
-            # if key error, then it is indeed a dict, but a literal value, not an object.
-            try:
-                return v1['@value'] == v2['@value'] and v1.get('@type') == v2.get('@type') and v1.get('@language') == v2.get('@language') and v1.get('@index') == v2.get('@index')
-            except:
-                # It is a dictionary, but a regular JSON one, not a JSON-LD dictionary
-                return False
-        except:
-            # one of v1 and v2 is not a dictionary
-            return False
+        if _is_object(v1) and _is_object(v2):
+            # If both are objects, try to get the @id
+            id1, id2 = v1.get('@id'), v2.get('@id')
+            return id1 == id2 if id1 is not None else False
 
         # The two values are not the same.
         return False
