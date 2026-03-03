@@ -40,7 +40,7 @@
   when `@base` is absent or explicitely set to `null`.
 - **BREAKING**: Some internal parameters were renamed from camelCase to pythonic:
   - `requestProfile` to `request_profile` in `load_document()` 
-  - `rdfDirection` to `rdf_direction` in `_list_to_rdf()` and `_object_to_rdf` 
+  - `rdfDirection` to `rdf_direction` in `_list_to_rdf()` and `_object_to_rdf()` 
 
 ## 2.0.4 - 2024-02-16
 
