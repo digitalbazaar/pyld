@@ -171,7 +171,7 @@ document loader is a dummy document loader that raises an exception on every
 invocation.
 
 Handling ignored properties during JSON-LD expansion
-----------------------------------------------
+----------------------------------------------------
 
 If a property in a JSON-LD document does not map to an absolute IRI then it is 
 ignored. You can customize this behaviour by passing a customizable handler to 
@@ -249,7 +249,7 @@ Running the sample test suites and unittests using pytest
 
 If the suites repositories are available in the `specifications/` folder of the 
 PyLD source directory, then all unittests, including the sample test suites, 
-can be run with pytest_:
+can be run with `pytest`:
 
 .. code-block:: bash
 

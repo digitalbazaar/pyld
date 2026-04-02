@@ -26,6 +26,7 @@ setup(
     version=about['__version__'],
     description='Python implementation of the JSON-LD API',
     long_description=long_description,
+    long_description_content_type="text/x-rst",
     author='Digital Bazaar',
     author_email='support@digitalbazaar.com',
     url='https://github.com/digitalbazaar/pyld',

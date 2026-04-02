@@ -9,7 +9,6 @@ test:
 upgrade-submodules:
 	git submodule update --remote --init --recursive
 
-# TODO: Expand to lib/ and tests/ as linting issues are resolved.
 RUFF_TARGET = lib/pyld/*.py tests/*.py
 
 lint:
