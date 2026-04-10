@@ -5842,8 +5842,7 @@ class JsonLdProcessor:
 
         # resolve against base
         rval = value
-        # if there is a base in the active context, use that
-        if '@base' in active_ctx:
+        if base is not None and '@base' in active_ctx:
             # the None case preserves rval as potentially relative
             if active_ctx['@base'] is not None:
                 resolved_base = (
@@ -5856,7 +5855,6 @@ class JsonLdProcessor:
         # we should fallback to document base
         elif base == '':
             rval = resolve(rval, DEFAULT_BASE_IRI)
-        # in other cases, use the base that was passed to this function
         elif base:
             rval = resolve(rval, base)
 
