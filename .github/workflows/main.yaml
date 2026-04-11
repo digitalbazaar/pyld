@@ -48,6 +48,10 @@ jobs:
       with:
         submodules: recursive
         persist-credentials: false
+    - name: Install system libraries for lxml
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libxml2-dev libxslt1-dev
     - name: Use Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
       with:
@@ -78,6 +82,10 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
+      - name: Install system libraries for lxml
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxml2-dev libxslt1-dev
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
