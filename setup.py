@@ -57,6 +57,7 @@ setup(
         'cachetools',
         'frozendict',
         'lxml',
+        'rdflib',
     ],
     extras_require={
         'requests': ['requests'],
@@ -64,5 +65,6 @@ setup(
         'requests-cache': ['requests-cache>=1.3'],
         'cachetools': ['cachetools'],
         'frozendict': ['frozendict'],
+        'rdflib': ['rdflib'],
     }
 )
