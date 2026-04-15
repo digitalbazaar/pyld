@@ -1,9 +1,38 @@
 import copy
 import hashlib
 
-from pyld.identifier_issuer import IdentifierIssuer
-from pyld.nquads import parse_nquads, serialize_nquad
+#from pyld.nquads import parse_nquads, serialize_nquad
+from rdflib import BNode, Dataset, Literal, Node, URIRef
+from rdflib.graph import _TripleType
+from rdflib.plugins.serializers.nt import _quote_encode
 
+
+from pyld.identifier_issuer import IdentifierIssuer
+
+# TODO: use drop-in replacement to not serialize with xsd:string
+def _nt_row(triple: _TripleType) -> str:
+    if isinstance(triple[2], Literal):
+        return "%s %s %s .\n" % (
+            triple[0].n3(),
+            triple[1].n3(),
+            _quoteLiteral(triple[2]),
+        )
+    else:
+        return "%s %s %s .\n" % (triple[0].n3(), triple[1].n3(), triple[2].n3())
+
+def _quoteLiteral(l_: Literal) -> str:  # noqa: N802
+    """A simpler version of term.Literal.n3()"""
+
+    encoded = _quote_encode(l_)
+
+    if l_.language:
+        if l_.datatype:
+            raise Exception("Literal has datatype AND language!")
+        return "%s@%s" % (encoded, l_.language)
+    elif l_.datatype and l_.datatype != URIRef('http://www.w3.org/2001/XMLSchema#string'):
+        return "%s^^<%s>" % (encoded, l_.datatype)
+    else:
+        return "%s" % encoded
 
 class URDNA2015:
     """
@@ -13,9 +42,10 @@ class URDNA2015:
     def __init__(self):
         self.blank_node_info = {}
         self.hash_to_blank_nodes = {}
-        self.canonical_issuer = IdentifierIssuer('_:c14n')
+        self.canonical_issuer = IdentifierIssuer('c14n')
         self.quads = []
         self.POSITIONS = {'subject': 's', 'object': 'o', 'name': 'g'}
+        self.dataset = None
 
     # 4.4) Normalization Algorithm
     def main(self, dataset, options):
@@ -25,33 +55,60 @@ class URDNA2015:
             and options['format'] != 'application/nquads'
         ):
             raise UnknownFormatError('Unknown output format.', options['format'])
+        
+        rdflib_dataset = from_legacy_dataset(dataset)
+        print(list(rdflib_dataset.quads()))
+        normalized = self._main(rdflib_dataset)
+    
+        # 8) Return the normalized dataset.
+        if (
+            options.get('format') == 'application/n-quads'
+            or options.get('format') == 'application/nquads'
+        ):
+            return ''.join(normalized)
+            #return result.serialize(format="nt")
+        
+        result = Dataset().parse(data=''.join(normalized))
+        return to_legacy_dataset(result)
+        #return parse_nquads(''.join(normalized))
+        
+    def _main(self, dataset: Dataset):
+        self.dataset = dataset
 
         # 1) Create the normalization state.
 
         # 2) For every quad in input dataset:
-        for graph_name, triples in dataset.items():
-            if graph_name == '@default':
-                graph_name = None
-            for triple in triples:
-                quad = triple
-                if graph_name is not None:
-                    if graph_name.startswith('_:'):
-                        quad['name'] = {'type': 'blank node'}
-                    else:
-                        quad['name'] = {'type': 'IRI'}
-                    quad['name']['value'] = graph_name
-                self.quads.append(quad)
+        # for graph_name, triples in dataset.items():
+        #     if graph_name == '@default':
+        #         graph_name = None
+        #     for triple in triples:
+        #         quad = triple
+        #         if graph_name is not None:
+        #             if graph_name.startswith('_:'):
+        #                 quad['name'] = {'type': 'blank node'}
+        #             else:
+        #                 quad['name'] = {'type': 'IRI'}
+        #             quad['name']['value'] = graph_name
+        #         self.quads.append(quad)
 
-                # 2.1) For each blank node that occurs in the quad, add a
-                # reference to the quad using the blank node identifier in the
-                # blank node to quads map, creating a new entry if necessary.
-                for key, component in quad.items():
-                    if key == 'predicate' or component['type'] != 'blank node':
-                        continue
-                    id_ = component['value']
-                    self.blank_node_info.setdefault(id_, {'quads': []})['quads'].append(
-                        quad
-                    )
+        #         # 2.1) For each blank node that occurs in the quad, add a
+        #         # reference to the quad using the blank node identifier in the
+        #         # blank node to quads map, creating a new entry if necessary.
+        #         for key, component in quad.items():
+        #             if key == 'predicate' or component['type'] != 'blank node':
+        #                 continue
+        #             id_ = component['value']
+        #             self.blank_node_info.setdefault(id_, {'quads': []})['quads'].append(
+        #                 quad
+        #             )
+        for s, p, o, g in dataset.quads((None, None, None, None)):
+            # 2.1) For each blank node that occurs in the quad, add a
+            # reference to the quad using the blank node identifier in the
+            # blank node to quads map, creating a new entry if necessary.
+            for component in (s, o, g if g else None):
+                if isinstance(component, BNode):
+                    id_ = str(component)
+                    self.blank_node_info.setdefault(id_, {'quads': []})['quads'].append((s, p, o, g))
 
         # 3) Create a list of non-normalized blank node identifiers and
         # populate it using the keys from the blank node to quads map.
@@ -151,33 +208,58 @@ class URDNA2015:
 
         # 7) For each quad, quad, in input dataset:
         normalized = []
-        for quad in self.quads:
+        for s, p, o, g in self.dataset.quads((None, None, None, None)):
             # 7.1) Create a copy, quad copy, of quad and replace any existing
             # blank node identifiers using the canonical identifiers previously
             # issued by canonical issuer. Note: We optimize away the copy here.
-            for key, component in quad.items():
-                if key == 'predicate':
-                    continue
-                if component['type'] == 'blank node' and not component[
-                    'value'
-                ].startswith(self.canonical_issuer.prefix):
-                    component['value'] = self.canonical_issuer.get_id(
-                        component['value']
-                    )
+
+            # Helper to map nodes
+            def map_node(node):
+                if isinstance(node, BNode):
+                    node_id = str(node)
+                    # Only issue a new ID if it's not already canonicalized
+                    if not node_id.startswith(self.canonical_issuer.prefix):
+                        return BNode(self.canonical_issuer.get_id(node_id))
+                return node
+
+            # Transform Subject, Object, and Graph Name (Predicate is never a BNode in RDFC1.0)
+            s_n = map_node(s)
+            p_n = p # Predicates are never BNodes in standard RDF
+            o_n = map_node(o)
+            g_n = map_node(g if g else None)
+            
+            # Use rdflib's internal _nt_row for standardized string output
+            line = _nt_row((s_n, p_n, o_n,g_n))
 
             # 7.2) Add quad copy to the normalized dataset.
-            normalized.append(serialize_nquad(quad))
+            normalized.append(line)
+
+
+            # for key, component in quad.items():
+            #     if key == 'predicate':
+            #         continue
+            #     if component['type'] == 'blank node' and not component[
+            #         'value'
+            #     ].startswith(self.canonical_issuer.prefix):
+            #         component['value'] = self.canonical_issuer.get_id(
+            #             component['value']
+            #         )
+
+            # # 7.2) Add quad copy to the normalized dataset.
+            # normalized.append(serialize_nquad(quad))
 
         # sort normalized output
         normalized.sort()
 
-        # 8) Return the normalized dataset.
-        if (
-            options.get('format') == 'application/n-quads'
-            or options.get('format') == 'application/nquads'
-        ):
-            return ''.join(normalized)
-        return parse_nquads(''.join(normalized))
+        return normalized
+
+        # # 8) Return the normalized dataset.
+        # if (
+        #     options.get('format') == 'application/n-quads'
+        #     or options.get('format') == 'application/nquads'
+        # ):
+        #     return ''.join(normalized)
+        # return parse_nquads(''.join(normalized))
 
     # 4.6) Hash First Degree Quads
     def hash_first_degree_quads(self, id_):
@@ -195,23 +277,43 @@ class URDNA2015:
         quads = info['quads']
 
         # 3) For each quad quad in quads:
-        for quad in quads:
+        # for quad in quads:
+        #     # 3.1) Serialize the quad in N-Quads format with the following
+        #     # special rule:
+
+        #     # 3.1.1) If any component in quad is an blank node, then serialize
+        #     # it using a special identifier as follows:
+        #     copy = {}
+        #     for key, component in quad.items():
+        #         if key == 'predicate':
+        #             copy[key] = component
+        #             continue
+        #         # 3.1.2) If the blank node's existing blank node identifier
+        #         # matches the reference blank node identifier then use the
+        #         # blank node identifier _:a, otherwise, use the blank node
+        #         # identifier _:z.
+        #         copy[key] = self.modify_first_degree_component(id_, component, key)
+        #     nquads.append(serialize_nquad(copy))
+
+        for s, p, o, g in quads:
             # 3.1) Serialize the quad in N-Quads format with the following
             # special rule:
 
             # 3.1.1) If any component in quad is an blank node, then serialize
             # it using a special identifier as follows:
-            copy = {}
-            for key, component in quad.items():
-                if key == 'predicate':
-                    copy[key] = component
-                    continue
-                # 3.1.2) If the blank node's existing blank node identifier
-                # matches the reference blank node identifier then use the
-                # blank node identifier _:a, otherwise, use the blank node
-                # identifier _:z.
-                copy[key] = self.modify_first_degree_component(id_, component, key)
-            nquads.append(serialize_nquad(copy))
+            p_n = p # Predicates are never BNodes in standard RDF
+
+            # 3.1.2) If the blank node's existing blank node identifier
+            # matches the reference blank node identifier then use the
+            # blank node identifier _:a, otherwise, use the blank node
+            # Replace current BNode with _:a, others with _:z for hashing
+            s_n = self.modify_first_degree_component(id_, s)
+            o_n = self.modify_first_degree_component(id_, o)
+            g_n = self.modify_first_degree_component(id_, g)
+            
+            # Use rdflib's internal _nt_row for standardized string output
+            line = _nt_row((s_n, p_n, o_n, g_n))
+            nquads.append(line)
 
         # 4) Sort nquads in lexicographical order.
         nquads.sort()
@@ -222,12 +324,23 @@ class URDNA2015:
         return info['hash']
 
     # helper for modifying component during Hash First Degree Quads
-    def modify_first_degree_component(self, id_, component, key):
-        if component['type'] != 'blank node':
+    def modify_first_degree_component(self, id_: str, component: Node, key: str = None):
+        if not isinstance(component, BNode):
             return component
-        component = copy.deepcopy(component)
-        component['value'] = '_:a' if component['value'] == id_ else '_:z'
-        return component
+        return BNode("a") if str(component) == id_ else BNode("z")
+
+    # helper for getting a related predicate
+    def get_related_predicate(self, quad):
+        # quad is (s, p, o, g)
+        return f"<{str(quad[1])}>"
+
+    # # helper for modifying component during Hash First Degree Quads
+    # def modify_first_degree_component(self, id_, component, key):
+    #     if component['type'] != 'blank node':
+    #         return component
+    #     component = copy.deepcopy(component)
+    #     component['value'] = '_:a' if component['value'] == id_ else '_:z'
+    #     return component
 
     # 4.7) Hash Related Blank Node
     def hash_related_blank_node(self, related, quad, issuer, position):
@@ -259,9 +372,9 @@ class URDNA2015:
         # algorithm.
         return md.hexdigest()
 
-    # helper for getting a related predicate
-    def get_related_predicate(self, quad):
-        return '<' + quad['predicate']['value'] + '>'
+    # # helper for getting a related predicate
+    # def get_related_predicate(self, quad):
+    #     return '<' + quad['predicate']['value'] + '>'
 
     # 4.8) Hash N-Degree Quads
     def hash_n_degree_quads(self, id_, issuer):
@@ -444,19 +557,29 @@ class URGNA2012(URDNA2015):
         URDNA2015.__init__(self)
 
     # helper for modifying component during Hash First Degree Quads
-    def modify_first_degree_component(self, id_, component, key):
-        if component['type'] != 'blank node':
+    def modify_first_degree_component(self, id_: str, component: Node, key: str):
+        if not isinstance(component, BNode):
             return component
-        component = copy.deepcopy(component)
         if key == 'name':
-            component['value'] = '_:g'
-        else:
-            component['value'] = '_:a' if component['value'] == id_ else '_:z'
-        return component
+            return BNode("g")
+        return BNode("a") if str(component) == id_ else BNode("z")
+    
+    # def modify_first_degree_component(self, id_, component, key):
+    #     if component['type'] != 'blank node':
+    #         return component
+    #     component = copy.deepcopy(component)
+    #     if key == 'name':
+    #         component['value'] = '_:g'
+    #     else:
+    #         component['value'] = '_:a' if component['value'] == id_ else '_:z'
+    #     return component
 
     # helper for getting a related predicate
     def get_related_predicate(self, quad):
-        return quad['predicate']['value']
+        return str(quad[1])
+    
+    # def get_related_predicate(self, quad):
+    #     return quad['predicate']['value']
 
     # helper for creating hash to related blank nodes map
     def create_hash_to_related(self, id_, issuer):
@@ -470,16 +593,17 @@ class URGNA2012(URDNA2015):
 
         # 3) For each quad in quads:
         for quad in quads:
+            s, p , o, g = quad
             # 3.1) If the quad's subject is a blank node that does not match
             # identifier, set hash to the result of the Hash Related Blank Node
             # algorithm, passing the blank node identifier for subject as
             # related, quad, path identifier issuer as issuer, and p as
             # position.
             if (
-                quad['subject']['type'] == 'blank node'
-                and quad['subject']['value'] != id_
+                isinstance(s, BNode)
+                and str(s) != id_
             ):
-                related = quad['subject']['value']
+                related = str(s)
                 position = 'p'
             # 3.2) Otherwise, if quad's object is a blank node that does
             # not match identifier, to the result of the Hash Related Blank
@@ -487,10 +611,10 @@ class URGNA2012(URDNA2015):
             # as related, quad, path identifier issuer as issuer, and r
             # as position.
             elif (
-                quad['object']['type'] == 'blank node'
-                and quad['object']['value'] != id_
+                isinstance(o, BNode)
+                and str(o) != id_
             ):
-                related = quad['object']['value']
+                related = str(o)
                 position = 'r'
             # 3.3) Otherwise, continue to the next quad.
             else:
@@ -572,3 +696,90 @@ class UnknownFormatError(ValueError):
     def __init__(self, message, format):
         Exception.__init__(self, message)
         self.format = format
+
+def to_legacy_dataset(dataset: Dataset) -> dict:
+    """
+    Transforms an rdflib.Dataset into the RDF.js-style dictionary structure,
+    ensuring Blank Node values start with '_:'.
+    """
+    compat_dataset = {}
+
+    for s, p, o, g in dataset.quads((None, None, None, None)):
+        # 1. Determine Graph Key
+        graph_id = '@default'
+        if g is not None and g != URIRef('urn:x-rdflib:default'):
+            graph_id = f"_:{str(g)}" if isinstance(g, BNode) else str(g)
+
+        if graph_id not in compat_dataset:
+            compat_dataset[graph_id] = []
+
+        # 2. Helper to convert nodes
+        def term_to_dict(node):
+            if isinstance(node, BNode):
+                # Ensure the value starts with _:
+                val = str(node)
+                if not val.startswith('_:'):
+                    val = f"_:{val}"
+                return {'type': 'blank node', 'value': val}
+
+            elif isinstance(node, URIRef):
+                return {'type': 'IRI', 'value': str(node)}
+
+            elif isinstance(node, Literal):
+                res = {'type': 'literal', 'value': str(node)}
+                if node.language:
+                    res['language'] = node.language
+                if node.datatype:
+                    res['datatype'] = str(node.datatype)
+                return res
+            return None
+
+        # 3. Build legacy quad
+        compat_dataset[graph_id].append({
+            'subject': term_to_dict(s),
+            'predicate': term_to_dict(p),
+            'object': term_to_dict(o)
+        })
+
+    return compat_dataset
+
+def from_legacy_dataset(dataset: dict) -> Dataset:
+    """
+    Converts legacy dict structure back into an rdflib.Dataset.
+    """
+    ds = Dataset()
+
+    for graph_name, triples in dataset.items():
+        # Handle graph name
+        if graph_name == '@default':
+            g = ds.default_context
+        else:
+            # Check if graph name is a blank node or IRI
+            if graph_name.startswith('_:'):
+                g = ds.graph(BNode(graph_name[2:]))
+            else:
+                g = ds.graph(URIRef(graph_name))
+
+        for t in triples:
+            def to_node(comp):
+                if comp['type'] == 'blank node':
+                    # Strip '_:' because RDFLib adds it back internally
+                    val = comp['value']
+                    return BNode(val[2:] if val.startswith('_:') else val)
+                elif comp['type'] == 'IRI':
+                    return URIRef(comp['value'])
+                elif comp['type'] == 'literal':
+                    return Literal(
+                        comp['value'], 
+                        lang=comp.get('language'), 
+                        datatype=URIRef(comp['datatype']) if comp.get('datatype') else None
+                    )
+                return None
+
+            s = to_node(t['subject'])
+            p = to_node(t['predicate'])
+            o = to_node(t['object'])
+
+            ds.add((s, p, o, g))
+
+    return ds
