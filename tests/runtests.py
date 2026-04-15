@@ -1057,7 +1057,7 @@ TEST_TYPES = {
         'pending': {'idRegex': []},
         'skip': {
             'idRegex': [
-                '.*manifest-urdna2015#test060$',
+                #'.*manifest-urdna2015#test060$',
             ]
         },
         'fn': 'normalize',
@@ -1075,8 +1075,8 @@ TEST_TYPES = {
     'rdfc:RDFC10EvalTest': {
         'pending': {
             'idRegex': [
-                '.*#test060c$',
-                '.*#test075c$'
+                #'.*#test060c$',
+                #'.*#test075c$'
             ]
         },
         'skip': {
