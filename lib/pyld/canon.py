@@ -57,7 +57,6 @@ class URDNA2015:
             raise UnknownFormatError('Unknown output format.', options['format'])
         
         rdflib_dataset = from_legacy_dataset(dataset)
-        print(list(rdflib_dataset.quads()))
         normalized = self._main(rdflib_dataset)
     
         # 8) Return the normalized dataset.
@@ -74,7 +73,6 @@ class URDNA2015:
         
     def _main(self, dataset: Dataset):
         self.dataset = dataset
-
         # 1) Create the normalization state.
 
         # 2) For every quad in input dataset:
@@ -513,20 +511,26 @@ class URDNA2015:
             # 3.1) For each component in quad, if component is the subject,
             # object, and graph name and it is a blank node that is not
             # identified by identifier:
-            for key, component in quad.items():
-                if (
-                    key != 'predicate'
-                    and component['type'] == 'blank node'
-                    and component['value'] != id_
-                ):
+            # for key, component in quad.items():
+            #     if (
+            #         key != 'predicate'
+            #         and component['type'] == 'blank node'
+            #         and component['value'] != id_
+            #     ):
+            for i, component in enumerate(quad):
+                if i != 1 and isinstance(component, BNode) and str(component) != id_:
                     # 3.1.1) Set hash to the result of the Hash Related Blank
                     # Node algorithm, passing the blank node identifier for
                     # component as related, quad, path identifier issuer as
                     # issuer, and position as either s, o, or g based on
                     # whether component is a subject, object, graph name,
                     # respectively.
-                    related = component['value']
-                    position = self.POSITIONS[key]
+
+                    # TODO: something is off here that makes last test fail
+                    #related = component['value']
+                    related = str(component)
+                    #position = self.POSITIONS[key]
+                    position = ('s', None, 'p', 'g')[i]
                     hash = self.hash_related_blank_node(related, quad, issuer, position)
 
                     # 3.1.2) Add a mapping of hash to the blank node identifier
@@ -772,7 +776,10 @@ def from_legacy_dataset(dataset: dict) -> Dataset:
                     return Literal(
                         comp['value'], 
                         lang=comp.get('language'), 
-                        datatype=URIRef(comp['datatype']) if comp.get('datatype') else None
+                        datatype=URIRef(comp['datatype']) if comp.get('datatype') else None,
+                        # Don't normalize literal values to prevent datetime issues
+                        # TODO: this means only rdflib.Dataset() created with normalization turned off will work properly.
+                        normalize=False
                     )
                 return None
 
