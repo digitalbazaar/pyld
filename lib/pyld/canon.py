@@ -3,21 +3,28 @@ import hashlib
 
 #from pyld.nquads import parse_nquads, serialize_nquad
 from rdflib import BNode, Dataset, Literal, Node, URIRef
-from rdflib.graph import _TripleType
+from rdflib.graph import DATASET_DEFAULT_GRAPH_ID, _TripleType
 from rdflib.plugins.serializers.nt import _quote_encode
 
 from pyld.identifier_issuer import IdentifierIssuer
 
 # TODO: use drop-in replacement to not serialize with xsd:string
-def _nt_row(triple: _TripleType) -> str:
+def _nq_row(triple, context):
+    graph_name = context.n3() + " " if context and context != DATASET_DEFAULT_GRAPH_ID else ""
     if isinstance(triple[2], Literal):
-        return "%s %s %s .\n" % (
+        return "%s %s %s %s.\n" % (
             triple[0].n3(),
             triple[1].n3(),
             _quoteLiteral(triple[2]),
+            graph_name,
         )
     else:
-        return "%s %s %s .\n" % (triple[0].n3(), triple[1].n3(), triple[2].n3())
+        return "%s %s %s %s.\n" % (
+            triple[0].n3(),
+            triple[1].n3(),
+            triple[2].n3(),
+            graph_name,
+        )
 
 def _quoteLiteral(l_: Literal) -> str:  # noqa: N802
     """A simpler version of term.Literal.n3()"""
@@ -230,7 +237,7 @@ class URDNA2015:
             g_n = map_node(g)
             
             # Use rdflib's internal _nt_row for standardized string output
-            line = _nt_row((s_n, p_n, o_n,g_n))
+            line = _nq_row((s_n, p_n, o_n),g_n)
 
             # 7.2) Add quad copy to the normalized dataset.
             normalized.append(line)
@@ -313,7 +320,7 @@ class URDNA2015:
             g_n = self.modify_first_degree_component(id_, g)
             
             # Use rdflib's internal _nt_row for standardized string output
-            line = _nt_row((s_n, p_n, o_n, g_n))
+            line = _nq_row((s_n, p_n, o_n), g_n)
             nquads.append(line)
 
         # 4) Sort nquads in lexicographical order.
