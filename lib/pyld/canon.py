@@ -645,64 +645,57 @@ class RDFC10(URDNA2015):
     def __init__(self):
         URDNA2015.__init__(self)
 
-# def permutations(elements):
-    
-#     """
-#     Yield all permutations of the given elements in lexicographic order.
-
-#     Uses itertools.permutations on a sorted copy to avoid subtle bugs
-#     in a custom in-place implementation.
-#     """
-#     from itertools import permutations as _it_permutations
-#     els = sorted(elements)
-#     for perm in _it_permutations(els):
-#         yield list(perm)
-
 def permutations(elements):
     """
     Generates all of the possible permutations for the given list of elements.
+    Uses itertools.permutations on a sorted copy.
 
     :param elements: the list of elements to permutate.
     """
-    # begin with sorted elements
-    elements.sort()
-    # initialize directional info for permutation algorithm
-    left = {}
-    for v in elements:
-        left[v] = True
+    from itertools import permutations as _it_permutations
+    els = sorted(elements)
+    for perm in _it_permutations(els):
+        yield list(perm)
 
-    length = len(elements)
-    last = length - 1
-    while True:
-        yield elements
+#     # begin with sorted elements
+#     elements.sort()
+#     # initialize directional info for permutation algorithm
+#     left = {}
+#     for v in elements:
+#         left[v] = True
 
-        # Calculate the next permutation using the Steinhaus-Johnson-Trotter
-        # permutation algorithm.
+#     length = len(elements)
+#     last = length - 1
+#     while True:
+#         yield elements
 
-        # get largest mobile element k
-        # (mobile: element is greater than the one it is looking at)
-        k, pos = None, 0
-        for i in range(length):
-            e = elements[i]
-            is_left = left[e]
-            if (k is None or e > k) and (
-                (is_left and i > 0 and e > elements[i - 1])
-                or (not is_left and i < last and e > elements[i + 1])
-            ):
-                k, pos = e, i
+#         # Calculate the next permutation using the Steinhaus-Johnson-Trotter
+#         # permutation algorithm.
 
-        # no more permutations
-        if k is None:
-            return
+#         # get largest mobile element k
+#         # (mobile: element is greater than the one it is looking at)
+#         k, pos = None, 0
+#         for i in range(length):
+#             e = elements[i]
+#             is_left = left[e]
+#             if (k is None or e > k) and (
+#                 (is_left and i > 0 and e > elements[i - 1])
+#                 or (not is_left and i < last and e > elements[i + 1])
+#             ):
+#                 k, pos = e, i
 
-        # swap k and the element it is looking at
-        swap = pos - 1 if left[k] else pos + 1
-        elements[pos], elements[swap] = elements[swap], k
+#         # no more permutations
+#         if k is None:
+#             return
 
-        # reverse the direction of all elements larger than k
-        for i in range(length):
-            if elements[i] > k:
-                left[elements[i]] = not left[elements[i]]
+#         # swap k and the element it is looking at
+#         swap = pos - 1 if left[k] else pos + 1
+#         elements[pos], elements[swap] = elements[swap], k
+
+#         # reverse the direction of all elements larger than k
+#         for i in range(length):
+#             if elements[i] > k:
+#                 left[elements[i]] = not left[elements[i]]
 
 
 class UnknownFormatError(ValueError):
