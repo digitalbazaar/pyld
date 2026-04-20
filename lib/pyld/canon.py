@@ -6,7 +6,6 @@ from rdflib import BNode, Dataset, Literal, Node, URIRef
 from rdflib.graph import _TripleType
 from rdflib.plugins.serializers.nt import _quote_encode
 
-
 from pyld.identifier_issuer import IdentifierIssuer
 
 # TODO: use drop-in replacement to not serialize with xsd:string
@@ -57,6 +56,7 @@ class URDNA2015:
             raise UnknownFormatError('Unknown output format.', options['format'])
         
         rdflib_dataset = from_legacy_dataset(dataset)
+        # print(''.join(sorted(rdflib_dataset.serialize(format='nquads').splitlines(keepends=True))))
         normalized = self._main(rdflib_dataset)
     
         # 8) Return the normalized dataset.
@@ -224,7 +224,7 @@ class URDNA2015:
             s_n = map_node(s)
             p_n = p # Predicates are never BNodes in standard RDF
             o_n = map_node(o)
-            g_n = map_node(g if g else None)
+            g_n = map_node(g)
             
             # Use rdflib's internal _nt_row for standardized string output
             line = _nt_row((s_n, p_n, o_n,g_n))
@@ -530,7 +530,8 @@ class URDNA2015:
                     #related = component['value']
                     related = str(component)
                     #position = self.POSITIONS[key]
-                    position = ('s', None, 'p', 'g')[i]
+                    # correct position codes: subject='s', object='o', graph='g'
+                    position = ('s', None, 'o', 'g')[i]
                     hash = self.hash_related_blank_node(related, quad, issuer, position)
 
                     # 3.1.2) Add a mapping of hash to the blank node identifier
@@ -561,7 +562,7 @@ class URGNA2012(URDNA2015):
         URDNA2015.__init__(self)
 
     # helper for modifying component during Hash First Degree Quads
-    def modify_first_degree_component(self, id_: str, component: Node, key: str):
+    def modify_first_degree_component(self, id_: str, component: Node, key: str = None):
         if not isinstance(component, BNode):
             return component
         if key == 'name':
@@ -644,6 +645,18 @@ class RDFC10(URDNA2015):
     def __init__(self):
         URDNA2015.__init__(self)
 
+# def permutations(elements):
+    
+#     """
+#     Yield all permutations of the given elements in lexicographic order.
+
+#     Uses itertools.permutations on a sorted copy to avoid subtle bugs
+#     in a custom in-place implementation.
+#     """
+#     from itertools import permutations as _it_permutations
+#     els = sorted(elements)
+#     for perm in _it_permutations(els):
+#         yield list(perm)
 
 def permutations(elements):
     """
@@ -736,7 +749,7 @@ def to_legacy_dataset(dataset: Dataset) -> dict:
                 if node.datatype:
                     res['datatype'] = str(node.datatype)
                 return res
-            return None
+            raise ValueError(f'Illegal node type {type(node)}')
 
         # 3. Build legacy quad
         compat_dataset[graph_id].append({
@@ -756,7 +769,7 @@ def from_legacy_dataset(dataset: dict) -> Dataset:
     for graph_name, triples in dataset.items():
         # Handle graph name
         if graph_name == '@default':
-            g = ds.default_context
+            g = ds.default_graph
         else:
             # Check if graph name is a blank node or IRI
             if graph_name.startswith('_:'):
@@ -766,22 +779,22 @@ def from_legacy_dataset(dataset: dict) -> Dataset:
 
         for t in triples:
             def to_node(comp):
+                val = comp['value']
                 if comp['type'] == 'blank node':
                     # Strip '_:' because RDFLib adds it back internally
-                    val = comp['value']
                     return BNode(val[2:] if val.startswith('_:') else val)
                 elif comp['type'] == 'IRI':
-                    return URIRef(comp['value'])
+                    return URIRef(val)
                 elif comp['type'] == 'literal':
                     return Literal(
-                        comp['value'], 
-                        lang=comp.get('language'), 
+                        val,
+                        lang=comp.get('language'),
                         datatype=URIRef(comp['datatype']) if comp.get('datatype') else None,
                         # Don't normalize literal values to prevent datetime issues
                         # TODO: this means only rdflib.Dataset() created with normalization turned off will work properly.
                         normalize=False
                     )
-                return None
+                raise ValueError('Illegal component type {}'.format(comp['type']))
 
             s = to_node(t['subject'])
             p = to_node(t['predicate'])
