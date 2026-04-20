@@ -41,7 +41,7 @@ class URDNA2015:
     def __init__(self):
         self.blank_node_info = {}
         self.hash_to_blank_nodes = {}
-        self.canonical_issuer = IdentifierIssuer('c14n')
+        self.canonical_issuer = IdentifierIssuer('_:c14n')
         self.quads = []
         self.POSITIONS = {'subject': 's', 'object': 'o', 'name': 'g'}
         self.dataset = None
@@ -216,8 +216,11 @@ class URDNA2015:
                 if isinstance(node, BNode):
                     node_id = str(node)
                     # Only issue a new ID if it's not already canonicalized
-                    if not node_id.startswith(self.canonical_issuer.prefix):
-                        return BNode(self.canonical_issuer.get_id(node_id))
+                    cid = self.canonical_issuer.get_id(node_id)
+                    if cid.startswith('_:'):
+                        cid = cid[2:]  # Strip '_:' prefix for rdflib BNode compatibility
+
+                    return BNode(cid)
                 return node
 
             # Transform Subject, Object, and Graph Name (Predicate is never a BNode in RDFC1.0)
@@ -526,7 +529,6 @@ class URDNA2015:
                     # whether component is a subject, object, graph name,
                     # respectively.
 
-                    # TODO: something is off here that makes last test fail
                     #related = component['value']
                     related = str(component)
                     #position = self.POSITIONS[key]
@@ -782,7 +784,7 @@ def from_legacy_dataset(dataset: dict) -> Dataset:
                     return Literal(
                         val,
                         lang=comp.get('language'),
-                        datatype=URIRef(comp['datatype']) if comp.get('datatype') else None,
+                        datatype=URIRef(comp['datatype']) if comp.get('datatype') and not comp.get('language') else None,
                         # Don't normalize literal values to prevent datetime issues
                         # TODO: this means only rdflib.Dataset() created with normalization turned off will work properly.
                         normalize=False
