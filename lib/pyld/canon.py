@@ -1,9 +1,9 @@
 import copy
 import hashlib
 
-#from pyld.nquads import parse_nquads, serialize_nquad
+import rdflib
 from rdflib import BNode, Dataset, Literal, Node, URIRef
-from rdflib.graph import DATASET_DEFAULT_GRAPH_ID, _TripleType
+from rdflib.graph import DATASET_DEFAULT_GRAPH_ID
 from rdflib.plugins.serializers.nt import _quote_encode
 
 from pyld.identifier_issuer import IdentifierIssuer
@@ -54,7 +54,7 @@ class URDNA2015:
         self.dataset = None
 
     # 4.4) Normalization Algorithm
-    def main(self, dataset, options):
+    def main(self, dataset: str | dict | Dataset, options) -> str | dict:
         # handle invalid output format
         if 'format' in options and (
             options['format'] != 'application/n-quads'
@@ -62,8 +62,24 @@ class URDNA2015:
         ):
             raise UnknownFormatError('Unknown output format.', options['format'])
         
-        rdflib_dataset = from_legacy_dataset(dataset)
-        # print(''.join(sorted(rdflib_dataset.serialize(format='nquads').splitlines(keepends=True))))
+        # handle differtent input types: nquads string, dict (legacy ), or rdflib Dataset
+        rdflib_dataset = Dataset()
+        if isinstance(dataset, str):
+            # Only support N-Quads string input for now
+            if (
+                options['inputFormat'] != 'application/n-quads'
+                and options['inputFormat'] != 'application/nquads'
+            ):
+                raise UnknownFormatError('Unknown input format.', options['format'])
+            rdflib.NORMALIZE_LITERALS = False
+            rdflib_dataset.parse(data=dataset, format='nquads')
+        elif isinstance(dataset, dict):
+            rdflib_dataset = from_legacy_dataset(dataset)
+        elif isinstance(dataset, Dataset):
+            rdflib_dataset = dataset
+        else:
+            raise ValueError(f'Unsupported dataset type: {type(dataset)}')
+        
         normalized = self._main(rdflib_dataset)
     
         # 8) Return the normalized dataset.
@@ -71,14 +87,12 @@ class URDNA2015:
             options.get('format') == 'application/n-quads'
             or options.get('format') == 'application/nquads'
         ):
-            return ''.join(normalized)
-            #return result.serialize(format="nt")
+            return normalized
         
-        result = Dataset().parse(data=''.join(normalized))
+        result = Dataset().parse(data=normalized, format='nquads')
         return to_legacy_dataset(result)
-        #return parse_nquads(''.join(normalized))
         
-    def _main(self, dataset: Dataset):
+    def _main(self, dataset: Dataset) -> str:
         self.dataset = dataset
         # 1) Create the normalization state.
 
@@ -259,7 +273,8 @@ class URDNA2015:
         # sort normalized output
         normalized.sort()
 
-        return normalized
+        # return nquads string
+        return ''.join(normalized)
 
         # # 8) Return the normalized dataset.
         # if (
