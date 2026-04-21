@@ -99,29 +99,6 @@ class URDNA2015:
         # 1) Create the normalization state.
 
         # 2) For every quad in input dataset:
-        # for graph_name, triples in dataset.items():
-        #     if graph_name == '@default':
-        #         graph_name = None
-        #     for triple in triples:
-        #         quad = triple
-        #         if graph_name is not None:
-        #             if graph_name.startswith('_:'):
-        #                 quad['name'] = {'type': 'blank node'}
-        #             else:
-        #                 quad['name'] = {'type': 'IRI'}
-        #             quad['name']['value'] = graph_name
-        #         self.quads.append(quad)
-
-        #         # 2.1) For each blank node that occurs in the quad, add a
-        #         # reference to the quad using the blank node identifier in the
-        #         # blank node to quads map, creating a new entry if necessary.
-        #         for key, component in quad.items():
-        #             if key == 'predicate' or component['type'] != 'blank node':
-        #                 continue
-        #             id_ = component['value']
-        #             self.blank_node_info.setdefault(id_, {'quads': []})['quads'].append(
-        #                 quad
-        #             )
         for s, p, o, g in dataset.quads((None, None, None, None)):
             # 2.1) For each blank node that occurs in the quad, add a
             # reference to the quad using the blank node identifier in the
@@ -252,39 +229,17 @@ class URDNA2015:
             o_n = map_node(o)
             g_n = map_node(g)
             
-            # Use rdflib's internal _nt_row for standardized string output
+            # Use rdflib's internal _nq_row for standardized string output
             line = _nq_row((s_n, p_n, o_n),g_n)
 
             # 7.2) Add quad copy to the normalized dataset.
             normalized.append(line)
-
-
-            # for key, component in quad.items():
-            #     if key == 'predicate':
-            #         continue
-            #     if component['type'] == 'blank node' and not component[
-            #         'value'
-            #     ].startswith(self.canonical_issuer.prefix):
-            #         component['value'] = self.canonical_issuer.get_id(
-            #             component['value']
-            #         )
-
-            # # 7.2) Add quad copy to the normalized dataset.
-            # normalized.append(serialize_nquad(quad))
 
         # sort normalized output
         normalized.sort()
 
         # return nquads string
         return ''.join(normalized)
-
-        # # 8) Return the normalized dataset.
-        # if (
-        #     options.get('format') == 'application/n-quads'
-        #     or options.get('format') == 'application/nquads'
-        # ):
-        #     return ''.join(normalized)
-        # return parse_nquads(''.join(normalized))
 
     # 4.6) Hash First Degree Quads
     def hash_first_degree_quads(self, id_):
@@ -302,24 +257,6 @@ class URDNA2015:
         quads = info['quads']
 
         # 3) For each quad quad in quads:
-        # for quad in quads:
-        #     # 3.1) Serialize the quad in N-Quads format with the following
-        #     # special rule:
-
-        #     # 3.1.1) If any component in quad is an blank node, then serialize
-        #     # it using a special identifier as follows:
-        #     copy = {}
-        #     for key, component in quad.items():
-        #         if key == 'predicate':
-        #             copy[key] = component
-        #             continue
-        #         # 3.1.2) If the blank node's existing blank node identifier
-        #         # matches the reference blank node identifier then use the
-        #         # blank node identifier _:a, otherwise, use the blank node
-        #         # identifier _:z.
-        #         copy[key] = self.modify_first_degree_component(id_, component, key)
-        #     nquads.append(serialize_nquad(copy))
-
         for s, p, o, g in quads:
             # 3.1) Serialize the quad in N-Quads format with the following
             # special rule:
@@ -359,14 +296,6 @@ class URDNA2015:
         # quad is (s, p, o, g)
         return f"<{str(quad[1])}>"
 
-    # # helper for modifying component during Hash First Degree Quads
-    # def modify_first_degree_component(self, id_, component, key):
-    #     if component['type'] != 'blank node':
-    #         return component
-    #     component = copy.deepcopy(component)
-    #     component['value'] = '_:a' if component['value'] == id_ else '_:z'
-    #     return component
-
     # 4.7) Hash Related Blank Node
     def hash_related_blank_node(self, related, quad, issuer, position):
         # 1) Set the identifier to use for related, preferring first the
@@ -396,10 +325,6 @@ class URDNA2015:
         # 5) Return the hash that results from passing input through the hash
         # algorithm.
         return md.hexdigest()
-
-    # # helper for getting a related predicate
-    # def get_related_predicate(self, quad):
-    #     return '<' + quad['predicate']['value'] + '>'
 
     # 4.8) Hash N-Degree Quads
     def hash_n_degree_quads(self, id_, issuer):
@@ -538,12 +463,6 @@ class URDNA2015:
             # 3.1) For each component in quad, if component is the subject,
             # object, and graph name and it is a blank node that is not
             # identified by identifier:
-            # for key, component in quad.items():
-            #     if (
-            #         key != 'predicate'
-            #         and component['type'] == 'blank node'
-            #         and component['value'] != id_
-            #     ):
             for i, component in enumerate(quad):
                 if i != 1 and isinstance(component, BNode) and str(component) != id_:
                     # 3.1.1) Set hash to the result of the Hash Related Blank
@@ -553,9 +472,7 @@ class URDNA2015:
                     # whether component is a subject, object, graph name,
                     # respectively.
 
-                    #related = component['value']
                     related = str(component)
-                    #position = self.POSITIONS[key]
                     # correct position codes: subject='s', object='o', graph='g'
                     position = ('s', None, 'o', 'g')[i]
                     hash = self.hash_related_blank_node(related, quad, issuer, position)
@@ -594,23 +511,10 @@ class URGNA2012(URDNA2015):
         if key == 'name':
             return BNode("g")
         return BNode("a") if str(component) == id_ else BNode("z")
-    
-    # def modify_first_degree_component(self, id_, component, key):
-    #     if component['type'] != 'blank node':
-    #         return component
-    #     component = copy.deepcopy(component)
-    #     if key == 'name':
-    #         component['value'] = '_:g'
-    #     else:
-    #         component['value'] = '_:a' if component['value'] == id_ else '_:z'
-    #     return component
 
     # helper for getting a related predicate
     def get_related_predicate(self, quad):
         return str(quad[1])
-    
-    # def get_related_predicate(self, quad):
-    #     return quad['predicate']['value']
 
     # helper for creating hash to related blank nodes map
     def create_hash_to_related(self, id_, issuer):
@@ -682,47 +586,6 @@ def permutations(elements):
     els = sorted(elements)
     for perm in _it_permutations(els):
         yield list(perm)
-
-#     # begin with sorted elements
-#     elements.sort()
-#     # initialize directional info for permutation algorithm
-#     left = {}
-#     for v in elements:
-#         left[v] = True
-
-#     length = len(elements)
-#     last = length - 1
-#     while True:
-#         yield elements
-
-#         # Calculate the next permutation using the Steinhaus-Johnson-Trotter
-#         # permutation algorithm.
-
-#         # get largest mobile element k
-#         # (mobile: element is greater than the one it is looking at)
-#         k, pos = None, 0
-#         for i in range(length):
-#             e = elements[i]
-#             is_left = left[e]
-#             if (k is None or e > k) and (
-#                 (is_left and i > 0 and e > elements[i - 1])
-#                 or (not is_left and i < last and e > elements[i + 1])
-#             ):
-#                 k, pos = e, i
-
-#         # no more permutations
-#         if k is None:
-#             return
-
-#         # swap k and the element it is looking at
-#         swap = pos - 1 if left[k] else pos + 1
-#         elements[pos], elements[swap] = elements[swap], k
-
-#         # reverse the direction of all elements larger than k
-#         for i in range(length):
-#             if elements[i] > k:
-#                 left[elements[i]] = not left[elements[i]]
-
 
 class UnknownFormatError(ValueError):
     """
