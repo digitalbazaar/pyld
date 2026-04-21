@@ -8,7 +8,7 @@ def to_legacy_dataset(dataset: Dataset) -> dict:
     Transforms an rdflib.Dataset into the RDF.js-style dictionary structure,
     ensuring Blank Node values start with '_:'.
     """
-    compat_dataset = {}
+    compat_dataset = {'@default':[]}
 
     for s, p, o, g in dataset.quads((None, None, None, None)):
         # 1. Determine Graph Key
@@ -60,18 +60,25 @@ def from_legacy_dataset(dataset: dict) -> Dataset:
 
     for graph_name, triples in dataset.items():
         # Handle graph name
-        if graph_name == '@default':
-            g = ds.default_graph
-        else:
-            # Check if graph name is a blank node or IRI
-            if graph_name.startswith('_:'):
+        try:
+            if graph_name == '@default':
+                g = ds.default_graph
+            elif graph_name.startswith('_:'):
+                # Check if graph name is a blank node or IRI
                 g = ds.graph(BNode(graph_name[2:]))
             else:
                 g = ds.graph(URIRef(graph_name))
+        except Exception as err:
+            raise ValueError(f'Illegal graph name: {graph_name}') from err
 
         for t in triples:
+            if not all(k in t for k in ('subject', 'predicate', 'object')):
+                raise ValueError(f'Illegal quad structure: {t}')
 
             def to_node(comp):
+                if not isinstance(comp, dict) or 'type' not in comp or 'value' not in comp:
+                    raise ValueError(f'Illegal quad structure: {comp}')
+
                 val = comp['value']
                 if comp['type'] == 'blank node':
                     # Strip '_:' because RDFLib adds it back internally
