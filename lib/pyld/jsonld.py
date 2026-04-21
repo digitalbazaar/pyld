@@ -957,14 +957,7 @@ class JsonLdProcessor:
 
         try:
             if 'inputFormat' in options:
-                if (
-                    options['inputFormat'] != 'application/n-quads'
-                    and options['inputFormat'] != 'application/nquads'
-                ):
-                    raise JsonLdError(
-                        'Unknown normalization input format.', 'jsonld.NormalizeError'
-                    )
-                dataset = JsonLdProcessor.parse_nquads(input_)
+                dataset = input_
             else:
                 # convert to RDF dataset then do normalization
                 opts = dict(options)
