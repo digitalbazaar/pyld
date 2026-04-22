@@ -51,7 +51,7 @@ class URDNA2015:
         else:
             raise ValueError(f'Unsupported dataset type: {type(dataset)}')
 
-        normalized, bnode_map = self._main(rdflib_dataset)
+        normalized, bnode_map = self._canonicalize(rdflib_dataset)
 
         # Merge any new bnode IDs from the parser into the id_map,
         # mapping old bnode IDs to their new canonical IDs
@@ -75,8 +75,14 @@ class URDNA2015:
         # If the output format is not nquads, return a dataset object.
         result = Dataset().parse(data=normalized, format='nquads')
         return to_legacy_dataset(result)
+    
+    def _canonicalize(self, dataset: Dataset) -> tuple[str, dict]:
+        """
+        Performs RDF Dataset Canonicalization on the given rdflib.Dataset
+        and returns the normalized output along with a map of blank node
+        identifiers to their canonical identifiers.
+        """
 
-    def _main(self, dataset: Dataset) -> tuple[str, dict]:
         self.dataset = dataset
         # 1) Create the normalization state.
 
@@ -274,11 +280,6 @@ class URDNA2015:
             return component
         return BNode("a") if str(component) == id_ else BNode("z")
 
-    # helper for getting a related predicate
-    def get_related_predicate(self, quad):
-        # quad is (s, p, o, g)
-        return f"<{str(quad[1])}>"
-
     # 4.7) Hash Related Blank Node
     def hash_related_blank_node(self, related, quad, issuer, position):
         # 1) Set the identifier to use for related, preferring first the
@@ -308,6 +309,11 @@ class URDNA2015:
         # 5) Return the hash that results from passing input through the hash
         # algorithm.
         return md.hexdigest()
+
+    # helper for getting a related predicate
+    def get_related_predicate(self, quad):
+        # quad is (s, p, o, g)
+        return f"<{str(quad[1])}>"
 
     # 4.8) Hash N-Degree Quads
     def hash_n_degree_quads(self, id_, issuer):
