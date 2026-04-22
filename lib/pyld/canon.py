@@ -4,6 +4,7 @@ import hashlib
 import rdflib
 from rdflib import XSD, BNode, Dataset, Literal, Node
 from rdflib.graph import DATASET_DEFAULT_GRAPH_ID
+from rdflib.plugins.parsers.nquads import NQuadsParser
 from rdflib.plugins.serializers.nt import _quote_encode
 
 from pyld.identifier_issuer import IdentifierIssuer
@@ -41,7 +42,8 @@ class URDNA2015:
             ):
                 raise UnknownFormatError('Unknown input format.', options['format'])
             rdflib.NORMALIZE_LITERALS = False
-            rdflib_dataset.parse(data=dataset, format='nquads')
+            parser = NQuadsParser()
+            parser.parse(rdflib.parser.StringInputSource(dataset), rdflib_dataset)
         elif isinstance(dataset, dict):
             rdflib_dataset = from_legacy_dataset(dataset)
         elif isinstance(dataset, Dataset):
@@ -49,9 +51,19 @@ class URDNA2015:
         else:
             raise ValueError(f'Unsupported dataset type: {type(dataset)}')
 
-        normalized = self._main(rdflib_dataset)
-        with open(options.get('algorithm') + '.nq', 'w') as f:
-            print(normalized, file=f)
+        normalized, bnode_map = self._main(rdflib_dataset)
+
+        # Merge any new bnode IDs from the parser into the id_map,
+        # mapping old bnode IDs to their new canonical IDs
+        if parser:
+            for k, v in parser._bnode_ids.items():
+                if bnode_map.get(str(v)) is not None:
+                    bnode_map[k] = bnode_map[str(v)]
+                del bnode_map[str(v)]
+
+        # If outputMap option is set, return the map of blank node identifiers.
+        if options.get('outputMap'):
+            return dict(sorted(bnode_map.items(), key=lambda item: item[1]))
 
         # 8) Return the normalized dataset.
         if (
@@ -60,10 +72,11 @@ class URDNA2015:
         ):
             return normalized
 
+        # If the output format is not nquads, return a dataset object.
         result = Dataset().parse(data=normalized, format='nquads')
         return to_legacy_dataset(result)
 
-    def _main(self, dataset: Dataset) -> str:
+    def _main(self, dataset: Dataset) -> tuple[str, dict]:
         self.dataset = dataset
         # 1) Create the normalization state.
 
@@ -175,6 +188,7 @@ class URDNA2015:
 
         # 7) For each quad, quad, in input dataset:
         normalized = []
+        id_map = {}
         for s, p, o, g in self.dataset.quads((None, None, None, None)):
             # 7.1) Create a copy, quad copy, of quad and replace any existing
             # blank node identifiers using the canonical identifiers previously
@@ -188,7 +202,7 @@ class URDNA2015:
                     cid = self.canonical_issuer.get_id(node_id)
                     if cid.startswith('_:'):
                         cid = cid[2:]  # Strip '_:' prefix for rdflib BNode compatibility
-
+                    id_map[node_id] = cid
                     return BNode(cid)
                 return node
 
@@ -208,7 +222,7 @@ class URDNA2015:
         normalized.sort()
 
         # return nquads string
-        return ''.join(normalized)
+        return ''.join(normalized), id_map
 
     # 4.6) Hash First Degree Quads
     def hash_first_degree_quads(self, id_):
