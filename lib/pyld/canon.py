@@ -2,45 +2,13 @@ import copy
 import hashlib
 
 import rdflib
-from rdflib import BNode, Dataset, Literal, Node, URIRef
+from rdflib import XSD, BNode, Dataset, Literal, Node, URIRef
 from rdflib.graph import DATASET_DEFAULT_GRAPH_ID
 from rdflib.plugins.serializers.nt import _quote_encode
 
 from pyld.identifier_issuer import IdentifierIssuer
 from pyld.util import from_legacy_dataset, to_legacy_dataset
 
-
-# TODO: use drop-in replacement to not serialize with xsd:string
-def _nq_row(triple, context):
-    graph_name = context.n3() + " " if context and context != DATASET_DEFAULT_GRAPH_ID else ""
-    if isinstance(triple[2], Literal):
-        return "%s %s %s %s.\n" % (
-            triple[0].n3(),
-            triple[1].n3(),
-            _quoteLiteral(triple[2]),
-            graph_name,
-        )
-    else:
-        return "%s %s %s %s.\n" % (
-            triple[0].n3(),
-            triple[1].n3(),
-            triple[2].n3(),
-            graph_name,
-        )
-
-def _quoteLiteral(l_: Literal) -> str:  # noqa: N802
-    """A simpler version of term.Literal.n3()"""
-
-    encoded = _quote_encode(l_)
-
-    if l_.language:
-        if l_.datatype:
-            raise Exception("Literal has datatype AND language!")
-        return "%s@%s" % (encoded, l_.language)
-    elif l_.datatype and l_.datatype != URIRef('http://www.w3.org/2001/XMLSchema#string'):
-        return "%s^^<%s>" % (encoded, l_.datatype)
-    else:
-        return "%s" % encoded
 
 class URDNA2015:
     """
@@ -51,8 +19,6 @@ class URDNA2015:
         self.blank_node_info = {}
         self.hash_to_blank_nodes = {}
         self.canonical_issuer = IdentifierIssuer('_:c14n')
-        self.quads = []
-        self.POSITIONS = {'subject': 's', 'object': 'o', 'name': 'g'}
         self.dataset = None
 
     # 4.4) Normalization Algorithm
@@ -83,6 +49,8 @@ class URDNA2015:
             raise ValueError(f'Unsupported dataset type: {type(dataset)}')
         
         normalized = self._main(rdflib_dataset)
+        with open(options.get('algorithm') + '.nq', 'w') as f:
+            print(normalized, file=f)
     
         # 8) Return the normalized dataset.
         if (
@@ -229,8 +197,8 @@ class URDNA2015:
             o_n = map_node(o)
             g_n = map_node(g)
             
-            # Use rdflib's internal _nq_row for standardized string output
-            line = _nq_row((s_n, p_n, o_n),g_n)
+            # Use modified version of rdflib's internal _nq_row for standardized string output
+            line = self._nq_row((s_n, p_n, o_n),g_n)
 
             # 7.2) Add quad copy to the normalized dataset.
             normalized.append(line)
@@ -274,7 +242,7 @@ class URDNA2015:
             g_n = self.modify_first_degree_component(id_, g)
             
             # Use rdflib's internal _nt_row for standardized string output
-            line = _nq_row((s_n, p_n, o_n), g_n)
+            line = self._nq_row((s_n, p_n, o_n), g_n)
             nquads.append(line)
 
         # 4) Sort nquads in lexicographical order.
@@ -495,6 +463,32 @@ class URDNA2015:
             md.update(nquad.encode('utf8'))
         return md.hexdigest()
 
+    # TODO: use drop-in replacements to not serialize with xsd:string; better to solve this at the rdflib level
+    def _nq_row(self, triple, context):
+        graph_name = (
+            context.n3() + " "
+            if context and context != DATASET_DEFAULT_GRAPH_ID
+            else ""
+        )
+        if isinstance(triple[2], Literal):
+            return f"{triple[0].n3()} {triple[1].n3()} {self._quoteLiteral(triple[2])} {graph_name}.\n"
+        else:
+            return f"{triple[0].n3()} {triple[1].n3()} {triple[2].n3()} {graph_name}.\n"
+
+    def _quoteLiteral(self, l_: Literal) -> str:  # noqa: N802
+        """A simpler version of term.Literal.n3()"""
+
+        encoded = _quote_encode(l_)
+
+        if l_.language:
+            if l_.datatype:
+                raise Exception("Literal has datatype AND language!")
+            return f"{encoded}@{l_.language}"
+        elif l_.datatype and l_.datatype != XSD.string:
+            return f"{encoded}^^<{l_.datatype}>"
+        else:
+            return f"{encoded}"
+
 
 class URGNA2012(URDNA2015):
     """
@@ -571,9 +565,32 @@ class RDFC10(URDNA2015):
     """
     RDFC10 implements the RDF Canonicalization algorithm version 1.0.
     """
-    # TODO: Stub that uses URDNA2015 for now
+
     def __init__(self):
         URDNA2015.__init__(self)
+
+    def _quoteLiteral(self, l_: Literal) -> str:  # noqa: N802
+        """A simpler version of term.Literal.n3()"""
+
+        encoded = self._quote_encode(l_)
+
+        if l_.language:
+            if l_.datatype:
+                raise Exception("Literal has datatype AND language!")
+            return f"{encoded}@{l_.language}"
+        elif l_.datatype and l_.datatype != XSD.string:
+            return f"{encoded}^^<{l_.datatype}>"
+        else:
+            return f"{encoded}"
+
+    def _quote_encode(self, l_: str) -> str:
+        return '"{}"'.format(
+            l_.replace("\\", "\\\\")
+            .replace("\n", "\\n")
+            .replace('"', '\\"')
+            .replace("\r", "\\r")
+        )
+
 
 def permutations(elements):
     """
