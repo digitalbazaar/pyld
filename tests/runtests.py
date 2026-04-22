@@ -479,6 +479,10 @@ class Test(unittest.TestCase):
                     print('ACTUAL: ', result)
                     raise AssertionError('results differ')
             elif not self.is_negative:
+                # If the result is a dict and the expected value is a string, 
+                # the expected value is probably JSON.
+                if isinstance(result, dict) and isinstance(expect, str):
+                    expect = json.loads(expect)
                 # Perform order-independent equivalence test
                 if equal_unordered(result, expect):
                     self.assertTrue(True)
@@ -1061,11 +1065,7 @@ TEST_TYPES = {
     },
     'rdfn:Urgna2012EvalTest': {
         'pending': {'idRegex': []},
-        'skip': {
-            'idRegex': [
-                '.*manifest-urgna2012#test060$',
-            ]
-        },
+        'skip': {'idRegex': []},
         'fn': 'normalize',
         'params': [
             read_test_property('action'),
@@ -1080,11 +1080,7 @@ TEST_TYPES = {
     },
     'rdfn:Urdna2015EvalTest': {
         'pending': {'idRegex': []},
-        'skip': {
-            'idRegex': [
-                #'.*manifest-urdna2015#test060$',
-            ]
-        },
+        'skip': {'idRegex': []},
         'fn': 'normalize',
         'params': [
             read_test_property('action'),
@@ -1098,15 +1094,8 @@ TEST_TYPES = {
         ],
     },
     'rdfc:RDFC10EvalTest': {
-        'pending': {
-            'idRegex': [
-                #'.*#test060c$',
-                #'.*#test075c$'
-            ]
-        },
-        'skip': {
-            'idRegex': []
-        },
+        'pending': {'idRegex': []},
+        'skip': {'idRegex': []},
         'fn': 'normalize',
         'params': [
             read_test_property('action'),
@@ -1117,24 +1106,24 @@ TEST_TYPES = {
             })
         ]
     },
-    # 'rdfc:RDFC10MapTest': {
-    #     'pending': {
-    #         'idRegex': [
-    #         ]
-    #     },
-    #     'skip': {
-    #         'idRegex': []
-    #     },
-    #     'fn': 'normalize',
-    #     'params': [
-    #         read_test_property('action'),
-    #         create_test_options({
-    #             'algorithm': 'RDFC10',
-    #             'inputFormat': 'application/n-quads',
-    #             'format': 'application/n-quads'
-    #         })
-    #     ]
-    # }
+    'rdfc:RDFC10MapTest': {
+        'pending': {
+            'idRegex': []
+        },
+        'skip': {
+            'idRegex': []
+        },
+        'fn': 'normalize',
+        'params': [
+            read_test_property('action'),
+            create_test_options({
+                'algorithm': 'RDFC10',
+                'inputFormat': 'application/n-quads',
+                'format': 'application/n-quads',
+                'outputMap': True
+            })
+        ]
+    }
 }
 
 

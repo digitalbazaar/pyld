@@ -927,6 +927,8 @@ class JsonLdProcessor:
         :param options: the options to use.
           [algorithm] the algorithm to use: `RDFC10`, `URDNA2015` or `URGNA2012`
             (default: `RDFC10`).
+          [hashAlgorithm] the hashing algorithm to use; only applicable to `RDFC10`.
+            (default: `SHA256`).
           [base] the base IRI to use.
           [contextResolver] internal use only.
           [inputFormat] the format if input is not JSON-LD:
@@ -935,8 +937,11 @@ class JsonLdProcessor:
             'application/n-quads' for N-Quads.
           [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
+          [outputMap] if True, the function will return a map of blank node 
+            identifiers to their normalized identifiers instead of the 
+            normalized dataset (default: False).
 
-        :return: the normalized output.
+        :return: the normalized output or the map of blank node identifiers.
         """
         # set default options
         options = options.copy() if options else {}
@@ -981,8 +986,7 @@ class JsonLdProcessor:
             algorithm = URGNA2012()
 
         try:
-            # TODO: find a good way to expose identifier map
-            return algorithm.main(dataset, options) #, algorithm.hash_to_blank_nodes
+            return algorithm.main(dataset, options)
         except UnknownFormatError as cause:
             raise JsonLdError(
                 str(cause),
