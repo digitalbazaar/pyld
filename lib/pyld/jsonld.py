@@ -925,7 +925,7 @@ class JsonLdProcessor:
 
         # do normalization
         if options['algorithm'] == 'RDFC10':
-            algorithm = RDFC10()
+            algorithm = RDFC10(hash_algorithm = options.get('hashAlgorithm'))
         elif options['algorithm'] == 'URDNA2015':
             algorithm = URDNA2015()
         # assume URGNA2012

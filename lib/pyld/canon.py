@@ -20,6 +20,7 @@ class URDNA2015:
         self.hash_to_blank_nodes = {}
         self.canonical_issuer = IdentifierIssuer('_:c14n')
         self.dataset = None
+        self.hash_algorithm = hashlib.sha256
 
     # 4.4) Normalization Algorithm
     def main(self, dataset: str | dict | Dataset, options) -> str | dict:
@@ -454,7 +455,7 @@ class URDNA2015:
 
     # helper to create appropriate hash object
     def create_hash(self):
-        return hashlib.sha256()
+        return self.hash_algorithm()
 
     # helper to hash a list of nquads
     def hash_nquads(self, nquads):
@@ -497,6 +498,7 @@ class URGNA2012(URDNA2015):
 
     def __init__(self):
         URDNA2015.__init__(self)
+        self.hash_algorithm = hashlib.sha1
 
     # helper for modifying component during Hash First Degree Quads
     def modify_first_degree_component(self, id_: str, component: Node, key: str = None):
@@ -557,17 +559,18 @@ class URGNA2012(URDNA2015):
 
         return hash_to_related
 
-    # helper to create appropriate hash object
-    def create_hash(self):
-        return hashlib.sha1()
-
 class RDFC10(URDNA2015):
     """
     RDFC10 implements the RDF Canonicalization algorithm version 1.0.
     """
 
-    def __init__(self):
+    def __init__(self, hash_algorithm = None):
         URDNA2015.__init__(self)
+        # determine hash algorithm to use
+        if hash_algorithm is not None:
+            if hash_algorithm.lower() not in hashlib.algorithms_available:
+                raise UnknownFormatError('Unknown hash algorithm.', hash_algorithm)
+            self.hash_algorithm = getattr(hashlib, hash_algorithm.lower())
 
     def _quoteLiteral(self, l_: Literal) -> str:  # noqa: N802
         """A simpler version of term.Literal.n3()"""
