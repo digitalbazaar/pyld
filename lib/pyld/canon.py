@@ -45,6 +45,7 @@ class URDNA2015:
             ):
                 raise UnknownFormatError('Unknown input format.', options['format'])
             rdflib.NORMALIZE_LITERALS = False
+            parser = NQuadsParser()
             parser.parse(StringInputSource(dataset), rdflib_dataset)
         elif isinstance(dataset, dict):
             rdflib_dataset = from_legacy_dataset(dataset)
