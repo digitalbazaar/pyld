@@ -2,7 +2,7 @@ import copy
 import hashlib
 
 import rdflib
-from rdflib import XSD, BNode, Dataset, Literal, Node, URIRef
+from rdflib import XSD, BNode, Dataset, Literal, Node
 from rdflib.graph import DATASET_DEFAULT_GRAPH_ID
 from rdflib.plugins.serializers.nt import _quote_encode
 
@@ -29,7 +29,7 @@ class URDNA2015:
             and options['format'] != 'application/nquads'
         ):
             raise UnknownFormatError('Unknown output format.', options['format'])
-        
+
         # handle differtent input types: nquads string, dict (legacy ), or rdflib Dataset
         rdflib_dataset = Dataset()
         if isinstance(dataset, str):
@@ -47,21 +47,21 @@ class URDNA2015:
             rdflib_dataset = dataset
         else:
             raise ValueError(f'Unsupported dataset type: {type(dataset)}')
-        
+
         normalized = self._main(rdflib_dataset)
         with open(options.get('algorithm') + '.nq', 'w') as f:
             print(normalized, file=f)
-    
+
         # 8) Return the normalized dataset.
         if (
             options.get('format') == 'application/n-quads'
             or options.get('format') == 'application/nquads'
         ):
             return normalized
-        
+
         result = Dataset().parse(data=normalized, format='nquads')
         return to_legacy_dataset(result)
-        
+
     def _main(self, dataset: Dataset) -> str:
         self.dataset = dataset
         # 1) Create the normalization state.
@@ -196,7 +196,7 @@ class URDNA2015:
             p_n = p # Predicates are never BNodes in standard RDF
             o_n = map_node(o)
             g_n = map_node(g)
-            
+
             # Use modified version of rdflib's internal _nq_row for standardized string output
             line = self._nq_row((s_n, p_n, o_n),g_n)
 
@@ -240,7 +240,7 @@ class URDNA2015:
             s_n = self.modify_first_degree_component(id_, s)
             o_n = self.modify_first_degree_component(id_, o)
             g_n = self.modify_first_degree_component(id_, g)
-            
+
             # Use rdflib's internal _nt_row for standardized string output
             line = self._nq_row((s_n, p_n, o_n), g_n)
             nquads.append(line)
@@ -584,12 +584,32 @@ class RDFC10(URDNA2015):
             return f"{encoded}"
 
     def _quote_encode(self, l_: str) -> str:
-        return '"{}"'.format(
-            l_.replace("\\", "\\\\")
-            .replace("\n", "\\n")
-            .replace('"', '\\"')
-            .replace("\r", "\\r")
-        )
+        # Accept either an rdflib Literal or a plain string
+        s = str(l_)
+
+        parts = []
+        for ch in s:
+            code = ord(ch)
+            if ch == "\\":
+                parts.append('\\\\')
+            elif ch == '"':
+                parts.append('\\"')
+            elif ch == "\n":
+                parts.append('\\n')
+            elif ch == "\r":
+                parts.append('\\r')
+            elif ch == "\t":
+                parts.append('\\t')
+            elif code == 0x08:  # backspace
+                parts.append('\\b')
+            elif code == 0x0C:  # form feed
+                parts.append('\\f')
+            elif code == 0x0B or (code < 0x20) or (code == 0x7F):  # vertical tab -> use \u000B
+                parts.append(f'\\u{code:04X}')
+            else:
+                parts.append(ch)
+
+        return '"' + ''.join(parts) + '"'
 
 
 def permutations(elements):
