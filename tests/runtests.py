@@ -684,7 +684,6 @@ def create_test_options(opts=None):
                 options[k] = v
         options['documentLoader'] = create_document_loader(test)
         options['hashAlgorithm'] = test.data.get('hashAlgorithm')
-
         if 'expandContext' in options:
             filename = os.path.join(test.dirname, options['expandContext'])
             options['expandContext'] = read_json(filename)
