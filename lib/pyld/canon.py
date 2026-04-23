@@ -21,6 +21,7 @@ class URDNA2015:
         self.hash_to_blank_nodes = {}
         self.canonical_issuer = IdentifierIssuer('_:c14n')
         self.dataset = None
+        self.POSITIONS = ['s', 'p', 'o', 'g']
         self.hash_algorithm = hashlib.sha256
 
     # 4.4) Normalization Algorithm
@@ -463,7 +464,7 @@ class URDNA2015:
 
                     related = str(component)
                     # correct position codes: subject='s', object='o', graph='g'
-                    position = ('s', None, 'o', 'g')[i]
+                    position = self.POSITIONS[i]
                     hash = self.hash_related_blank_node(related, quad, issuer, position)
 
                     # 3.1.2) Add a mapping of hash to the blank node identifier
