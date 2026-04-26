@@ -170,6 +170,35 @@ If Requests_ is not available, the loader is set to aiohttp_. The fallback
 document loader is a dummy document loader that raises an exception on every
 invocation.
 
+Frozen Document Loader
+~~~~~~~~~~~~~~~~~~~~~~
+
+For air-gapped runs, reproducible builds, and security-hardened deployments
+that must not perform any remote context fetches at all, PyLD ships
+``FrozenDocumentLoader``: a class-based loader that serves only the URLs in
+its ``documents`` allowlist and refuses everything else with
+``JsonLdError(code='loading document failed')``.
+
+Instantiating with no arguments serves the curated ``BUNDLED_CONTEXTS`` set
+(ActivityStreams, DID v1, Verifiable Credentials v1 and v2, Linked Data
+Security v1/v2, Ed25519-2020, and JWS-2020). To extend the bundle with
+additional pre-vetted contexts, pass a merged mapping:
+
+.. code-block:: Python
+
+    from pyld import jsonld, FrozenDocumentLoader, BUNDLED_CONTEXTS
+
+    loader = FrozenDocumentLoader(documents=dict(
+        BUNDLED_CONTEXTS,
+        **{'https://example.com/my-ctx': Path('contexts/my-ctx.jsonld')},
+    ))
+    jsonld.expand(doc, options={'documentLoader': loader})
+
+This honors the W3C *JSON-LD Best Practices* recommendation that clients
+SHOULD attempt to use a locally cached version of contexts (see
+`§ Cache JSON-LD Contexts <https://w3c.github.io/json-ld-bp/#cache-json-ld-contexts>`_).
+Refresh the bundled copies with ``make download-bundled-contexts``.
+
 Handling ignored properties during JSON-LD expansion
 ----------------------------------------------------
 
