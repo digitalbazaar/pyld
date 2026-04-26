@@ -1,1 +1,2 @@
 include README.rst README.txt LICENSE CHANGELOG.md
+recursive-include lib/pyld/documentloader/frozen/bundled *.jsonld
