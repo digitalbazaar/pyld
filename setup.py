@@ -34,8 +34,13 @@ setup(
         'c14n',
         'pyld',
         'pyld.documentloader',
+        'pyld.documentloader.frozen',
     ],
     package_dir={'': 'lib'},
+    package_data={
+        'pyld.documentloader.frozen': ['bundled/*.jsonld'],
+    },
+    include_package_data=True,
     license='BSD 3-Clause license',
     classifiers=[
         'Development Status :: 4 - Beta',
