@@ -1,5 +1,21 @@
 # pyld ChangeLog
 
+## 3.1.0 - unreleased
+
+### Added
+- `pyld.DocumentLoader` abstract base class for class-based document loaders,
+  with a `RemoteDocument` `TypedDict` describing the expected return shape.
+- `pyld.FrozenDocumentLoader`: a class-based loader that serves only URLs in
+  its `documents` allowlist and refuses everything else with
+  `JsonLdError(code='loading document failed')`. Instantiating with no
+  arguments serves the curated `pyld.BUNDLED_CONTEXTS` set; instantiating
+  with `dict(BUNDLED_CONTEXTS, **extras)` extends the bundle. Suitable for
+  air-gapped, reproducible-build, and security-hardened deployments.
+- `pyld.BUNDLED_CONTEXTS`: curated mapping of high-traffic public W3C / W3ID
+  JSON-LD contexts (ActivityStreams, DID v1, VC v1/v2, Linked Data Security
+  v1/v2, Ed25519-2020, JWS-2020) to vendored on-disk copies. Refresh with
+  `make download-bundled-contexts`.
+
 ## 3.0.0 - 2026-04-02
 
 ### Changed
