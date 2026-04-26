@@ -1,4 +1,4 @@
-.PHONY: install test upgrade-submodules
+.PHONY: install test upgrade-submodules download-bundled-contexts
 
 install:
 	pip install -e .
@@ -8,6 +8,9 @@ test:
 
 upgrade-submodules:
 	git submodule update --remote --init --recursive
+
+download-bundled-contexts:
+	python scripts/download_contexts.py
 
 RUFF_TARGET = lib/pyld/*.py tests/*.py
 
