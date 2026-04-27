@@ -35,6 +35,7 @@ class URDNA2015:
 
         # handle differtent input types: nquads string, dict (legacy ), or rdflib Dataset
         rdflib_dataset = Dataset()
+        parser = NQuadsParser()
         if isinstance(dataset, str):
             # Only support N-Quads string input for now
             if (
@@ -43,7 +44,6 @@ class URDNA2015:
             ):
                 raise UnknownFormatError('Unknown input format.', options['format'])
             rdflib.NORMALIZE_LITERALS = False
-            parser = NQuadsParser()
             parser.parse(rdflib.parser.StringInputSource(dataset), rdflib_dataset)
         elif isinstance(dataset, dict):
             rdflib_dataset = from_legacy_dataset(dataset)
@@ -56,11 +56,11 @@ class URDNA2015:
 
         # Merge any new bnode IDs from the parser into the id_map,
         # mapping old bnode IDs to their new canonical IDs
-        if parser:
-            for k, v in parser._bnode_ids.items():
-                if bnode_map.get(str(v)) is not None:
-                    bnode_map[k] = bnode_map[str(v)]
-                del bnode_map[str(v)]
+        for k, v in parser._bnode_ids.items():
+            bnode_id = str(v)
+            if bnode_id in bnode_map:
+                bnode_map[k] = bnode_map[bnode_id]
+                del bnode_map[bnode_id]
 
         # If outputMap option is set, return the map of blank node identifiers.
         if options.get('outputMap'):
