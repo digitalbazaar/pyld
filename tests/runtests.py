@@ -479,7 +479,7 @@ class Test(unittest.TestCase):
                     print('ACTUAL: ', result)
                     raise AssertionError('results differ')
             elif not self.is_negative:
-                # If the result is a dict and the expected value is a string, 
+                # If the result is a dict and the expected value is a string,
                 # the expected value is probably JSON.
                 if isinstance(result, dict) and isinstance(expect, str):
                     expect = json.loads(expect)

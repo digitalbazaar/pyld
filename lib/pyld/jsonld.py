@@ -937,8 +937,8 @@ class JsonLdProcessor:
             'application/n-quads' for N-Quads.
           [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
-          [outputMap] if True, the function will return a map of blank node 
-            identifiers to their normalized identifiers instead of the 
+          [outputMap] if True, the function will return a map of blank node
+            identifiers to their normalized identifiers instead of the
             normalized dataset (default: False).
 
         :return: the normalized output or the map of blank node identifiers.
@@ -990,7 +990,7 @@ class JsonLdProcessor:
         except UnknownFormatError as cause:
             raise JsonLdError(
                 str(cause),
-                'jsonld.UnknownFormat', 
+                'jsonld.UnknownFormat',
                 {'format': cause.format}) from cause
 
 
