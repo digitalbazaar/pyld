@@ -3362,6 +3362,18 @@ class JsonLdProcessor:
                                 code='invalid scoped context',
                             ) from cause
 
+            # Regenerate _uuid after all term definitions are created.
+            # During the loop above, scoped contexts in term definitions are
+            # pre-validated via _process_context(rval, ...), which caches the
+            # processed result keyed by rval['_uuid']. At that point rval has
+            # only a partial set of mappings (terms processed so far). When
+            # the returned context is later used during expansion and its
+            # scoped contexts are processed, the same _uuid would produce a
+            # stale cache hit with incomplete mappings. Assigning a fresh
+            # _uuid ensures expansion-time lookups miss the pre-validation
+            # cache and process scoped contexts against the complete context.
+            rval['_uuid'] = str(uuid.uuid1())
+
             # cache processed result (only Python >= 3.6)
             # and give the context a unique identifier
             rval = freeze(rval)
