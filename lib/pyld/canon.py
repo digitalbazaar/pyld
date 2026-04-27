@@ -76,7 +76,7 @@ class URDNA2015:
         # If the output format is not nquads, return a dataset object.
         result = Dataset().parse(data=normalized, format='nquads')
         return to_legacy_dataset(result)
-    
+
     def _canonicalize(self, dataset: Dataset) -> tuple[str, dict]:
         """
         Performs RDF Dataset Canonicalization on the given rdflib.Dataset

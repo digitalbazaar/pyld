@@ -477,7 +477,7 @@ class Test(unittest.TestCase):
                 else:
                     assert_results_equal(result, expect)
             elif not self.is_negative:
-                # If the result is a dict and the expected value is a string, 
+                # If the result is a dict and the expected value is a string,
                 # the expected value is probably JSON.
                 if isinstance(result, dict) and isinstance(expect, str):
                     expect = json.loads(expect)
