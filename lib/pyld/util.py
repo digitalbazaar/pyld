@@ -61,47 +61,60 @@ def from_legacy_dataset(dataset: dict) -> Dataset:
     for graph_name, triples in dataset.items():
         # Handle graph name
         try:
-            if graph_name == '@default':
-                g = ds.default_graph
-            elif graph_name.startswith('_:'):
-                # Check if graph name is a blank node or IRI
-                g = ds.graph(BNode(graph_name[2:]))
-            else:
-                g = ds.graph(URIRef(graph_name))
+            g = from_legacy_graph(graph_name, ds.default_graph)
         except Exception as err:
             raise ValueError(f'Illegal graph name: {graph_name}') from err
 
         for t in triples:
-            if not all(k in t for k in ('subject', 'predicate', 'object')):
-                raise ValueError(f'Illegal quad structure: {t}')
-
-            def to_node(comp):
-                if not isinstance(comp, dict) or 'type' not in comp or 'value' not in comp:
-                    raise ValueError(f'Illegal quad structure: {comp}')
-
-                val = comp['value']
-                if comp['type'] == 'blank node':
-                    # Strip '_:' because RDFLib adds it back internally
-                    return BNode(val[2:] if val.startswith('_:') else val)
-                elif comp['type'] == 'IRI':
-                    return URIRef(val)
-                elif comp['type'] == 'literal':
-                    return Literal(
-                        val,
-                        lang=comp.get('language'),
-                        datatype=URIRef(comp['datatype'])
-                        if comp.get('datatype') and not comp.get('language')
-                        else None,
-                        # Don't normalize literal values to prevent datetime issues
-                        # TODO: this means only rdflib.Dataset() created with normalization turned off will work properly.
-                        normalize=False,
-                    )
-                raise ValueError('Illegal component type {}'.format(comp['type']))
-
-            s = to_node(t['subject'])
-            p = to_node(t['predicate'])
-            o = to_node(t['object'])
-
+            s, p, o = from_legacy_triple(t)
             ds.add((s, p, o, g))
 
     return ds
+
+def from_legacy_graph(graph: str, default_graph = DATASET_DEFAULT_GRAPH_ID) -> URIRef | BNode:
+    """
+    Converts a legacy graph name into an rdflib URIRef or BNode.
+    """
+    if graph == '@default':
+        return default_graph
+    # Check if graph name is a blank node or IRI
+    elif graph.startswith('_:'):
+        return BNode(graph[2:])
+    else:
+        return URIRef(graph)
+
+def from_legacy_triple(triple: dict, normalize=False) -> tuple:
+    """
+    Converts a legacy triple dict into an rdflib triple tuple.
+    """
+    if not all(k in triple for k in ('subject', 'predicate', 'object')):
+        raise ValueError(f'Illegal quad structure: {triple}')
+
+    def to_node(comp):
+        if not isinstance(comp, dict) or 'type' not in comp or 'value' not in comp:
+            raise ValueError(f'Illegal quad structure: {comp}')
+
+        val = comp['value']
+        if comp['type'] == 'blank node':
+            # Strip '_:' because RDFLib adds it back internally
+            return BNode(val[2:] if val.startswith('_:') else val)
+        elif comp['type'] == 'IRI':
+            return URIRef(val)
+        elif comp['type'] == 'literal':
+            return Literal(
+                val,
+                lang=comp.get('language'),
+                datatype=URIRef(comp['datatype'])
+                if comp.get('datatype') and not comp.get('language')
+                else None,
+                # Don't normalize literal values to prevent datetime issues
+                # TODO: this means only rdflib.Dataset() created with normalization turned off will work properly.
+                normalize=normalize,
+            )
+        raise ValueError('Illegal component type {}'.format(comp['type']))
+
+    s = to_node(triple['subject'])
+    p = to_node(triple['predicate'])
+    o = to_node(triple['object'])
+
+    return (s, p, o)
