@@ -3,6 +3,11 @@
 ## 3.0.0 - 2026-04-02
 
 ### Changed
+- **BREAKING**: Compaction term selection now follows the JSON-LD 1.1 spec
+  (Inverse Context Creation, section 4.3 step 3): terms are ordered by
+  shortest first, with lexicographic tiebreak. Previously terms were ordered
+  lexicographically first, then by length. This changes which term is
+  selected when multiple context keys map to the same IRI. See #247.
 - **BREAKING**: Require supported Python version >= 3.10.
 - Update aiohttp document loader to work with Python 3.14.
   - Minimize async related changes to library code in this release.
