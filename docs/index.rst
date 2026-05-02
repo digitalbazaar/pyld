@@ -22,6 +22,13 @@ API Reference
 .. autofunction:: frame
 .. autofunction:: normalize
 
+.. module:: pyld
+.. autoclass:: DocumentLoader
+   :members:
+.. autoclass:: FrozenDocumentLoader
+   :members:
+.. autodata:: BUNDLED_CONTEXTS
+
 Indices and tables
 ------------------
 
