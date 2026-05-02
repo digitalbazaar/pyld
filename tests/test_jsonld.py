@@ -591,6 +591,53 @@ class TestCompact:
         compacted = jsonld.compact(input, context)
         assert compacted == expected
 
+    # Issue 247 - term selection order during compaction
+    def test_compact_prefers_shortest_term(self):
+        """
+        When two terms map to the same IRI, compaction should prefer the
+        shorter term, per the Inverse Context Creation algorithm (spec
+        section 4.3 step 3: "ordered by shortest term first").
+        """
+        context = {
+            "schema": "https://schema.org/",
+            "name": "schema:name",
+            "full_name": "schema:name",
+        }
+        doc = {"https://schema.org/name": [{"@value": "Alice"}]}
+        result = jsonld.compact(doc, context)
+        assert "name" in result
+        assert "full_name" not in result
+
+    def test_compact_shortest_wins_over_underscore_prefix(self):
+        """
+        A shorter term should be preferred even when a longer
+        underscore-prefixed term sorts lexicographically first.
+        """
+        context = {
+            "schema": "https://schema.org/",
+            "name": "schema:name",
+            "_internal_name": {"@id": "schema:name"},
+        }
+        doc = {"https://schema.org/name": [{"@value": "Alice"}]}
+        result = jsonld.compact(doc, context)
+        assert "name" in result
+        assert "_internal_name" not in result
+
+    def test_compact_same_length_uses_lexicographic_tiebreak(self):
+        """
+        When two terms of the same length map to the same IRI, the
+        lexicographically least term (by code point order) should win.
+        """
+        context = {
+            "schema": "https://schema.org/",
+            "name": "schema:name",
+            "nick": "schema:name",
+        }
+        doc = {"https://schema.org/name": [{"@value": "Alice"}]}
+        result = jsonld.compact(doc, context)
+        assert "name" in result
+        assert "nick" not in result
+
     # Issue 91
     def test_empty_context(self):
         """
