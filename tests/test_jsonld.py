@@ -265,7 +265,7 @@ class TestExpand:
 
         The fix regenerates rval['_uuid'] after all term definitions are created,
         ensuring expansion-time lookups miss the pre-validation cache.
-        
+
         Multiple @type:@vocab terms with identical scoped contexts should all expand.
         """
         ctx = self._make_context(num_terms=30)
