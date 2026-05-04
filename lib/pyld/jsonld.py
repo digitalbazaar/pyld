@@ -3925,7 +3925,7 @@ class JsonLdProcessor:
 
         return result
 
-    
+
     def _rdflib_term_from_id(self, id_: str) -> BNode | URIRef:
         """
         Converts a JSON-LD @id value to an RDFLib term.
@@ -3976,7 +3976,7 @@ class JsonLdProcessor:
             elif _is_double(value):
                 return Literal(
                     # use the canonical double representation
-                    _canonicalize_double(value), 
+                    _canonicalize_double(value),
                     # add the double datatype if none is given
                     datatype=URIRef(datatype) if datatype else XSD.double,
                     normalize=False)
@@ -3992,7 +3992,7 @@ class JsonLdProcessor:
                 else:
                     return Literal(
                         # we have a float, and canonicalization may proceed.
-                        _canonicalize_double(float_value), 
+                        _canonicalize_double(float_value),
                         datatype=XSD.double, normalize=False
                     )
             elif _is_integer(value):
@@ -4023,7 +4023,7 @@ class JsonLdProcessor:
                     value,
                     lang=item['@language'],
                     datatype=None,
-                    normalize=False, 
+                    normalize=False,
                 )
             return Literal(
                 value,
