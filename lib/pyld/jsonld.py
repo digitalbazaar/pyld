@@ -26,17 +26,23 @@ from typing import Any
 from urllib.parse import urlparse
 
 import lxml.html
+import rdflib
 from cachetools import LRUCache
 from frozendict import frozendict
+from rdflib import RDF, XSD, BNode, Dataset, Literal, URIRef
+from rdflib.graph import DATASET_DEFAULT_GRAPH_ID
+from rdflib.parser import StringInputSource
+from rdflib.plugins.parsers.nquads import NQuadsParser
+from rdflib.plugins.serializers.nquads import _nq_row
+from rdflib.term import Identifier
 
 from c14n.Canonicalize import canonicalize
 from pyld.__about__ import __copyright__, __license__, __version__
 from pyld.canon import RDFC10, URDNA2015, URGNA2012, UnknownFormatError
+from pyld.context_resolver import ContextResolver
 from pyld.identifier_issuer import IdentifierIssuer
-from pyld.nquads import ParserError, parse_nquads, serialize_nquad, serialize_nquads
-
-from .context_resolver import ContextResolver
-from .iri_resolver import resolve, unresolve
+from pyld.iri_resolver import resolve, unresolve
+from pyld.util import from_legacy_dataset, from_legacy_triple, to_legacy_dataset
 
 __all__ = [
     '__copyright__',
@@ -138,6 +144,10 @@ INVERSE_CONTEXT_CACHE_MAX_SIZE = 20
 _inverse_context_cache = LRUCache(maxsize=INVERSE_CONTEXT_CACHE_MAX_SIZE)
 # Initial contexts, defined on first access
 INITIAL_CONTEXTS = {}
+
+# In legacy mode, pyld returns RDF datasets as
+# RDFJS-like dict objects, equivalent to PyLD < 4.0
+LEGACY_MODE = True
 
 # Handler to call if a property was dropped during expansion
 OnPropertyDropped = Callable[[str | None], Any]
@@ -1418,7 +1428,7 @@ class JsonLdProcessor:
         return rval
 
     @staticmethod
-    def parse_nquads(input_):
+    def parse_nquads(input_: str) -> Dataset | dict:
         """
         Parses RDF in the form of N-Quads.
 
@@ -1427,15 +1437,28 @@ class JsonLdProcessor:
         :return: an RDF dataset.
         """
         try:
-            result = parse_nquads(input_)
-            return result
-        except ParserError as cause:
+            dataset = Dataset()
+            # TODO: workaround to preserve bnodes for testing and preserve previous behaviour;
+            # this should be handled in the test harness instead
+            bnode_context = {
+                label: label
+                for label in re.findall(r'_:([A-Za-z0-9_][A-Za-z0-9_.-]*)', input_)
+            }
+            parser = NQuadsParser()
+            rdflib.NORMALIZE_LITERALS = False
+            parser.parse(StringInputSource(input_), dataset, bnode_context=bnode_context)
+            return to_legacy_dataset(dataset) if LEGACY_MODE else dataset
+        except SyntaxError as cause:
             raise JsonLdError(
-                str(cause), 'jsonld.ParseError', {'line': cause.line_number}
+                str(cause), 'jsonld.ParseError', {'line': cause.lineno}
+            ) from cause
+        except Exception as cause:
+            raise JsonLdError(
+                str(cause), 'jsonld.ParseError', {}
             ) from cause
 
     @staticmethod
-    def to_nquads(dataset):
+    def to_nquads(dataset: dict | Dataset):
         """
         Converts an RDF dataset to N-Quads.
 
@@ -1443,11 +1466,15 @@ class JsonLdProcessor:
 
         :return: the N-Quads string.
         """
-        return serialize_nquads(dataset)
+        if not isinstance(dataset, Dataset):
+            dataset = from_legacy_dataset(dataset)
+        return dataset.serialize(format='nquads')
 
     @staticmethod
     def to_nquad(triple, graph_name=None):
-        return serialize_nquad(triple, graph_name)
+        if isinstance(triple, dict):
+            triple = from_legacy_triple(triple)
+        return _nq_row(triple, graph_name)
 
     @staticmethod
     def arrayify(value):
