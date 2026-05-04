@@ -933,7 +933,7 @@ class JsonLdProcessor:
                 {'format': cause.format}) from cause
 
 
-    def from_rdf(self, dataset: dict | Dataset, options):
+    def from_rdf(self, dataset: dict | Dataset | str, options):
         """
         Converts an RDF dataset to JSON-LD.
 
