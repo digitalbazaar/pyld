@@ -3921,7 +3921,7 @@ class JsonLdProcessor:
 
         return result
 
-    
+
     def _rdflib_term_from_id(self, id_: str) -> BNode | URIRef:
         """
         Converts a JSON-LD @id value to an RDFLib term.
@@ -3961,34 +3961,36 @@ class JsonLdProcessor:
             # convert to XSD datatypes as appropriate
             if datatype == '@json':
                 return Literal(
-                    canonicalize(value).decode('UTF-8'),
-                    datatype = RDF.JSON
+                    canonicalize(value).decode('UTF-8'), datatype=RDF.JSON
                 )
             elif _is_bool(value):
                 return Literal(
                     'true' if value else 'false',
-                    datatype=URIRef(datatype) if datatype else XSD.boolean
+                    datatype=URIRef(datatype) if datatype else XSD.boolean,
                 )
             # if `value` is a float number,
             elif _is_double(value):
                 return Literal(
                     # use the canonical double representation
-                    _canonicalize_double(value), 
+                    _canonicalize_double(value),
                     # add the double datatype if none is given
                     datatype=URIRef(datatype) if datatype else XSD.double,
-                    normalize=False)
+                    normalize=False,
+                )
             elif datatype == str(XSD.double):
                 # since the previous branch did not activate, we know that `value` is not a float number.
                 try:
                     float_value = float(value)
                 except (ValueError, TypeError):
                     # if `value` is not convertible to float, we will return it as-is.
-                    return Literal(
-                        value, datatype=XSD.double, normalize=False)
+                    return Literal(value, datatype=XSD.double, normalize=False)
                 else:
                     # we have a float, and canonicalization may proceed.
                     return Literal(
-                        _canonicalize_double(float_value), datatype=XSD.double, normalize=False)
+                        _canonicalize_double(float_value),
+                        datatype=XSD.double,
+                        normalize=False,
+                    )
             elif (
                 options['processingMode'] == 'json-ld-1.1'
                 and _is_integer(value)
@@ -3996,15 +3998,16 @@ class JsonLdProcessor:
             ):
                 return Literal(
                     # use the canonical double representation
-                    _canonicalize_double(value), 
+                    _canonicalize_double(value),
                     # add the double datatype if none is given
                     datatype=URIRef(datatype) if datatype else XSD.double,
-                    normalize=False)
+                    normalize=False,
+                )
             elif _is_integer(value):
                 return Literal(
                     str(value),
-                    datatype = URIRef(datatype) if datatype else XSD.integer,
-                    normalize=False
+                    datatype=URIRef(datatype) if datatype else XSD.integer,
+                    normalize=False,
                 )
             elif rdf_direction == 'compound-literal' and '@direction' in item:
                 subject = self._rdflib_term_from_id(issuer.get_id())
