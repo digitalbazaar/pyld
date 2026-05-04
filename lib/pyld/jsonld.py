@@ -29,7 +29,7 @@ import lxml.html
 import rdflib
 from cachetools import LRUCache
 from frozendict import frozendict
-from rdflib import RDF, XSD, BNode, Dataset, Literal, URIRef
+from rdflib import RDF, XSD, BNode, Dataset, Literal, Node, URIRef
 from rdflib.graph import DATASET_DEFAULT_GRAPH_ID
 from rdflib.parser import StringInputSource
 from rdflib.plugins.parsers.nquads import NQuadsParser
@@ -1459,7 +1459,13 @@ class JsonLdProcessor:
         return dataset.serialize(format='nquads')
 
     @staticmethod
-    def to_nquad(triple, graph_name=None):
+    def to_nquad(triple: dict | tuple[Node, Node, Node], graph_name=None):
+        """Converts an RDF triple to an N-Quad string.
+        :param triple: the RDF triple to convert, either as a dict with keys
+                       'subject', 'predicate', 'object' (legacy) or as a tuple of rdflib Nodes.
+        :param graph_name: the name of the graph, if any (default: None).
+        :return: the N-Quad string representation of the triple.
+        """
         if isinstance(triple, dict):
             triple = from_legacy_triple(triple)
         return _nq_row(triple, graph_name)
