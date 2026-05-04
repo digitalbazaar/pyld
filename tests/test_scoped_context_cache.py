@@ -13,7 +13,6 @@ ensuring expansion-time lookups miss the pre-validation cache.
 """
 from pyld import jsonld
 
-
 NS = "https://example.org/vocab/"
 
 # A context with multiple terms sharing the same scoped @context.
