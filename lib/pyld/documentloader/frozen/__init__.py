@@ -19,7 +19,6 @@ files in ``bundled/`` are refreshed.
 
 import json
 from collections.abc import Mapping
-from dataclasses import dataclass, field
 from pathlib import Path
 
 from pyld.documentloader.base import DocumentLoader, RemoteDocument
@@ -42,7 +41,6 @@ BUNDLED_CONTEXTS: Mapping[str, Path] = {
 }
 
 
-@dataclass
 class FrozenDocumentLoader(DocumentLoader):
     """Document loader that serves only a sealed allowlist of URLs.
 
@@ -58,12 +56,12 @@ class FrozenDocumentLoader(DocumentLoader):
         FrozenDocumentLoader(documents=dict(BUNDLED_CONTEXTS, **extras))
     """
 
-    documents: dict = field(default_factory=lambda: dict(BUNDLED_CONTEXTS))
-
-    def __post_init__(self) -> None:
+    def __init__(self, documents: Mapping[str, dict | Path] | None = None) -> None:
         # Take ownership of the mapping so we can cache parsed Paths in place
         # without mutating the caller's dict.
-        self.documents = dict(self.documents)
+        if documents is None:
+            documents = BUNDLED_CONTEXTS
+        self.documents = dict(documents)
 
     def __call__(self, url: str, options: dict) -> RemoteDocument:
         if url not in self.documents:
