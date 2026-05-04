@@ -18,6 +18,7 @@ _INLINE_DOC = {'@context': {'name': 'http://schema.org/name'}}
 
 
 def test_loader_returns_remote_document_for_dict_entry():
+    """Inline documents are returned as JSON-LD remote documents."""
     loader = FrozenDocumentLoader(documents={_URL: _INLINE_DOC})
     result = loader(_URL, {})
     assert result == {
@@ -29,6 +30,7 @@ def test_loader_returns_remote_document_for_dict_entry():
 
 
 def test_loader_reads_and_parses_path_entry(tmp_path):
+    """Path entries are read lazily and parsed as JSON when requested."""
     payload = {'@context': {'foo': 'http://example.com/foo'}}
     file = tmp_path / 'ctx.jsonld'
     file.write_text(json.dumps(payload), encoding='utf-8')
@@ -41,6 +43,7 @@ def test_loader_reads_and_parses_path_entry(tmp_path):
 
 
 def test_path_entries_are_cached_in_place(tmp_path, monkeypatch):
+    """Parsed path entries are cached after the first successful load."""
     payload = {'@context': {'foo': 'http://example.com/foo'}}
     file = tmp_path / 'ctx.jsonld'
     file.write_text(json.dumps(payload), encoding='utf-8')
@@ -66,6 +69,7 @@ def test_path_entries_are_cached_in_place(tmp_path, monkeypatch):
 
 
 def test_callers_mapping_is_not_mutated(tmp_path):
+    """Loader-owned caching does not mutate the caller's original mapping."""
     file = tmp_path / 'ctx.jsonld'
     file.write_text(json.dumps({'@context': {}}), encoding='utf-8')
     caller_mapping = {_URL: file}
@@ -78,6 +82,7 @@ def test_callers_mapping_is_not_mutated(tmp_path):
 
 
 def test_unknown_url_raises_load_document_error():
+    """URLs outside the allowlist fail with PyLD's load-document error code."""
     loader = FrozenDocumentLoader(documents={})
     with pytest.raises(JsonLdError) as exc:
         loader('https://example.com/unknown', {})
@@ -86,6 +91,7 @@ def test_unknown_url_raises_load_document_error():
 
 
 def test_end_to_end_expand_with_bundled_context():
+    """Bundled contexts can be used by jsonld.expand without network access."""
     loader = FrozenDocumentLoader()
     doc = {
         '@context': 'https://www.w3.org/ns/did/v1',
@@ -98,6 +104,7 @@ def test_end_to_end_expand_with_bundled_context():
 
 
 def test_bundled_contexts_are_valid_jsonld_files():
+    """Every bundled context entry points to an existing JSON-LD context file."""
     assert len(BUNDLED_CONTEXTS) == 8
     for url, path in BUNDLED_CONTEXTS.items():
         assert isinstance(path, Path), url
@@ -107,5 +114,6 @@ def test_bundled_contexts_are_valid_jsonld_files():
 
 
 def test_document_loader_base_class_is_abstract():
+    """The base class documents the class-loader interface without instantiation."""
     with pytest.raises(TypeError):
         DocumentLoader()
