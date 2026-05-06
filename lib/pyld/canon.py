@@ -4,6 +4,7 @@ import hashlib
 import rdflib
 from rdflib import XSD, BNode, Dataset, Literal, Node
 from rdflib.graph import DATASET_DEFAULT_GRAPH_ID
+from rdflib.parser import StringInputSource
 from rdflib.plugins.parsers.nquads import NQuadsParser
 from rdflib.plugins.serializers.nt import _quote_encode
 
@@ -44,7 +45,7 @@ class URDNA2015:
             ):
                 raise UnknownFormatError('Unknown input format.', options['format'])
             rdflib.NORMALIZE_LITERALS = False
-            parser.parse(rdflib.parser.StringInputSource(dataset), rdflib_dataset)
+            parser.parse(StringInputSource(dataset), rdflib_dataset)
         elif isinstance(dataset, dict):
             rdflib_dataset = from_legacy_dataset(dataset)
         elif isinstance(dataset, Dataset):

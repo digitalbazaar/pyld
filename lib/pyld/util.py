@@ -61,7 +61,7 @@ def from_legacy_dataset(dataset: dict) -> Dataset:
     for graph_name, triples in dataset.items():
         # Handle graph name
         try:
-            g = from_legacy_graph(graph_name, ds.default_graph)
+            g = from_legacy_graph(graph_name, ds.default_graph.identifier)
         except Exception as err:
             raise ValueError(f'Illegal graph name: {graph_name}') from err
 
