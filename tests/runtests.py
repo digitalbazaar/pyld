@@ -1030,7 +1030,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest#ter56$',
                 '.*toRdf-manifest#tli12$',
                 '.*toRdf-manifest#tli14$',
-                '.*toRdf-manifest#tc036$',
                 '.*toRdf-manifest#tc037$',
             ]
         },
