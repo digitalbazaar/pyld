@@ -907,7 +907,6 @@ TEST_TYPES = {
             'idRegex': [
                 # uncategorized
                 '.*compact-manifest#tm023$',
-                '.*compact-manifest#t0113$',
                 '.*compact-manifest#tc028$',
             ],
         },
