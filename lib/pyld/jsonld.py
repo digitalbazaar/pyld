@@ -1893,10 +1893,10 @@ class JsonLdProcessor:
                             )
                             if not index_key:
                                 index_key = '@index'
-                            container_key = self._compact_iri(
-                                active_ctx, index_key, vocab=True
-                            )
                             if index_key == '@index':
+                                container_key = self._compact_iri(
+                                    active_ctx, index_key, vocab=True
+                                )
                                 key = expanded_item.get('@index')
                                 if (
                                     _is_object(compacted_item)
@@ -1904,10 +1904,27 @@ class JsonLdProcessor:
                                 ):
                                     del compacted_item[container_key]
                             else:
+                                # Expand a term or compact IRI index mapping before re-compacting it.
+                                expanded_index_key = self._expand_iri(
+                                    active_ctx, index_key, vocab=True
+                                )
+                                # Term selection for the index property can depend on its value.
+                                index_value = JsonLdProcessor.arrayify(
+                                    expanded_item.get(expanded_index_key, [])
+                                )
+                                # Index maps use the first value as the map key.
+                                index_value = index_value[0] if index_value else None
+                                # Re-compact with the value so terms like predicate beat rdf:predicate.
+                                container_key = self._compact_iri(
+                                    active_ctx,
+                                    expanded_index_key,
+                                    index_value,
+                                    vocab=True,
+                                )
                                 indexes = []
                                 if _is_object(compacted_item):
                                     indexes = JsonLdProcessor.arrayify(
-                                        compacted_item.get(index_key, [])
+                                        compacted_item.get(container_key, [])
                                     )
                                 if not indexes or not _is_string(indexes[0]):
                                     key = None
@@ -1919,11 +1936,11 @@ class JsonLdProcessor:
                                         and len(indexes) == 0
                                         and _is_object(compacted_item)
                                     ):
-                                        del compacted_item[index_key]
+                                        del compacted_item[container_key]
                                     elif len(indexes) == 1:
-                                        compacted_item[index_key] = indexes[0]
+                                        compacted_item[container_key] = indexes[0]
                                     else:
-                                        compacted_item[index_key] = indexes
+                                        compacted_item[container_key] = indexes
                         elif '@id' in container:
                             id_key = self._compact_iri(
                                 active_ctx, '@id', base=options.get('base', '')
