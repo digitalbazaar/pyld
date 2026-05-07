@@ -867,6 +867,31 @@ class TestCompact:
             "statement": {"rdf:type": {"term": "A", "addedIn": "v1"}},
         }
 
+    def test_node_reference_compacts_to_string_value_of_type_map(self):
+        """
+        A node reference in a type map can compact to a string when the term
+        is type-coerced to @id. In that case the type map should use @none.
+        """
+        input = {
+            "@context": {"@vocab": "http://schema.org/"},
+            "@type": "Event",
+            "location": {"@id": "http://kg.artsdata.ca/resource/K11-200"},
+        }
+        context = {
+            "@context": {
+                "@vocab": "http://schema.org/",
+                "location": {"@type": "@id", "@container": "@type"},
+            }
+        }
+
+        compacted = jsonld.compact(input, context)
+
+        assert compacted == {
+            "@context": context["@context"],
+            "@type": "Event",
+            "location": {"@none": "http://kg.artsdata.ca/resource/K11-200"},
+        }
+
     # Issue 91
     def test_empty_context(self):
         """
