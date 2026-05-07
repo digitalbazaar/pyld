@@ -1277,7 +1277,7 @@ class JsonLdProcessor:
 
         :return: all of the values for a subject's property as an array.
         """
-        return JsonLdProcessor.arrayify(subject.get(property) or [])
+        return JsonLdProcessor.arrayify(subject.get(property)) if property in subject else []
 
     @staticmethod
     def remove_property(subject, property):
@@ -4487,8 +4487,10 @@ class JsonLdProcessor:
                     )
         if '@type' in frame[0]:
             for type_ in JsonLdProcessor.arrayify(frame[0]['@type']):
-                # @id must be wildcard or IRI
-                if not (_is_object(type_) or _is_absolute_iri(type_)) or (
+                # @type must be wildcard, @json, or IRI
+                if not (
+                    _is_object(type_) or type_ == '@json' or _is_absolute_iri(type_)
+                ) or (
                     _is_string(type_) and type_.startswith('_:')
                 ):
                     raise JsonLdError(
