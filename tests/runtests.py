@@ -904,10 +904,7 @@ TEST_TYPES = {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
-            'idRegex': [
-                # uncategorized
-                '.*compact-manifest#tc028$',
-            ],
+            'idRegex': [],
         },
         'fn': 'compact',
         'params': [
