@@ -658,11 +658,12 @@ def create_test_options(opts=None):
         http_options = ['contentType', 'httpLink', 'httpStatus', 'redirectTo']
         test_options = test.data.get('option', {})
         options = {}
+        options.update(opts or {})
+        # Non-http options from manifest get priority over configured options
         for k, v in test_options.items():
             if k not in http_options:
                 options[k] = v
         options['documentLoader'] = create_document_loader(test)
-        options.update(opts or {})
         if 'expandContext' in options:
             filename = os.path.join(test.dirname, options['expandContext'])
             options['expandContext'] = read_json(filename)
@@ -954,16 +955,13 @@ TEST_TYPES = {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
-            'idRegex': [
-                # uncategorized html
-                '.*html-manifest#tf004$',
-            ],
+            'idRegex': [],
         },
         'fn': 'flatten',
         'params': [
             read_test_url('input'),
             read_test_property('context'),
-            create_test_options(),
+            create_test_options({"extractAllScripts": False}),
         ],
     },
     'jld:FrameTest': {
