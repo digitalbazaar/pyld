@@ -892,6 +892,37 @@ class TestCompact:
             "location": {"@none": "http://kg.artsdata.ca/resource/K11-200"},
         }
 
+    def test_empty_property_scoped_context_preserves_outer_terms(self):
+        """
+        An empty property-scoped context should not reset the active context
+        during compaction.
+        """
+        expanded = [
+            {
+                "http://example.com/title": [{"@value": "top"}],
+                "http://example.com/thing": [
+                    {
+                        "http://example.com/title": [{"@value": "sub"}],
+                    }
+                ],
+            }
+        ]
+        context = {
+            "@context": {
+                "ex": "http://example.com/",
+                "thing": {"@id": "ex:thing", "@context": {}},
+                "title": "ex:title",
+            }
+        }
+
+        compacted = jsonld.compact(expanded, context, {"skipExpansion": True})
+
+        assert compacted == {
+            "@context": context["@context"],
+            "title": "top",
+            "thing": {"title": "sub"},
+        }
+
     # Issue 91
     def test_empty_context(self):
         """
