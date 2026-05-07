@@ -5709,8 +5709,10 @@ class JsonLdProcessor:
 
         # scoped contexts
         if '@context' in value:
-            # record as falss, if None
-            mapping['@context'] = value['@context'] if value['@context'] else False
+            # record as false, if None
+            mapping['@context'] = (
+                False if value['@context'] is None else value['@context']
+            )
 
         if '@language' in value and '@type' not in value:
             language = value['@language']
