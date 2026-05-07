@@ -777,6 +777,96 @@ class TestCompact:
         assert "name" in result
         assert "nick" not in result
 
+    def test_index_map_with_compact_iri_index_round_trips(self):
+        """
+        When an @index container uses a compact IRI as its @index mapping,
+        compaction should use the indexed property value as the map key and
+        preserve the expanded representation on round-trip.
+        """
+        context = {
+            "@context": {
+                "ex": "http://example.com/",
+                "items": {
+                    "@id": "ex:items",
+                    "@container": "@index",
+                    "@index": "ex:rank",
+                },
+            }
+        }
+        expanded = [
+            {
+                "http://example.com/items": [
+                    {
+                        "http://example.com/rank": [{"@value": "first"}],
+                        "http://example.com/name": [{"@value": "Alice"}],
+                    }
+                ]
+            }
+        ]
+
+        compacted = jsonld.compact(expanded, context, {"skipExpansion": True})
+
+        assert compacted == {
+            "@context": context["@context"],
+            "items": {"first": {"ex:name": "Alice"}},
+        }
+        assert jsonld.expand(compacted) == expanded
+
+    def test_reverse_index_map_with_term_index_uses_property_value_as_key(self):
+        """
+        When an @index container uses a term as its @index mapping, compaction
+        should still find the property key selected using the indexed value.
+        """
+        context = {
+            "@context": {
+                "@version": 1.1,
+                "@base": "https://example.org/",
+                "@vocab": "https://example.net/ns#",
+                "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+                "statement": {
+                    "@reverse": "rdf:subject",
+                    "@container": "@index",
+                    "@index": "predicate",
+                },
+                "predicate": {"@id": "rdf:predicate", "@type": "@vocab"},
+                "term": {"@id": "rdf:object", "@type": "@vocab"},
+                "addedIn": {"@type": "@id"},
+            }
+        }
+        expanded = [
+            {
+                "@id": "https://example.org/item/1",
+                "@reverse": {
+                    "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject": [
+                        {
+                            "https://example.net/ns#addedIn": [
+                                {"@id": "https://example.org/v1"}
+                            ],
+                            "http://www.w3.org/1999/02/22-rdf-syntax-ns#object": [
+                                {"@id": "https://example.net/ns#A"}
+                            ],
+                            "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate": [
+                                {
+                                    "@id": (
+                                        "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+                                        "type"
+                                    )
+                                }
+                            ],
+                        }
+                    ]
+                },
+            }
+        ]
+
+        compacted = jsonld.compact(expanded, context, {"skipExpansion": True})
+
+        assert compacted == {
+            "@context": context["@context"],
+            "@id": "item/1",
+            "statement": {"rdf:type": {"term": "A", "addedIn": "v1"}},
+        }
+
     # Issue 91
     def test_empty_context(self):
         """
