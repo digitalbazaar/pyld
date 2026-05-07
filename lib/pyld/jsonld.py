@@ -1947,10 +1947,14 @@ class JsonLdProcessor:
                             )
                             key = compacted_item.pop(id_key, None)
                         elif '@type' in container:
+                            # Compact a type-map item an object or scalar (for
+                            # example when a node reference is coerced to @id.
                             type_key = self._compact_iri(active_ctx, '@type')
+                            # Only object items can carry an embedded @type,
+                            # so only call .pop() on object to avoid AttributeError.
                             types = JsonLdProcessor.arrayify(
                                 compacted_item.pop(type_key, [])
-                            )
+                            ) if _is_object(compacted_item) else []
                             key = types.pop(0) if types else None
                             if types:
                                 JsonLdProcessor.add_value(
@@ -1960,7 +1964,8 @@ class JsonLdProcessor:
                             # if compactedItem contains a single entry
                             # whose key maps to @id, recompact without @type
                             if (
-                                len(compacted_item.keys()) == 1
+                                _is_object(compacted_item)
+                                and len(compacted_item.keys()) == 1
                                 and '@id' in expanded_item
                             ):
                                 compacted_item = self._compact(

@@ -906,7 +906,6 @@ TEST_TYPES = {
             'specVersion': ['json-ld-1.0'],
             'idRegex': [
                 # uncategorized
-                '.*compact-manifest#tm023$',
                 '.*compact-manifest#tc028$',
             ],
         },
