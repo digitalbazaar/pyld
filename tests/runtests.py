@@ -683,7 +683,7 @@ def create_test_options(opts=None):
             if k not in http_options:
                 options[k] = v
         options['documentLoader'] = create_document_loader(test)
-        # options['hashAlgorithm'] = test.data.get('hashAlgorithm')
+        options['hashAlgorithm'] = test.data.get('hashAlgorithm')
 
         if 'expandContext' in options:
             filename = os.path.join(test.dirname, options['expandContext'])
