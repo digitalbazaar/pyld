@@ -2,6 +2,10 @@
 
 ## 3.1.0 - unreleased
 
+### Fixed
+- When compacting, expands the index mapping first, then compacts that expanded IRI, matching the JSON-LD API compaction correction for compact-IRI index mappings. Fixes testcases [compact#t0112](https://w3c.github.io/json-ld-api/tests/compact-manifest.html#t0112) and [compact#t0113](https://w3c.github.io/json-ld-api/tests/compact-manifest.html#t0113).
+- Fixes `AttributeError` when compacting with `@none`: the `@type` map compaction path now only calls `.pop()` and inspects keys when `compacted_item` is actually an object. Fixes [compact#tm023](https://w3c.github.io/json-ld-api/tests/compact-manifest.html#tm023)
+
 ### Added
 - `pyld.DocumentLoader` abstract base class for class-based document loaders,
   with a `RemoteDocument` `TypedDict` describing the expected return shape.
