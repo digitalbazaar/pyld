@@ -5,6 +5,7 @@
 ### Fixed
 - When compacting, expands the index mapping first, then compacts that expanded IRI, matching the JSON-LD API compaction correction for compact-IRI index mappings. Fixes testcases [compact#t0112](https://w3c.github.io/json-ld-api/tests/compact-manifest.html#t0112) and [compact#t0113](https://w3c.github.io/json-ld-api/tests/compact-manifest.html#t0113).
 - Fixes `AttributeError` when compacting with `@none`: the `@type` map compaction path now only calls `.pop()` and inspects keys when `compacted_item` is actually an object. Fixes [compact#tm023](https://w3c.github.io/json-ld-api/tests/compact-manifest.html#tm023)
+- An empty property-scoped context no longer resets the active context in `_create_term_definition`. Now only explicit null becomes False; empty contexts are preserved. Fixes [compact#tc028](https://w3c.github.io/json-ld-api/tests/compact-manifest.html#tc028) and [toRdf#tc036](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#tc036).
 
 ### Added
 - `pyld.DocumentLoader` abstract base class for class-based document loaders,
