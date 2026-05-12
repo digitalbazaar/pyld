@@ -654,6 +654,29 @@ class TestFrame:
         framed = jsonld.frame(input, frame)
         assert framed == expected
 
+    def test_circular_references_link_and_embed(self):
+        j = {
+            "@context": "http://schema.org/",
+            "@type": "Person",
+            "name": "Jane Doe",
+            "jobTitle": "Professor",
+            "telephone": "(425) 123-4567",
+            "@id": "http://www.janedoe.com",
+            "knows": {
+                "name": "John Smith",
+                "@type": "Person",
+                "@id": "http://www.johnsmith.me",
+                "knows": {"@id": "http://www.janedoe.com"},
+            },
+        }
+
+        frame = {'@context': 'http://schema.org', '@embed': '@last'}
+        jsonld.frame(j, frame)
+
+        # this should not result in a RuntimeError for exceeding recursion depth
+        frame['@embed'] = '@link'
+        jsonld.frame(j, frame)
+
 
 class TestToRdf:
     # PR: https://github.com/digitalbazaar/pyld/pull/202
