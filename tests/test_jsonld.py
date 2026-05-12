@@ -931,3 +931,19 @@ class TestCompact:
         input = {'http://schema.org/codeRepository': {'@id': 'http:'}}
         compacted = jsonld.compact(input, {})
         assert compacted == input
+
+    # Issue 61
+    def test_compact_arrays(self):
+        """
+        Compacting with an empty context should return the input unchanged.
+        """
+        input = {
+            "key1": "abc",
+            "key2": ["abc", "def"]
+        }
+        expected = {
+            "key1": "abc",
+            "key2": ["abc", "def"]
+        }
+        compacted = jsonld.compact(input, {}, {"compactArrays": True})
+        assert compacted == expected
