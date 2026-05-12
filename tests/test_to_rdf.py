@@ -1,5 +1,6 @@
 from pyld import jsonld
 
+
 # Issue 204
 def test_conflicting_property_names():
     """
