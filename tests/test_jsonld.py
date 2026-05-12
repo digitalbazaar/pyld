@@ -316,6 +316,34 @@ class TestExpand:
         # meaning -> @id
         assert "@id" in prop_val
 
+    # Issue 204
+    def test_scoped_context_on_nest_term_expands_nested_properties(self):
+        """A scoped context on a @nest term should apply to nested properties."""
+        input = {
+            "@context": {
+                "@vocab": "http://example.org/vocab#",
+                "p1": {
+                    "@id": "@nest",
+                    "@context": {"p2": "http://example.org/ns#P2"},
+                },
+            },
+            "p1": {"p2": "foo"},
+        }
+
+        expected = [
+            {
+                "http://example.org/ns#P2": [
+                    {
+                        "@value": "foo",
+                    }
+                ],
+            }
+        ]
+
+        result = jsonld.expand(input)
+
+        assert result == expected
+
 
     def test_mixed_plain_and_vocab_terms(self):
         """Contexts with both plain and @type:@vocab terms should work correctly."""
