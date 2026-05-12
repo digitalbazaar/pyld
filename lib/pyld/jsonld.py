@@ -2620,11 +2620,6 @@ class JsonLdProcessor:
 
                 continue
 
-            # nested keys
-            if expanded_property == '@nest':
-                nests.append(key)
-                continue
-
             # use potential scoped context for key
             term_ctx = active_ctx
             ctx = JsonLdProcessor.get_context_value(active_ctx, key, '@context')
@@ -2632,6 +2627,11 @@ class JsonLdProcessor:
                 term_ctx = self._process_context(
                     active_ctx, ctx, options, propagate=True, override_protected=True
                 )
+
+            # for nested keys, add scoped context with key
+            if expanded_property == '@nest':
+                nests.append((key, term_ctx))
+                continue
 
             container = JsonLdProcessor.arrayify(
                 JsonLdProcessor.get_context_value(active_ctx, key, '@container')
@@ -2775,13 +2775,13 @@ class JsonLdProcessor:
                     code='invalid value object value',
                 )
 
-        # expand each nested key
-        for key in nests:
+        # expand each nested key and scoped context
+        for key, term_ctx in nests:
             for nv in JsonLdProcessor.arrayify(element[key]):
                 if not _is_object(nv) or [
                     k
                     for k, v in nv.items()
-                    if self._expand_iri(active_ctx, k, vocab=True) == '@value'
+                    if self._expand_iri(term_ctx, k, vocab=True) == '@value'
                 ]:
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; nested value must be a node object.',
@@ -2790,7 +2790,7 @@ class JsonLdProcessor:
                         code='invalid @nest value',
                     )
                 self._expand_object(
-                    active_ctx,
+                    term_ctx,
                     active_property,
                     expanded_active_property,
                     nv,
