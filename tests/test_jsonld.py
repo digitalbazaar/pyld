@@ -1,6 +1,3 @@
-import json
-
-import pyld
 import pytest
 
 import pyld.jsonld as jsonld
