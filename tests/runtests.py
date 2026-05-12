@@ -1019,12 +1019,10 @@ TEST_TYPES = {
                 # well formed
                 '.*toRdf-manifest#twf05$',
                 # uncategorized
-                '.*toRdf-manifest#tc038$',
                 '.*toRdf-manifest#ter54$',
                 '.*toRdf-manifest#ter56$',
                 '.*toRdf-manifest#tli12$',
                 '.*toRdf-manifest#tli14$',
-                '.*toRdf-manifest#tc037$',
             ]
         },
         'skip': {
