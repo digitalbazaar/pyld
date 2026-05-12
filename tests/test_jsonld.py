@@ -1,3 +1,6 @@
+import json
+
+import pyld
 import pytest
 
 import pyld.jsonld as jsonld
@@ -968,4 +971,26 @@ class TestCompact:
 
         compacted = jsonld.compact(input, {"@vocab": "http://example.org#"}, {"skipExpansion": True})
         expected = {"@context": {"@vocab": "http://example.org#"}, "name": "Bob"}
+        assert compacted == expected
+
+    # Issue 83
+    def test_with_vocab(self):
+        ctx = {'@vocab': 'http://ex.org/#', 'path': {'@type': '@id'}}
+        input = {
+            'http://ex.org/#maxCount': 1,
+            'http://ex.org/#path': 'http://ex.org/#shortname'
+        }
+        expected = {
+            "@context": {
+                "@vocab": "http://ex.org/#",
+                "path": {
+                "@type": "@id"
+                }
+            },
+            "maxCount": 1,
+            "path": "http://ex.org/#shortname"
+        }
+
+        compacted = jsonld.compact(input, ctx)
+
         assert compacted == expected
