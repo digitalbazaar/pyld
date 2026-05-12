@@ -46,9 +46,8 @@ def test_conflicting_property_names_in_nested_node():
         "dublinCore": {"title": "Chapter 1: Jonathan Harker's Journal"},
     }
 
-    expected = """<http://foo.bar/obj/test> <http://foo.bar/dc> _:b0 .
-<http://foo.bar/obj/test> <http://foo.bar/title> "test" .
-_:b0 <http://purl.org/dc/terms/title> "Chapter 1: Jonathan Harker's Journal" .
+    expected = """<http://foo.bar/obj/test> <http://foo.bar/title> "test" .
+<http://foo.bar/obj/test> <http://purl.org/dc/terms/title> "Chapter 1: Jonathan Harker's Journal" .
 """
 
     nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
