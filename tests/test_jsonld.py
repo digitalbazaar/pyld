@@ -974,21 +974,34 @@ class TestCompact:
         assert compacted == expected
 
     # Issue 83
-    def test_with_vocab(self):
+    def test_with_vocab_no_id(self):
+        """
+        Compacting with @vocab should not compact a plain string value
+        """
         ctx = {'@vocab': 'http://ex.org/#', 'path': {'@type': '@id'}}
         input = {
-            'http://ex.org/#maxCount': 1,
-            'http://ex.org/#path': 'http://ex.org/#shortname'
+            'http://ex.org/#path': 'http://ex.org/#shortname',
         }
         expected = {
-            "@context": {
-                "@vocab": "http://ex.org/#",
-                "path": {
-                "@type": "@id"
-                }
-            },
-            "maxCount": 1,
-            "path": "http://ex.org/#shortname"
+            "@context": {"@vocab": "http://ex.org/#", "path": {"@type": "@id"}},
+            "http://ex.org/#path": "http://ex.org/#shortname",
+        }
+
+        compacted = jsonld.compact(input, ctx)
+
+        assert compacted == expected
+
+    def test_with_vocab_with_id(self):
+        """
+        Compacting with @vocab should compact an @id value
+        """
+        ctx = {'@vocab': 'http://ex.org/#', 'path': {'@type': '@id'}}
+        input = {
+            'http://ex.org/#path': {'@id': 'http://ex.org/#shortname'},
+        }
+        expected = {
+            "@context": {"@vocab": "http://ex.org/#", "path": {"@type": "@id"}},
+            "path": "http://ex.org/#shortname",
         }
 
         compacted = jsonld.compact(input, ctx)
