@@ -655,7 +655,7 @@ class TestFrame:
         assert framed == expected
 
     def test_circular_references_link_and_embed(self):
-        j = {
+        input = {
             "@context": "http://schema.org/",
             "@type": "Person",
             "name": "Jane Doe",
@@ -670,12 +670,49 @@ class TestFrame:
             },
         }
 
-        frame = {'@context': 'http://schema.org', '@embed': '@last'}
-        jsonld.frame(j, frame)
+        expected = {
+            "@context": "http://schema.org",
+            "@graph": [
+                {
+                "id": "http://www.janedoe.com",
+                "type": "Person",
+                "jobTitle": "Professor",
+                "knows": {
+                    "id": "http://www.johnsmith.me",
+                    "type": "Person",
+                    "knows": {
+                    "id": "http://www.janedoe.com"
+                    },
+                    "name": "John Smith"
+                },
+                "name": "Jane Doe",
+                "telephone": "(425) 123-4567"
+                },
+                {
+                "id": "http://www.johnsmith.me",
+                "type": "Person",
+                "knows": {
+                    "id": "http://www.janedoe.com",
+                    "type": "Person",
+                    "jobTitle": "Professor",
+                    "knows": {
+                    "id": "http://www.johnsmith.me"
+                    },
+                    "name": "Jane Doe",
+                    "telephone": "(425) 123-4567"
+                },
+                "name": "John Smith"
+                }
+            ]
+        }
 
-        # this should not result in a RuntimeError for exceeding recursion depth
-        frame['@embed'] = '@link'
-        jsonld.frame(j, frame)
+        frame = {'@context': 'http://schema.org', '@embed': '@once'}
+        assert expected == jsonld.frame(input, frame)
+
+        # this should result in a RuntimeError for exceeding recursion depth
+        frame = {'@context': 'http://schema.org', '@embed': '@link'}
+        with pytest.raises(Exception) as e_info:
+            jsonld.frame(input, frame)
 
 
 class TestToRdf:
