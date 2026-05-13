@@ -8,6 +8,7 @@
 - An empty property-scoped context no longer resets the active context in `_create_term_definition`. Now only explicit null becomes False; empty contexts are preserved. Fixes [compact#tc028](https://w3c.github.io/json-ld-api/tests/compact-manifest.html#tc028), [toRdf#tc036](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#tc036) and [expand#tc036](https://w3c.github.io/json-ld-api/tests/expand-manifest.html#tc036).
 - Options from the test manifest now override the options configured in `create_test_options()`, instead of the other way around. This fixes tests not able to override default options in the test-setup such as `extractAllScripts`. Fixes [html#tf004](https://w3c.github.io/json-ld-api/tests/html-manifest#tf004).
 - When `@type` is `@json` in a frame, it no longer raises an "Invalid JSON-LD syntax" error. Fixes [frame#t0069](https://w3c.github.io/json-ld-framing/tests/frame-manifest.html#t0069).
+- Use safeguard for non-dict values of `options['link']`
 
 ### Added
 - `pyld.DocumentLoader` abstract base class for class-based document loaders,
