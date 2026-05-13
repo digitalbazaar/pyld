@@ -931,3 +931,41 @@ class TestCompact:
         input = {'http://schema.org/codeRepository': {'@id': 'http:'}}
         compacted = jsonld.compact(input, {})
         assert compacted == input
+
+    # Issue 82
+    def test_no_initial_context_drops_property(self):
+        """
+        Compacting without initial context should drop the original input.
+        """
+
+        input = {'name': 'Bob'}
+
+        compacted = jsonld.compact(input, {"@vocab": "http://example.org#"})
+        expected = {"@context": {"@vocab": "http://example.org#"}}
+
+        assert compacted == expected
+
+    @pytest.mark.xfail
+    def test_no_initial_context_and_with_skip_expand_does_not_drop_property_whe_not_array(self):
+        """
+        Compacting document with singular value and without initial context should
+        output the original input when skipExpansion is enabled.
+        """
+
+        input = {'name': 'Bob'}
+
+        compacted = jsonld.compact(input, {"@vocab": "http://example.org#"}, {"skipExpansion": True})
+        expected = {"@context": {"@vocab": "http://example.org#"}, "name": "Bob"}
+        assert compacted == expected
+
+    def test_no_initial_context_and_with_skip_expand_does_not_drop_property_when_array(self):
+        """
+        Compacting document with array value and without initial context should
+        output the original input when skipExpansion is enabled.
+        """
+
+        input = {'name': ['Bob']}
+
+        compacted = jsonld.compact(input, {"@vocab": "http://example.org#"}, {"skipExpansion": True})
+        expected = {"@context": {"@vocab": "http://example.org#"}, "name": "Bob"}
+        assert compacted == expected
