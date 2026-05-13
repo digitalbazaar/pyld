@@ -1496,7 +1496,8 @@ class JsonLdProcessor:
         # recursively compact object
         if _is_object(element):
             if (
-                options['link']
+                isinstance(options['link'], dict)
+                and options['link']
                 and '@id' in element
                 and element['@id'] in options['link']
             ):
@@ -1511,7 +1512,7 @@ class JsonLdProcessor:
                 rval = self._compact_value(
                     active_ctx, active_property, element, options
                 )
-                if options['link'] and _is_subject_reference(element):
+                if isinstance(options['link'], dict) and options['link'] and _is_subject_reference(element):
                     # store linked element
                     options['link'].setdefault(element['@id'], []).append(
                         {'expanded': element, 'compacted': rval}
@@ -1556,7 +1557,11 @@ class JsonLdProcessor:
                     override_protected=True,
                 )
 
-            if options['link'] and '@id' in element:
+            if (
+                isinstance(options['link'], dict)
+                and options['link']
+                and '@id' in element
+            ):
                 # store linked element
                 options['link'].setdefault(element['@id'], []).append(
                     {'expanded': element, 'compacted': rval}
