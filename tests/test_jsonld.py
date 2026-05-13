@@ -711,7 +711,7 @@ class TestFrame:
 
         # this should result in a RuntimeError for exceeding recursion depth
         frame = {'@context': 'http://schema.org', '@embed': '@link'}
-        with pytest.raises(Exception) as e_info:
+        with pytest.raises(RecursionError):
             jsonld.frame(input, frame)
 
 
