@@ -344,6 +344,66 @@ class TestExpand:
 
         assert result == expected
 
+    # Issue 204
+    def test_scoped_context_on_nest_term_expands_nested_type_scoped_context(self):
+        """
+        A scoped context on a @nest term should be in effect when expanding the
+        nested node, including when processing any type-scoped contexts found on
+        that node.
+
+        JSON-LD 1.1 defines property nesting as semantically transparent: nested
+        properties are removed during expansion and treated as if their contents
+        were declared directly on the containing node object. It also defines
+        scoped contexts as property-scoped when the term is used as a property
+        and type-scoped when the term is used as a type. This test combines both
+        rules deliberately:
+
+        * p1 is an @nest term with a property-scoped context.
+        * That context defines Type and gives Type its own type-scoped context.
+        * The nested node uses Type and then uses p2 from Type's scoped context.
+
+        If nested values are expanded by directly walking their keys instead of
+        running the normal expansion setup for the nested node, Type and p2 fall
+        back to the outer @vocab. The expected result proves that the @nest term
+        context is active before @type is expanded and before Type's scoped
+        context is applied.
+        """
+        input = {
+            "@context": {
+                "@vocab": "http://example.org/outer#",
+                "p1": {
+                    "@id": "@nest",
+                    "@context": {
+                        "Type": {
+                            "@id": "http://example.org/ns#Type",
+                            "@context": {
+                                "p2": "http://example.org/ns#P2",
+                            },
+                        },
+                    },
+                },
+            },
+            "p1": {
+                "@type": "Type",
+                "p2": "foo",
+            },
+        }
+
+        expected = [
+            {
+                "@type": ["http://example.org/ns#Type"],
+                "http://example.org/ns#P2": [
+                    {
+                        "@value": "foo",
+                    }
+                ],
+            }
+        ]
+
+        result = jsonld.expand(input)
+
+        assert result == expected
+
 
     def test_mixed_plain_and_vocab_terms(self):
         """Contexts with both plain and @type:@vocab terms should work correctly."""
