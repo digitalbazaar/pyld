@@ -2,6 +2,7 @@
 *.sw[op]
 *~
 .coverage
+.venv/
 .project
 .pydevproject
 .settings
