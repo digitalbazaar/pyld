@@ -14,24 +14,21 @@ import string
 import urllib.parse as urllib_parse
 
 from pyld import iri_resolver
+from pyld.documentloader.base import DocumentLoader, RemoteDocument
 from pyld.jsonld import JsonLdError, parse_link_header, LINK_HEADER_REL
 
 
-def requests_document_loader(secure=False, **kwargs):
-    """
-    Create a Requests document loader.
+class RequestsDocumentLoader(DocumentLoader):
+    """Remote document loader using Requests."""
 
-    Can be used to setup extra Requests args such as verify, cert, timeout,
-    or others.
+    def __init__(self, secure=False, **kwargs):
+        import requests
 
-    :param secure: require all requests to use HTTPS (default: False).
-    :param **kwargs: extra keyword args for Requests get() call.
+        self.requests = requests
+        self.secure = secure
+        self.kwargs = kwargs
 
-    :return: the RemoteDocument loader function.
-    """
-    import requests
-
-    def loader(url, options={}):
+    def __call__(self, url, options=None) -> RemoteDocument:
         """
         Retrieves JSON-LD at the given URL.
 
@@ -39,6 +36,8 @@ def requests_document_loader(secure=False, **kwargs):
 
         :return: the RemoteDocument.
         """
+        if options is None:
+            options = {}
         try:
             # validate URL
             pieces = urllib_parse.urlparse(url)
@@ -51,7 +50,7 @@ def requests_document_loader(secure=False, **kwargs):
                     'URLs are supported.',
                     'jsonld.InvalidUrl', {'url': url},
                     code='loading document failed')
-            if secure and pieces.scheme != 'https':
+            if self.secure and pieces.scheme != 'https':
                 raise JsonLdError(
                     'URL could not be dereferenced; secure mode enabled and '
                     'the URL\'s scheme is not "https".',
@@ -62,7 +61,7 @@ def requests_document_loader(secure=False, **kwargs):
                 headers = {
                     'Accept': 'application/ld+json, application/json'
                 }
-            response = requests.get(url, headers=headers, **kwargs)
+            response = self.requests.get(url, headers=headers, **self.kwargs)
 
             content_type = response.headers.get('content-type')
             if not content_type:
@@ -93,8 +92,9 @@ def requests_document_loader(secure=False, **kwargs):
                         linked_alternate.get('type') == 'application/ld+json' and
                         not re.match(r'^application\/(\w*\+)?json$', content_type)):
                     doc['contentType'] = 'application/ld+json'
-                    doc['documentUrl'] = iri_resolver.resolve(linked_alternate['target'], url)
-                    return loader(doc['documentUrl'], options=options)
+                    doc['documentUrl'] = iri_resolver.resolve(
+                        linked_alternate['target'], url)
+                    return self(doc['documentUrl'], options=options)
             doc['document'] = response.json()
             return doc
         except JsonLdError as e:
@@ -105,4 +105,17 @@ def requests_document_loader(secure=False, **kwargs):
                 'jsonld.LoadDocumentError',
                 code='loading document failed') from cause
 
-    return loader
+
+def requests_document_loader(secure=False, **kwargs):
+    """
+    Create a Requests document loader.
+
+    Can be used to setup extra Requests args such as verify, cert, timeout,
+    or others.
+
+    :param secure: require all requests to use HTTPS (default: False).
+    :param **kwargs: extra keyword args for Requests get() call.
+
+    :return: the RemoteDocument loader function.
+    """
+    return RequestsDocumentLoader(secure=secure, **kwargs)
