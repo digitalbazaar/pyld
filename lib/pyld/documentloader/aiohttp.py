@@ -14,6 +14,7 @@ import threading
 import urllib.parse as urllib_parse
 
 from pyld import iri_resolver
+from pyld.documentloader.base import DocumentLoader, RemoteDocument
 from pyld.jsonld import (JsonLdError, parse_link_header, LINK_HEADER_REL)
 
 
@@ -38,19 +39,18 @@ def _ensure_background_loop():
     return _background_loop
 
 
-def aiohttp_document_loader(loop=None, secure=False, **kwargs):
-    """
-    Create an Asynchronous document loader using aiohttp.
+class AioHttpDocumentLoader(DocumentLoader):
+    """Remote document loader using aiohttp."""
 
-    :param loop: deprecated / ignored (kept for backward compatibility).
-    :param secure: require all requests to use HTTPS (default: False).
-    :param **kwargs: extra keyword args for the aiohttp request get() call.
+    def __init__(self, loop=None, secure=False, **kwargs):
+        import aiohttp
 
-    :return: the RemoteDocument loader function.
-    """
-    import aiohttp
+        self.aiohttp = aiohttp
+        self.loop = loop
+        self.secure = secure
+        self.kwargs = kwargs
 
-    async def async_loader(url, headers):
+    async def async_loader(self, url, headers) -> RemoteDocument:
         """
         Retrieves JSON-LD at the given URL asynchronously.
 
@@ -71,17 +71,17 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
                     'only "http" and "https" URLs are supported.',
                     'jsonld.InvalidUrl', {'url': url},
                     code='loading document failed')
-            if secure and pieces.scheme != 'https':
+            if self.secure and pieces.scheme != 'https':
                 raise JsonLdError(
                     'URL could not be dereferenced; '
                     'secure mode enabled and '
                     'the URL\'s scheme is not "https".',
                     'jsonld.InvalidUrl', {'url': url},
                     code='loading document failed')
-            async with aiohttp.ClientSession() as session:
+            async with self.aiohttp.ClientSession() as session:
                 async with session.get(url,
                                        headers=headers,
-                                       **kwargs) as response:
+                                       **self.kwargs) as response:
                     content_type = response.headers.get('content-type')
                     if not content_type:
                         content_type = 'application/octet-stream'
@@ -111,8 +111,9 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
                                 linked_alternate.get('type') == 'application/ld+json' and
                                 not re.match(r'^application\/(\w*\+)?json$', content_type)):
                             doc['contentType'] = 'application/ld+json'
-                            doc['documentUrl'] = iri_resolver.resolve(linked_alternate['target'], url)
-                            return await async_loader(doc['documentUrl'], headers)
+                            doc['documentUrl'] = iri_resolver.resolve(
+                                linked_alternate['target'], url)
+                            return await self.async_loader(doc['documentUrl'], headers)
                     doc['document'] = await response.json(content_type=None)
                     return doc
         except JsonLdError as e:
@@ -120,10 +121,10 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
         except Exception as cause:
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
-                'jsonld.LoadDocumentError', 
+                'jsonld.LoadDocumentError',
                 code='loading document failed') from cause
 
-    def loader(url, options=None):
+    def __call__(self, url, options=None) -> RemoteDocument:
         """
         Retrieves JSON-LD at the given URL synchronously.
 
@@ -147,11 +148,23 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
 
         # Sync environment
         if not running_loop or not running_loop.is_running():
-            return asyncio.run(async_loader(url, headers))
+            return asyncio.run(self.async_loader(url, headers))
 
         # Inside async environment: use background event loop
         loop = _ensure_background_loop()
-        future = asyncio.run_coroutine_threadsafe(async_loader(url, headers), loop)
+        future = asyncio.run_coroutine_threadsafe(
+            self.async_loader(url, headers), loop)
         return future.result()
 
-    return loader
+
+def aiohttp_document_loader(loop=None, secure=False, **kwargs):
+    """
+    Create an Asynchronous document loader using aiohttp.
+
+    :param loop: deprecated / ignored (kept for backward compatibility).
+    :param secure: require all requests to use HTTPS (default: False).
+    :param **kwargs: extra keyword args for the aiohttp request get() call.
+
+    :return: the RemoteDocument loader function.
+    """
+    return AioHttpDocumentLoader(loop=loop, secure=secure, **kwargs)
