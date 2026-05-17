@@ -28,10 +28,8 @@ class DocumentLoader(ABC):
     Concrete subclasses implement :meth:`__call__` to fetch a document for a
     given URL and return a :class:`RemoteDocument`.
 
-    Existing function-based loaders (:func:`pyld.jsonld.requests_document_loader`,
-    :func:`pyld.jsonld.aiohttp_document_loader`) remain valid: pyld's loader
-    contract is "any callable with the right signature". This ABC is for new
-    class-based loaders only.
+    PyLD's loader contract remains "any callable with the right signature".
+    This ABC documents the interface used by built-in class-based loaders.
     """
 
     @abstractmethod
