@@ -42,11 +42,10 @@ def _ensure_background_loop():
 class AioHttpDocumentLoader(DocumentLoader):
     """Remote document loader using aiohttp."""
 
-    def __init__(self, loop=None, secure=False, **kwargs):
+    def __init__(self, secure=False, **kwargs):
         import aiohttp
 
         self.aiohttp = aiohttp
-        self.loop = loop
         self.secure = secure
         self.kwargs = kwargs
 
@@ -167,4 +166,4 @@ def aiohttp_document_loader(loop=None, secure=False, **kwargs):
 
     :return: the RemoteDocument loader function.
     """
-    return AioHttpDocumentLoader(loop=loop, secure=secure, **kwargs)
+    return AioHttpDocumentLoader(secure=secure, **kwargs)
