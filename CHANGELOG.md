@@ -9,6 +9,11 @@
 - Options from the test manifest now override the options configured in `create_test_options()`, instead of the other way around. This fixes tests not able to override default options in the test-setup such as `extractAllScripts`. Fixes [html#tf004](https://w3c.github.io/json-ld-api/tests/html-manifest#tf004).
 - When `@type` is `@json` in a frame, it no longer raises an "Invalid JSON-LD syntax" error. Fixes [frame#t0069](https://w3c.github.io/json-ld-framing/tests/frame-manifest.html#t0069).
 
+### Changed
+- `requests_document_loader()` and `aiohttp_document_loader()` now return
+  class-based `DocumentLoader` instances while preserving the existing
+  callable factory API.
+
 ### Added
 - `pyld.DocumentLoader` abstract base class for class-based document loaders,
   with a `RemoteDocument` `TypedDict` describing the expected return shape.
