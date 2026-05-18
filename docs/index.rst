@@ -25,6 +25,10 @@ API Reference
 .. module:: pyld
 .. autoclass:: DocumentLoader
    :members:
+.. autoclass:: RequestsDocumentLoader
+   :members:
+.. autoclass:: AioHttpDocumentLoader
+   :members:
 .. autoclass:: FrozenDocumentLoader
    :members:
 .. autodata:: BUNDLED_CONTEXTS
