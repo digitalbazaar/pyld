@@ -612,29 +612,29 @@ class RDFC10(URDNA2015):
         # Accept either an rdflib Literal or a plain string
         s = str(l_)
 
-        parts = []
+        parts = ''
         for ch in s:
             code = ord(ch)
             if ch == "\\":
-                parts.append('\\\\')
+                parts += '\\\\'
             elif ch == '"':
-                parts.append('\\"')
+                parts += '\\"'
             elif ch == "\n":
-                parts.append('\\n')
+                parts += '\\n'
             elif ch == "\r":
-                parts.append('\\r')
+                parts += '\\r'
             elif ch == "\t":
-                parts.append('\\t')
+                parts += '\\t'
             elif code == 0x08:  # backspace
-                parts.append('\\b')
+                parts += '\\b'
             elif code == 0x0C:  # form feed
-                parts.append('\\f')
+                parts += '\\f'
             elif code == 0x0B or (code < 0x20) or (code == 0x7F):  # vertical tab -> use \u000B
-                parts.append(f'\\u{code:04X}')
+                parts += f'\\u{code:04X}'
             else:
-                parts.append(ch)
+                parts += ch
 
-        return '"' + ''.join(parts) + '"'
+        return '"' + parts + '"'
 
 
 def permutations(elements):
