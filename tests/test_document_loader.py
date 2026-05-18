@@ -10,9 +10,12 @@ Tests for document loaders: Accept header content negotiation and Link rel=alter
 
 import pytest
 
-from pyld import DocumentLoader, jsonld
-from pyld.documentloader.aiohttp import AioHttpDocumentLoader
-from pyld.documentloader.requests import RequestsDocumentLoader
+from pyld import (
+    AioHttpDocumentLoader,
+    DocumentLoader,
+    RequestsDocumentLoader,
+    jsonld,
+)
 
 
 @pytest.mark.network
@@ -92,6 +95,14 @@ def test_aiohttp_document_loader_factory_returns_document_loader():
     assert isinstance(loader, AioHttpDocumentLoader)
     assert isinstance(loader, DocumentLoader)
     assert callable(loader)
+
+
+def test_built_in_document_loader_classes_are_top_level_exports():
+    """Built-in loader classes are public imports from pyld."""
+    pytest.importorskip("requests")
+    pytest.importorskip("aiohttp")
+    assert isinstance(RequestsDocumentLoader(), DocumentLoader)
+    assert isinstance(AioHttpDocumentLoader(), DocumentLoader)
 
 
 @pytest.mark.network
