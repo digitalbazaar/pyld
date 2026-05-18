@@ -10,6 +10,11 @@
 - When `@type` is `@json` in a frame, it no longer raises an "Invalid JSON-LD syntax" error. Fixes [frame#t0069](https://w3c.github.io/json-ld-framing/tests/frame-manifest.html#t0069).
 - Use safeguard for non-dict values of `options['link']`
 
+### Changed
+- `requests_document_loader()` and `aiohttp_document_loader()` now return
+  class-based `DocumentLoader` instances while preserving the existing
+  callable factory API.
+
 ### Added
 - `pyld.DocumentLoader` abstract base class for class-based document loaders,
   with a `RemoteDocument` `TypedDict` describing the expected return shape.
