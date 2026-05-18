@@ -12,7 +12,8 @@
 ### Changed
 - `requests_document_loader()` and `aiohttp_document_loader()` now return
   class-based `DocumentLoader` instances while preserving the existing
-  callable factory API.
+  callable factory API. The concrete `RequestsDocumentLoader` and
+  `AioHttpDocumentLoader` classes are also importable from `pyld`.
 
 ### Added
 - `pyld.DocumentLoader` abstract base class for class-based document loaders,
