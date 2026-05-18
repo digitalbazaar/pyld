@@ -157,6 +157,15 @@ disable verification, or set other Requests_ parameters.
 
     jsonld.set_document_loader(jsonld.requests_document_loader(timeout=...))
 
+The factory remains the compatibility API, and the concrete class is also
+available when class-based construction is preferred:
+
+.. code-block:: Python
+
+    from pyld import RequestsDocumentLoader
+
+    jsonld.set_document_loader(RequestsDocumentLoader(timeout=...))
+
 An asynchronous document loader using aiohttp_ is also available. Please note
 that this document loader limits asynchronicity to fetching documents only.
 The processing loops remain synchronous.
@@ -164,6 +173,14 @@ The processing loops remain synchronous.
 .. code-block:: Python
 
     jsonld.set_document_loader(jsonld.aiohttp_document_loader(timeout=...))
+
+The concrete aiohttp loader class is available from ``pyld`` as well:
+
+.. code-block:: Python
+
+    from pyld import AioHttpDocumentLoader
+
+    jsonld.set_document_loader(AioHttpDocumentLoader(timeout=...))
 
 When no document loader is specified, the default loader is set to Requests_.
 If Requests_ is not available, the loader is set to aiohttp_. The fallback
