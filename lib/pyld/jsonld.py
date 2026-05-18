@@ -2139,35 +2139,10 @@ class JsonLdProcessor:
                 active_ctx, property_scoped_ctx, options, override_protected=True
             )
 
-        # recursively expand object
-        # if element has a context, process it
-        if '@context' in element:
-            active_ctx = self._process_context(active_ctx, element['@context'], options)
-
-        # set the type-scoped context to the context on input, for use later
-        type_scoped_ctx = active_ctx
-
-        # Remember the first key found expanding to @type
-        type_key = None
-
-        # look for scoped context on @type
-        for key, _value in sorted(element.items()):
-            expanded_property = self._expand_iri(active_ctx, key, vocab=True)
-            if expanded_property == '@type':
-                if not type_key:
-                    type_key = key
-                # set scoped contexts from @type
-                types = [
-                    t for t in JsonLdProcessor.arrayify(element[key]) if _is_string(t)
-                ]
-                for type_ in sorted(types):
-                    ctx = JsonLdProcessor.get_context_value(
-                        type_scoped_ctx, type_, '@context'
-                    )
-                    if ctx is not None and ctx is not False:
-                        active_ctx = self._process_context(
-                            active_ctx, ctx, options, propagate=False
-                        )
+        # prepare type-scoped contexts
+        active_ctx, type_key, type_scoped_ctx = self._prepare_nested_context(
+            active_ctx, element, options
+        )
 
         # process each key and value in element, ignoring @nest content
         rval = {}
@@ -2824,17 +2799,20 @@ class JsonLdProcessor:
         a scoped context on the nest term must be active while discovering any
         @type entries and applying the type-scoped contexts they reference.
         """
+        # Recursively expand object: process context if element has one
         # Local contexts on the nested node apply before looking for @type,
         # just like they do for an ordinary node object.
         if '@context' in element:
-            active_ctx = self._process_context(
-                active_ctx, element['@context'], options
-            )
+            active_ctx = self._process_context(active_ctx, element['@context'], options)
+
+        # Set the type-scoped context to the context on input, for use later
+        type_scoped_ctx = active_ctx
+
+        # Remember the first key found expanding to @type
+        type_key = None
 
         # Type terms are looked up against the context that was active before
         # applying any type-scoped contexts discovered below.
-        type_scoped_ctx = active_ctx
-        type_key = None
         for key, value in sorted(element.items()):
             # The @type entry itself may be aliased by the nest term's scoped
             # context, so use the nested active context to identify it.
@@ -2842,6 +2820,7 @@ class JsonLdProcessor:
                 continue
 
             type_key = type_key or key
+            # set scoped contexts from @type
             types = [t for t in JsonLdProcessor.arrayify(value) if _is_string(t)]
             for type_ in sorted(types):
                 ctx = JsonLdProcessor.get_context_value(
