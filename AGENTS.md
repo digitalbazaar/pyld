@@ -8,6 +8,10 @@ Read [CONTRIBUTING.rst](CONTRIBUTING.rst) for code style, linting (e.g. `make li
 - For brand-new test files, prefer function-based pytest tests (module-level `def test_...`) over class-based tests.
 - Use descriptive test names that reflect behavior (e.g. `test_remote_context_via_link_alternate`).
 
+## Documentation
+
+- When adding or promoting public top-level API exports, reflect them in the project documentation, especially the Sphinx API reference under `docs/`.
+
 ## Committing
 
 - Prefer one file per commit
