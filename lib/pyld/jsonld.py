@@ -2775,13 +2775,26 @@ class JsonLdProcessor:
                     code='invalid value object value',
                 )
 
-        # expand each nested key and scoped context
+        # Nested values merge into the current node, but their term and type
+        # scoped contexts must still be prepared as if expanding a node object.
         for key, term_ctx in nests:
             for nv in JsonLdProcessor.arrayify(element[key]):
-                if not _is_object(nv) or [
+                if not _is_object(nv):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; nested value must be a node object.',
+                        'jsonld.SyntaxError',
+                        {'value': nv},
+                        code='invalid @nest value',
+                    )
+
+                nested_active_ctx, nested_type_key, nested_type_scoped_ctx = (
+                    self._prepare_nested_context(term_ctx, nv, options)
+                )
+
+                if [
                     k
                     for k, v in nv.items()
-                    if self._expand_iri(term_ctx, k, vocab=True) == '@value'
+                    if self._expand_iri(nested_active_ctx, k, vocab=True) == '@value'
                 ]:
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; nested value must be a node object.',
@@ -2789,17 +2802,59 @@ class JsonLdProcessor:
                         {'value': nv},
                         code='invalid @nest value',
                     )
+
                 self._expand_object(
-                    term_ctx,
+                    nested_active_ctx,
                     active_property,
                     expanded_active_property,
                     nv,
                     expanded_parent,
                     options,
                     inside_list=inside_list,
-                    type_key=type_key,
-                    type_scoped_ctx=type_scoped_ctx,
+                    type_key=nested_type_key,
+                    type_scoped_ctx=nested_type_scoped_ctx,
                 )
+
+    def _prepare_nested_context(self, active_ctx, element, options):
+        """
+        Prepare local and type-scoped contexts for a nested node object.
+
+        `@nest` is semantically transparent in JSON-LD 1.1, so nested properties
+        are merged into the parent node. Context processing is not transparent:
+        a scoped context on the nest term must be active while discovering any
+        @type entries and applying the type-scoped contexts they reference.
+        """
+        # Local contexts on the nested node apply before looking for @type,
+        # just like they do for an ordinary node object.
+        if '@context' in element:
+            active_ctx = self._process_context(
+                active_ctx, element['@context'], options
+            )
+
+        # Type terms are looked up against the context that was active before
+        # applying any type-scoped contexts discovered below.
+        type_scoped_ctx = active_ctx
+        type_key = None
+        for key, value in sorted(element.items()):
+            # The @type entry itself may be aliased by the nest term's scoped
+            # context, so use the nested active context to identify it.
+            if self._expand_iri(active_ctx, key, vocab=True) != '@type':
+                continue
+
+            type_key = type_key or key
+            types = [t for t in JsonLdProcessor.arrayify(value) if _is_string(t)]
+            for type_ in sorted(types):
+                ctx = JsonLdProcessor.get_context_value(
+                    type_scoped_ctx, type_, '@context'
+                )
+                if ctx is not None and ctx is not False:
+                    # Type-scoped contexts affect expansion of this nested node,
+                    # but must not leak into sibling properties or parent nodes.
+                    active_ctx = self._process_context(
+                        active_ctx, ctx, options, propagate=False
+                    )
+
+        return active_ctx, type_key, type_scoped_ctx
 
     def _flatten(self, input):
         """
