@@ -188,7 +188,7 @@ document loader is a dummy document loader that raises an exception on every
 invocation.
 
 Frozen Document Loader
-~~~~~~~~~~~~~~~~~~~~~~
+######################
 
 For air-gapped runs, reproducible builds, and security-hardened deployments
 that must not perform any remote context fetches at all, PyLD ships
