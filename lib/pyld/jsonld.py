@@ -2139,9 +2139,9 @@ class JsonLdProcessor:
                 active_ctx, property_scoped_ctx, options, override_protected=True
             )
 
-        # prepare type-scoped contexts
-        active_ctx, type_key, type_scoped_ctx = self._prepare_nested_context(
-            active_ctx, element, options
+        # prepare type-scoped contexts when nested
+        active_ctx, type_key, type_scoped_ctx = (
+            self._prepare_nested_context(active_ctx, element, options)
         )
 
         # process each key and value in element, ignoring @nest content
@@ -2762,14 +2762,15 @@ class JsonLdProcessor:
                         code='invalid @nest value',
                     )
 
-                nested_active_ctx, nested_type_key, nested_type_scoped_ctx = (
+                # prepare type-scoped contexts when nested
+                active_ctx, type_key, type_scoped_ctx = (
                     self._prepare_nested_context(term_ctx, nv, options)
                 )
 
                 if [
                     k
                     for k, v in nv.items()
-                    if self._expand_iri(nested_active_ctx, k, vocab=True) == '@value'
+                    if self._expand_iri(active_ctx, k, vocab=True) == '@value'
                 ]:
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; nested value must be a node object.',
@@ -2779,15 +2780,15 @@ class JsonLdProcessor:
                     )
 
                 self._expand_object(
-                    nested_active_ctx,
+                    active_ctx,
                     active_property,
                     expanded_active_property,
                     nv,
                     expanded_parent,
                     options,
                     inside_list=inside_list,
-                    type_key=nested_type_key,
-                    type_scoped_ctx=nested_type_scoped_ctx,
+                    type_key=type_key,
+                    type_scoped_ctx=type_scoped_ctx,
                 )
 
     def _prepare_nested_context(self, active_ctx, element, options):
