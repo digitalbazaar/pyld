@@ -127,9 +127,6 @@ LINK_HEADER_REL = JSON_LD_NS + 'context'
 # Default base IRI if none is provided through input or options
 DEFAULT_BASE_IRI = 'http://example.org/base/'
 
-# Restraints
-MAX_CONTEXT_URLS = 10
-
 # resolved context cache
 # TODO: consider basing max on context size rather than number
 RESOLVED_CONTEXT_CACHE_MAX_SIZE = 100

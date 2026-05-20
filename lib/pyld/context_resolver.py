@@ -15,6 +15,7 @@ from pyld import iri_resolver, jsonld
 
 from .resolved_context import ResolvedContext
 
+# Restraints
 MAX_CONTEXT_URLS = 10
 
 
@@ -23,14 +24,28 @@ class ContextResolver:
     Resolves and caches remote contexts.
     """
 
-    def __init__(self, shared_cache, document_loader):
+    def __init__(self, shared_cache, document_loader, max_context_urls = None):
         """
         Creates a ContextResolver.
+
+        :param max_context_urls: the maximum number of times to recusively fetch contexts.
+          (default MAX_CONTEXT_URLS).
         """
         # processor-specific RDF parsers
         self.per_op_cache = {}
         self.shared_cache = shared_cache
         self.document_loader = document_loader
+        self._max_context_urls: int = max_context_urls if isinstance(max_context_urls, int) else MAX_CONTEXT_URLS
+
+    @property
+    def max_context_urls(self) -> int:
+        return self._max_context_urls
+
+    @max_context_urls.setter
+    def max_context_urls(self, max_context_urls: int) -> None:
+        if not isinstance(max_context_urls, int):
+            raise TypeError("Value for max_context_urls is not a number")
+        self._max_context_urls = max_context_urls
 
     def resolve(self, active_ctx, context, base, cycles=None):
         """
@@ -125,11 +140,11 @@ class ContextResolver:
 
     def _fetch_context(self, active_ctx, url, cycles):
         # check for max context URLs fetched during a resolve operation
-        if len(cycles) > MAX_CONTEXT_URLS:
+        if len(cycles) > self.max_context_urls:
             raise jsonld.JsonLdError(
                 'Maximum number of @context URLs exceeded.',
                 'jsonld.ContextUrlError',
-                {'max': MAX_CONTEXT_URLS},
+                {'max': self.max_context_urls},
                 code=(
                     'loading remote context failed'
                     if active_ctx.get('processingMode') == 'json-ld-1.0'
