@@ -220,7 +220,7 @@ Customizing the ContextLoader
 -----------------------------
 
 You can customize the way contexts are loaded and cached by passing an instance
-of `ContextResolver`. The following example implements a loader with a 
+of ``ContextResolver``. The following example implements a loader with a 
 prefilled custom document cache and uses a custom LRU cache for resolved 
 contexts:
 
@@ -266,7 +266,7 @@ contexts:
 
 
 It is also possible to change the maximum number of times that the loader recusively fetches contexts,
-by passing the `max_context_urls` parameter:
+by passing the ``max_context_urls`` parameter:
 
 .. code-block:: Python
 
