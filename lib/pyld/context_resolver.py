@@ -35,7 +35,7 @@ class ContextResolver:
         self.per_op_cache = {}
         self.shared_cache = shared_cache
         self.document_loader = document_loader
-        self._max_context_urls: int = max_context_urls if isinstance(max_context_urls, int) else MAX_CONTEXT_URLS
+        self.max_context_urls: int = max_context_urls
 
     @property
     def max_context_urls(self) -> int:
