@@ -30,6 +30,12 @@
   JSON-LD contexts (ActivityStreams, DID v1, VC v1/v2, Linked Data Security
   v1/v2, Ed25519-2020, JWS-2020) to vendored on-disk copies. Refresh with
   `make download-bundled-contexts`.
+- `pyld.ContextResolver`: added the `max_context_urls` property that 
+  determines maximum number of times contexts can be recusively fetched,
+  which replaces the role of the static `MAX_CONTEXT_URLS`. The constructor 
+  now accepts a `max_context_urls` parameter that sets the value of 
+  `max_context_urls` which defaults to `MAX_CONTEXT_URLS`. 
+
 
 ## 3.0.0 - 2026-04-02
 
