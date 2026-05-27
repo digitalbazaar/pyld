@@ -28,6 +28,8 @@ class ContextResolver:
         """
         Creates a ContextResolver.
 
+        :param shared_cache: the shared document cache.
+        :param document_loader: the document loader.
         :param max_context_urls: the maximum number of times to recusively fetch contexts.
           (default MAX_CONTEXT_URLS).
         """
@@ -37,16 +39,6 @@ class ContextResolver:
         self.document_loader = document_loader
         self.max_context_urls: int = max_context_urls
 
-    @property
-    def max_context_urls(self) -> int:
-        return self._max_context_urls
-
-    @max_context_urls.setter
-    def max_context_urls(self, max_context_urls: int) -> None:
-        if not isinstance(max_context_urls, int):
-            raise TypeError("Value for max_context_urls is not a number")
-        self._max_context_urls = max_context_urls
-
     def resolve(self, active_ctx, context, base, cycles=None):
         """
         Resolve a context.
@@ -54,8 +46,7 @@ class ContextResolver:
         :param active_ctx: the current active context.
         :param context: the context to resolve.
         :param base: the absolute URL to use for making url absolute.
-        :param cycles: the maximum number of times to recusively fetch contexts.
-          (default MAX_CONTEXT_URLS).
+        :param cycles: the set to store fetched contexts and detect cycles. (default None).
         """
         if cycles is None:
             cycles = set()
