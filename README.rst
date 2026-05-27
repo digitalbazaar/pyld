@@ -216,6 +216,67 @@ SHOULD attempt to use a locally cached version of contexts (see
 `§ Cache JSON-LD Contexts <https://w3c.github.io/json-ld-bp/#cache-json-ld-contexts>`_).
 Refresh the bundled copies with ``make download-bundled-contexts``.
 
+Customizing the ContextLoader
+-----------------------------
+
+You can customize the way contexts are loaded and cached by passing an instance
+of `ContextResolver`. The following example implements a loader with a 
+prefilled custom document cache and uses a custom LRU cache for resolved 
+contexts:
+
+.. code-block:: Python
+
+    from pyld.jsonld import compact, expand, set_document_loader, ContextResolver
+    import json
+    from cachetools import LRUCache
+
+    # Load the Linked Art context from file-system
+    fh = open('linked-art.json')
+    js = json.load(fh)
+    fh.close()
+
+    # Add to document cache
+    docCache = {
+        "https://linked.art/ns/v1/linked-art.json": {
+            "contextUrl": None,
+            "documentUrl": "https://linked.art/ns/v1/linked-art.json",
+            "document": js
+        }
+    }
+
+    # Custom loader that uses the document cache
+    def load_document_and_cache(url, options={}):
+        if url in docCache:
+            return docCache[url]
+        doc = {"contextUrl": None, "documentUrl": url, "document": ""}
+        resp = requests.get(url)
+        doc["document"] = resp.json()
+        docCache[url] = doc
+        return doc
+
+    # Set the custom loader as global document loader
+    set_document_loader(load_document_and_cache)
+    # Create custom context resolver with custom LRU cache and custom loader
+    resolved_context_cache = LRUCache(maxsize=1000)
+    resolver = ContextResolver(resolved_context_cache, load_document_and_cache)
+
+    # Expand JSON-LD document using custom context resolver
+    input = {"@context":"https://linked.art/ns/v1/linked-art.json", "id": "tag:foo", "type": "Person"}
+    output = expand(input, options={'contextResolver': resolver})
+
+
+It is also possible to change the maximum number of times that the loader recusively fetches contexts,
+by passing the `max_context_urls` parameter:
+
+.. code-block:: Python
+
+    resolver = ContextResolver(resolved_context_cache, load_document_and_cache, max_context_urls=20)
+    # Or you can do...
+    # resolver = ContextResolver(resolved_context_cache, load_document_and_cache)
+    # resolver.max_context_urls = 20
+    output = expand(input, options={'contextResolver': resolver})
+
+
 Handling ignored properties during JSON-LD expansion
 ----------------------------------------------------
 
