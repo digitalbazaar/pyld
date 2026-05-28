@@ -993,9 +993,6 @@ TEST_TYPES = {
         'skip': {
             'specVersion': ['json-ld-1.0'],
             'idRegex': [
-                # direction (compound-literal)
-                '.*fromRdf-manifest#tdi11$',
-                '.*fromRdf-manifest#tdi12$',
                 # uncategorized
                 '.*fromRdf-manifest#t0027$',
             ],
