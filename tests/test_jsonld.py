@@ -428,6 +428,47 @@ class TestExpand:
         assert expanded["https://example.org/Shape"] == [{"@id": "https://example.org/Circle"}]
         assert expanded["https://example.org/name"] == [{"@value": "test"}]
 
+    # Issue 145
+    def test_context_contained_with_propagate(self):
+        """
+        The same context object contained under the node with @propagate
+        should properly expand.
+        """
+        input = {
+            "@context": {
+                "@propagate": False,
+                "a": {
+                    "@id": "http://abc/a",
+                    "@context": {"b": "http://abc/b", "c": "http://abc/c"},
+                },
+                "d": {
+                    "@id": "http://abc/d",
+                    "@context": {"b": "http://abc/b", "c": "http://abc/c"},
+                },
+            },
+            "a": {"b": "bb", "c": "cc"},
+            "d": {"b": "bbb", "c": "ccc"},
+        }
+
+        expected = [
+            {
+                "http://abc/a": [
+                    {
+                        "http://abc/b": [{"@value": "bb"}],
+                        "http://abc/c": [{"@value": "cc"}],
+                    }
+                ],
+                "http://abc/d": [
+                    {
+                        "http://abc/b": [{"@value": "bbb"}],
+                        "http://abc/c": [{"@value": "ccc"}],
+                    }
+                ],
+            }
+        ]
+
+        expanded = jsonld.expand(input)
+        assert expanded == expected
 
 class TestFrame:
     # Issue 11 - PR: https://github.com/digitalbazaar/pyld/issues/149
