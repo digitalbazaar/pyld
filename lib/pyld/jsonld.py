@@ -79,6 +79,9 @@ RDF_NIL = RDF + 'nil'
 RDF_TYPE = RDF + 'type'
 RDF_LANGSTRING = RDF + 'langString'
 RDF_JSON_LITERAL = RDF + 'JSON'
+RDF_VALUE = RDF + 'value'
+RDF_LANGUAGE = RDF + 'language'
+RDF_DIRECTION = RDF + 'direction'
 
 # BCP47
 REGEX_BCP47 = r'^[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*$'
@@ -315,6 +318,8 @@ def from_rdf(input_, options=None):
       [useRdfType] True to use rdf:type, False to use @type (default: False).
       [useNativeTypes] True to convert XSD types into native types
         (boolean, integer, double), False not to (default: True).
+      [rdfDirection] Either 'i18n-datatype' or 'compound-literal'
+        is supported. (default: None)
 
     :return: the JSON-LD output.
     """
@@ -1000,7 +1005,8 @@ class JsonLdProcessor:
             (default: False).
           [useNativeTypes] True to convert XSD types into native types
             (boolean, integer, double), False not to (default: False).
-          [rdfDirection] Only 'i18n-datatype' is supported. (default: None)
+          [rdfDirection] Either 'i18n-datatype' or 'compound-literal'
+            is supported. (default: None)
 
         :return: the JSON-LD output.
         """
@@ -2976,8 +2982,14 @@ class JsonLdProcessor:
                             'value': value,
                         }
 
-        # convert linked lists to @list arrays
         for _name, graph_object in graph_map.items():
+            # Convert compound-literal blank nodes before list conversion, so
+            # list items can also contain directional value objects.
+            if options['rdfDirection'] == 'compound-literal':
+                self._rdf_direction_to_compound_literal(graph_object)
+
+            # convert linked lists to @list arrays
+
             # no @lists to be converted, continue
             if RDF_NIL not in graph_object:
                 continue
@@ -3055,6 +3067,106 @@ class JsonLdProcessor:
                 result.append(node)
 
         return result
+
+    def _rdf_direction_to_compound_literal(self, graph_object):
+        """
+        Replace RDF compound-literal blank nodes with JSON-LD value objects.
+
+        The RDF encoding uses a blank node with rdf:value, rdf:direction,
+        and optionally rdf:language. The JSON-LD form stores those fields
+        directly on the referencing value object, so this updates the graph
+        object in place just like the RDF list conversion below does.
+        """
+        # map with blank node id to the JSON-LD value object
+        # that should replace references to that blank node.
+        compound_literals = {}
+        # maps for not-yet-seen blank node id to the list
+        # positions where a reference to it was found.
+        pending_references = {}
+
+        # Iterate over the graph. If a reference points to a compound literal
+        # already seen, replace it immediately. Otherwise, store it in
+        # pending_references and patch it if that target is identified later.
+        for id_, node in graph_object.items():
+            value = self._compound_literal_to_value(id_, node)
+            if value is not None:
+                compound_literals[id_] = value
+                # Patch any earlier references to this blank node now that we
+                # know it is a compound literal.
+                for values, index in pending_references.pop(id_, []):
+                    values[index] = value
+
+            # Scan every array-valued property for node references. A
+            # compound literal can be the object of any predicate, including
+            # rdf:first in a list.
+            for key, values in node.items():
+                if key == '@id' or not _is_array(values):
+                    continue
+                for index, item in enumerate(values):
+                    if not _is_subject_reference(item):
+                        continue
+                    ref_id = item['@id']
+                    replacement = compound_literals.get(ref_id)
+                    if replacement is not None:
+                        values[index] = replacement
+                    elif ref_id.startswith('_:'):
+                        # Only blank node references can become compound
+                        # literals; IRI references can be ignored here.
+                        pending_references.setdefault(ref_id, []).append((values, index))
+
+        # The encoding blank nodes are no longer graph subjects once all
+        # references have been rewritten.
+        for id_ in compound_literals:
+            del graph_object[id_]
+
+    def _compound_literal_to_value(self, id_, node):
+        """
+        Return a JSON-LD value object if node has the compound-literal shape.
+
+        A valid compound literal is a blank node with only @id, rdf:value,
+        rdf:direction, and optionally rdf:language. Each RDF property must
+        have exactly one JSON-LD value-object entry.
+        """
+        allowed_keys = {RDF_VALUE, RDF_LANGUAGE, RDF_DIRECTION, '@id'}
+
+        # Anything with extra properties is an ordinary node, not the special
+        # compound-literal encoding.
+        if (
+            not id_.startswith('_:')
+            or set(node.keys()) - allowed_keys
+            or not self._is_single_rdf_value(node, RDF_VALUE)
+            or not self._is_single_rdf_value(node, RDF_DIRECTION)
+        ):
+            return None
+
+        # Start from rdf:value so datatype/native literal handling already
+        # done by _rdf_to_object is preserved.
+        value = node[RDF_VALUE][0].copy()
+        direction = node[RDF_DIRECTION][0].get('@value')
+        if direction not in ['ltr', 'rtl']:
+            return None
+
+        if RDF_LANGUAGE in node:
+            if not self._is_single_rdf_value(node, RDF_LANGUAGE):
+                return None
+            language = node[RDF_LANGUAGE][0].get('@value')
+            if not _is_string(language):
+                return None
+            value['@language'] = language
+
+        value['@direction'] = direction
+        return value
+
+    def _is_single_rdf_value(self, node, key):
+        """
+        Return True when a node property has exactly one JSON-LD value object.
+        """
+        return (
+            key in node
+            and _is_array(node[key])
+            and len(node[key]) == 1
+            and _is_value(node[key][0])
+        )
 
     def _process_context(
         self,
