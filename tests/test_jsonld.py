@@ -925,6 +925,59 @@ _:b0 <http://purl.org/dc/terms/title> "Chapter 1: Jonathan Harker's Journal" .
         nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
         assert nquads == expected
 
+class TestFromRDF:
+    def test_compound_literal_direction_without_language(self):
+        """
+        Compound literals with rdf:direction should become JSON-LD value
+        objects when rdfDirection is compound-literal.
+        """
+        input = """
+        <http://example.com/a> <http://example.org/label> _:cl1 .
+        _:cl1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "no language" .
+        _:cl1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#direction> "rtl" .
+        """
+
+        expected = [
+            {
+                '@id': 'http://example.com/a',
+                'http://example.org/label': [
+                    {'@value': 'no language', '@direction': 'rtl'}
+                ],
+            }
+        ]
+
+        result = jsonld.from_rdf(input, {'rdfDirection': 'compound-literal'})
+
+        assert result == expected
+
+    def test_compound_literal_direction_with_language(self):
+        """
+        Compound literals with rdf:language should preserve the language
+        when rdfDirection is compound-literal.
+        """
+        input = """
+        <http://example.com/a> <http://example.org/label> _:cl1 .
+        _:cl1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "en-US" .
+        _:cl1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#language> "en-us" .
+        _:cl1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#direction> "rtl" .
+        """
+
+        expected = [
+            {
+                '@id': 'http://example.com/a',
+                'http://example.org/label': [
+                    {
+                        '@value': 'en-US',
+                        '@language': 'en-us',
+                        '@direction': 'rtl',
+                    }
+                ],
+            }
+        ]
+
+        result = jsonld.from_rdf(input, {'rdfDirection': 'compound-literal'})
+
+        assert result == expected
 
 class TestCompact:
     # Issue 59 - PR: https://github.com/digitalbazaar/pyld/pull/60
