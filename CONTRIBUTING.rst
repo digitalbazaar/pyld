@@ -16,6 +16,27 @@ Code
 * Use version X.Y.Z-dev in dev mode.
 * Use version X.Y.Z for releases.
 
+Documentation
+-------------
+
+The public documentation site is built with MkDocs Material.
+
+* Install documentation dependencies:
+
+  * ``pip install -r docs/requirements.txt``
+
+* Preview documentation locally:
+
+  * ``mkdocs serve``
+
+* Check documentation before submitting changes:
+
+  * ``mkdocs build --strict``
+
+* Refresh bundled JSON-LD context files:
+
+  * ``make download-bundled-contexts``
+
 Versioning
 ----------
 
