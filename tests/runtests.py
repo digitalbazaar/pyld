@@ -991,10 +991,7 @@ TEST_TYPES = {
     'jld:FromRDFTest': {
         'skip': {
             'specVersion': ['json-ld-1.0'],
-            'idRegex': [
-                # uncategorized
-                '.*fromRdf-manifest#t0027$',
-            ],
+            'idRegex': [],
         },
         'fn': 'from_rdf',
         'params': [
