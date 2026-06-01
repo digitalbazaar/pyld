@@ -16,6 +16,9 @@
   class-based `DocumentLoader` instances while preserving the existing
   callable factory API. The concrete `RequestsDocumentLoader` and
   `AioHttpDocumentLoader` classes are also importable from `pyld`.
+- The `pytest` test runner now uses plain assert result == expect instead 
+  of printing EXPECTED / ACTUAL and raising a generic failure. This enables 
+  `pytests`'s native result comparison.
 
 ### Added
 - `pyld.DocumentLoader` abstract base class for class-based document loaders,

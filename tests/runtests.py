@@ -470,31 +470,28 @@ class Test(unittest.TestCase):
                         'format': 'application/n-quads',
                     },
                 )
-                if result == expect:
-                    self.assertTrue(True)
+                if _running_under_pytest():
+                    assert result == expect
                 else:
-                    print('\nEXPECTED: ', expect)
-                    print('ACTUAL: ', result)
-                    raise AssertionError('results differ')
+                    assert_results_equal(result, expect)
             elif not self.is_negative:
                 # Perform order-independent equivalence test
-                if equal_unordered(result, expect):
-                    self.assertTrue(True)
-                else:
-                    print('\nEXPECTED: ', json.dumps(expect, indent=2))
-                    print('ACTUAL: ', json.dumps(result, indent=2))
-                    raise AssertionError('results differ')
+                if not equal_unordered(result, expect):
+                    if _running_under_pytest():
+                        assert result == expect
+                    else:
+                        assert_results_equal(result, expect, json_output=True)
             else:
-                self.assertEqual(result, expect)
+                if _running_under_pytest():
+                    assert result == expect
+                else:
+                    assert_results_equal(result, expect)
             if self.pending and not self.is_negative:
                 raise AssertionError('pending positive test passed')
         except AssertionError as e:
-            if e.args[0] == 'pending positive test passed':
-                print(e)
-                raise e
-            elif not self.is_negative and not self.pending:
-                print('\nEXPECTED: ', json.dumps(expect, indent=2))
-                print('ACTUAL: ', json.dumps(result, indent=2))
+            if (e.args and e.args[0] == 'pending positive test passed') or (
+                not self.is_negative and not self.pending
+            ):
                 raise e
             elif not self.is_negative or (self.is_negative and self.pending):
                 print('pending')
@@ -513,7 +510,23 @@ class Test(unittest.TestCase):
                 print('pending')
             else:
                 # import pdb; pdb.set_trace()
-                self.assertEqual(result, expect)
+                if _running_under_pytest():
+                    assert result == expect
+                else:
+                    assert_results_equal(result, expect)
+
+
+def assert_results_equal(result, expect, json_output=False):
+    if json_output:
+        expect = json.dumps(expect, indent=2)
+        result = json.dumps(result, indent=2)
+    print('\nEXPECTED: ', expect)
+    print('ACTUAL: ', result)
+    raise AssertionError('results differ')
+
+
+def _running_under_pytest():
+    return 'pytest' in sys.modules
 
 
 # Compare values with order-insensitive array tests
