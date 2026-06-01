@@ -4,9 +4,12 @@ from contextlib import suppress
 
 import pytest
 
+# Register tests.runtests for pytest assertion rewriting before importing it.
+pytest.register_assert_rewrite('tests.runtests')
+
 # Import the existing test runner module so we can reuse Manifest/Test
 # implementations with minimal changes.
-from . import runtests
+from . import runtests  # noqa: E402
 
 
 def pytest_addoption(parser):
