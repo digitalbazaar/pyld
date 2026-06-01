@@ -1,1 +1,1 @@
-sphinx-autobuild
+mkdocs-material
