@@ -1,0 +1,39 @@
+site_name: PyLD
+site_description: Python implementation of the JSON-LD API
+site_url: https://digitalbazaar.github.io/pyld/
+repo_url: https://github.com/digitalbazaar/pyld
+repo_name: digitalbazaar/pyld
+
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - navigation.footer
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.suggest
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Quick Examples: quick-examples.md
+  - Document Loaders:
+      - Overview: document-loaders.md
+      - RequestsDocumentLoader: document-loaders/requests.md
+      - AioHttpDocumentLoader: document-loaders/aiohttp.md
+      - FrozenDocumentLoader: document-loaders/frozen.md
+  - API Reference: api-reference.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+
+plugins:
+  - search
