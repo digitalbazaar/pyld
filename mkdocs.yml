@@ -36,4 +36,6 @@ markdown_extensions:
       permalink: true
 
 plugins:
+  - macros:
+      module_name: docs_macros
   - search
