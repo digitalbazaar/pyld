@@ -12,6 +12,10 @@ from pyld import FrozenDocumentLoader, jsonld
 jsonld.set_document_loader(FrozenDocumentLoader())
 ```
 
+## Bundled Contexts
+
+{{ bundled_contexts_table() }}
+
 Extend the bundled mapping with additional vetted contexts:
 
 ```python
