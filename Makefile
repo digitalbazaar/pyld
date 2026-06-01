@@ -1,10 +1,13 @@
-.PHONY: install test upgrade-submodules download-bundled-contexts
+.PHONY: install test serve upgrade-submodules download-bundled-contexts
 
 install:
 	pip install -e .
 
 test:
 	pytest --cov=pyld
+
+serve:
+	mkdocs serve --dev-addr 127.0.0.1:8008
 
 upgrade-submodules:
 	git submodule update --remote --init --recursive
