@@ -944,7 +944,7 @@ class TestToRdf:
             ]
         }
 
-        result = jsonld.to_rdf(input)
+        result = jsonld.to_rdf(input, {"legacyMode": True})
         assert result == expected
 
     def test_large_integer_to_rdf_double_conversion_processing_mode(self):
