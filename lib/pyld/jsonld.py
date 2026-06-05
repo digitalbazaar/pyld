@@ -127,10 +127,6 @@ _inverse_context_cache = LRUCache(maxsize=INVERSE_CONTEXT_CACHE_MAX_SIZE)
 # Initial contexts, defined on first access
 INITIAL_CONTEXTS = {}
 
-# In legacy mode, pyld returns RDF datasets as
-# RDFJS-like dict objects, equivalent to PyLD < 4.0
-LEGACY_MODE = True
-
 # Handler to call if a property was dropped during expansion
 OnPropertyDropped = Callable[[str | None], Any]
 
@@ -1059,6 +1055,7 @@ class JsonLdProcessor:
             (default: _default_document_loader).
           [rdfDirection] Either 'i18n-datatype' or 'compound-literal'
             (default: None).
+          [legacyMode] Output result as RDF.js-like dict.
 
         :return: the resulting RDF dataset (or a serialization of it).
         """
@@ -1107,7 +1104,9 @@ class JsonLdProcessor:
                 'jsonld.UnknownFormat',
                 {'format': options['format']},
             )
-        return to_legacy_dataset(dataset) if LEGACY_MODE else dataset
+        # In legacy mode, return RDF datasets as
+        # RDFJS-like dict objects equivalent to PyLD < 4.0
+        return to_legacy_dataset(dataset) if options.get('legacyMode', False) else dataset
 
     def process_context(self, active_ctx, local_ctx, options):
         """
@@ -1416,7 +1415,7 @@ class JsonLdProcessor:
         return rval
 
     @staticmethod
-    def parse_nquads(input_: str) -> Dataset | dict:
+    def parse_nquads(input_: str, **kwargs) -> Dataset | dict:
         """
         Parses RDF in the form of N-Quads.
 
@@ -1435,7 +1434,9 @@ class JsonLdProcessor:
             parser = NQuadsParser()
             rdflib.NORMALIZE_LITERALS = False
             parser.parse(StringInputSource(input_), dataset, bnode_context=bnode_context)
-            return to_legacy_dataset(dataset) if LEGACY_MODE else dataset
+            # In legacy mode, return RDF datasets as
+            # RDFJS-like dict objects equivalent to PyLD < 4.0
+            return to_legacy_dataset(dataset) if kwargs.get('legacy_mode', False) else dataset
         except SyntaxError as cause:
             raise JsonLdError(
                 str(cause), 'jsonld.ParseError', {'line': cause.lineno}
