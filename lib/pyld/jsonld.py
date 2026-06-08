@@ -1057,7 +1057,7 @@ class JsonLdProcessor:
             to produce only standard RDF (default: false).
           [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
-          [rdfDirection] Only 'i18n-datatype' supported
+          [rdfDirection] Either 'i18n-datatype' or 'compound-literal'
             (default: None).
 
         :return: the resulting RDF dataset (or a serialization of it).
@@ -3917,8 +3917,7 @@ class JsonLdProcessor:
         :param item: the JSON-LD value or node object.
         :param issuer: the IdentifierIssuer for issuing blank node identifiers.
         :param triples: the array of triples to append list entries to.
-        :param rdf_direction: for creating datatyped literals.
-        :param rdf_direction: for creating datatyped literals.
+        :param rdf_direction: for creating directional literals.
 
         :return: the RDF literal or RDF resource.
         """
@@ -3960,6 +3959,44 @@ class JsonLdProcessor:
             elif _is_integer(value):
                 object['value'] = str(value)
                 object['datatype'] = datatype or XSD_INTEGER
+            elif rdf_direction == 'compound-literal' and '@direction' in item:
+                object['type'] = 'blank node'
+                object['value'] = issuer.get_id()
+                subject = {'type': 'blank node', 'value': object['value']}
+                triples.append(
+                    {
+                        'subject': subject,
+                        'predicate': {'type': 'IRI', 'value': RDF_VALUE},
+                        'object': {
+                            'type': 'literal',
+                            'value': value,
+                            'datatype': XSD_STRING,
+                        },
+                    }
+                )
+                triples.append(
+                    {
+                        'subject': subject,
+                        'predicate': {'type': 'IRI', 'value': RDF_DIRECTION},
+                        'object': {
+                            'type': 'literal',
+                            'value': item['@direction'],
+                            'datatype': XSD_STRING,
+                        },
+                    }
+                )
+                if '@language' in item:
+                    triples.append(
+                        {
+                            'subject': subject,
+                            'predicate': {'type': 'IRI', 'value': RDF_LANGUAGE},
+                            'object': {
+                                'type': 'literal',
+                                'value': item['@language'],
+                                'datatype': XSD_STRING,
+                            },
+                        }
+                    )
             elif rdf_direction == 'i18n-datatype' and '@direction' in item:
                 datatype = 'https://www.w3.org/ns/i18n#{}_{}'.format(
                     item.get('@language', ''), item['@direction']
