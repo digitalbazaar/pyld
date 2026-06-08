@@ -58,10 +58,12 @@
   which replaces the role of the static `MAX_CONTEXT_URLS`. The constructor 
   now accepts a `max_context_urls` parameter that sets the value of 
   `max_context_urls` which defaults to `MAX_CONTEXT_URLS`. 
-- `pyld.fromRdf()` now supports compound literals when serializing RDF to JSON-LD. 
-  It therefore also accepts the value `'compound-literal'` for the `'rdfDirection'` option. 
-  Fixes [fromRdf#tdi11](https://w3c.github.io/json-ld-api/tests/fromRdf-manifest.html#tdi11) 
-  and [fromRdf#tdi12](https://w3c.github.io/json-ld-api/tests/fromRdf-manifest.html#tdi12).
+- `pyld.fromRdf()` and `pyld.toRdf()` now support compound literals when serializing RDF to JSON-LD. 
+  Therefore, both methods accept the value `'compound-literal'` for the `'rdfDirection'` option. 
+  Fixes [fromRdf#tdi11](https://w3c.github.io/json-ld-api/tests/fromRdf-manifest.html#tdi11),
+  [fromRdf#tdi12](https://w3c.github.io/json-ld-api/tests/fromRdf-manifest.html#tdi12),
+  [toRdf#tdi11](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#tdi11), and
+  [toRdf#tdi12](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#tdi12).
 
 ## 3.0.0 - 2026-04-02
 
