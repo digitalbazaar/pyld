@@ -981,7 +981,7 @@ class TestFromRDF:
 
     def test_shared_compound_literal_blank_node_remains_node(self):
         """
-        Compound literal blank nodes must only be decoded when referenced once.
+        Compound literal blank nodes must only be decoded once when referenced.
         """
         input = """
         <http://example.com/a> <http://example.org/label> _:cl1 .
