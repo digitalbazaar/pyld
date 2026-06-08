@@ -3,13 +3,33 @@
 ## 3.1.0 - unreleased
 
 ### Fixed
-- When compacting, expands the index mapping first, then compacts that expanded IRI, matching the JSON-LD API compaction correction for compact-IRI index mappings. Fixes testcases [compact#t0112](https://w3c.github.io/json-ld-api/tests/compact-manifest.html#t0112) and [compact#t0113](https://w3c.github.io/json-ld-api/tests/compact-manifest.html#t0113).
-- Fixes `AttributeError` when compacting with `@none`: the `@type` map compaction path now only calls `.pop()` and inspects keys when `compacted_item` is actually an object. Fixes [compact#tm023](https://w3c.github.io/json-ld-api/tests/compact-manifest.html#tm023)
-- An empty property-scoped context no longer resets the active context in `_create_term_definition`. Now only explicit null becomes False; empty contexts are preserved. Fixes [compact#tc028](https://w3c.github.io/json-ld-api/tests/compact-manifest.html#tc028), [toRdf#tc036](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#tc036) and [expand#tc036](https://w3c.github.io/json-ld-api/tests/expand-manifest.html#tc036).
-- Options from the test manifest now override the options configured in `create_test_options()`, instead of the other way around. This fixes tests not able to override default options in the test-setup such as `extractAllScripts`. Fixes [html#tf004](https://w3c.github.io/json-ld-api/tests/html-manifest#tf004).
-- When `@type` is `@json` in a frame, it no longer raises an "Invalid JSON-LD syntax" error. Fixes [frame#t0069](https://w3c.github.io/json-ld-framing/tests/frame-manifest.html#t0069).
+- When compacting, expands the index mapping first, then compacts that expanded 
+  IRI, matching the JSON-LD API compaction correction for compact-IRI index
+  mappings. Fixes testcases [compact#t0112](https://w3c.github.io/json-ld-api/tests/compact-manifest.html#t0112)
+  and [compact#t0113](https://w3c.github.io/json-ld-api/tests/compact-manifest.html#t0113).
+- Fixes `AttributeError` when compacting with `@none`: the `@type` map 
+  compaction path now only calls `.pop()` and inspects keys when 
+  `compacted_item` is actually an object. Fixes 
+  [compact#tm023](https://w3c.github.io/json-ld-api/tests/compact-manifest.html#tm023)
+- An empty property-scoped context no longer resets the active context in
+  `_create_term_definition`. Now only explicit null becomes False; empty
+  contexts are preserved. Fixes [compact#tc028](https://w3c.github.io/json-ld-api/tests/compact-manifest.html#tc028), 
+  [toRdf#tc036](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#tc036)
+   and [expand#tc036](https://w3c.github.io/json-ld-api/tests/expand-manifest.html#tc036).
+- Options from the test manifest now override the options configured in
+  `create_test_options()`, instead of the other way around. This fixes
+  tests not able to override default options in the test-setup such as
+  `extractAllScripts`. Fixes [html#tf004](https://w3c.github.io/json-ld-api/tests/html-manifest#tf004).
+- When `@type` is `@json` in a frame, it no longer raises an "Invalid JSON-LD
+  syntax" error. Fixes [frame#t0069](https://w3c.github.io/json-ld-framing/tests/frame-manifest.html#t0069).
 - Use safeguard for non-dict values of `options['link']`
-- Local and type-scoped contexts are now properly resolved for nested node objects, so a scoped context on a `@nest` term is being applied to nested properties. Fixes [toRdf#tc037](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#tc037) and [toRdf#tc038](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#tc038).
+- Local and type-scoped contexts are now properly resolved for nested node
+  objects, so a scoped context on a `@nest` term is being applied to nested
+  properties. Fixes [toRdf#tc037](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#tc037), 
+  [toRdf#tc038](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#tc038), 
+  [expand#tc037](https://w3c.github.io/json-ld-api/tests/expand-manifest.html#tc037)
+  and [expand#tc038](https://w3c.github.io/json-ld-api/tests/expand-manifest.html#tc038).
+
 
 ### Changed
 - `requests_document_loader()` and `aiohttp_document_loader()` now return
