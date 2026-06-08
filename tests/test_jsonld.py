@@ -1029,6 +1029,22 @@ class TestFromRDF:
 
         assert exc.value.code == 'invalid base direction'
 
+    def test_compound_literal_invalid_value_fails(self):
+        """
+        Invalid rdf:value entries in compound literals must fail.
+        """
+        input = """
+        <http://example.com/a> <http://example.org/label> _:cl1 .
+        _:cl1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "one" .
+        _:cl1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "two" .
+        _:cl1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#direction> "rtl" .
+        """
+
+        with pytest.raises(jsonld.JsonLdError) as exc:
+            jsonld.from_rdf(input, {'rdfDirection': 'compound-literal'})
+
+        assert exc.value.code == 'invalid value object'
+
     def test_compound_literal_invalid_language_fails(self):
         """
         Invalid rdf:language values in compound literals must fail.
