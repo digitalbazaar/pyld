@@ -872,6 +872,62 @@ class TestToRdf:
         result = jsonld.to_rdf(input)
         assert result == expected
 
+    def test_compound_literal_direction_without_language(self):
+        """
+        Values with @direction should become compound literals during to_rdf
+        when rdfDirection is compound-literal.
+        """
+        input = {
+            'http://example.org/label': {
+                '@value': 'no language',
+                '@direction': 'rtl',
+            }
+        }
+
+        expected = """_:b0 <http://example.org/label> _:b1 .
+_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#direction> "rtl" .
+_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "no language" .
+"""
+
+        nquads = jsonld.to_rdf(
+            input,
+            options={
+                'format': 'application/n-quads',
+                'rdfDirection': 'compound-literal',
+            },
+        )
+
+        assert nquads == expected
+
+    def test_compound_literal_direction_with_language(self):
+        """
+        Values with @language should preserve it in compound literals during
+        to_rdf when rdfDirection is compound-literal.
+        """
+        input = {
+            'http://example.org/label': {
+                '@value': 'en-US',
+                '@language': 'en-US',
+                '@direction': 'rtl',
+            }
+        }
+
+        expected = """_:b0 <http://example.org/label> _:b1 .
+_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#direction> "rtl" .
+_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#language> "en-us" .
+_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "en-US" .
+"""
+
+        nquads = jsonld.to_rdf(
+            input,
+            options={
+                'format': 'application/n-quads',
+                'rdfDirection': 'compound-literal',
+            },
+        )
+
+        assert nquads == expected
+
      # Issue 204
     def test_conflicting_property_names(self):
         """
