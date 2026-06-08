@@ -3077,28 +3077,21 @@ class JsonLdProcessor:
         directly on the referencing value object, so this updates the graph
         object in place just like the RDF list conversion below does.
         """
-        # map with blank node id to the JSON-LD value object
-        # that should replace references to that blank node.
+        # Decode candidate blank nodes up front. Ordinary nodes return None;
+        # malformed compound literals raise before any graph mutation happens.
         compound_literals = {}
-        # maps for not-yet-seen blank node id to the list
-        # positions where a reference to it was found.
-        pending_references = {}
-
-        # Iterate over the graph. If a reference points to a compound literal
-        # already seen, replace it immediately. Otherwise, store it in
-        # pending_references and patch it if that target is identified later.
         for id_, node in graph_object.items():
             value = self._compound_literal_to_value(id_, node)
             if value is not None:
                 compound_literals[id_] = value
-                # Patch any earlier references to this blank node now that we
-                # know it is a compound literal.
-                for values, index in pending_references.pop(id_, []):
-                    values[index] = value
 
-            # Scan every array-valued property for node references. A
-            # compound literal can be the object of any predicate, including
-            # rdf:first in a list.
+        if not compound_literals:
+            return
+
+        # Track where each compound literal is referenced. Only the first two
+        # locations matter: one reference can be inlined, two means shared.
+        references = {}
+        for node in graph_object.values():
             for key, values in node.items():
                 if key == '@id' or not _is_array(values):
                     continue
@@ -3106,17 +3099,22 @@ class JsonLdProcessor:
                     if not _is_subject_reference(item):
                         continue
                     ref_id = item['@id']
-                    replacement = compound_literals.get(ref_id)
-                    if replacement is not None:
-                        values[index] = replacement
-                    elif ref_id.startswith('_:'):
-                        # Only blank node references can become compound
-                        # literals; IRI references can be ignored here.
-                        pending_references.setdefault(ref_id, []).append((values, index))
+                    if ref_id not in compound_literals:
+                        continue
+                    locations = references.setdefault(ref_id, [])
+                    if len(locations) < 2:
+                        locations.append((values, index))
 
-        # The encoding blank nodes are no longer graph subjects once all
-        # references have been rewritten.
-        for id_ in compound_literals:
+        # Rewrite only unshared compound literals. Shared blank nodes carry
+        # graph identity, so their references must remain as @id references.
+        for id_, value in compound_literals.items():
+            locations = references.get(id_, [])
+            if len(locations) != 1:
+                continue
+            values, index = locations[0]
+            values[index] = value
+            # The encoding blank node is no longer a graph subject once its
+            # only reference has been rewritten.
             del graph_object[id_]
 
     def _compound_literal_to_value(self, id_, node):
@@ -3134,24 +3132,50 @@ class JsonLdProcessor:
         if (
             not id_.startswith('_:')
             or set(node.keys()) - allowed_keys
-            or not self._is_single_rdf_value(node, RDF_VALUE)
-            or not self._is_single_rdf_value(node, RDF_DIRECTION)
+            or RDF_VALUE not in node
+            or RDF_DIRECTION not in node
         ):
             return None
+
+        if not self._is_single_rdf_value(node, RDF_VALUE):
+            raise JsonLdError(
+                'Invalid JSON-LD syntax; rdf:value must be a single value.',
+                'jsonld.SyntaxError',
+                code='invalid value object',
+            )
+
+        if not self._is_single_rdf_value(node, RDF_DIRECTION):
+            raise JsonLdError(
+                'Invalid JSON-LD syntax; rdf:direction must be a single value.',
+                'jsonld.InvalidBaseDirection',
+                code='invalid base direction',
+            )
 
         # Start from rdf:value so datatype/native literal handling already
         # done by _rdf_to_object is preserved.
         value = node[RDF_VALUE][0].copy()
         direction = node[RDF_DIRECTION][0].get('@value')
         if direction not in ['ltr', 'rtl']:
-            return None
+            raise JsonLdError(
+                'Invalid JSON-LD syntax; @direction must be "ltr" or "rtl".',
+                'jsonld.InvalidBaseDirection',
+                code='invalid base direction',
+            )
 
         if RDF_LANGUAGE in node:
             if not self._is_single_rdf_value(node, RDF_LANGUAGE):
-                return None
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; rdf:language must be a single value.',
+                    'jsonld.InvalidLanguageTaggedString',
+                    code='invalid language-tagged string',
+                )
             language = node[RDF_LANGUAGE][0].get('@value')
-            if not _is_string(language):
-                return None
+            if not _is_string(language) or not re.match(REGEX_BCP47, language):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; rdf:language must be a valid BCP47 language.',
+                    'jsonld.InvalidLanguageTaggedString',
+                    code='invalid language-tagged string',
+                )
             value['@language'] = language
 
         value['@direction'] = direction
