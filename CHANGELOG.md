@@ -16,6 +16,7 @@
   class-based `DocumentLoader` instances while preserving the existing
   callable factory API. The concrete `RequestsDocumentLoader` and
   `AioHttpDocumentLoader` classes are also importable from `pyld`.
+- Convert `./README.rst` (reStructuredText) to `./README.md` (markdown) and update its contents. 
 
 ### Added
 - `pyld.DocumentLoader` abstract base class for class-based document loaders,

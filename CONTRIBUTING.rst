@@ -78,7 +78,7 @@ As of early 2020, the process to generate an EARL report for the official
 `JSON-LD Processor Conformance`_ page is:
 
 * Run the tests on the ``json-ld-api`` and ``json-ld-framing`` test repos to
-  generate a ``.jsonld`` test report as explained in [README.rst](./README.rst#tests)
+  generate a ``.jsonld`` test report as explained in [README.md](./README.md#tests)
 * Use the rdf_ tool to generate a ``.ttl``:
 
   * ``rdf serialize pyld-earl.jsonld --output-format turtle -o pyld-earl.ttl``

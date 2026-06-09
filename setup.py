@@ -18,7 +18,7 @@ with open(os.path.join(
         os.path.dirname(__file__), 'lib', 'pyld', '__about__.py')) as fp:
     exec(fp.read(), about)
 
-with open('README.rst') as fp:
+with open('README.md') as fp:
     long_description = fp.read()
 
 setup(
@@ -26,7 +26,7 @@ setup(
     version=about['__version__'],
     description='Python implementation of the JSON-LD API',
     long_description=long_description,
-    long_description_content_type="text/x-rst",
+    long_description_content_type="text/markdown",
     author='Digital Bazaar',
     author_email='support@digitalbazaar.com',
     url='https://github.com/digitalbazaar/pyld',
