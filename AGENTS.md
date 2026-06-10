@@ -1,6 +1,6 @@
 # Agent guidelines
 
-Read [CONTRIBUTING.rst](CONTRIBUTING.rst) for code style, linting (e.g. `make lint`, `make fmt`), and release process.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for code style, linting (e.g. `make lint`, `make fmt`), and release process.
 
 ## Testing
 
