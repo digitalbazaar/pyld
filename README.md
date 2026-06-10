@@ -203,9 +203,9 @@ jsonld.expand(doc, options={'documentLoader': loader})
 ```
 
 This honors the W3C *JSON-LD Best Practices* recommendation that clients SHOULD
-attempt to use a locally cached version of contexts (see `§ Cache JSON-LD
-Contexts <https://w3c.github.io/json-ld-bp/#cache-json-ld-contexts>`_). Refresh
-the bundled copies with `make download-bundled-contexts`.
+attempt to use a locally cached version of contexts (see
+[§ Cache JSON-LD Contexts](https://w3c.github.io/json-ld-bp/#cache-json-ld-contexts)).
+Refresh the bundled copies with `make download-bundled-contexts`.
 
 ## Customizing the ContextLoader
 
