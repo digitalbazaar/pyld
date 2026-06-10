@@ -67,7 +67,7 @@ pip install PyLD
 Defining a dependency on pyld will not pull in
 [Requests](http://docs.python-requests.org/) or
 [aiohttp](https://aiohttp.readthedocs.io/). If you need one of these for a
-[Document Loader]() then either depend on the desired external library directly
+[Document Loader](#document-loader) then either depend on the desired external library directly
 or define the requirement as `PyLD[requests]` or `PyLD[aiohttp]`.
 
 ## Quick Examples
