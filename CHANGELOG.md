@@ -16,7 +16,9 @@
   class-based `DocumentLoader` instances while preserving the existing
   callable factory API. The concrete `RequestsDocumentLoader` and
   `AioHttpDocumentLoader` classes are also importable from `pyld`.
-- Convert `./README.rst` (reStructuredText) to `./README.md` (markdown) and update its contents. 
+- Convert `./README.rst` and `./CONTRIBUTING.rst` (reStructuredText) to 
+  `./README.md` and `./CONTRIBUTING.md` (markdown). Also update their 
+  contents to reflect the current state of the repo. 
 
 ### Added
 - `pyld.DocumentLoader` abstract base class for class-based document loaders,
@@ -259,7 +261,7 @@
 - **1.0.0**!
 - [Semantic Versioning](https://semver.org/) is now past the "initial
   development" 0.x.y stage (after 6+ years!).
-- [Conformance](README.rst#conformance):
+- [Conformance](README.md#conformance):
   - JSON-LD 1.0 + JSON-LD 1.0 errata
   - JSON-LD 1.1 drafts
 - Thanks to the JSON-LD and related communities and the many many people over
