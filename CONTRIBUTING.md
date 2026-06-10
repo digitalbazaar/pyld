@@ -78,12 +78,3 @@ As of early 2020, the process to generate an EARL report for the official
 
 * Optionally follow the [report instructions](https://github.com/w3c/json-ld-api/tree/master/reports) to generate the HTML report for inspection.
 * Submit a PR to the [json-ld-api repository](https://github.com/w3c/json-ld-api/pulls) with at least the `.ttl`.
-
-.. _JSON-LD Processor Conformance: https://w3c.github.io/json-ld-api/reports/
-.. _PEP 8 Style Guide: https://www.python.org/dev/peps/pep-0008/
-.. _Semantic Versioning: https://semver.org/
-.. _ruff: https://docs.astral.sh/ruff/
-.. _json-ld-api repository: https://github.com/w3c/json-ld-api/pulls
-.. _rdf: https://rubygems.org/gems/rdf
-.. _report instructions: https://github.com/w3c/json-ld-api/tree/master/reports
-.. _PyPI: https://pypi.org/
