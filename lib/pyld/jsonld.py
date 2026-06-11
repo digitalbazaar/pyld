@@ -4020,7 +4020,8 @@ class JsonLdProcessor:
                     (
                         subject,
                         RDF.direction,
-                        Literal(item['@direction'], datatype=XSD.string),
+                        Literal(item['@direction'], datatype=XSD.string,
+                        normalize=False),
                     )
                 )
                 if '@language' in item:
@@ -4028,7 +4029,7 @@ class JsonLdProcessor:
                         (
                             subject,
                             RDF.language,
-                            Literal(item['@language'], datatype=XSD.string),
+                            Literal(item['@language'], datatype=XSD.string, normalize=False),
                         )
                     )
                 return subject
