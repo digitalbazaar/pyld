@@ -4002,14 +4002,27 @@ class JsonLdProcessor:
                     datatype = URIRef(datatype) if datatype else XSD.integer
                 )
             elif rdf_direction == 'compound-literal' and '@direction' in item:
+                # Create bnode to describe compound literal
                 subject = self._rdflib_term_from_id(issuer.get_id())
-                triples.append((subject, RDF.value, Literal(value, datatype=XSD.string
-                )))
-                triples.append((subject, RDF.direction, Literal(item['@direction'], datatype=XSD.string
-                )))
+                triples.append(
+                    (subject, RDF.value, Literal(value, datatype=XSD.string))
+                )
+                triples.append(
+                    (
+                        subject,
+                        RDF.direction,
+                        Literal(item['@direction'], datatype=XSD.string),
+                    )
+                )
                 if '@language' in item:
-                    triples.append((subject, RDF.language, Literal(item['@language'], datatype=XSD.string
-                )))
+                    triples.append(
+                        (
+                            subject,
+                            RDF.language,
+                            Literal(item['@language'], datatype=XSD.string),
+                        )
+                    )
+                return subject
             elif rdf_direction == 'i18n-datatype' and '@direction' in item:
                 return Literal(
                     value,

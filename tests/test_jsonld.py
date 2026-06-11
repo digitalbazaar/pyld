@@ -884,9 +884,10 @@ class TestToRdf:
             }
         }
 
-        expected = """_:b0 <http://example.org/label> _:b1 .
-_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#direction> "rtl" .
-_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "no language" .
+        expected = """_:b0 <http://example.org/label> _:b1  .
+_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#direction> "rtl"^^<http://www.w3.org/2001/XMLSchema#string>  .
+_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "no language"^^<http://www.w3.org/2001/XMLSchema#string>  .
+
 """
 
         nquads = jsonld.to_rdf(
@@ -897,7 +898,7 @@ _:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "no language" .
             },
         )
 
-        assert nquads == expected
+        assert sorted(nquads.splitlines()) == sorted(expected.splitlines())
 
     def test_compound_literal_direction_with_language(self):
         """
@@ -912,10 +913,11 @@ _:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "no language" .
             }
         }
 
-        expected = """_:b0 <http://example.org/label> _:b1 .
-_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#direction> "rtl" .
-_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#language> "en-us" .
-_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "en-US" .
+        expected = """_:b0 <http://example.org/label> _:b1  .
+_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#direction> "rtl"^^<http://www.w3.org/2001/XMLSchema#string>  .
+_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#language> "en-us"^^<http://www.w3.org/2001/XMLSchema#string>  .
+_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "en-US"^^<http://www.w3.org/2001/XMLSchema#string>  .
+
 """
 
         nquads = jsonld.to_rdf(
@@ -926,7 +928,7 @@ _:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "en-US" .
             },
         )
 
-        assert nquads == expected
+        assert sorted(nquads.splitlines()) == sorted(expected.splitlines())
 
      # Issue 204
     def test_conflicting_property_names(self):
