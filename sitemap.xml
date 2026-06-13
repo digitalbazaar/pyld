@@ -2,34 +2,38 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://digitalbazaar.github.io/pyld/</loc>
-         <lastmod>2026-06-01</lastmod>
+         <lastmod>2026-06-13</lastmod>
     </url>
     <url>
-         <loc>https://digitalbazaar.github.io/pyld/api-reference/</loc>
-         <lastmod>2026-06-01</lastmod>
-    </url>
-    <url>
-         <loc>https://digitalbazaar.github.io/pyld/document-loaders/</loc>
-         <lastmod>2026-06-01</lastmod>
+         <loc>https://digitalbazaar.github.io/pyld/conformance/</loc>
+         <lastmod>2026-06-13</lastmod>
     </url>
     <url>
          <loc>https://digitalbazaar.github.io/pyld/installation/</loc>
-         <lastmod>2026-06-01</lastmod>
+         <lastmod>2026-06-13</lastmod>
     </url>
     <url>
-         <loc>https://digitalbazaar.github.io/pyld/quick-examples/</loc>
-         <lastmod>2026-06-01</lastmod>
+         <loc>https://digitalbazaar.github.io/pyld/reference/</loc>
+         <lastmod>2026-06-13</lastmod>
     </url>
     <url>
-         <loc>https://digitalbazaar.github.io/pyld/document-loaders/aiohttp/</loc>
-         <lastmod>2026-06-01</lastmod>
+         <loc>https://digitalbazaar.github.io/pyld/reference/document-loaders/</loc>
+         <lastmod>2026-06-13</lastmod>
     </url>
     <url>
-         <loc>https://digitalbazaar.github.io/pyld/document-loaders/frozen/</loc>
-         <lastmod>2026-06-01</lastmod>
+         <loc>https://digitalbazaar.github.io/pyld/reference/document-loaders/aiohttp/</loc>
+         <lastmod>2026-06-13</lastmod>
     </url>
     <url>
-         <loc>https://digitalbazaar.github.io/pyld/document-loaders/requests/</loc>
-         <lastmod>2026-06-01</lastmod>
+         <loc>https://digitalbazaar.github.io/pyld/reference/document-loaders/custom/</loc>
+         <lastmod>2026-06-13</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/reference/document-loaders/frozen/</loc>
+         <lastmod>2026-06-13</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/reference/document-loaders/requests/</loc>
+         <lastmod>2026-06-13</lastmod>
     </url>
 </urlset>
