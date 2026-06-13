@@ -210,7 +210,6 @@ class TestExpand:
             }
         ]
 
-
     def _make_context(self, num_terms):
         """Build a context with `num_terms` @type:@vocab terms sharing a scoped context."""
         ctx = {"ex": "https://example.org/"}
@@ -236,7 +235,6 @@ class TestExpand:
             ctx[f"prop{i}"] = f"ex:prop{i}"
         return ctx
 
-
     def test_single_vocab_term_expands_correctly(self):
         """Single @type:@vocab term should expand bare string to @id."""
         ctx = {
@@ -249,8 +247,9 @@ class TestExpand:
         }
         doc = {"@context": ctx, "Color": "Red"}
         result = jsonld.expand(doc)
-        assert result[0]["https://example.org/Color"] == [{"@id": "https://example.org/Red"}]
-
+        assert result[0]["https://example.org/Color"] == [
+            {"@id": "https://example.org/Red"}
+        ]
 
     def test_many_shared_scoped_contexts_expand_correctly(self):
         """
@@ -284,7 +283,6 @@ class TestExpand:
                 f"EnumProp{i} did not expand to @id"
             )
 
-
     def test_last_vocab_term_expands_with_large_context(self):
         """The LAST @type:@vocab term in a large context must also expand correctly.
 
@@ -295,8 +293,9 @@ class TestExpand:
         # Only test the last term
         doc = {"@context": ctx, "EnumProp26": "TestValue"}
         result = jsonld.expand(doc)
-        assert result[0]["https://example.org/EnumProp26"] == [{"@id": "https://example.org/TestValue"}]
-
+        assert result[0]["https://example.org/EnumProp26"] == [
+            {"@id": "https://example.org/TestValue"}
+        ]
 
     def test_structured_value_still_works_with_scoped_context(self):
         """Structured values (objects) should still use the scoped context mappings."""
@@ -395,7 +394,6 @@ class TestExpand:
 
         assert result == expected
 
-
     def test_mixed_plain_and_vocab_terms(self):
         """Contexts with both plain and @type:@vocab terms should work correctly."""
         ctx = {
@@ -424,8 +422,12 @@ class TestExpand:
         }
         result = jsonld.expand(doc)
         expanded = result[0]
-        assert expanded["https://example.org/Color"] == [{"@id": "https://example.org/Blue"}]
-        assert expanded["https://example.org/Shape"] == [{"@id": "https://example.org/Circle"}]
+        assert expanded["https://example.org/Color"] == [
+            {"@id": "https://example.org/Blue"}
+        ]
+        assert expanded["https://example.org/Shape"] == [
+            {"@id": "https://example.org/Circle"}
+        ]
         assert expanded["https://example.org/name"] == [{"@value": "test"}]
 
     # Issue 145
@@ -469,6 +471,7 @@ class TestExpand:
 
         expanded = jsonld.expand(input)
         assert expanded == expected
+
 
 class TestFrame:
     # Issue 11 - PR: https://github.com/digitalbazaar/pyld/issues/149
@@ -794,36 +797,32 @@ class TestFrame:
             "@context": "http://schema.org",
             "@graph": [
                 {
-                "id": "http://www.janedoe.com",
-                "type": "Person",
-                "jobTitle": "Professor",
-                "knows": {
-                    "id": "http://www.johnsmith.me",
-                    "type": "Person",
-                    "knows": {
-                    "id": "http://www.janedoe.com"
-                    },
-                    "name": "John Smith"
-                },
-                "name": "Jane Doe",
-                "telephone": "(425) 123-4567"
-                },
-                {
-                "id": "http://www.johnsmith.me",
-                "type": "Person",
-                "knows": {
                     "id": "http://www.janedoe.com",
                     "type": "Person",
                     "jobTitle": "Professor",
                     "knows": {
-                    "id": "http://www.johnsmith.me"
+                        "id": "http://www.johnsmith.me",
+                        "type": "Person",
+                        "knows": {"id": "http://www.janedoe.com"},
+                        "name": "John Smith",
                     },
                     "name": "Jane Doe",
-                    "telephone": "(425) 123-4567"
+                    "telephone": "(425) 123-4567",
                 },
-                "name": "John Smith"
-                }
-            ]
+                {
+                    "id": "http://www.johnsmith.me",
+                    "type": "Person",
+                    "knows": {
+                        "id": "http://www.janedoe.com",
+                        "type": "Person",
+                        "jobTitle": "Professor",
+                        "knows": {"id": "http://www.johnsmith.me"},
+                        "name": "Jane Doe",
+                        "telephone": "(425) 123-4567",
+                    },
+                    "name": "John Smith",
+                },
+            ],
         }
 
         frame = {'@context': 'http://schema.org', '@embed': '@once'}
@@ -928,7 +927,7 @@ _:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "en-US" .
 
         assert nquads == expected
 
-     # Issue 204
+    # Issue 204
     def test_conflicting_property_names(self):
         """
         Conversion to RDF should allow a node in the root @context with
@@ -955,7 +954,6 @@ _:b0 <http://purl.org/dc/terms/title> "Chapter 1: Jonathan Harker's Journal" .
         nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
         assert nquads == expected
 
-
     def test_conflicting_property_names_in_nested_node(self):
         """
         Conversion to RDF should not ignore a @nest'ed node in the root @context
@@ -980,6 +978,7 @@ _:b0 <http://purl.org/dc/terms/title> "Chapter 1: Jonathan Harker's Journal" .
 
         nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
         assert nquads == expected
+
 
 class TestFromRDF:
     def test_compound_literal_direction_without_language(self):
@@ -1116,6 +1115,7 @@ class TestFromRDF:
             jsonld.from_rdf(input, {'rdfDirection': 'compound-literal'})
 
         assert exc.value.code == 'invalid language-tagged string'
+
 
 class TestCompact:
     # Issue 59 - PR: https://github.com/digitalbazaar/pyld/pull/60
@@ -1370,7 +1370,9 @@ class TestCompact:
         assert compacted == expected
 
     @pytest.mark.xfail
-    def test_no_initial_context_and_with_skip_expand_does_not_drop_property_whe_not_array(self):
+    def test_no_initial_context_and_with_skip_expand_does_not_drop_property_whe_not_array(
+        self,
+    ):
         """
         Compacting document with singular value and without initial context should
         output the original input when skipExpansion is enabled.
@@ -1378,11 +1380,15 @@ class TestCompact:
 
         input = {'name': 'Bob'}
 
-        compacted = jsonld.compact(input, {"@vocab": "http://example.org#"}, {"skipExpansion": True})
+        compacted = jsonld.compact(
+            input, {"@vocab": "http://example.org#"}, {"skipExpansion": True}
+        )
         expected = {"@context": {"@vocab": "http://example.org#"}, "name": "Bob"}
         assert compacted == expected
 
-    def test_no_initial_context_and_with_skip_expand_does_not_drop_property_when_array(self):
+    def test_no_initial_context_and_with_skip_expand_does_not_drop_property_when_array(
+        self,
+    ):
         """
         Compacting document with array value and without initial context should
         output the original input when skipExpansion is enabled.
@@ -1390,7 +1396,9 @@ class TestCompact:
 
         input = {'name': ['Bob']}
 
-        compacted = jsonld.compact(input, {"@vocab": "http://example.org#"}, {"skipExpansion": True})
+        compacted = jsonld.compact(
+            input, {"@vocab": "http://example.org#"}, {"skipExpansion": True}
+        )
         expected = {"@context": {"@vocab": "http://example.org#"}, "name": "Bob"}
         assert compacted == expected
 
