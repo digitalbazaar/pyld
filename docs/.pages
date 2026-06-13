@@ -1,0 +1,7 @@
+nav:
+  - Quickstart:
+      - index.md
+      - installation.md
+      - conformance.md
+  - Reference:
+      - reference
