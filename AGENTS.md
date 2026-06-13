@@ -1,6 +1,6 @@
 # Agent guidelines
 
-Read [CONTRIBUTING.rst](CONTRIBUTING.rst) for code style, linting (e.g. `make lint`, `make fmt`), and release process.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for code style, linting (e.g. `make lint`, `make fmt`), and release process.
 
 ## Testing
 
@@ -10,7 +10,14 @@ Read [CONTRIBUTING.rst](CONTRIBUTING.rst) for code style, linting (e.g. `make li
 
 ## Documentation
 
-- When adding or promoting public top-level API exports, reflect them in the project documentation, especially the Sphinx API reference under `docs/`.
+- Put docs-specific CSS in `docs/stylesheets/extra.css` and register it via `extra_css` in `mkdocs.yml`.
+- Put runnable doc examples in `docs/examples/` and embed them with the `example()` macro in `docs_macros.py`.
+- One page = one idea — do not combine unrelated topics on a single doc page.
+- Python object names in docs must always use backticks — in prose, headings, and card link text (not `__bold__`).
+- Doc examples must not use `set_document_loader()`; pass `documentLoader` per operation via `options`.
+- Do not use or mention function-based document loaders (`requests_document_loader`, `aiohttp_document_loader`, or plain callables) in docs; use `*DocumentLoader` classes or a `DocumentLoader` subclass.
+- Doc page H1 headers should use icons that match their card icons (e.g. `# :material-cloud-download: \`RequestsDocumentLoader\``).
+- Custom document-loader docs should illustrate subclassing `DocumentLoader`, not a bare callable.
 
 ## Committing
 
