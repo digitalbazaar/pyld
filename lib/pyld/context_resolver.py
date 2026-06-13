@@ -24,7 +24,9 @@ class ContextResolver:
     Resolves and caches remote contexts.
     """
 
-    def __init__(self, shared_cache, document_loader, max_context_urls: int = MAX_CONTEXT_URLS):
+    def __init__(
+        self, shared_cache, document_loader, max_context_urls: int = MAX_CONTEXT_URLS
+    ):
         """
         Creates a ContextResolver.
 
