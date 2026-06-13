@@ -1280,7 +1280,11 @@ class JsonLdProcessor:
 
         :return: all of the values for a subject's property as an array.
         """
-        return JsonLdProcessor.arrayify(subject.get(property)) if property in subject else []
+        return (
+            JsonLdProcessor.arrayify(subject.get(property))
+            if property in subject
+            else []
+        )
 
     @staticmethod
     def remove_property(subject, property):
@@ -1515,7 +1519,11 @@ class JsonLdProcessor:
                 rval = self._compact_value(
                     active_ctx, active_property, element, options
                 )
-                if isinstance(options['link'], dict) and options['link'] and _is_subject_reference(element):
+                if (
+                    isinstance(options['link'], dict)
+                    and options['link']
+                    and _is_subject_reference(element)
+                ):
                     # store linked element
                     options['link'].setdefault(element['@id'], []).append(
                         {'expanded': element, 'compacted': rval}
@@ -1960,9 +1968,13 @@ class JsonLdProcessor:
                             type_key = self._compact_iri(active_ctx, '@type')
                             # Only object items can carry an embedded @type,
                             # so only call .pop() on object to avoid AttributeError.
-                            types = JsonLdProcessor.arrayify(
-                                compacted_item.pop(type_key, [])
-                            ) if _is_object(compacted_item) else []
+                            types = (
+                                JsonLdProcessor.arrayify(
+                                    compacted_item.pop(type_key, [])
+                                )
+                                if _is_object(compacted_item)
+                                else []
+                            )
                             key = types.pop(0) if types else None
                             if types:
                                 JsonLdProcessor.add_value(
@@ -2143,8 +2155,8 @@ class JsonLdProcessor:
             )
 
         # prepare type-scoped contexts when nested
-        active_ctx, type_key, type_scoped_ctx = (
-            self._prepare_nested_context(active_ctx, element, options)
+        active_ctx, type_key, type_scoped_ctx = self._prepare_nested_context(
+            active_ctx, element, options
         )
 
         # process each key and value in element, ignoring @nest content
@@ -2766,8 +2778,8 @@ class JsonLdProcessor:
                     )
 
                 # prepare type-scoped contexts when nested
-                active_ctx, type_key, type_scoped_ctx = (
-                    self._prepare_nested_context(term_ctx, nv, options)
+                active_ctx, type_key, type_scoped_ctx = self._prepare_nested_context(
+                    term_ctx, nv, options
                 )
 
                 if [
@@ -4700,9 +4712,7 @@ class JsonLdProcessor:
                 # @type must be wildcard, @json, or IRI
                 if not (
                     _is_object(type_) or type_ == '@json' or _is_absolute_iri(type_)
-                ) or (
-                    _is_string(type_) and type_.startswith('_:')
-                ):
+                ) or (_is_string(type_) and type_.startswith('_:')):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; invalid @type in frame.',
                         'jsonld.SyntaxError',
