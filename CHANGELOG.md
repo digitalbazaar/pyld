@@ -42,6 +42,8 @@
 - Convert `./README.rst` and `./CONTRIBUTING.rst` (reStructuredText) to 
   `./README.md` and `./CONTRIBUTING.md` (markdown). Also update their 
   contents to reflect the current state of the repo.
+- Replace the old Sphinx documentation with a MkDocs Material site and add a
+  GitHub Pages documentation workflow.
 
 ### Added
 - `pyld.DocumentLoader` abstract base class for class-based document loaders,
