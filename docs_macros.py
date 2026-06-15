@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import subprocess
@@ -17,6 +18,10 @@ MANIFEST_BASES = {
 DEFAULT_TEST_BASE = 'https://w3c.github.io/json-ld-api/tests'
 
 _SKIP_ID_PATTERN = re.compile(r'^\.\*(?P<manifest>[^#]+)#(?P<test_id>[^$]+)\$$')
+_MANIFEST_PATHS = (
+    ROOT_DIR / 'specifications' / 'json-ld-api' / 'tests',
+    ROOT_DIR / 'specifications' / 'json-ld-framing' / 'tests',
+)
 
 
 def _parse_skip_id_regex(pattern):
@@ -28,7 +33,73 @@ def _parse_skip_id_regex(pattern):
 
 def _test_url(manifest, test_id):
     base = MANIFEST_BASES.get(manifest, DEFAULT_TEST_BASE)
-    return f'{base}/{manifest}#{test_id}'
+    return f'{base}/{manifest}.html#{test_id}'
+
+
+def _jsonld_values(data, key):
+    if key not in data:
+        return []
+    value = data[key]
+    return value if isinstance(value, list) else [value]
+
+
+def _entry_test_types(entry):
+    values = []
+    values.extend(_jsonld_values(entry, '@type'))
+    values.extend(_jsonld_values(entry, 'type'))
+    return values
+
+
+def _manifest_entries():
+    for manifest_dir in _MANIFEST_PATHS:
+        if not manifest_dir.exists():
+            continue
+        for path in sorted(manifest_dir.glob('*-manifest.jsonld')):
+            data = json.loads(path.read_text())
+            manifest = path.stem
+            for entry in _jsonld_values(data, 'sequence'):
+                if not isinstance(entry, dict):
+                    continue
+                test_id = entry.get('@id', entry.get('id', ''))
+                if test_id.startswith('#'):
+                    test_id = test_id[1:]
+                yield {
+                    'entry': entry,
+                    'id': f'{manifest}#{test_id}',
+                    'link': f'[{test_id}]({_test_url(manifest, test_id)})',
+                    'types': _entry_test_types(entry),
+                }
+
+
+def _skip_reason(test_type, skip, test):
+    test_id = test['id']
+    entry = test['entry']
+    for pattern in skip.get('idRegex', []):
+        if re.match(pattern, test_id):
+            return f'Explicit skip (`{test_type}`)'
+
+    for pattern in skip.get('descriptionRegex', []):
+        if re.match(pattern, entry.get('description', '')):
+            return f'Description skip (`{test_type}`)'
+
+    processing_mode = entry.get('option', {}).get('processingMode')
+    if processing_mode in skip.get('processingMode', []):
+        return f'Processing mode `{processing_mode}` (`{test_type}`)'
+
+    spec_version = entry.get('option', {}).get('specVersion')
+    if spec_version in skip.get('specVersion', []):
+        return f'Spec version `{spec_version}` (`{test_type}`)'
+
+    return None
+
+
+def _pending_reason(test_type, pending, test):
+    test_id = test['id']
+    for pattern in pending.get('idRegex', []):
+        if re.match(pattern, test_id):
+            return f'Pending expected failure (`{test_type}`)'
+
+    return None
 
 
 def _example_path(name):
@@ -76,37 +147,58 @@ def define_env(env):
     def skipped_tests_table():
         from runtests import TEST_TYPES
 
-        rows = [
-            '| Reason | Skipped tests |',
-            '| --- | --- |',
-        ]
+        skipped_or_pending = {}
+        seen_links = set()
+        tests = list(_manifest_entries())
 
-        linked_tests = []
-        seen_tests = set()
         for test_type, config in sorted(TEST_TYPES.items()):
             skip = config.get('skip', {})
-            spec_versions = skip.get('specVersion', [])
-            if 'json-ld-1.0' in spec_versions:
-                rows.append(
-                    f'| JSON-LD 1.0 processor behavior (`{test_type}`) | '
-                    f'All JSON-LD 1.0 tests |'
+            pending = config.get('pending', {})
+
+            for test in tests:
+                if test_type not in test['types']:
+                    continue
+                reason = _skip_reason(test_type, skip, test) or _pending_reason(
+                    test_type, pending, test
                 )
+                if not reason or test['link'] in seen_links:
+                    continue
+                skipped_or_pending.setdefault(reason, []).append(test['link'])
+                seen_links.add(test['link'])
 
             for pattern in skip.get('idRegex', []):
                 parsed = _parse_skip_id_regex(pattern)
                 if not parsed:
                     continue
                 manifest, test_id = parsed
-                url = _test_url(manifest, test_id)
-                if url in seen_tests:
+                link = f'[{test_id}]({_test_url(manifest, test_id)})'
+                if link in seen_links:
                     continue
-                seen_tests.add(url)
-                linked_tests.append(f'[{test_id}]({url})')
+                skipped_or_pending.setdefault(
+                    f'Explicit skip (`{test_type}`)', []
+                ).append(link)
+                seen_links.add(link)
 
-        if linked_tests:
-            rows.append(
-                '| Explicitly skipped test cases | ' + ', '.join(linked_tests) + ' |'
-            )
+            for pattern in pending.get('idRegex', []):
+                parsed = _parse_skip_id_regex(pattern)
+                if not parsed:
+                    continue
+                manifest, test_id = parsed
+                link = f'[{test_id}]({_test_url(manifest, test_id)})'
+                if link in seen_links:
+                    continue
+                skipped_or_pending.setdefault(
+                    f'Pending expected failure (`{test_type}`)', []
+                ).append(link)
+                seen_links.add(link)
+
+        rows = [
+            '| Reason | Tests |',
+            '| --- | --- |',
+        ]
+
+        for reason, links in sorted(skipped_or_pending.items()):
+            rows.append(f'| {reason} | {", ".join(sorted(links))} |')
 
         return '\n'.join(rows)
 
