@@ -10,8 +10,6 @@ hide: [toc]
 
 PyLD is a Python implementation of the [JSON-LD](https://json-ld.org/) processor API.
 
-![](assets/cover.png)
-
 JSON-LD is a lightweight syntax for expressing Linked Data in JSON. It lets
 applications add meaning to existing JSON documents with in-band or out-of-band
 contexts, while keeping the document shape practical for web APIs, JavaScript,
