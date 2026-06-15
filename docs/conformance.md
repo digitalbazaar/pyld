@@ -16,6 +16,6 @@ PyLD aims to conform with:
 The test runner is updated over time to note or skip newer tests that are not
 yet supported.
 
-## Skipped tests
+## Skipped and pending tests
 
 {{ skipped_tests_table() }}
