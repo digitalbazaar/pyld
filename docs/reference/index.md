@@ -6,7 +6,7 @@ hide: [toc]
 
 <div class="grid cards" markdown>
 
--   [:material-file-download-outline:{ .lg .middle } __Document Loaders__](document-loaders/)
+-   [:material-file-download-outline:{ .lg .middle } __Document Loaders__](document-loaders/index.md)
 
     ---
 
