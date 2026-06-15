@@ -15,7 +15,56 @@ applications add meaning to existing JSON documents with in-band or out-of-band
 contexts, while keeping the document shape practical for web APIs, JavaScript,
 and JSON document stores.
 
-{{ example('earth.py') }}
+## :material-lightning-bolt: Quick Examples
+
+### `jsonld.compact()`
+
+Compacts a JSON-LD document with a context, replacing full IRIs with shorter
+terms where possible.
+
+{{ example('compact.py', 'json') }}
+
+### `jsonld.expand()`
+
+Expands a compacted JSON-LD document into full IRI-based form and removes the
+context.
+
+{{ example('expand.py', 'json') }}
+
+### `jsonld.flatten()`
+
+Flattens nested JSON-LD into a top-level node map so each node can be processed
+independently.
+
+{{ example('flatten.py', 'json') }}
+
+### `jsonld.frame()`
+
+Frames expanded JSON-LD into a predictable tree shape that matches a supplied
+frame.
+
+{{ example('frame.py', 'json') }}
+
+### `jsonld.to_rdf()`
+
+Converts a JSON-LD document into RDF statements in a requested serialization
+format.
+
+{{ example('to_rdf.py') }}
+
+### `jsonld.from_rdf()`
+
+Converts RDF statements into JSON-LD so the data can be processed with the
+JSON-LD API.
+
+{{ example('from_rdf.py', 'json') }}
+
+### `jsonld.normalize()`
+
+Normalizes JSON-LD into canonical RDF statements for stable comparison,
+hashing, or signing.
+
+{{ example('normalize.py') }}
 
 ## :fontawesome-solid-people-line: Maintainers
 
