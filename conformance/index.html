@@ -459,10 +459,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#skipped-tests" class="md-nav__link">
+  <a href="#skipped-and-pending-tests" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Skipped tests
+        Skipped and pending tests
       
     </span>
   </a>
@@ -849,10 +849,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#skipped-tests" class="md-nav__link">
+  <a href="#skipped-and-pending-tests" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Skipped tests
+        Skipped and pending tests
       
     </span>
   </a>
@@ -887,48 +887,64 @@
 <li><a href="https://www.w3.org/TR/json-ld11/">JSON-LD 1.1</a></li>
 <li><a href="https://www.w3.org/TR/json-ld11-api/">JSON-LD 1.1 Processing Algorithms and API</a></li>
 <li><a href="https://www.w3.org/TR/json-ld11-framing/">JSON-LD 1.1 Framing</a></li>
-<li><a href="https://www.w3.org/TR/rdf-canon/">RDF Dataset Canonicalization (URDNA2015)</a></li>
-<li><a href="https://www.w3.org/TR/rdf-graph-normalization/">RDF Dataset Normalization (URGNA2012)</a></li>
+<li><a href="https://www.w3.org/TR/rdf-canon/#URDNA2015">Universal RDF Dataset Canonicalization Algorithm 2015 (URDNA2015)</a></li>
+<li><a href="https://www.w3.org/TR/rdf-canon/#URDNA2012">Universal RDF Graph Canonicalization Algorithm 2012 (URGNA2012)</a></li>
 <li>The JSON-LD Working Group <a href="https://github.com/w3c/json-ld-api/tree/master/tests">test suite</a></li>
 </ul>
 <p>The test runner is updated over time to note or skip newer tests that are not
 yet supported.</p>
-<h2 id="skipped-tests">Skipped tests<a class="headerlink" href="#skipped-tests" title="Permanent link">&para;</a></h2>
+<h2 id="skipped-and-pending-tests">Skipped and pending tests<a class="headerlink" href="#skipped-and-pending-tests" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Reason</th>
-<th>Skipped tests</th>
+<th>Tests</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>JSON-LD 1.0 processor behavior (<code>jld:CompactTest</code>)</td>
-<td>All JSON-LD 1.0 tests</td>
+<td>Explicit skip (<code>jld:ExpandTest</code>)</td>
+<td><a href="https://w3c.github.io/json-ld-api/tests/expand-manifest.html#ter54">ter54</a>, <a href="https://w3c.github.io/json-ld-api/tests/expand-manifest.html#ter56">ter56</a></td>
 </tr>
 <tr>
-<td>JSON-LD 1.0 processor behavior (<code>jld:ExpandTest</code>)</td>
-<td>All JSON-LD 1.0 tests</td>
+<td>Explicit skip (<code>jld:FromRDFTest</code>)</td>
+<td><a href="https://w3c.github.io/json-ld-api/tests/fromRdf-manifest.html#t0027">t0027</a></td>
 </tr>
 <tr>
-<td>JSON-LD 1.0 processor behavior (<code>jld:FlattenTest</code>)</td>
-<td>All JSON-LD 1.0 tests</td>
+<td>Explicit skip (<code>rdfn:Urdna2015EvalTest</code>)</td>
+<td><a href="https://w3c.github.io/rdf-canon/tests/manifest-urdna2015.html#test060">test060</a></td>
 </tr>
 <tr>
-<td>JSON-LD 1.0 processor behavior (<code>jld:FrameTest</code>)</td>
-<td>All JSON-LD 1.0 tests</td>
+<td>Explicit skip (<code>rdfn:Urgna2012EvalTest</code>)</td>
+<td><a href="https://w3c.github.io/rdf-canon/tests/manifest-urgna2012.html#test060">test060</a></td>
 </tr>
 <tr>
-<td>JSON-LD 1.0 processor behavior (<code>jld:FromRDFTest</code>)</td>
-<td>All JSON-LD 1.0 tests</td>
+<td>Pending expected failure (<code>jld:ToRDFTest</code>)</td>
+<td><a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#te075">te075</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#te111">te111</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#te112">te112</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#te122">te122</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#ter54">ter54</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#ter56">ter56</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#tli12">tli12</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#tli14">tli14</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#trt01">trt01</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#ttn02">ttn02</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#twf05">twf05</a></td>
 </tr>
 <tr>
-<td>JSON-LD 1.0 processor behavior (<code>jld:ToRDFTest</code>)</td>
-<td>All JSON-LD 1.0 tests</td>
+<td>Spec version <code>json-ld-1.0</code> (<code>jld:CompactTest</code>)</td>
+<td><a href="https://w3c.github.io/json-ld-api/tests/compact-manifest.html#t0038">t0038</a>, <a href="https://w3c.github.io/json-ld-api/tests/compact-manifest.html#te001">te001</a></td>
 </tr>
 <tr>
-<td>Explicitly skipped test cases</td>
-<td><a href="https://w3c.github.io/json-ld-api/tests/expand-manifest#ter54">ter54</a>, <a href="https://w3c.github.io/json-ld-api/tests/expand-manifest#ter56">ter56</a>, <a href="https://w3c.github.io/json-ld-api/tests/fromRdf-manifest#t0027">t0027</a>, <a href="https://w3c.github.io/rdf-canon/tests/manifest-urdna2015#test060">test060</a>, <a href="https://w3c.github.io/rdf-canon/tests/manifest-urgna2012#test060">test060</a></td>
+<td>Spec version <code>json-ld-1.0</code> (<code>jld:ExpandTest</code>)</td>
+<td><a href="https://w3c.github.io/json-ld-api/tests/expand-manifest.html#t0026">t0026</a>, <a href="https://w3c.github.io/json-ld-api/tests/expand-manifest.html#t0038">t0038</a>, <a href="https://w3c.github.io/json-ld-api/tests/expand-manifest.html#t0071">t0071</a>, <a href="https://w3c.github.io/json-ld-api/tests/expand-manifest.html#t0115">t0115</a>, <a href="https://w3c.github.io/json-ld-api/tests/expand-manifest.html#t0116">t0116</a>, <a href="https://w3c.github.io/json-ld-api/tests/expand-manifest.html#ter02">ter02</a>, <a href="https://w3c.github.io/json-ld-api/tests/expand-manifest.html#ter03">ter03</a>, <a href="https://w3c.github.io/json-ld-api/tests/expand-manifest.html#ter24">ter24</a>, <a href="https://w3c.github.io/json-ld-api/tests/expand-manifest.html#ter32">ter32</a></td>
+</tr>
+<tr>
+<td>Spec version <code>json-ld-1.0</code> (<code>jld:FlattenTest</code>)</td>
+<td><a href="https://w3c.github.io/json-ld-api/tests/flatten-manifest.html#t0014">t0014</a>, <a href="https://w3c.github.io/json-ld-api/tests/flatten-manifest.html#t0026">t0026</a>, <a href="https://w3c.github.io/json-ld-api/tests/flatten-manifest.html#t0038">t0038</a></td>
+</tr>
+<tr>
+<td>Spec version <code>json-ld-1.0</code> (<code>jld:FrameTest</code>)</td>
+<td><a href="https://w3c.github.io/json-ld-framing/tests/frame-manifest.html#t0010">t0010</a></td>
+</tr>
+<tr>
+<td>Spec version <code>json-ld-1.0</code> (<code>jld:FromRDFTest</code>)</td>
+<td><a href="https://w3c.github.io/json-ld-api/tests/fromRdf-manifest.html#t0008">t0008</a></td>
+</tr>
+<tr>
+<td>Spec version <code>json-ld-1.0</code> (<code>jld:ToRDFTest</code>)</td>
+<td><a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#t0118">t0118</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#te014">te014</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#te026">te026</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#te038">te038</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#te071">te071</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#te115">te115</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#te116">te116</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#ter02">ter02</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#ter03">ter03</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#ter24">ter24</a>, <a href="https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#ter32">ter32</a></td>
 </tr>
 </tbody>
 </table>
