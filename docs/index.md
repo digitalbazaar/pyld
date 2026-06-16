@@ -17,54 +17,54 @@ and JSON document stores.
 
 ## :material-lightning-bolt: Quick Examples
 
-### `jsonld.compact()`
+=== "jsonld.compact()"
 
-Compacts a JSON-LD document with a context, replacing full IRIs with shorter
-terms where possible.
+    Compacts a JSON-LD document with a context, replacing full IRIs with shorter
+    terms where possible.
 
-{{ example('compact.py', 'json') }}
+    {{ example('compact.py', 'json') }}
 
-### `jsonld.expand()`
+=== "jsonld.expand()"
 
-Expands a compacted JSON-LD document into full IRI-based form and removes the
-context.
+    Expands a compacted JSON-LD document into full IRI-based form and removes the
+    context.
 
-{{ example('expand.py', 'json') }}
+    {{ example('expand.py', 'json') }}
 
-### `jsonld.flatten()`
+=== "jsonld.flatten()"
 
-Flattens nested JSON-LD into a top-level node map so each node can be processed
-independently.
+    Flattens nested JSON-LD into a top-level node map so each node can be processed
+    independently.
 
-{{ example('flatten.py', 'json') }}
+    {{ example('flatten.py', 'json') }}
 
-### `jsonld.frame()`
+=== "jsonld.frame()"
 
-Frames expanded JSON-LD into a predictable tree shape that matches a supplied
-frame.
+    Frames expanded JSON-LD into a predictable tree shape that matches a supplied
+    frame.
 
-{{ example('frame.py', 'json') }}
+    {{ example('frame.py', 'json') }}
 
-### `jsonld.to_rdf()`
+=== "jsonld.to_rdf()"
 
-Converts a JSON-LD document into RDF statements in a requested serialization
-format.
+    Converts a JSON-LD document into RDF statements in a requested serialization
+    format.
 
-{{ example('to_rdf.py') }}
+    {{ example('to_rdf.py') }}
 
-### `jsonld.from_rdf()`
+=== "jsonld.from_rdf()"
 
-Converts RDF statements into JSON-LD so the data can be processed with the
-JSON-LD API.
+    Converts RDF statements into JSON-LD so the data can be processed with the
+    JSON-LD API.
 
-{{ example('from_rdf.py', 'json') }}
+    {{ example('from_rdf.py', 'json') }}
 
-### `jsonld.normalize()`
+=== "jsonld.normalize()"
 
-Normalizes JSON-LD into canonical RDF statements for stable comparison,
-hashing, or signing.
+    Normalizes JSON-LD into canonical RDF statements for stable comparison,
+    hashing, or signing.
 
-{{ example('normalize.py') }}
+    {{ example('normalize.py') }}
 
 ## :fontawesome-solid-people-line: Maintainers
 
