@@ -1,6 +1,9 @@
-# PyLD
+# PyLD: A Python JSON-LD Processor
 
-Documentation: https://digitalbazaar.github.io/pyld/
+[Documentation](https://digitalbazaar.github.io/pyld/) |
+[Installation](#installation) | [Usage](#usage) | [Advanced
+Topics](#advanced-topics) | [Contributing](./CONTRIBUTING.md) |
+[Changelog](./CHANGELOG.md)
 
 ## Introduction
 
@@ -35,22 +38,6 @@ Finally, the format is intended to be fast to parse, fast to generate,
 stream-based and document-based processing compatible, and require a very small
 memory footprint in order to operate.
 
-## Conformance
-
-This library aims to conform with the following W3C Recommendations:
-
-| Standard | Status | 
-| :--- | :--- |
-| [JSON-LD 1.1](https://www.w3.org/TR/json-ld11/) | W3C Recommendation | 
-| [JSON-LD 1.1 Processing Algorithms and API](https://www.w3.org/TR/json-ld11-api/) | W3C Recommendation | 
-| [JSON-LD 1.1 Framing](https://www.w3.org/TR/json-ld11-framing/) | W3C Recommendation | 
-| [RDF Dataset Canonicalization](https://www.w3.org/TR/rdf-canon/) | W3C Recommendation | 
-
-
-The [`test
-runner`](https://github.com/digitalbazaar/pyld/blob/master/tests/runtests.py) is
-often updated to note or skip newer tests that are not yet supported.
-
 ## Requirements
 
 * Python (3.10 or later)
@@ -72,7 +59,9 @@ Defining a dependency on pyld will not pull in
 [Document Loader](#document-loader) then either depend on the desired external library directly
 or define the requirement as `PyLD[requests]` or `PyLD[aiohttp]`.
 
-## Quick Examples
+## Usage
+
+Here are some quick examples to get started:
 
 ```python
 from pyld import jsonld
@@ -139,7 +128,25 @@ normalized = jsonld.normalize(
 # that can be used for hashing, comparison, etc.
 ```
 
-## Document Loader
+## Features & conformance
+
+This library aims to conform with the following W3C Recommendations:
+
+| Standard | Status | 
+| :--- | :--- |
+| [JSON-LD 1.1](https://www.w3.org/TR/json-ld11/) | W3C Recommendation | 
+| [JSON-LD 1.1 Processing Algorithms and API](https://www.w3.org/TR/json-ld11-api/) | W3C Recommendation | 
+| [JSON-LD 1.1 Framing](https://www.w3.org/TR/json-ld11-framing/) | W3C Recommendation | 
+| [RDF Dataset Canonicalization](https://www.w3.org/TR/rdf-canon/) | W3C Recommendation | 
+
+
+The [`test
+runner`](https://github.com/digitalbazaar/pyld/blob/master/tests/runtests.py) is
+often updated to note or skip newer tests that are not yet supported.
+
+## Advanced Topics
+
+### Document Loader
 
 The default document loader for PyLD uses
 [Requests](http://docs.python-requests.org/). In a production environment you
@@ -181,7 +188,7 @@ When no document loader is specified, the default loader is set to
 loader is set to aiohttp. The fallback document loader is a dummy document
 loader that raises an exception on every invocation.
 
-## Frozen Document Loader
+### Frozen Document Loader
 
 For air-gapped runs, reproducible builds, and security-hardened deployments that
 must not perform any remote context fetches at all, PyLD ships
@@ -209,7 +216,7 @@ attempt to use a locally cached version of contexts (see
 [§ Cache JSON-LD Contexts](https://w3c.github.io/json-ld-bp/#cache-json-ld-contexts)).
 Refresh the bundled copies with `make download-bundled-contexts`.
 
-## Customizing the ContextLoader
+### Customizing the ContextLoader
 
 You can customize the way contexts are loaded and cached by passing an instance
 of `ContextResolver`. The following example implements a loader with a prefilled
@@ -266,7 +273,7 @@ resolver = ContextResolver(resolved_context_cache, load_document_and_cache, max_
 output = expand(input, options={'contextResolver': resolver})
 ```
 
-## Handling ignored properties during JSON-LD expansion
+### Handling ignored properties during JSON-LD expansion
 
 If a property in a JSON-LD document does not map to an absolute IRI then it is
 ignored. You can customize this behaviour by passing a customizable handler to
@@ -282,19 +289,25 @@ def raise_this(value):
 jsonld.expand(doc, None, on_property_dropped=raise_this)
 ```
 
-## Commercial Support
+## Contributing
 
-Commercial support for this library is available upon request from [`Digital
-Bazaar`](mailto:support@digitalbazaar.com).
+Want to contribute to PyLD? Great! Please consult [`CONTRIBUTING.md`](./CONTRIBUTING.md) for some guidelines.
 
-## Source
+### Building the source
 
 The source code for the Python implementation of the JSON-LD API is available
 at:
 
 [https://github.com/digitalbazaar/pyld](https://github.com/digitalbazaar/pyld)
 
-## Tests
+You can install the source using `make`:
+
+```
+pip install -r requirements.txt requirements-test.txt
+make install
+```
+
+### Testing
 
 This library includes a sample testing utility which may be used to verify that
 changes to the processor maintain the correct output.
@@ -303,7 +316,7 @@ To run the sample tests you will need to get the test suite files, which by
 default, are stored in the `specifications/` folder. The test suites can be
 obtained by either using git submodules or by cloning them manually.
 
-### Using git submodules
+#### Using git submodules
 
 The test suites are included as git submodules to ensure versions are in sync.
 When cloning the repository, use the `--recurse-submodules` flag to
@@ -315,7 +328,7 @@ git submodule init
 git submodule update
 ```
 
-### Cloning manually
+#### Cloning manually
 
 You can also avoid using git submodules by manually cloning the `json-ld-api`,
 `json-ld-framing`, and `normalization` repositories hosted on GitHub using the
@@ -332,7 +345,7 @@ if you do not clone them into the default `specifications/` folder, you will
 need to provide the paths to the test runner as arguments when running the
 tests, as explained below.
 
-### Running the sample test suites and unit tests using pytest
+#### Running the sample test suites and unit tests using pytest
 
 If the suites repositories are available in the `specifications/` folder of the
 PyLD source directory, then all unittests, including the sample test suites, can
@@ -366,7 +379,7 @@ An EARL report can be generated using the `--earl` option.
 pytest --earl=./earl-report.json
 ```
 
-### Running the sample test suites using the original test runner
+#### Running the sample test suites using the original test runner
 
 You can also run the JSON-LD test suites using the original test runner script
 provided:
@@ -397,3 +410,15 @@ An EARL report can be generated using the `-e` or `--earl` option.
 ```bash
 python tests/runtests.py -e ./earl-report.json
 ```
+
+## License
+
+BSD-3-Clause license 
+See [`LICENSE`](./LICENSE) file for details.
+
+## Maintainers
+
+The PyLD library is maintained by [Miel Vander
+Sande](https://github.com/mielvds), [Anatoly
+Scherbakov](https://github.com/anatoly-scherbakov) and [Digital
+Bazaar](https://github.com/digitalbazaar) (Original authors of `PyLD`).
