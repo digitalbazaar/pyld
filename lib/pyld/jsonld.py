@@ -1309,12 +1309,9 @@ class JsonLdProcessor:
             options = {}
         options.setdefault('propertyIsArray', False)
 
-        # filter out value
-        def filter_value(e):
-            return not JsonLdProcessor.compare_values(e, value)
-
         values = JsonLdProcessor.get_values(subject, property)
-        values = list(filter(filter_value, values))
+        # filter out value
+        values = [e for e in values if not JsonLdProcessor.compare_values(e, value)]
 
         if len(values) == 0:
             JsonLdProcessor.remove_property(subject, property)
@@ -1686,7 +1683,7 @@ class JsonLdProcessor:
                             )
                             del compacted_value[compacted_property]
 
-                    if len(compacted_value.keys()) > 0:
+                    if compacted_value:
                         # use keyword alias and add value
                         alias = self._compact_iri(active_ctx, expanded_property)
                         JsonLdProcessor.add_value(rval, alias, compacted_value)
@@ -1999,7 +1996,7 @@ class JsonLdProcessor:
                             # whose key maps to @id, recompact without @type
                             if (
                                 _is_object(compacted_item)
-                                and len(compacted_item.keys()) == 1
+                                and len(compacted_item) == 1
                                 and '@id' in expanded_item
                             ):
                                 compacted_item = self._compact(
@@ -3040,7 +3037,7 @@ class JsonLdProcessor:
                 # 3. Have an array for rdf:rest that has 1 item
                 # 4. Have no keys other than: @id, rdf:first, rdf:rest
                 #   and, optionally, @type where the value is rdf:List.
-                node_key_count = len(node.keys())
+                node_key_count = len(node)
                 while (
                     property == str(RDF.rest)
                     and _is_object(referenced_once.get(node['@id']))
@@ -3066,7 +3063,7 @@ class JsonLdProcessor:
                     node = usage['node']
                     property = usage['property']
                     head = usage['value']
-                    node_key_count = len(node.keys())
+                    node_key_count = len(node)
 
                     # if node is not a blank node, then list head found
                     if not node['@id'].startswith('_:'):
@@ -4920,11 +4917,7 @@ class JsonLdProcessor:
         def remove_dependents(id_):
             # get embed keys as a separate array to enable deleting keys
             # in map
-            try:
-                ids = list(embeds.iterkeys())
-            except AttributeError:
-                ids = list(embeds.keys())
-            for next in ids:
+            for next in list(embeds):
                 if (
                     next in embeds
                     and _is_object(embeds[next]['parent'])
@@ -6502,7 +6495,8 @@ def _is_graph(v):
     return (
         _is_object(v)
         and '@graph' in v
-        and len([k for k, vv in v.items() if (k != '@id' and k != '@index')]) == 1
+        # count non-@id/@index keys
+        and set(v) <= {'@graph', '@id', '@index'}
     )
 
 
