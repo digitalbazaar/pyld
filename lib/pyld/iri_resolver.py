@@ -127,14 +127,14 @@ def remove_dot_segments_of_path(iri: str, colon_position: int) -> str:
 
 
 def resolve(relative_iri: str, base_iri: str = None) -> str:
-    #     """
-    #     Resolves a given relative IRI to an absolute IRI.
+    """
+    Resolves a given relative IRI to an absolute IRI.
 
-    #     :param base_iri: the base IRI.
-    #     :param relative_iri: the relative IRI.
+    :param base_iri: the base IRI.
+    :param relative_iri: the relative IRI.
 
-    #     :return: the absolute IRI.
-    #     """
+    :return: the absolute IRI.
+    """
     base_iri = base_iri or ''
     base_fragment_pos = base_iri.find("#")
 
@@ -293,7 +293,7 @@ def unresolve(absolute_iri: str, base_iri: str = ""):
         rval = './' + rval
 
     # build relative IRI using urlunparse with empty scheme/netloc
-    return urlunparse(('', '', rval, '', rel.query or '', rel.fragment or '')) or './'
+    return urlunparse(('', '', rval, '', rel.query, rel.fragment)) or './'
 
 
 def parse_authority(parsed_iri: ParseResult) -> str:
