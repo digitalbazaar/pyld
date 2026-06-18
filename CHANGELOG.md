@@ -1,5 +1,38 @@
 # pyld ChangeLog
 
+## 4.0.0 - unreleased
+
+### Added
+
+- migrate `canon.py` to `rdflib`
+  - added `rdflib` dependency in all relevant config and code files.
+  - added `util.py`:
+    - added the functions `from_legacy_dataset()` and `to_legacy_dataset()` to convert an `rdflib.Dataset` to an RDFJS-like `dict` and back wherever needed. 
+    - added unittests in `tests/test_util.py` for these functions.
+- implement RDFC1.0
+  - added new class `RDFC10` (subclass of `URDNA2015`) in `canon.py`
+  - added the RDFC1.0 test-suite in `tests/runtests.py`
+    - added support for testing blank-node identifier maps. 
+    - added support for testing with different hashing algorithms
+
+### Changed
+  - migrate `canon.py` to `rdflib`:
+    - now use `rdflib` for RDF term type checking (e.g., checking is something is a bnode), looping over triples/quads, nquads serialization and constructing RDF terms  (custom deepcopy is no longer needed) 
+    - move nquads parsing from`JsonLdProcessor.normalize()` to `URDNA2015.main()` so all parsing and serialization is handled by the same class. 
+    - move the main logic to `URDNA2015._canonicalize(self, dataset: Dataset)` while keeping input and output in `URDNA2015.main()`. The method `URDNA2015._canonicalize(self, dataset: Dataset)` accepts an `rdflib.Dataset` and returns a tuple with 
+        - the canonicalized result as a nquads `str` and 
+        - the blank node identifier map as `dict`.
+    - the method `URDNA2015 .main(self, dataset: str | dict | Dataset, options)` now 
+      - accepts a `rdflib.Dataset` object in addition to an nquads `str` or the original RDFJS-like`dict`. 
+      - returns 
+        - a `str`: the serialized nquads result, or 
+        - a `dict`: the result as RDFJS-like dataset or the blank node identifier map when the new parameter `outputMap` is `True`.
+    - the hashing algorithm is now an class attribute `URDNA2015.hash_algorithm` so it  configurable (required for RDFC1.0)
+    - the `permutations()` function now uses `itertools.permutations` instead of a custom implementation.
+    - replacements for rdflib's `_nq_row` and `_quoteLiteral` (these should eventually move to a fix for rdflib's nquads serializer).
+  - (re-)enabled all skipped URDNA2015, URDNA2012 tests in `tests/runtests.py`
+  - if the result of a test is a dict and the expected value is a string, the expected value is now parsed as JSON (needed for testing blank-node identifier maps).
+
 ## 3.1.0 - unreleased
 
 ### Fixed
