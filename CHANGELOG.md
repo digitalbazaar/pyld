@@ -1,6 +1,6 @@
 # pyld ChangeLog
 
-## 3.1.0 - unreleased
+## 3.1.0 - 2026-06-19
 
 ### Fixed
 - When compacting, expands the index mapping first, then compacts that expanded 
@@ -29,7 +29,6 @@
   [toRdf#tc038](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#tc038), 
   [expand#tc037](https://w3c.github.io/json-ld-api/tests/expand-manifest.html#tc037)
   and [expand#tc038](https://w3c.github.io/json-ld-api/tests/expand-manifest.html#tc038).
-
 
 ### Changed
 - `requests_document_loader()` and `aiohttp_document_loader()` now return

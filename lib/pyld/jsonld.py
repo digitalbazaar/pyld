@@ -12,6 +12,8 @@ JSON-LD.
 .. moduleauthor:: Tim McNamara <tim.mcnamara@okfn.org>
 .. moduleauthor:: Olaf Conradi <olaf@conradi.org>
 .. moduleauthor:: Gregg Kellogg <gregg@greggkellogg.net>
+.. moduleauthor:: Miel Vander Sande <miel.vandersande@meemoo.be>
+.. moduleauthor:: Anatoly Scherbakov
 """
 
 import copy

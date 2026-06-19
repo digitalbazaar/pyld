@@ -1,6 +1,10 @@
 """
+Python implementation of an IRI resolver
+
 - The functions 'remove_dot_segments()', 'resolve()' and 'is_character_allowed_after_relative_path_segment()' are direct ports from [relative-to-absolute-iri.js](https://github.com/rubensworks/relative-to-absolute-iri.js) (c) Ruben Taelman <ruben.taelman@ugent.be>
 - The 'unresolve()' function is a move and rename of the 'remove_base()' function from 'jsonld.py'
+
+.. moduleauthor:: Miel Vander Sande <miel.vandersande@meemoo.be>
 """
 
 from urllib.parse import ParseResult, urlparse, urlunparse
