@@ -71,10 +71,6 @@
   [fromRdf#tdi12](https://w3c.github.io/json-ld-api/tests/fromRdf-manifest.html#tdi12),
   [toRdf#tdi11](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#tdi11), and
   [toRdf#tdi12](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#tdi12).
-- `pyld.fromRdf()` now supports compound literals when serializing RDF to JSON-LD. 
-  It therefore also accepts the value `'compound-literal'` for the `'rdfDirection'` option. 
-  Fixes [fromRdf#tdi11](https://w3c.github.io/json-ld-api/tests/fromRdf-manifest.html#tdi11) 
-  and [fromRdf#tdi12](https://w3c.github.io/json-ld-api/tests/fromRdf-manifest.html#tdi12).
 
 ## 3.0.0 - 2026-04-02
 
