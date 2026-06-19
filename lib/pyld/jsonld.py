@@ -2418,15 +2418,12 @@ class JsonLdProcessor:
                             code='invalid @id value',
                         )
 
-                expanded_values = []
-                for v in JsonLdProcessor.arrayify(value):
-                    expanded_values.append(
-                        v
-                        if _is_object(v)
-                        else self._expand_iri(
-                            active_ctx, v, base=options.get('base', '')
-                        )
-                    )
+                expanded_values = [
+                    v
+                    if _is_object(v)
+                    else self._expand_iri(active_ctx, v, base=options.get('base', ''))
+                    for v in JsonLdProcessor.arrayify(value)
+                ]
 
                 JsonLdProcessor.add_value(
                     expanded_parent,
@@ -2448,10 +2445,8 @@ class JsonLdProcessor:
                 if _is_object(value):
                     # if framing, can be a default object, but need to expand
                     # key to determine that
-                    new_value = {}
-                    for k, v in value.items():
-                        ek = self._expand_iri(type_scoped_ctx, k, vocab=True)
-                        ev = [
+                    value = {
+                        self._expand_iri(type_scoped_ctx, k, vocab=True): [
                             self._expand_iri(
                                 type_scoped_ctx,
                                 vv,
@@ -2460,20 +2455,19 @@ class JsonLdProcessor:
                             )
                             for vv in JsonLdProcessor.arrayify(v)
                         ]
-                        new_value[ek] = ev
-                    value = new_value
+                        for k, v in value.items()
+                    }
                 else:
                     value = JsonLdProcessor.arrayify(value)
                 _validate_type_value(value, options.get('isFrame'))
-                expanded_values = []
-                for v in JsonLdProcessor.arrayify(value):
-                    expanded_values.append(
-                        self._expand_iri(
-                            type_scoped_ctx, v, vocab=True, base=options.get('base', '')
-                        )
-                        if _is_string(v)
-                        else v
+                expanded_values = [
+                    self._expand_iri(
+                        type_scoped_ctx, v, vocab=True, base=options.get('base', '')
                     )
+                    if _is_string(v)
+                    else v
+                    for v in JsonLdProcessor.arrayify(value)
+                ]
                 JsonLdProcessor.add_value(
                     expanded_parent,
                     '@type',
@@ -2547,9 +2541,10 @@ class JsonLdProcessor:
                         code='invalid language-tagged string',
                     )
                 # ensure language value is lowercase
-                expanded_values = []
-                for v in JsonLdProcessor.arrayify(value):
-                    expanded_values.append(v.lower() if _is_string(v) else v)
+                expanded_values = [
+                    v.lower() if _is_string(v) else v
+                    for v in JsonLdProcessor.arrayify(value)
+                ]
                 JsonLdProcessor.add_value(
                     expanded_parent,
                     '@language',
@@ -2568,14 +2563,13 @@ class JsonLdProcessor:
                         code='invalid base direction',
                     )
                 value = JsonLdProcessor.arrayify(value)
-                for dir in value:
-                    if _is_string(dir) and dir != 'ltr' and dir != 'rtl':
-                        raise JsonLdError(
-                            'Invalid JSON-LD syntax; "@direction" must be "ltr" or "rtl".',
-                            'jsonld.SyntaxError',
-                            {'value': value},
-                            code='invalid base direction',
-                        )
+                if any(_is_string(dir) and dir not in ('ltr', 'rtl') for dir in value):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; "@direction" must be "ltr" or "rtl".',
+                        'jsonld.SyntaxError',
+                        {'value': value},
+                        code='invalid base direction',
+                    )
                 JsonLdProcessor.add_value(
                     expanded_parent,
                     '@direction',
@@ -2670,7 +2664,6 @@ class JsonLdProcessor:
                 expanded_value = self._expand_language_map(term_ctx, value, direction)
             # handle index container (skip if value is not an object)
             elif '@index' in container and _is_object(value):
-                as_graph = '@graph' in container
                 index_key = JsonLdProcessor.get_context_value(term_ctx, key, '@index')
                 if index_key is None:
                     index_key = '@index'
@@ -2680,12 +2673,17 @@ class JsonLdProcessor:
                         active_ctx, index_key, vocab=options.get('base', '')
                     )
                 expanded_value = self._expand_index_map(
-                    term_ctx, key, value, index_key, as_graph, property_index, options
+                    term_ctx,
+                    key,
+                    value,
+                    index_key,
+                    '@graph' in container,
+                    property_index,
+                    options,
                 )
             elif '@id' in container and _is_object(value):
-                as_graph = '@graph' in container
                 expanded_value = self._expand_index_map(
-                    term_ctx, key, value, '@id', as_graph, None, options
+                    term_ctx, key, value, '@id', '@graph' in container, None, options
                 )
             elif '@type' in container and _is_object(value):
                 expanded_value = self._expand_index_map(
@@ -2782,23 +2780,22 @@ class JsonLdProcessor:
 
         # @value must not be an object or an array (unless framing)
         # or if @type is @json
-        if '@value' in expanded_parent:
-            if expanded_parent.get('@type') == '@json' and self._processing_mode(
-                active_ctx, 1.1
-            ):
-                # allow any value, to be verified when the object
-                # is fully expanded and the @type is @json.
-                pass
-            elif (
-                _is_object(unexpanded_value) or _is_array(unexpanded_value)
-            ) and not options['isFrame']:
-                raise JsonLdError(
-                    'Invalid JSON-LD syntax; @value" value must not be an '
-                    'object or an array.',
-                    'jsonld.SyntaxError',
-                    {'value': unexpanded_value},
-                    code='invalid value object value',
-                )
+        if (
+            '@value' in expanded_parent
+            and not (
+                expanded_parent.get('@type') == '@json'
+                and self._processing_mode(active_ctx, 1.1)
+            )
+            and (_is_object(unexpanded_value) or _is_array(unexpanded_value))
+            and not options['isFrame']
+        ):
+            raise JsonLdError(
+                'Invalid JSON-LD syntax; @value" value must not be an '
+                'object or an array.',
+                'jsonld.SyntaxError',
+                {'value': unexpanded_value},
+                code='invalid value object value',
+            )
 
         # Nested values merge into the current node, but their term and type
         # scoped contexts must still be prepared as if expanding a node object.
@@ -2817,11 +2814,10 @@ class JsonLdProcessor:
                     term_ctx, nv, options
                 )
 
-                if [
-                    k
-                    for k, v in nv.items()
-                    if self._expand_iri(active_ctx, k, vocab=True) == '@value'
-                ]:
+                if any(
+                    self._expand_iri(active_ctx, k, vocab=True) == '@value'
+                    for k in nv
+                ):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; nested value must be a node object.',
                         'jsonld.SyntaxError',
