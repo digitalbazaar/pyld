@@ -92,6 +92,33 @@ class TestExpand:
         assert got == []
         assert dropped_keys == {"fooo"}
 
+    def test_value_object_type_array_fails(self):
+        """
+        Value objects must not allow array values for @type during expansion.
+        """
+        input = {
+            "@context": {"ex": "http://example.com/"},
+            "ex:prop": {"@value": "value", "@type": ["ex:a", "ex:b"]},
+        }
+
+        with pytest.raises(jsonld.JsonLdError) as exc:
+            jsonld.expand(input)
+
+        assert exc.value.code == 'invalid typed value'
+
+    def test_value_object_type_null_expands(self):
+        """
+        Value objects with @type set to null should expand without @type.
+        """
+        input = {
+            "@context": {"ex": "http://example.com/"},
+            "ex:prop": {"@value": "value", "@type": None},
+        }
+
+        assert jsonld.expand(input) == [
+            {"http://example.com/prop": [{"@value": "value"}]}
+        ]
+
     def test_dropped_keys_complex(self):
         """
         Complex example with keys not in the context should correctly store

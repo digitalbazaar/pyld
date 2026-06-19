@@ -952,7 +952,6 @@ TEST_TYPES = {
             'specVersion': ['json-ld-1.0'],
             'idRegex': [
                 # uncategorized
-                '.*expand-manifest#ter54$',
                 '.*expand-manifest#ter56$',
             ],
         },
@@ -1027,7 +1026,6 @@ TEST_TYPES = {
                 # well formed
                 '.*toRdf-manifest#twf05$',
                 # uncategorized
-                '.*toRdf-manifest#ter54$',
                 '.*toRdf-manifest#ter56$',
                 '.*toRdf-manifest#tli12$',
                 '.*toRdf-manifest#tli14$',
