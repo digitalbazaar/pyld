@@ -18,6 +18,7 @@ JSON-LD.
 
 import copy
 import json
+import math
 import re
 import sys
 import uuid
@@ -35,7 +36,12 @@ from c14n.Canonicalize import canonicalize
 from pyld.__about__ import __copyright__, __license__, __version__
 from pyld.canon import URDNA2015, URGNA2012, UnknownFormatError
 from pyld.identifier_issuer import IdentifierIssuer
-from pyld.nquads import ParserError, parse_nquads, serialize_nquad, serialize_nquads
+from pyld.nquads import (
+    ParserError,
+    parse_nquads,
+    serialize_nquad,
+    serialize_nquads,
+)
 
 from .context_resolver import ContextResolver
 from .iri_resolver import resolve, unresolve
@@ -4113,19 +4119,24 @@ class JsonLdProcessor:
 
             # use native types for certain xsd types
             if use_native_types:
+                converted = False
                 if type_ == XSD_BOOLEAN:
-                    if rval['@value'] == 'true':
+                    if rval['@value'] in ['true', '1']:
                         rval['@value'] = True
-                    elif rval['@value'] == 'false':
+                        converted = True
+                    elif rval['@value'] in ['false', '0']:
                         rval['@value'] = False
-                elif _is_numeric(rval['@value']):
-                    if type_ == XSD_INTEGER:
-                        if rval['@value'].isdigit():
-                            rval['@value'] = int(rval['@value'])
-                    elif type_ == XSD_DOUBLE:
-                        rval['@value'] = float(rval['@value'])
+                        converted = True
+                elif type_ == XSD_INTEGER and re.match(r'^[+-]?\d+$', rval['@value']):
+                    rval['@value'] = int(rval['@value'])
+                    converted = True
+                elif type_ == XSD_DOUBLE and _is_numeric(rval['@value']):
+                    value = float(rval['@value'])
+                    if math.isfinite(value):
+                        rval['@value'] = value
+                        converted = True
                 # do not add native type
-                if type_ not in [XSD_BOOLEAN, XSD_INTEGER, XSD_DOUBLE, XSD_STRING]:
+                if not converted and type_ != XSD_STRING:
                     rval['@type'] = type_
             elif rdf_direction == 'i18n-datatype' and type_.startswith(
                 'https://www.w3.org/ns/i18n#'
