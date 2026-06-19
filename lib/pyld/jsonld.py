@@ -2207,6 +2207,22 @@ class JsonLdProcessor:
                     code='invalid value object',
                 )
 
+            if '@type' in rval:
+                if not options.get('isFrame') and any(
+                    self._expand_iri(active_ctx, key, vocab=True) == '@type'
+                    and _is_array(value)
+                    for key, value in element.items()
+                ):
+                    raise JsonLdError(
+                        'Invalid JSON-LD syntax; an element containing "@value" '
+                        'must have a string or null value for "@type".',
+                        'jsonld.SyntaxError',
+                        {'element': rval},
+                        code='invalid typed value',
+                    )
+                if rval['@type'] is None:
+                    del rval['@type']
+
             values = JsonLdProcessor.get_values(rval, '@value')
             types = JsonLdProcessor.get_values(rval, '@type')
 
@@ -2246,8 +2262,17 @@ class JsonLdProcessor:
                     code='invalid typed value',
                 )
         # convert @type to an array
-        elif '@type' in rval and not _is_array(rval['@type']):
-            rval['@type'] = [rval['@type']]
+        elif '@type' in rval:
+            if rval['@type'] is None:
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; "@type" value must be a string, '
+                    'an array of strings, or an empty object.',
+                    'jsonld.SyntaxError',
+                    {'value': None},
+                    code='invalid type value',
+                )
+            if not _is_array(rval['@type']):
+                rval['@type'] = [rval['@type']]
         # handle @set and @list
         elif '@set' in rval or '@list' in rval:
             if count > 1 and not (count == 2 and '@index' in rval):
@@ -2412,6 +2437,14 @@ class JsonLdProcessor:
                 continue
 
             if expanded_property == '@type':
+                if value is None:
+                    JsonLdProcessor.add_value(
+                        expanded_parent,
+                        '@type',
+                        None,
+                        {'propertyIsArray': options['isFrame']},
+                    )
+                    continue
                 if _is_object(value):
                     # if framing, can be a default object, but need to expand
                     # key to determine that
