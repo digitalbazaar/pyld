@@ -2,6 +2,10 @@
 
 ## 3.2.0 - unreleased
 
+### Fixed
+- Throws an error if value objects contain array values for `@type` during expansion. Fixes [expand#ter54](https://w3c.github.io/json-ld-api/tests/expand-manifest.html#ter54) and [toRdf#ter54](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#ter54).
+- When using native types, values of `xsd:boolean` and `xsd:integer` are now properly converted. Fixes [fromRdf#t0027](https://w3c.github.io/json-ld-api/tests/fromRdf-manifest.html#t0027).
+
 ## 3.1.0 - 2026-06-19
 
 ### Fixed
