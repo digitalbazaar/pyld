@@ -203,7 +203,7 @@ def define_env(env):
         return '\n'.join(rows)
 
     @env.macro
-    def example(name, output_syntax=None):
+    def example(name, output_syntax=None, indent=0):
         path = _example_path(name)
         source = path.read_text()
         result = subprocess.run(
@@ -226,5 +226,7 @@ def define_env(env):
             f'```python\n{source}```\n\n'
             f'```{output_lang} title="Output"\n{result.stdout}```'
         )
-        indented = '\n'.join(f'    {line}' for line in body.splitlines())
+        content_indent = indent + 4
+        pad = ' ' * content_indent
+        indented = '\n'.join(f'{pad}{line}' for line in body.splitlines())
         return f'!!! example "{title}"\n\n{indented}\n'
