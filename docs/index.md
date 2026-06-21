@@ -22,49 +22,49 @@ and JSON document stores.
     Compacts a JSON-LD document with a context, replacing full IRIs with shorter
     terms where possible.
 
-    {{ example('compact.py', 'json') }}
+    {{ example('compact.py', 'json', indent=4) }}
 
 === "jsonld.expand()"
 
     Expands a compacted JSON-LD document into full IRI-based form and removes the
     context.
 
-    {{ example('expand.py', 'json') }}
+    {{ example('expand.py', 'json', indent=4) }}
 
 === "jsonld.flatten()"
 
     Flattens nested JSON-LD into a top-level node map so each node can be processed
     independently.
 
-    {{ example('flatten.py', 'json') }}
+    {{ example('flatten.py', 'json', indent=4) }}
 
 === "jsonld.frame()"
 
     Frames expanded JSON-LD into a predictable tree shape that matches a supplied
     frame.
 
-    {{ example('frame.py', 'json') }}
+    {{ example('frame.py', 'json', indent=4) }}
 
 === "jsonld.to_rdf()"
 
     Converts a JSON-LD document into RDF statements in a requested serialization
     format.
 
-    {{ example('to_rdf.py') }}
+    {{ example('to_rdf.py', indent=4) }}
 
 === "jsonld.from_rdf()"
 
     Converts RDF statements into JSON-LD so the data can be processed with the
     JSON-LD API.
 
-    {{ example('from_rdf.py', 'json') }}
+    {{ example('from_rdf.py', 'json', indent=4) }}
 
 === "jsonld.normalize()"
 
     Normalizes JSON-LD into canonical RDF statements for stable comparison,
     hashing, or signing.
 
-    {{ example('normalize.py') }}
+    {{ example('normalize.py', indent=4) }}
 
 ## :fontawesome-solid-people-line: Maintainers
 
