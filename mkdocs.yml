@@ -43,4 +43,15 @@ plugins:
       collapse_single_pages: true
   - macros:
       module_name: docs_macros
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: sphinx
+            show_root_heading: false
+            show_root_full_path: false
+            show_source: false
+            separate_signature: true
+            show_signature_annotations: true
+            heading_level: 2
   - search
