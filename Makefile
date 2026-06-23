@@ -10,6 +10,7 @@ test:
 
 docs-install:
 	python -m pip install --upgrade pip
+	pip install -e .
 	pip install -r docs/requirements.txt
 
 docs-build:
