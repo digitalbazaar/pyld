@@ -20,49 +20,49 @@ and JSON document stores.
 === "jsonld.compact()"
 
     Compacts a JSON-LD document with a context, replacing full IRIs with shorter
-    terms where possible.
+    terms where possible. [Read more :octicons-arrow-right-24:](reference/compact.md)
 
     {{ example('compact.py', 'json', indent=4) }}
 
 === "jsonld.expand()"
 
     Expands a compacted JSON-LD document into full IRI-based form and removes the
-    context.
+    context. [Read more :octicons-arrow-right-24:](reference/expand.md)
 
     {{ example('expand.py', 'json', indent=4) }}
 
 === "jsonld.flatten()"
 
     Flattens nested JSON-LD into a top-level node map so each node can be processed
-    independently.
+    independently. [Read more :octicons-arrow-right-24:](reference/flatten.md)
 
     {{ example('flatten.py', 'json', indent=4) }}
 
 === "jsonld.frame()"
 
     Frames expanded JSON-LD into a predictable tree shape that matches a supplied
-    frame.
+    frame. [Read more :octicons-arrow-right-24:](reference/frame.md)
 
     {{ example('frame.py', 'json', indent=4) }}
 
 === "jsonld.to_rdf()"
 
     Converts a JSON-LD document into RDF statements in a requested serialization
-    format.
+    format. [Read more :octicons-arrow-right-24:](reference/to_rdf.md)
 
     {{ example('to_rdf.py', indent=4) }}
 
 === "jsonld.from_rdf()"
 
     Converts RDF statements into JSON-LD so the data can be processed with the
-    JSON-LD API.
+    JSON-LD API. [Read more :octicons-arrow-right-24:](reference/from_rdf.md)
 
     {{ example('from_rdf.py', 'json', indent=4) }}
 
 === "jsonld.normalize()"
 
     Normalizes JSON-LD into canonical RDF statements for stable comparison,
-    hashing, or signing.
+    hashing, or signing. [Read more :octicons-arrow-right-24:](reference/normalize.md)
 
     {{ example('normalize.py', indent=4) }}
 
