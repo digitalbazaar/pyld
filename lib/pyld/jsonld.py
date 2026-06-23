@@ -45,11 +45,29 @@ from pyld.nquads import (
 
 from .context_resolver import ContextResolver
 from .iri_resolver import resolve, unresolve
+from .options import (
+    CompactOptions,
+    Context,
+    ExpandOptions,
+    FlattenOptions,
+    FrameOptions,
+    FromRdfOptions,
+    NormalizeOptions,
+    ToRdfOptions,
+)
 
 __all__ = [
     '__copyright__',
     '__license__',
     '__version__',
+    'CompactOptions',
+    'Context',
+    'ExpandOptions',
+    'FlattenOptions',
+    'FrameOptions',
+    'FromRdfOptions',
+    'NormalizeOptions',
+    'ToRdfOptions',
     'compact',
     'expand',
     'flatten',
@@ -156,47 +174,30 @@ def noop(*args, **kwargs):
     return None
 
 
-def compact(input_, ctx, options=None):
+def compact(input_, ctx: Context, options: CompactOptions | None = None):
     """
     Performs JSON-LD compaction.
 
     :param input_: the JSON-LD input to compact.
     :param ctx: the JSON-LD context to compact with.
-    :param [options]: the options to use.
-      [base] the base IRI to use.
-      [compactArrays] True to compact arrays to single values when
-        appropriate, False not to (default: True).
-      [graph] True to always output a top-level graph (default: False).
-      [expandContext] a context to expand with.
-      [extractAllScripts] True to extract all JSON-LD script elements
-        from HTML, False to extract just the first
-        (default: False).
-      [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
-        defaults to 'json-ld-1.1'.
-      [documentLoader(url, options)] the document loader
-        (default: _default_document_loader).
+    :param options: optional processing options; see Options below.
 
     :return: the compacted JSON-LD output.
     """
     return JsonLdProcessor().compact(input_, ctx, options)
 
 
-def expand(input_, options=None, on_property_dropped: OnPropertyDropped = noop):
+def expand(
+    input_,
+    options: ExpandOptions | None = None,
+    on_property_dropped: OnPropertyDropped = noop,
+):
     """
     Performs JSON-LD expansion.
 
     :param input_: the JSON-LD input to expand.
-    :param [options]: the options to use.
-      [base] the base IRI to use.
-      [expandContext] a context to expand with.
-      [extractAllScripts] True to extract all JSON-LD script elements
-        from HTML, False to extract just the first
-        (default: False).
-      [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
-        defaults to 'json-ld-1.1'.
-      [documentLoader(url, options)] the document loader
-        (default: _default_document_loader).
-    :param [on_property_dropped]: handler called on every ignored property.
+    :param options: optional processing options; see Options below.
+    :param on_property_dropped: handler called on every ignored property.
 
     :return: the expanded JSON-LD output.
     """
@@ -205,51 +206,26 @@ def expand(input_, options=None, on_property_dropped: OnPropertyDropped = noop):
     )
 
 
-def flatten(input_, ctx=None, options=None):
+def flatten(input_, ctx: Context | None = None, options: FlattenOptions | None = None):
     """
     Performs JSON-LD flattening.
 
     :param input_: the JSON-LD input to flatten.
     :param ctx: the JSON-LD context to compact with (default: None).
-    :param [options]: the options to use.
-      [base] the base IRI to use.
-      [expandContext] a context to expand with.
-      [extractAllScripts] True to extract all JSON-LD script elements
-        from HTML, False to extract just the first
-        (default: True).
-      [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
-        (default: 'json-ld-1.1').
-      [documentLoader(url, options)] the document loader
-        (default: _default_document_loader).
+    :param options: optional processing options; see Options below.
 
     :return: the flattened JSON-LD output.
     """
     return JsonLdProcessor().flatten(input_, ctx, options)
 
 
-def frame(input_, frame, options=None):
+def frame(input_, frame, options: FrameOptions | None = None):
     """
     Performs JSON-LD framing.
 
     :param input_: the JSON-LD input to frame.
     :param frame: the JSON-LD frame to use.
-    :param [options]: the options to use.
-      [base] the base IRI to use.
-      [expandContext] a context to expand with.
-      [extractAllScripts] True to extract all JSON-LD script elements
-        from HTML, False to extract just the first
-        (default: False).
-      [embed] default @embed flag: '@last', '@always', '@never', '@link'
-        (default: '@last').
-      [explicit] default @explicit flag (default: False).
-      [omitDefault] default @omitDefault flag (default: False).
-      [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
-        defaults to 'json-ld-1.1'.
-      [pruneBlankNodeIdentifiers] remove unnecessary blank node identifiers
-        (default: True)
-      [requireAll] default @requireAll flag (default: False).
-      [documentLoader(url, options)] the document loader
-        (default: _default_document_loader).
+    :param options: optional processing options; see Options below.
 
     :return: the framed JSON-LD output.
     """
@@ -264,7 +240,7 @@ def link(input_, ctx, options=None):
 
     :param input_: the JSON-LD document to link.
     :param ctx: the JSON-LD context to apply or None.
-    :param [options]: the options to use.
+    :param options: the options to use.
       [base] the base IRI to use.
       [expandContext] a context to expand with.
       [extractAllScripts] True to extract all JSON-LD script elements
@@ -286,73 +262,39 @@ def link(input_, ctx, options=None):
     return frame(input_, frame_, options)
 
 
-def normalize(input_, options=None):
+def normalize(input_, options: NormalizeOptions | None = None):
     """
     Performs RDF dataset normalization on the given input. The input is
     JSON-LD unless the 'inputFormat' option is used. The output is an RDF
-    dataset unless the 'format' option is used'.
+    dataset unless the 'format' option is used.
 
     :param input_: the JSON-LD input to normalize.
-    :param [options]: the options to use.
-      [algorithm] the algorithm to use: `URDNA2015` or `URGNA2012`
-        (default: `URGNA2012`).
-      [base] the base IRI to use.
-      [inputFormat] the format if input is not JSON-LD:
-        'application/n-quads' for N-Quads.
-      [format] the format if output is a string:
-        'application/n-quads' for N-Quads.
-      [extractAllScripts] True to extract all JSON-LD script elements
-        from HTML, False to extract just the first
-        (default: False).
-      [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
-        defaults to 'json-ld-1.1'.
-      [documentLoader(url, options)] the document loader
-        (default: _default_document_loader).
+    :param options: optional processing options; see Options below.
 
     :return: the normalized output.
     """
     return JsonLdProcessor().normalize(input_, options)
 
 
-def from_rdf(input_, options=None):
+def from_rdf(input_, options: FromRdfOptions | None = None):
     """
     Converts an RDF dataset to JSON-LD.
 
     :param input_: a serialized string of RDF in a format specified
       by the format option or an RDF dataset to convert.
-    :param [options]: the options to use:
-      [format] the format if input is a string:
-        'application/n-quads' for N-Quads (default: 'application/n-quads').
-      [useRdfType] True to use rdf:type, False to use @type (default: False).
-      [useNativeTypes] True to convert XSD types into native types
-        (boolean, integer, double), False not to (default: True).
-      [rdfDirection] Either 'i18n-datatype' or 'compound-literal'
-        is supported. (default: None)
+    :param options: optional processing options; see Options below.
 
     :return: the JSON-LD output.
     """
     return JsonLdProcessor().from_rdf(input_, options)
 
 
-def to_rdf(input_, options=None):
+def to_rdf(input_, options: ToRdfOptions | None = None):
     """
     Outputs the RDF dataset found in the given JSON-LD object.
 
     :param input_: the JSON-LD input.
-    :param [options]: the options to use.
-      [base] the base IRI to use.
-      [format] the format to use to output a string:
-        'application/n-quads' for N-Quads.
-      [produceGeneralizedRdf] true to output generalized RDF, false
-        to produce only standard RDF (default: false).
-      [extractAllScripts] True to extract all JSON-LD script elements
-        from HTML, False to extract just the first
-        (default: True).
-      [processingMode] Either 'json-ld-1.0' or 'json-ld-1.1',
-        defaults to 'json-ld-1.1'.
-      [documentLoader(url, options)] the document loader
-        (default: _default_document_loader).
-      [rdfDirection] Only 'i18n-datatype' supported.
+    :param options: optional processing options; see Options below.
 
     :return: the resulting RDF dataset (or a serialization of it).
     """
@@ -1232,7 +1174,7 @@ class JsonLdProcessor:
         :param subject: the subject to add the value to.
         :param property: the property that relates the value to the subject.
         :param value: the value to add.
-        :param [options]: the options to use:
+        :param options: the options to use:
           [propertyIsArray] True if the property is always
             an array, False if not (default: False).
           [valueIsArray] True if the value to be added should be preserved as
@@ -1312,7 +1254,7 @@ class JsonLdProcessor:
         :param subject: the subject.
         :param property: the property that relates the value to the subject.
         :param value: the value to remove.
-        :param [options]: the options to use:
+        :param options: the options to use:
           [propertyIsArray]: True if the property is always an array,
             False if not (default: False).
         """
