@@ -950,10 +950,7 @@ TEST_TYPES = {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
-            'idRegex': [
-                # uncategorized
-                '.*expand-manifest#ter56$',
-            ],
+            'idRegex': [],
         },
         'fn': 'expand',
         'params': [read_test_url('input'), create_test_options()],
@@ -1023,7 +1020,6 @@ TEST_TYPES = {
                 # well formed
                 '.*toRdf-manifest#twf05$',
                 # uncategorized
-                '.*toRdf-manifest#ter56$',
                 '.*toRdf-manifest#tli12$',
                 '.*toRdf-manifest#tli14$',
             ]
