@@ -42,7 +42,8 @@ def parse_nquads(input_: str):
     literal = '(?:' + plain + '(?:' + datatype + '|' + language + ')?)'
     ws = '[ \\t]+'
     wso = '[ \\t]*'
-    empty = r'^' + wso + '$'
+    comment = '^#.*$'
+    empty = '(' + r'^' + wso + '$' + '|' + comment + ')'
 
     # define quad part regexes
     subject = '(?:' + iri + '|' + bnode + ')' + ws
