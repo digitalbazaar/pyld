@@ -119,6 +119,25 @@ class TestExpand:
             {"http://example.com/prop": [{"@value": "value"}]}
         ]
 
+    def test_context_keyword_redefinition_fails(self):
+        """
+        A local context must not define @context as a term.
+        """
+        input = {
+            "@context": {
+                "@context": {
+                    "p": "ex:p",
+                },
+            },
+            "@id": "ex:1",
+            "p": "value",
+        }
+
+        with pytest.raises(jsonld.JsonLdError) as exc:
+            jsonld.expand(input)
+
+        assert exc.value.code == 'keyword redefinition'
+
     def test_dropped_keys_complex(self):
         """
         Complex example with keys not in the context should correctly store

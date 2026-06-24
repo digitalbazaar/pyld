@@ -2856,7 +2856,19 @@ class JsonLdProcessor:
         # Local contexts on the nested node apply before looking for @type,
         # just like they do for an ordinary node object.
         if '@context' in element:
-            active_ctx = self._process_context(active_ctx, element['@context'], options)
+            local_ctx = element['@context']
+            if (
+                _is_object(local_ctx)
+                and len(local_ctx) == 1
+                and '@context' in local_ctx
+            ):
+                raise JsonLdError(
+                    'Invalid JSON-LD syntax; keywords cannot be overridden.',
+                    'jsonld.SyntaxError',
+                    {'context': local_ctx, 'term': '@context'},
+                    code='keyword redefinition',
+                )
+            active_ctx = self._process_context(active_ctx, local_ctx, options)
 
         # Set the type-scoped context to the context on input, for use later
         type_scoped_ctx = active_ctx
