@@ -518,6 +518,22 @@ class TestExpand:
         expanded = jsonld.expand(input)
         assert expanded == expected
 
+    def test_expand_stringifies_datetime_date_values(self):
+        """
+        Non-JSON scalar objects such as datetime.date should get stringified.
+        """
+        from datetime import date
+
+        expanded = jsonld.expand({
+            '@context': {'@vocab': 'https://schema.org/'},
+            '@id': 'https://example.blog/post',
+            'publicationDate': date(2021, 1, 11),
+        })
+
+        assert expanded == [{
+            '@id': 'https://example.blog/post',
+            'https://schema.org/publicationDate': [{'@value': '2021-01-11'}],
+        }]
 
 class TestFrame:
     # Issue 11 - PR: https://github.com/digitalbazaar/pyld/issues/149

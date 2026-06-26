@@ -6402,7 +6402,7 @@ def _is_numeric(v):
     try:
         float(v)
         return True
-    except ValueError:
+    except (TypeError, ValueError):
         return False
 
 
