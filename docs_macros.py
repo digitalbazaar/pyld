@@ -3,10 +3,16 @@ import os
 import re
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
+
+import yaml
+from mkdocs.utils.meta import YAML_RE
+from yaml import SafeLoader
 
 ROOT_DIR = Path(__file__).resolve().parent
 EXAMPLES_DIR = ROOT_DIR / 'docs' / 'examples'
+DECISIONS_DIR = ROOT_DIR / 'docs' / 'project' / 'decisions'
 sys.path.insert(0, str(ROOT_DIR / 'lib'))
 sys.path.insert(0, str(ROOT_DIR / 'tests'))
 
@@ -130,7 +136,132 @@ def _example_github_url(name, repo_url):
     return f'{repo_url.rstrip("/")}/blob/{branch}/{rel_path.as_posix()}'
 
 
+def _human_date(value):
+    if not value:
+        return ''
+    parsed = date.fromisoformat(value) if isinstance(value, str) else value
+    return f'{parsed.day} {parsed.strftime("%B %Y")}'
+
+
+_ADR_STATUS = {
+    'draft': (':material-pencil-outline:', 'Draft'),
+    'undecided': (':question:', 'Undecided'),
+    'decided': (':white_check_mark:', 'Decided'),
+}
+
+
+_ADR_STATUS_ADMONITION = {
+    'draft': 'note',
+    'undecided': 'warning',
+    'decided': 'success',
+}
+
+
+def _adr_status_label(value):
+    if not value:
+        return ''
+    key = str(value).lower()
+    return _ADR_STATUS.get(key, (None, str(value).replace('_', ' ').title()))[1]
+
+
+def _adr_metadata_date(value):
+    if not value:
+        return ''
+    return f':material-calendar-clock: {_human_date(value)}'
+
+
+def _adr_metadata(date, status):
+    kind = _ADR_STATUS_ADMONITION.get(str(status).lower(), 'note')
+    parts = []
+    label = _adr_status_label(status)
+    if label:
+        parts.append(label)
+    date_part = _adr_metadata_date(date)
+    if date_part:
+        parts.append(date_part)
+    title = ' · '.join(parts)
+    return f'!!! {kind} "{title}"\n'
+
+
+def _adr_status(value):
+    if not value:
+        return ''
+    key = str(value).lower()
+    icon, label = _ADR_STATUS.get(
+        key,
+        (':material-information-outline:', str(value).replace('_', ' ').title()),
+    )
+    return f'{icon} {label}'
+
+
+def _adr_status_icon(value):
+    if not value:
+        return ':material-information-outline:'
+    key = str(value).lower()
+    return _ADR_STATUS.get(
+        key,
+        (':material-information-outline:', ''),
+    )[0]
+
+
+def _parse_frontmatter(path):
+    text = path.read_text(encoding='utf-8-sig')
+    match = YAML_RE.match(text)
+    if not match:
+        return {}
+    return yaml.load(match.group(1), SafeLoader) or {}
+
+
+def _parse_adr_date(value):
+    if not value:
+        return None
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        return date.fromisoformat(value)
+    if hasattr(value, 'date'):
+        return value.date()
+    return None
+
+
+def _adr_index():
+    decisions = []
+    for path in sorted(DECISIONS_DIR.glob('*.md')):
+        meta = _parse_frontmatter(path)
+        title = meta.get('title', path.stem.replace('-', ' ').title())
+        parsed_date = _parse_adr_date(meta.get('date'))
+        status = meta.get('status', '')
+        url = f'decisions/{path.stem}/'
+        decisions.append((parsed_date or date.min, title, status, url))
+
+    decisions.sort(key=lambda item: item[0], reverse=True)
+
+    lines = []
+    for parsed_date, title, status, url in decisions:
+        icon = _adr_status_icon(status)
+        date_part = _human_date(parsed_date) if parsed_date != date.min else ''
+        suffix = f' · {date_part}' if date_part else ''
+        lines.append(f'- {icon} [{title}]({url}){suffix}')
+    return '\n'.join(lines)
+
+
 def define_env(env):
+    @env.filter
+    def human_date(value):
+        return _human_date(value)
+
+    @env.filter
+    def adr_status(value):
+        return _adr_status(value)
+
+    @env.macro
+    def adr_metadata(date, status):
+        return _adr_metadata(date, status)
+
+    @env.macro
+    def adr_index():
+        return _adr_index()
+
     @env.macro
     def bundled_contexts_table():
         from pyld import BUNDLED_CONTEXTS
