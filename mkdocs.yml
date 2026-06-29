@@ -7,6 +7,9 @@ repo_name: digitalbazaar/pyld
 extra_css:
   - stylesheets/extra.css
 
+extra_javascript:
+  - javascripts/mermaid.mjs
+
 theme:
   name: material
   features:
@@ -29,12 +32,18 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.highlight:
       anchor_linenums: true
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
       slugify: !!python/object/apply:pymdownx.slugs.slugify
         kwds:
           case: lower
+  - pymdownx.tasklist:
+      custom_checkbox: true
   - toc:
       permalink: true
 
