@@ -1041,6 +1041,17 @@ _:b0 <http://purl.org/dc/terms/title> "Chapter 1: Jonathan Harker's Journal" .
         nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
         assert nquads == expected
 
+    # Issue 177
+    def test_fractional(self):
+        """
+        Number with 0 fractional part should parse to an xsd:integer
+        """
+        input = { "ex:value": 42.0 }
+
+        expected = '[] <ex:value> "42"^^xsd:integer.'
+
+        nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
+        assert nquads == expected
 
 class TestFromRDF:
     def test_compound_literal_direction_without_language(self):
