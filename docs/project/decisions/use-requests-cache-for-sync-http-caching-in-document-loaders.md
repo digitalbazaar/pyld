@@ -177,13 +177,7 @@ Neither library implements HTTP cache semantics — `cachetools` is a generic in
 ## :material-arrow-right-bold-outline: Consequences
 
 - PyLD will add optional, HTTP-aware sync caching via `requests-cache` without making caching a required dependency.
+- Opt-in sync caching will now be provided by [`SqliteCacheRequestsDocumentLoader`](/pyld/reference/document-loaders/sqlite-cache-requests/), composing `RequestsDocumentLoader` with a persistent SQLite `CachedSession`.
 - A custom in-process HTTP cache implementation is rejected; with a fitting library available, PyLD will integrate `requests-cache` rather than expand the codebase to implement RFC 9111 caching itself.
 - CacheControl is excluded for the sync `requests` path in favor of `requests-cache`.
 - Async HTTP caching remains out of scope for this decision; `aiohttp-client-cache` and `hishel` stay as future candidates.
-
-#### Implementation Steps
-
-- [ ] Add an optional dependency extra for `requests-cache`.
-- [ ] Add a cache-aware requests document loader or factory.
-- [ ] Document that cache behavior is opt-in and intended to support HTTP cache headers for JSON-LD contexts.
-- [ ] Add focused tests for cached requests loader construction and HTTP cache-header behavior.
