@@ -3,7 +3,12 @@ import os
 import re
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
+
+import yaml
+from mkdocs.utils.meta import YAML_RE
+from yaml import SafeLoader
 
 ROOT_DIR = Path(__file__).resolve().parent
 EXAMPLES_DIR = ROOT_DIR / 'docs' / 'examples'
@@ -130,7 +135,95 @@ def _example_github_url(name, repo_url):
     return f'{repo_url.rstrip("/")}/blob/{branch}/{rel_path.as_posix()}'
 
 
+def _human_date(value):
+    if not value:
+        return ''
+    parsed = date.fromisoformat(value) if isinstance(value, str) else value
+    return f'{parsed.day} {parsed.strftime("%B %Y")}'
+
+
+_ADR_STATUS = {
+    'draft': (':material-pencil-outline:', 'Draft'),
+    'undecided': (':question:', 'Undecided'),
+    'decided': (':white_check_mark:', 'Decided'),
+}
+
+
+_ADR_STATUS_ADMONITION = {
+    'draft': 'note',
+    'undecided': 'warning',
+    'decided': 'success',
+}
+
+
+def _adr_status_label(value):
+    if not value:
+        return ''
+    key = str(value).lower()
+    return _ADR_STATUS.get(key, (None, str(value).replace('_', ' ').title()))[1]
+
+
+def _adr_metadata_date(value):
+    if not value:
+        return ''
+    return f':material-calendar-clock: {_human_date(value)}'
+
+
+def _adr_metadata(date, status):
+    kind = _ADR_STATUS_ADMONITION.get(str(status).lower(), 'note')
+    parts = []
+    label = _adr_status_label(status)
+    if label:
+        parts.append(label)
+    date_part = _adr_metadata_date(date)
+    if date_part:
+        parts.append(date_part)
+    title = ' · '.join(parts)
+    return f'!!! {kind} "{title}"\n'
+
+
+def _adr_status(value):
+    if not value:
+        return ''
+    key = str(value).lower()
+    icon, label = _ADR_STATUS.get(
+        key,
+        (':material-information-outline:', str(value).replace('_', ' ').title()),
+    )
+    return f'{icon} {label}'
+
+
+def _adr_status_icon(value):
+    if not value:
+        return ':material-information-outline:'
+    key = str(value).lower()
+    return _ADR_STATUS.get(
+        key,
+        (':material-information-outline:', ''),
+    )[0]
+
+
+def _parse_frontmatter(path):
+    text = path.read_text(encoding='utf-8-sig')
+    match = YAML_RE.match(text)
+    if not match:
+        return {}
+    return yaml.load(match.group(1), SafeLoader) or {}
+
+
 def define_env(env):
+    @env.filter
+    def human_date(value):
+        return _human_date(value)
+
+    @env.filter
+    def adr_status(value):
+        return _adr_status(value)
+
+    @env.macro
+    def adr_metadata(date, status):
+        return _adr_metadata(date, status)
+
     @env.macro
     def bundled_contexts_table():
         from pyld import BUNDLED_CONTEXTS
