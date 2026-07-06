@@ -12,6 +12,13 @@ class-based loaders for common cases and supports custom subclasses of
 
     Synchronous remote document loading with `requests`.
 
+-   [:material-database:{ .lg .middle } `SqliteCacheRequestsDocumentLoader`](sqlite-cache-requests.md)
+
+    ---
+
+    Persistent [:simple-sqlite: SQLite](https://www.sqlite.org/) caching for
+    remote JSON-LD documents.
+
 -   [:material-sync:{ .lg .middle } `AioHttpDocumentLoader`](aiohttp.md)
 
     ---
