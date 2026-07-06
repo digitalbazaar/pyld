@@ -32,3 +32,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for code style, linting (e.g. `make lint
 - Base the commit message on the diff of the file that you are going to commit
 - Prefer one line commit messages
 - Do not co-author commits
+
+## Subdirectory guidance
+
+- [docs/AGENTS.md](docs/AGENTS.md) - documentation review and reference page focus
