@@ -13,6 +13,7 @@ matching extra:
 ```bash
 pip install "PyLD[requests]"
 pip install "PyLD[aiohttp]"
+pip install "PyLD[requests-cache]"
 ```
 
 You can also depend on `requests` or `aiohttp` directly if your project already
