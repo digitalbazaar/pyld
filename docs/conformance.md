@@ -13,6 +13,8 @@ PyLD aims to conform with:
 - [Universal RDF Graph Canonicalization Algorithm 2012 (URGNA2012)](https://www.w3.org/TR/rdf-canon/#URDNA2012)
 - The JSON-LD Working Group [test suite](https://github.com/w3c/json-ld-api/tree/master/tests)
 
+PyLD aims to follow [JSON-LD Best Practices](https://w3c.github.io/json-ld-bp/).
+
 The test runner is updated over time to note or skip newer tests that are not
 yet supported.
 
