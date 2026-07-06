@@ -2,3 +2,4 @@ ruff
 pytest
 pytest-cov
 typing_extensions
+requests-cache>=1.3
