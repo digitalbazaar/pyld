@@ -61,6 +61,7 @@ setup(
     extras_require={
         'requests': ['requests'],
         'aiohttp': ['aiohttp'],
+        'requests-cache': ['requests-cache>=1.3'],
         'cachetools': ['cachetools'],
         'frozendict': ['frozendict'],
     }
