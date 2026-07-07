@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Welcome to PyLD! &#8212; PyLD 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">PyLD 0.0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Welcome to PyLD!</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="welcome-to-pyld">
+<h1>Welcome to PyLD!<a class="headerlink" href="#welcome-to-pyld" title="Link to this heading">¶</a></h1>
+<p>PyLD is a <a class="reference external" href="https://www.python.org/">Python</a> implementation of a <a class="reference external" href="https://json-ld.org/">JSON-LD</a> processor.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+</div>
+<dl class="py function" id="module-pyld.jsonld">
+<dt class="sig sig-object py" id="pyld.jsonld.compact">
+<span class="sig-prename descclassname"><span class="pre">pyld.jsonld.</span></span><span class="sig-name descname"><span class="pre">compact</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyld/jsonld.html#compact"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyld.jsonld.compact" title="Link to this definition">¶</a></dt>
+<dd><p>Performs JSON-LD compaction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> – the JSON-LD input to compact.</p></li>
+<li><p><strong>ctx</strong> – the JSON-LD context to compact with.</p></li>
+<li><p><strong>[</strong><strong>options</strong><strong>]</strong> – <p>the options to use.
+[base] the base IRI to use.
+[compactArrays] True to compact arrays to single values when</p>
+<blockquote>
+<div><p>appropriate, False not to (default: True).</p>
+</div></blockquote>
+<p>[graph] True to always output a top-level graph (default: False).
+[expandContext] a context to expand with.
+[extractAllScripts] True to extract all JSON-LD script elements</p>
+<blockquote>
+<div><p>from HTML, False to extract just the first
+(default: False).</p>
+</div></blockquote>
+<dl class="simple">
+<dt>[processingMode] Either ‘json-ld-1.0’ or ‘json-ld-1.1’,</dt><dd><p>defaults to ‘json-ld-1.1’.</p>
+</dd>
+<dt>[documentLoader(url, options)] the document loader</dt><dd><p>(default: _default_document_loader).</p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the compacted JSON-LD output.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyld.jsonld.expand">
+<span class="sig-prename descclassname"><span class="pre">pyld.jsonld.</span></span><span class="sig-name descname"><span class="pre">expand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">input_,</span> <span class="pre">options=None,</span> <span class="pre">on_property_dropped:</span> <span class="pre">~collections.abc.Callable[[str</span> <span class="pre">|</span> <span class="pre">None],</span> <span class="pre">~typing.Any]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">noop&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyld/jsonld.html#expand"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyld.jsonld.expand" title="Link to this definition">¶</a></dt>
+<dd><p>Performs JSON-LD expansion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> – the JSON-LD input to expand.</p></li>
+<li><p><strong>[</strong><strong>options</strong><strong>]</strong> – <p>the options to use.
+[base] the base IRI to use.
+[expandContext] a context to expand with.
+[extractAllScripts] True to extract all JSON-LD script elements</p>
+<blockquote>
+<div><p>from HTML, False to extract just the first
+(default: False).</p>
+</div></blockquote>
+<dl class="simple">
+<dt>[processingMode] Either ‘json-ld-1.0’ or ‘json-ld-1.1’,</dt><dd><p>defaults to ‘json-ld-1.1’.</p>
+</dd>
+<dt>[documentLoader(url, options)] the document loader</dt><dd><p>(default: _default_document_loader).</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>[</strong><strong>on_property_dropped</strong><strong>]</strong> – handler called on every ignored property.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the expanded JSON-LD output.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyld.jsonld.flatten">
+<span class="sig-prename descclassname"><span class="pre">pyld.jsonld.</span></span><span class="sig-name descname"><span class="pre">flatten</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyld/jsonld.html#flatten"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyld.jsonld.flatten" title="Link to this definition">¶</a></dt>
+<dd><p>Performs JSON-LD flattening.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> – the JSON-LD input to flatten.</p></li>
+<li><p><strong>ctx</strong> – the JSON-LD context to compact with (default: None).</p></li>
+<li><p><strong>[</strong><strong>options</strong><strong>]</strong> – <p>the options to use.
+[base] the base IRI to use.
+[expandContext] a context to expand with.
+[extractAllScripts] True to extract all JSON-LD script elements</p>
+<blockquote>
+<div><p>from HTML, False to extract just the first
+(default: True).</p>
+</div></blockquote>
+<dl class="simple">
+<dt>[processingMode] Either ‘json-ld-1.0’ or ‘json-ld-1.1’,</dt><dd><p>(default: ‘json-ld-1.1’).</p>
+</dd>
+<dt>[documentLoader(url, options)] the document loader</dt><dd><p>(default: _default_document_loader).</p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the flattened JSON-LD output.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyld.jsonld.frame">
+<span class="sig-prename descclassname"><span class="pre">pyld.jsonld.</span></span><span class="sig-name descname"><span class="pre">frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyld/jsonld.html#frame"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyld.jsonld.frame" title="Link to this definition">¶</a></dt>
+<dd><p>Performs JSON-LD framing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> – the JSON-LD input to frame.</p></li>
+<li><p><strong>frame</strong> – the JSON-LD frame to use.</p></li>
+<li><p><strong>[</strong><strong>options</strong><strong>]</strong> – <p>the options to use.
+[base] the base IRI to use.
+[expandContext] a context to expand with.
+[extractAllScripts] True to extract all JSON-LD script elements</p>
+<blockquote>
+<div><p>from HTML, False to extract just the first
+(default: False).</p>
+</div></blockquote>
+<dl class="simple">
+<dt>[embed] default &#64;embed flag: <a class="reference external" href="mailto:'&#37;&#52;&#48;last">‘<span>&#64;</span>last</a>’, <a class="reference external" href="mailto:'&#37;&#52;&#48;always">‘<span>&#64;</span>always</a>’, <a class="reference external" href="mailto:'&#37;&#52;&#48;never">‘<span>&#64;</span>never</a>’, <a class="reference external" href="mailto:'&#37;&#52;&#48;link">‘<span>&#64;</span>link</a>’</dt><dd><p>(default: <a class="reference external" href="mailto:'&#37;&#52;&#48;last">‘<span>&#64;</span>last</a>’).</p>
+</dd>
+</dl>
+<p>[explicit] default &#64;explicit flag (default: False).
+[omitDefault] default &#64;omitDefault flag (default: False).
+[processingMode] Either ‘json-ld-1.0’ or ‘json-ld-1.1’,</p>
+<blockquote>
+<div><p>defaults to ‘json-ld-1.1’.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>[pruneBlankNodeIdentifiers] remove unnecessary blank node identifiers</dt><dd><p>(default: True)</p>
+</dd>
+</dl>
+<p>[requireAll] default &#64;requireAll flag (default: False).
+[documentLoader(url, options)] the document loader</p>
+<blockquote>
+<div><p>(default: _default_document_loader).</p>
+</div></blockquote>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the framed JSON-LD output.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyld.jsonld.normalize">
+<span class="sig-prename descclassname"><span class="pre">pyld.jsonld.</span></span><span class="sig-name descname"><span class="pre">normalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyld/jsonld.html#normalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyld.jsonld.normalize" title="Link to this definition">¶</a></dt>
+<dd><p>Performs RDF dataset normalization on the given input. The input is
+JSON-LD unless the ‘inputFormat’ option is used. The output is an RDF
+dataset unless the ‘format’ option is used’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> – the JSON-LD input to normalize.</p></li>
+<li><p><strong>[</strong><strong>options</strong><strong>]</strong> – <p>the options to use.
+[algorithm] the algorithm to use: <cite>URDNA2015</cite> or <cite>URGNA2012</cite></p>
+<blockquote>
+<div><p>(default: <cite>URGNA2012</cite>).</p>
+</div></blockquote>
+<p>[base] the base IRI to use.
+[inputFormat] the format if input is not JSON-LD:</p>
+<blockquote>
+<div><p>’application/n-quads’ for N-Quads.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>[format] the format if output is a string:</dt><dd><p>’application/n-quads’ for N-Quads.</p>
+</dd>
+<dt>[extractAllScripts] True to extract all JSON-LD script elements</dt><dd><p>from HTML, False to extract just the first
+(default: False).</p>
+</dd>
+<dt>[processingMode] Either ‘json-ld-1.0’ or ‘json-ld-1.1’,</dt><dd><p>defaults to ‘json-ld-1.1’.</p>
+</dd>
+<dt>[documentLoader(url, options)] the document loader</dt><dd><p>(default: _default_document_loader).</p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the normalized output.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class" id="module-pyld">
+<dt class="sig sig-object py" id="pyld.DocumentLoader">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pyld.</span></span><span class="sig-name descname"><span class="pre">DocumentLoader</span></span><a class="reference internal" href="_modules/pyld/documentloader/base.html#DocumentLoader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyld.DocumentLoader" title="Link to this definition">¶</a></dt>
+<dd><p>Abstract base class for class-based JSON-LD document loaders.</p>
+<p>Concrete subclasses implement <code class="xref py py-meth docutils literal notranslate"><span class="pre">__call__()</span></code> to fetch a document for a
+given URL and return a <code class="xref py py-class docutils literal notranslate"><span class="pre">RemoteDocument</span></code>.</p>
+<p>PyLD’s loader contract remains “any callable with the right signature”.
+This ABC documents the interface used by built-in class-based loaders.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyld.RequestsDocumentLoader">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pyld.</span></span><span class="sig-name descname"><span class="pre">RequestsDocumentLoader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">secure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyld/documentloader/requests.html#RequestsDocumentLoader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyld.RequestsDocumentLoader" title="Link to this definition">¶</a></dt>
+<dd><p>Remote document loader using Requests.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyld.AioHttpDocumentLoader">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pyld.</span></span><span class="sig-name descname"><span class="pre">AioHttpDocumentLoader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">secure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyld/documentloader/aiohttp.html#AioHttpDocumentLoader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyld.AioHttpDocumentLoader" title="Link to this definition">¶</a></dt>
+<dd><p>Remote document loader using aiohttp.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyld.AioHttpDocumentLoader.async_loader">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">async_loader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">RemoteDocument</span></span></span><a class="reference internal" href="_modules/pyld/documentloader/aiohttp.html#AioHttpDocumentLoader.async_loader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyld.AioHttpDocumentLoader.async_loader" title="Link to this definition">¶</a></dt>
+<dd><p>Retrieves JSON-LD at the given URL asynchronously.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>url</strong> – the URL to retrieve.</p></li>
+<li><p><strong>headers</strong> – the request headers.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the RemoteDocument.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyld.FrozenDocumentLoader">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pyld.</span></span><span class="sig-name descname"><span class="pre">FrozenDocumentLoader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">documents</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyld/documentloader/frozen.html#FrozenDocumentLoader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyld.FrozenDocumentLoader" title="Link to this definition">¶</a></dt>
+<dd><p>Document loader that serves only a sealed allowlist of URLs.</p>
+<p><code class="docutils literal notranslate"><span class="pre">documents</span></code> maps each allowed URL to either a parsed JSON-LD <code class="docutils literal notranslate"><span class="pre">dict</span></code> or
+a <code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code> pointing to a JSON file on disk. Path entries are
+read and parsed lazily on first request, then cached in place so subsequent
+calls skip the file read. Any URL not present in the mapping raises
+<code class="xref py py-class docutils literal notranslate"><span class="pre">pyld.jsonld.JsonLdError</span></code> with code <code class="docutils literal notranslate"><span class="pre">'loading</span> <span class="pre">document</span> <span class="pre">failed'</span></code>.</p>
+<p>With no arguments, a <code class="docutils literal notranslate"><span class="pre">FrozenDocumentLoader</span></code> serves the curated
+<a class="reference internal" href="#pyld.BUNDLED_CONTEXTS" title="pyld.BUNDLED_CONTEXTS"><code class="xref py py-data docutils literal notranslate"><span class="pre">BUNDLED_CONTEXTS</span></code></a> set. To extend rather than replace the bundle:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">FrozenDocumentLoader</span><span class="p">(</span><span class="n">documents</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">BUNDLED_CONTEXTS</span><span class="p">,</span> <span class="o">**</span><span class="n">extras</span><span class="p">))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pyld.BUNDLED_CONTEXTS">
+<span class="sig-prename descclassname"><span class="pre">pyld.</span></span><span class="sig-name descname"><span class="pre">BUNDLED_CONTEXTS</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'https://w3id.org/security/suites/ed25519-2020/v1':</span> <span class="pre">PosixPath('/home/anatoly/projects/pyld/docs/../lib/pyld/documentloader/frozen/bundled/security-ed25519-2020-v1.jsonld'),</span> <span class="pre">'https://w3id.org/security/suites/jws-2020/v1':</span> <span class="pre">PosixPath('/home/anatoly/projects/pyld/docs/../lib/pyld/documentloader/frozen/bundled/security-jws-2020-v1.jsonld'),</span> <span class="pre">'https://w3id.org/security/v1':</span> <span class="pre">PosixPath('/home/anatoly/projects/pyld/docs/../lib/pyld/documentloader/frozen/bundled/security-v1.jsonld'),</span> <span class="pre">'https://w3id.org/security/v2':</span> <span class="pre">PosixPath('/home/anatoly/projects/pyld/docs/../lib/pyld/documentloader/frozen/bundled/security-v2.jsonld'),</span> <span class="pre">'https://www.w3.org/2018/credentials/v1':</span> <span class="pre">PosixPath('/home/anatoly/projects/pyld/docs/../lib/pyld/documentloader/frozen/bundled/credentials-v1.jsonld'),</span> <span class="pre">'https://www.w3.org/ns/activitystreams':</span> <span class="pre">PosixPath('/home/anatoly/projects/pyld/docs/../lib/pyld/documentloader/frozen/bundled/activitystreams.jsonld'),</span> <span class="pre">'https://www.w3.org/ns/credentials/v2':</span> <span class="pre">PosixPath('/home/anatoly/projects/pyld/docs/../lib/pyld/documentloader/frozen/bundled/credentials-v2.jsonld'),</span> <span class="pre">'https://www.w3.org/ns/did/v1':</span> <span class="pre">PosixPath('/home/anatoly/projects/pyld/docs/../lib/pyld/documentloader/frozen/bundled/did-v1.jsonld')}</span></span><a class="headerlink" href="#pyld.BUNDLED_CONTEXTS" title="Link to this definition">¶</a></dt>
+<dd><p>dict() -&gt; new empty dictionary
+dict(mapping) -&gt; new dictionary initialized from a mapping object’s</p>
+<blockquote>
+<div><p>(key, value) pairs</p>
+</div></blockquote>
+<dl>
+<dt>dict(iterable) -&gt; new dictionary initialized as if via:</dt><dd><p>d = {}
+for k, v in iterable:</p>
+<blockquote>
+<div><p>d[k] = v</p>
+</div></blockquote>
+</dd>
+<dt>dict(<a href="#id1"><span class="problematic" id="id2">**</span></a>kwargs) -&gt; new dictionary initialized with the name=value pairs</dt><dd><p>in the keyword argument list.  For example:  dict(one=1, two=2)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+<section id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Link to this heading">¶</a></h2>
+<p>PyLD is compatible with <a class="reference external" href="https://www.python.org/">Python</a> 2.5 and newer.</p>
+</section>
+<section id="credits">
+<h2>Credits<a class="headerlink" href="#credits" title="Link to this heading">¶</a></h2>
+<p>Thanks to <a class="reference external" href="https://digitalbazaar.com/">Digital Bazaar</a>, the JavaScript JSON-LD parser, and the <a class="reference external" href="https://json-ld.org/">JSON-LD</a> community.</p>
+</section>
+<section id="contribute">
+<h2>Contribute<a class="headerlink" href="#contribute" title="Link to this heading">¶</a></h2>
+<p>Source code is available:</p>
+<blockquote>
+<div><p><a class="reference external" href="https://github.com/digitalbazaar/pyld">https://github.com/digitalbazaar/pyld</a></p>
+</div></blockquote>
+</section>
+<section id="license">
+<h2>License<a class="headerlink" href="#license" title="Link to this heading">¶</a></h2>
+<p>PyLD is licensed under a <a class="reference external" href="https://opensource.org/licenses/BSD-3-Clause">BSD 3-Clause license</a>.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="#">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Welcome to PyLD!</a><ul>
+<li><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li><a class="reference internal" href="#pyld.jsonld.compact"><code class="docutils literal notranslate"><span class="pre">compact()</span></code></a></li>
+<li><a class="reference internal" href="#pyld.jsonld.expand"><code class="docutils literal notranslate"><span class="pre">expand()</span></code></a></li>
+<li><a class="reference internal" href="#pyld.jsonld.flatten"><code class="docutils literal notranslate"><span class="pre">flatten()</span></code></a></li>
+<li><a class="reference internal" href="#pyld.jsonld.frame"><code class="docutils literal notranslate"><span class="pre">frame()</span></code></a></li>
+<li><a class="reference internal" href="#pyld.jsonld.normalize"><code class="docutils literal notranslate"><span class="pre">normalize()</span></code></a></li>
+<li><a class="reference internal" href="#pyld.DocumentLoader"><code class="docutils literal notranslate"><span class="pre">DocumentLoader</span></code></a></li>
+<li><a class="reference internal" href="#pyld.RequestsDocumentLoader"><code class="docutils literal notranslate"><span class="pre">RequestsDocumentLoader</span></code></a></li>
+<li><a class="reference internal" href="#pyld.AioHttpDocumentLoader"><code class="docutils literal notranslate"><span class="pre">AioHttpDocumentLoader</span></code></a><ul>
+<li><a class="reference internal" href="#pyld.AioHttpDocumentLoader.async_loader"><code class="docutils literal notranslate"><span class="pre">AioHttpDocumentLoader.async_loader()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pyld.FrozenDocumentLoader"><code class="docutils literal notranslate"><span class="pre">FrozenDocumentLoader</span></code></a></li>
+<li><a class="reference internal" href="#pyld.BUNDLED_CONTEXTS"><code class="docutils literal notranslate"><span class="pre">BUNDLED_CONTEXTS</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+<li><a class="reference internal" href="#requirements">Requirements</a></li>
+<li><a class="reference internal" href="#credits">Credits</a></li>
+<li><a class="reference internal" href="#contribute">Contribute</a></li>
+<li><a class="reference internal" href="#license">License</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">PyLD 0.0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Welcome to PyLD!</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2011, Digital Bazaar.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pyld.documentloader.frozen &#8212; PyLD 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="../../../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">PyLD 0.0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">pyld.documentloader.frozen</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pyld.documentloader.frozen</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Frozen JSON-LD document loader.</span>
+
+<span class="sd">A document loader that serves *only* the URLs in its ``documents`` allowlist</span>
+<span class="sd">and refuses everything else with :class:`pyld.jsonld.JsonLdError`. Suitable for</span>
+<span class="sd">secure / air-gapped / privacy-sensitive deployments and for honoring the</span>
+<span class="sd">guidance in the W3C *JSON-LD Best Practices* note that clients SHOULD attempt</span>
+<span class="sd">to use a locally cached version of contexts (§ Cache JSON-LD Contexts,</span>
+<span class="sd">https://w3c.github.io/json-ld-bp/#cache-json-ld-contexts).</span>
+
+<span class="sd">This module also defines :data:`BUNDLED_CONTEXTS`, a curated mapping of</span>
+<span class="sd">high-traffic public W3C / W3ID JSON-LD context URLs to vendored on-disk copies</span>
+<span class="sd">shipped with the package. See ``scripts/download_contexts.py`` for how the</span>
+<span class="sd">files in ``bundled/`` are refreshed.</span>
+
+<span class="sd">.. module:: jsonld.documentloader.frozen</span>
+<span class="sd">  :synopsis: FrozenDocumentLoader and BUNDLED_CONTEXTS</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyld.documentloader.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">DocumentLoader</span><span class="p">,</span> <span class="n">RemoteDocument</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyld.jsonld</span><span class="w"> </span><span class="kn">import</span> <span class="n">JsonLdError</span>
+
+<span class="n">_BUNDLED_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s1">&#39;bundled&#39;</span>
+
+
+<span class="n">BUNDLED_CONTEXTS</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;https://www.w3.org/ns/activitystreams&#39;</span><span class="p">:</span> <span class="n">_BUNDLED_DIR</span> <span class="o">/</span> <span class="s1">&#39;activitystreams.jsonld&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;https://www.w3.org/ns/did/v1&#39;</span><span class="p">:</span> <span class="n">_BUNDLED_DIR</span> <span class="o">/</span> <span class="s1">&#39;did-v1.jsonld&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;https://www.w3.org/2018/credentials/v1&#39;</span><span class="p">:</span> <span class="n">_BUNDLED_DIR</span> <span class="o">/</span> <span class="s1">&#39;credentials-v1.jsonld&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;https://www.w3.org/ns/credentials/v2&#39;</span><span class="p">:</span> <span class="n">_BUNDLED_DIR</span> <span class="o">/</span> <span class="s1">&#39;credentials-v2.jsonld&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;https://w3id.org/security/v1&#39;</span><span class="p">:</span> <span class="n">_BUNDLED_DIR</span> <span class="o">/</span> <span class="s1">&#39;security-v1.jsonld&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;https://w3id.org/security/v2&#39;</span><span class="p">:</span> <span class="n">_BUNDLED_DIR</span> <span class="o">/</span> <span class="s1">&#39;security-v2.jsonld&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;https://w3id.org/security/suites/ed25519-2020/v1&#39;</span><span class="p">:</span> <span class="n">_BUNDLED_DIR</span>
+    <span class="o">/</span> <span class="s1">&#39;security-ed25519-2020-v1.jsonld&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;https://w3id.org/security/suites/jws-2020/v1&#39;</span><span class="p">:</span> <span class="n">_BUNDLED_DIR</span>
+    <span class="o">/</span> <span class="s1">&#39;security-jws-2020-v1.jsonld&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="FrozenDocumentLoader">
+<a class="viewcode-back" href="../../../index.html#pyld.FrozenDocumentLoader">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FrozenDocumentLoader</span><span class="p">(</span><span class="n">DocumentLoader</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Document loader that serves only a sealed allowlist of URLs.</span>
+
+<span class="sd">    ``documents`` maps each allowed URL to either a parsed JSON-LD ``dict`` or</span>
+<span class="sd">    a :class:`pathlib.Path` pointing to a JSON file on disk. Path entries are</span>
+<span class="sd">    read and parsed lazily on first request, then cached in place so subsequent</span>
+<span class="sd">    calls skip the file read. Any URL not present in the mapping raises</span>
+<span class="sd">    :class:`pyld.jsonld.JsonLdError` with code ``&#39;loading document failed&#39;``.</span>
+
+<span class="sd">    With no arguments, a ``FrozenDocumentLoader`` serves the curated</span>
+<span class="sd">    :data:`BUNDLED_CONTEXTS` set. To extend rather than replace the bundle::</span>
+
+<span class="sd">        FrozenDocumentLoader(documents=dict(BUNDLED_CONTEXTS, **extras))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">documents</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span> <span class="o">|</span> <span class="n">Path</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Take ownership of the mapping so we can cache parsed Paths in place</span>
+        <span class="c1"># without mutating the caller&#39;s dict.</span>
+        <span class="k">if</span> <span class="n">documents</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">documents</span> <span class="o">=</span> <span class="n">BUNDLED_CONTEXTS</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">documents</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">documents</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RemoteDocument</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">url</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">documents</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">JsonLdError</span><span class="p">(</span>
+                <span class="s1">&#39;Refusing to load document outside the allowed set.&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;jsonld.LoadDocumentError&#39;</span><span class="p">,</span>
+                <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">url</span><span class="p">},</span>
+                <span class="n">code</span><span class="o">=</span><span class="s1">&#39;loading document failed&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">value</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">documents</span><span class="p">[</span><span class="n">url</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Path</span><span class="p">):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">documents</span><span class="p">[</span><span class="n">url</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;contentType&#39;</span><span class="p">:</span> <span class="s1">&#39;application/ld+json&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;contextUrl&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;documentUrl&#39;</span><span class="p">:</span> <span class="n">url</span><span class="p">,</span>
+            <span class="s1">&#39;document&#39;</span><span class="p">:</span> <span class="n">value</span><span class="p">,</span>
+        <span class="p">}</span></div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">PyLD 0.0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">pyld.documentloader.frozen</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2011, Digital Bazaar.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

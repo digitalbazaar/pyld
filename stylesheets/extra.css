@@ -64,3 +64,23 @@
   margin-left: auto;
   font-weight: normal;
 }
+
+/* ADR comparison column tints — match mkdocs-material admonition hues at 10%. */
+:root,
+[data-md-color-scheme="slate"] {
+  --adr-col-included-bg: color-mix(in srgb, #00c853 10%, transparent);
+  --adr-col-undecided-bg: color-mix(in srgb, #ff9100 10%, transparent);
+  --adr-col-rejected-bg: color-mix(in srgb, #ff1744 10%, transparent);
+}
+
+.md-typeset :is(th, td).adr-col-included {
+  background-color: var(--adr-col-included-bg);
+}
+
+.md-typeset :is(th, td).adr-col-undecided {
+  background-color: var(--adr-col-undecided-bg);
+}
+
+.md-typeset :is(th, td).adr-col-rejected {
+  background-color: var(--adr-col-rejected-bg);
+}

@@ -2,38 +2,78 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://digitalbazaar.github.io/pyld/</loc>
-         <lastmod>2026-06-21</lastmod>
+         <lastmod>2026-07-07</lastmod>
     </url>
     <url>
          <loc>https://digitalbazaar.github.io/pyld/conformance/</loc>
-         <lastmod>2026-06-21</lastmod>
+         <lastmod>2026-07-07</lastmod>
     </url>
     <url>
          <loc>https://digitalbazaar.github.io/pyld/installation/</loc>
-         <lastmod>2026-06-21</lastmod>
+         <lastmod>2026-07-07</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/project/</loc>
+         <lastmod>2026-07-07</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/project/decisions/use-requests-cache-for-sync-http-caching-in-document-loaders/</loc>
+         <lastmod>2026-07-07</lastmod>
     </url>
     <url>
          <loc>https://digitalbazaar.github.io/pyld/reference/</loc>
-         <lastmod>2026-06-21</lastmod>
+         <lastmod>2026-07-07</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/reference/compact/</loc>
+         <lastmod>2026-07-07</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/reference/expand/</loc>
+         <lastmod>2026-07-07</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/reference/flatten/</loc>
+         <lastmod>2026-07-07</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/reference/frame/</loc>
+         <lastmod>2026-07-07</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/reference/from_rdf/</loc>
+         <lastmod>2026-07-07</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/reference/normalize/</loc>
+         <lastmod>2026-07-07</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/reference/to_rdf/</loc>
+         <lastmod>2026-07-07</lastmod>
     </url>
     <url>
          <loc>https://digitalbazaar.github.io/pyld/reference/document-loaders/</loc>
-         <lastmod>2026-06-21</lastmod>
+         <lastmod>2026-07-07</lastmod>
     </url>
     <url>
          <loc>https://digitalbazaar.github.io/pyld/reference/document-loaders/aiohttp/</loc>
-         <lastmod>2026-06-21</lastmod>
+         <lastmod>2026-07-07</lastmod>
     </url>
     <url>
          <loc>https://digitalbazaar.github.io/pyld/reference/document-loaders/custom/</loc>
-         <lastmod>2026-06-21</lastmod>
+         <lastmod>2026-07-07</lastmod>
     </url>
     <url>
          <loc>https://digitalbazaar.github.io/pyld/reference/document-loaders/frozen/</loc>
-         <lastmod>2026-06-21</lastmod>
+         <lastmod>2026-07-07</lastmod>
     </url>
     <url>
          <loc>https://digitalbazaar.github.io/pyld/reference/document-loaders/requests/</loc>
-         <lastmod>2026-06-21</lastmod>
+         <lastmod>2026-07-07</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/reference/document-loaders/sqlite-cache-requests/</loc>
+         <lastmod>2026-07-07</lastmod>
     </url>
 </urlset>

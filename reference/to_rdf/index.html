@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://digitalbazaar.github.io/pyld/reference/document-loaders/">
+        <link rel="canonical" href="https://digitalbazaar.github.io/pyld/reference/to_rdf/">
       
       
-        <link rel="prev" href="../to_rdf/">
+        <link rel="prev" href="../normalize/">
       
       
-        <link rel="next" href="aiohttp/">
+        <link rel="next" href="../document-loaders/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Document Loaders - PyLD</title>
+        <title>jsonld.to_rdf() - PyLD</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#document-loaders" class="md-skip">
+        <a href="#jsonldto_rdf" class="md-skip">
           Skip to content
         </a>
       
@@ -106,7 +106,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Document Loaders
+              jsonld.to_rdf()
             
           </span>
         </div>
@@ -777,10 +777,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../to_rdf/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    jsonld.to_rdf()
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -796,6 +823,153 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pyld.jsonld.to_rdf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_rdf
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pyld.options.ToRdfOptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ToRdfOptions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyld.options.ToRdfOptions.base" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        base
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyld.options.ToRdfOptions.documentLoader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        documentLoader
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyld.options.ToRdfOptions.extractAllScripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extractAllScripts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyld.options.ToRdfOptions.format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyld.options.ToRdfOptions.processingMode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        processingMode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyld.options.ToRdfOptions.produceGeneralizedRdf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        produceGeneralizedRdf
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyld.options.ToRdfOptions.rdfDirection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rdfDirection
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -805,8 +979,6 @@
                 
   
   
-    
-  
   
   
     
@@ -835,15 +1007,15 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1_9" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1_9" >
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="./" class="md-nav__link md-nav__link--active">
+            <a href="../document-loaders/" class="md-nav__link ">
               
   
   
@@ -861,13 +1033,13 @@
             </a>
             
               
-              <label class="md-nav__link md-nav__link--active" for="__nav_2_1_9" id="__nav_2_1_9_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_1_9" id="__nav_2_1_9_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_1_9_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_1_9_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2_1_9">
             <span class="md-nav__icon md-icon"></span>
             
@@ -887,7 +1059,7 @@
   
   
     <li class="md-nav__item">
-      <a href="aiohttp/" class="md-nav__link">
+      <a href="../document-loaders/aiohttp/" class="md-nav__link">
         
   
   
@@ -915,7 +1087,7 @@
   
   
     <li class="md-nav__item">
-      <a href="custom/" class="md-nav__link">
+      <a href="../document-loaders/custom/" class="md-nav__link">
         
   
   
@@ -943,7 +1115,7 @@
   
   
     <li class="md-nav__item">
-      <a href="frozen/" class="md-nav__link">
+      <a href="../document-loaders/frozen/" class="md-nav__link">
         
   
   
@@ -971,7 +1143,7 @@
   
   
     <li class="md-nav__item">
-      <a href="requests/" class="md-nav__link">
+      <a href="../document-loaders/requests/" class="md-nav__link">
         
   
   
@@ -999,7 +1171,7 @@
   
   
     <li class="md-nav__item">
-      <a href="sqlite-cache-requests/" class="md-nav__link">
+      <a href="../document-loaders/sqlite-cache-requests/" class="md-nav__link">
         
   
   
@@ -1245,10 +1417,126 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#default-document-loader" class="md-nav__link">
+  <a href="#pyld.jsonld.to_rdf" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Default Document Loader
+        to_rdf
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pyld.options.ToRdfOptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ToRdfOptions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyld.options.ToRdfOptions.base" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        base
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyld.options.ToRdfOptions.documentLoader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        documentLoader
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyld.options.ToRdfOptions.extractAllScripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extractAllScripts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyld.options.ToRdfOptions.format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyld.options.ToRdfOptions.processingMode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        processingMode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyld.options.ToRdfOptions.produceGeneralizedRdf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        produceGeneralizedRdf
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pyld.options.ToRdfOptions.rdfDirection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rdfDirection
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example
       
     </span>
   </a>
@@ -1275,46 +1563,313 @@
   
 
 
-<h1 id="document-loaders"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14 2 6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm4 18V9h-5V4H6v16zm-6-1-4-4h2.5v-3h3v3H16z"/></svg></span> Document Loaders<a class="headerlink" href="#document-loaders" title="Permanent link">&para;</a></h1>
-<p>Document loaders retrieve remote JSON-LD documents and contexts. PyLD ships
-class-based loaders for common cases and supports custom subclasses of
-<code>DocumentLoader</code>.</p>
-<div class="grid cards">
-<ul>
-<li>
-<p><a href="requests/"><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6.5 20q-2.28 0-3.89-1.57Q1 16.85 1 14.58q0-1.95 1.17-3.48 1.18-1.53 3.08-1.95.58-2.02 2.14-3.4Q8.95 4.38 11 4.08v8.07L9.4 10.6 8 12l4 4 4-4-1.4-1.4-1.6 1.55V4.08q2.58.35 4.29 2.31T19 11q1.73.2 2.86 1.5 1.14 1.28 1.14 3 0 1.88-1.31 3.19T18.5 20Z"/></svg></span> <code>RequestsDocumentLoader</code></a></p>
-<hr />
-<p>Synchronous remote document loading with <code>requests</code>.</p>
-</li>
-<li>
-<p><a href="sqlite-cache-requests/"><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 3C7.58 3 4 4.79 4 7s3.58 4 8 4 8-1.79 8-4-3.58-4-8-4M4 9v3c0 2.21 3.58 4 8 4s8-1.79 8-4V9c0 2.21-3.58 4-8 4s-8-1.79-8-4m0 5v3c0 2.21 3.58 4 8 4s8-1.79 8-4v-3c0 2.21-3.58 4-8 4s-8-1.79-8-4"/></svg></span> <code>SqliteCacheRequestsDocumentLoader</code></a></p>
-<hr />
-<p>Persistent <a href="https://www.sqlite.org/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.678.521c-1.032-.92-2.28-.55-3.513.544a9 9 0 0 0-.547.535c-2.109 2.237-4.066 6.38-4.674 9.544.237.48.422 1.093.544 1.561a13 13 0 0 1 .164.703s-.019-.071-.096-.296l-.05-.146-.033-.08c-.138-.32-.518-.995-.686-1.289-.143.423-.27.818-.376 1.176.484.884.778 2.4.778 2.4s-.025-.099-.147-.442c-.107-.303-.644-1.244-.772-1.464-.217.804-.304 1.346-.226 1.478.152.256.296.698.422 1.186.286 1.1.485 2.44.485 2.44l.017.224a22 22 0 0 0 .056 2.748c.095 1.146.273 2.13.5 2.657l.155-.084c-.334-1.038-.47-2.399-.41-3.967.09-2.398.642-5.29 1.661-8.304 1.723-4.55 4.113-8.201 6.3-9.945-1.993 1.8-4.692 7.63-5.5 9.788-.904 2.416-1.545 4.684-1.931 6.857.666-2.037 2.821-2.912 2.821-2.912s1.057-1.304 2.292-3.166c-.74.169-1.955.458-2.362.629-.6.251-.762.337-.762.337s1.945-1.184 3.613-1.72C21.695 7.9 24.195 2.767 21.678.521m-18.573.543A1.84 1.84 0 0 0 1.27 2.9v16.608a1.84 1.84 0 0 0 1.835 1.834h9.418a23 23 0 0 1-.052-2.707c-.006-.062-.011-.141-.016-.2a27 27 0 0 0-.473-2.378c-.121-.47-.275-.898-.369-1.057-.116-.197-.098-.31-.097-.432 0-.12.015-.245.037-.386a10 10 0 0 1 .234-1.045l.217-.028c-.017-.035-.014-.065-.031-.097l-.041-.381a33 33 0 0 1 .382-1.194l.2-.019c-.008-.016-.01-.038-.018-.053l-.043-.316c.63-3.28 2.587-7.443 4.8-9.791.066-.069.133-.128.198-.194Z"/></svg></span> SQLite</a> caching for
-remote JSON-LD documents.</p>
-</li>
-<li>
-<p><a href="aiohttp/"><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18a6 6 0 0 1-6-6c0-1 .25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12a8 8 0 0 0 8 8v3l4-4-4-4m0-11V1L8 5l4 4V6a6 6 0 0 1 6 6c0 1-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12a8 8 0 0 0-8-8"/></svg></span> <code>AioHttpDocumentLoader</code></a></p>
-<hr />
-<p>Asynchronous fetching with <code>aiohttp</code> while JSON-LD processing stays
-synchronous.</p>
-</li>
-<li>
-<p><a href="frozen/"><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m20.79 13.95-2.33.62-2-1.13v-2.88l2-1.13 2.33.62.52-1.93-1.77-.47.46-1.77-1.93-.52-.62 2.33-2 1.13L13 7.38V5.12l1.71-1.71L13.29 2 12 3.29 10.71 2 9.29 3.41 11 5.12v2.26L8.5 8.82l-2-1.13-.58-2.33L4 5.88l.47 1.77-1.77.47.52 1.93 2.33-.62 2 1.13v2.89l-2 1.13-2.33-.62-.52 1.93 1.77.47L4 18.12l1.93.52.62-2.33 2-1.13L11 16.62v2.26l-1.71 1.71L10.71 22 12 20.71 13.29 22l1.41-1.41-1.7-1.71v-2.26l2.5-1.45 2 1.13.62 2.33 1.88-.51-.47-1.77 1.77-.47zM9.5 10.56 12 9.11l2.5 1.45v2.88L12 14.89l-2.5-1.45z"/></svg></span> <code>FrozenDocumentLoader</code></a></p>
-<hr />
-<p>Serve only documents from an allowlist for air-gapped or reproducible runs.</p>
-</li>
-<li>
-<p><a href="custom/"><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 3a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2H3v2h1a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h2v-2H8v-5a2 2 0 0 0-2-2 2 2 0 0 0 2-2V5h2V3m6 0a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1v2h-1a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-2v-2h2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5h-2V3z"/></svg></span> <strong>Custom Document Loaders</strong></a></p>
-<hr />
-<p>Subclass <code>DocumentLoader</code> for application-specific loading logic.</p>
-</li>
-</ul>
+<h1 id="jsonldto_rdf"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m23 12-4-4v3h-9v2h9v3M1 18V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3h-2V6H3v12h12v-3h2v3a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2"/></svg></span> <code>jsonld.to_rdf()</code><a class="headerlink" href="#jsonldto_rdf" title="Permanent link">&para;</a></h1>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="pyld.jsonld.to_rdf"></a>
+    <div class="doc doc-contents first">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>input_</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>the JSON-LD input.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>options</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="pyld.options.ToRdfOptions" href="#pyld.options.ToRdfOptions">ToRdfOptions</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>optional processing options; see Options below.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>the resulting RDF dataset (or a serialization of it).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="pyld.options.ToRdfOptions"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="pyld.options.ToRdfOptions.base" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">base</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyld.options.ToRdfOptions.base" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">base</span><span class="p">:</span> <span class="nb">str</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The base IRI to use.</p>
+
+    </div>
+
 </div>
-<h2 id="default-document-loader">Default Document Loader<a class="headerlink" href="#default-document-loader" title="Permanent link">&para;</a></h2>
-<p>The default document loader is selected at import time. PyLD uses
-<code>RequestsDocumentLoader</code> if <code>requests</code> is available, falls back to
-<code>AioHttpDocumentLoader</code> if <code>aiohttp</code> is available, and otherwise installs a
-dummy loader that raises when invoked.</p>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="pyld.options.ToRdfOptions.documentLoader" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">documentLoader</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyld.options.ToRdfOptions.documentLoader" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">documentLoader</span><span class="p">:</span> <span class="n">DocumentLoader</span> <span class="o">|</span> <span class="n">DocumentLoaderCallable</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The document loader (default: the global default document loader).</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="pyld.options.ToRdfOptions.extractAllScripts" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">extractAllScripts</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyld.options.ToRdfOptions.extractAllScripts" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">extractAllScripts</span><span class="p">:</span> <span class="nb">bool</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p><code>True</code> to extract all JSON-LD script elements from HTML, <code>False</code> to extract just the first (default: <code>True</code>).</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="pyld.options.ToRdfOptions.format" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">format</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyld.options.ToRdfOptions.format" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">format</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;application/n-quads&#39;</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The format to use to output a string: <code>application/n-quads</code> for N-Quads.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="pyld.options.ToRdfOptions.processingMode" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">processingMode</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyld.options.ToRdfOptions.processingMode" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">processingMode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;json-ld-1.0&#39;</span><span class="p">,</span> <span class="s1">&#39;json-ld-1.1&#39;</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Either <code>json-ld-1.0</code> or <code>json-ld-1.1</code> (default: <code>json-ld-1.1</code>).</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="pyld.options.ToRdfOptions.produceGeneralizedRdf" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">produceGeneralizedRdf</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyld.options.ToRdfOptions.produceGeneralizedRdf" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">produceGeneralizedRdf</span><span class="p">:</span> <span class="nb">bool</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p><code>True</code> to output generalized RDF, <code>False</code> to produce only standard RDF (default: <code>False</code>).</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="pyld.options.ToRdfOptions.rdfDirection" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">rdfDirection</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyld.options.ToRdfOptions.rdfDirection" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">rdfDirection</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;i18n-datatype&#39;</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Only <code>i18n-datatype</code> supported.</p>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<div class="admonition example">
+<p class="admonition-title">Example<span class="example-source-link" markdown><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg></span> <a href="https://github.com/digitalbazaar/pyld/blob/master/docs/examples/to_rdf.py"><code>to_rdf.py</code></a></span></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pyld</span><span class="w"> </span><span class="kn">import</span> <span class="n">jsonld</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">doc</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="s2">&quot;@context&quot;</span><span class="p">:</span> <span class="p">{</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;http://schema.org/name&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="p">},</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="s2">&quot;@id&quot;</span><span class="p">:</span> <span class="s2">&quot;http://dbpedia.org/resource/Earth&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Earth&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">}</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="nb">print</span><span class="p">(</span><span class="n">jsonld</span><span class="o">.</span><span class="n">to_rdf</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;application/n-quads&quot;</span><span class="p">}))</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">Output</span><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">&lt;http://dbpedia.org/resource/Earth&gt; &lt;http://schema.org/name&gt; &quot;Earth&quot; .</span>
+</code></pre></div>
+</div>
 
 
 
@@ -1350,7 +1905,7 @@ dummy loader that raises when invoked.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../to_rdf/" class="md-footer__link md-footer__link--prev" aria-label="Previous: jsonld.to_rdf()">
+          <a href="../normalize/" class="md-footer__link md-footer__link--prev" aria-label="Previous: jsonld.normalize()">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1360,20 +1915,20 @@ dummy loader that raises when invoked.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                jsonld.to_rdf()
+                jsonld.normalize()
               </div>
             </div>
           </a>
         
         
           
-          <a href="aiohttp/" class="md-footer__link md-footer__link--next" aria-label="Next: AioHttpDocumentLoader">
+          <a href="../document-loaders/" class="md-footer__link md-footer__link--next" aria-label="Next: Document Loaders">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                AioHttpDocumentLoader
+                Document Loaders
               </div>
             </div>
             <div class="md-footer__button md-icon">

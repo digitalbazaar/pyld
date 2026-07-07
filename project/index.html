@@ -10,28 +10,28 @@
       
       
       
-        <link rel="canonical" href="https://digitalbazaar.github.io/pyld/reference/document-loaders/">
+        <link rel="canonical" href="https://digitalbazaar.github.io/pyld/project/">
       
       
-        <link rel="prev" href="../to_rdf/">
+        <link rel="prev" href="../reference/document-loaders/sqlite-cache-requests/">
       
       
-        <link rel="next" href="aiohttp/">
+        <link rel="next" href="decisions/use-requests-cache-for-sync-http-caching-in-document-loaders/">
       
       
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Document Loaders - PyLD</title>
+        <title>Project - PyLD</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
       
       
 
@@ -50,11 +50,11 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../../stylesheets/extra.css">
+      <link rel="stylesheet" href="../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#document-loaders" class="md-skip">
+        <a href="#project" class="md-skip">
           Skip to content
         </a>
       
@@ -86,7 +86,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="PyLD" class="md-header__button md-logo" aria-label="PyLD" data-md-component="logo">
+    <a href=".." title="PyLD" class="md-header__button md-logo" aria-label="PyLD" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Document Loaders
+              Project
             
           </span>
         </div>
@@ -195,7 +195,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../.." class="md-tabs__link">
+        <a href=".." class="md-tabs__link">
           
   
   
@@ -205,6 +205,38 @@
 
         </a>
       </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../reference/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
     
   
 
@@ -228,39 +260,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../" class="md-tabs__link">
-          
-  
-  
-    
-  
-  Reference
-
-        </a>
-      </li>
-    
-  
-
-    
-  
-
-      
-        
-  
-  
-  
-  
-    
-    
-      
-  
-  
-  
-  
-    
-    
-      <li class="md-tabs__item">
-        <a href="../../project/" class="md-tabs__link">
+        <a href="./" class="md-tabs__link">
           
   
   
@@ -288,6 +288,8 @@
           
             
               
+                
+              
               <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
@@ -299,7 +301,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="PyLD" class="md-nav__button md-logo" aria-label="PyLD" data-md-component="logo">
+    <a href=".." title="PyLD" class="md-nav__button md-logo" aria-label="PyLD" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -356,7 +358,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../.." class="md-nav__link ">
+            <a href=".." class="md-nav__link ">
               
   
   
@@ -400,7 +402,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../installation/" class="md-nav__link">
+      <a href="../installation/" class="md-nav__link">
         
   
   
@@ -428,7 +430,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../conformance/" class="md-nav__link">
+      <a href="../conformance/" class="md-nav__link">
         
   
   
@@ -460,10 +462,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -473,22 +473,19 @@
     
     
       
-        
-        
-      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
             
   
   
@@ -506,7 +503,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -521,8 +518,6 @@
                 
   
   
-    
-  
   
   
     
@@ -554,21 +549,18 @@
       
       
         
-          
-          
-        
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" >
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../" class="md-nav__link ">
+            <a href="../reference/" class="md-nav__link ">
               
   
   
@@ -586,13 +578,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_2_1" id="__nav_2_1_label" tabindex="">
+              <label class="md-nav__link " for="__nav_2_1" id="__nav_2_1_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2_1">
             <span class="md-nav__icon md-icon"></span>
             
@@ -612,7 +604,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../compact/" class="md-nav__link">
+      <a href="../reference/compact/" class="md-nav__link">
         
   
   
@@ -640,7 +632,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../expand/" class="md-nav__link">
+      <a href="../reference/expand/" class="md-nav__link">
         
   
   
@@ -668,7 +660,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../flatten/" class="md-nav__link">
+      <a href="../reference/flatten/" class="md-nav__link">
         
   
   
@@ -696,7 +688,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../frame/" class="md-nav__link">
+      <a href="../reference/frame/" class="md-nav__link">
         
   
   
@@ -724,7 +716,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../from_rdf/" class="md-nav__link">
+      <a href="../reference/from_rdf/" class="md-nav__link">
         
   
   
@@ -752,7 +744,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../normalize/" class="md-nav__link">
+      <a href="../reference/normalize/" class="md-nav__link">
         
   
   
@@ -780,7 +772,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../to_rdf/" class="md-nav__link">
+      <a href="../reference/to_rdf/" class="md-nav__link">
         
   
   
@@ -805,8 +797,6 @@
                 
   
   
-    
-  
   
   
     
@@ -835,15 +825,15 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1_9" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1_9" >
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="./" class="md-nav__link md-nav__link--active">
+            <a href="../reference/document-loaders/" class="md-nav__link ">
               
   
   
@@ -861,13 +851,13 @@
             </a>
             
               
-              <label class="md-nav__link md-nav__link--active" for="__nav_2_1_9" id="__nav_2_1_9_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_2_1_9" id="__nav_2_1_9_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_1_9_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_1_9_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2_1_9">
             <span class="md-nav__icon md-icon"></span>
             
@@ -887,7 +877,7 @@
   
   
     <li class="md-nav__item">
-      <a href="aiohttp/" class="md-nav__link">
+      <a href="../reference/document-loaders/aiohttp/" class="md-nav__link">
         
   
   
@@ -915,7 +905,7 @@
   
   
     <li class="md-nav__item">
-      <a href="custom/" class="md-nav__link">
+      <a href="../reference/document-loaders/custom/" class="md-nav__link">
         
   
   
@@ -943,7 +933,7 @@
   
   
     <li class="md-nav__item">
-      <a href="frozen/" class="md-nav__link">
+      <a href="../reference/document-loaders/frozen/" class="md-nav__link">
         
   
   
@@ -971,7 +961,7 @@
   
   
     <li class="md-nav__item">
-      <a href="requests/" class="md-nav__link">
+      <a href="../reference/document-loaders/requests/" class="md-nav__link">
         
   
   
@@ -999,7 +989,7 @@
   
   
     <li class="md-nav__item">
-      <a href="sqlite-cache-requests/" class="md-nav__link">
+      <a href="../reference/document-loaders/sqlite-cache-requests/" class="md-nav__link">
         
   
   
@@ -1047,8 +1037,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -1058,19 +1050,22 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -1088,7 +1083,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1103,6 +1098,8 @@
                 
   
   
+    
+  
   
   
     
@@ -1120,18 +1117,21 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" checked>
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../project/" class="md-nav__link ">
+            <a href="./" class="md-nav__link md-nav__link--active">
               
   
   
@@ -1149,13 +1149,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+              <label class="md-nav__link md-nav__link--active" for="__nav_3_1" id="__nav_3_1_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_1">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1175,7 +1175,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../project/decisions/use-requests-cache-for-sync-http-caching-in-document-loaders/" class="md-nav__link">
+      <a href="decisions/use-requests-cache-for-sync-http-caching-in-document-loaders/" class="md-nav__link">
         
   
   
@@ -1226,7 +1226,9 @@
             
             
               
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" hidden>
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
@@ -1245,10 +1247,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#default-document-loader" class="md-nav__link">
+  <a href="#architecture-decision-records" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Default Document Loader
+        Architecture Decision Records
       
     </span>
   </a>
@@ -1269,52 +1271,32 @@
               <article class="md-content__inner md-typeset">
                 
                   
+  
+
 
 
   
   
 
 
-<h1 id="document-loaders"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14 2 6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm4 18V9h-5V4H6v16zm-6-1-4-4h2.5v-3h3v3H16z"/></svg></span> Document Loaders<a class="headerlink" href="#document-loaders" title="Permanent link">&para;</a></h1>
-<p>Document loaders retrieve remote JSON-LD documents and contexts. PyLD ships
-class-based loaders for common cases and supports custom subclasses of
-<code>DocumentLoader</code>.</p>
-<div class="grid cards">
-<ul>
-<li>
-<p><a href="requests/"><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6.5 20q-2.28 0-3.89-1.57Q1 16.85 1 14.58q0-1.95 1.17-3.48 1.18-1.53 3.08-1.95.58-2.02 2.14-3.4Q8.95 4.38 11 4.08v8.07L9.4 10.6 8 12l4 4 4-4-1.4-1.4-1.6 1.55V4.08q2.58.35 4.29 2.31T19 11q1.73.2 2.86 1.5 1.14 1.28 1.14 3 0 1.88-1.31 3.19T18.5 20Z"/></svg></span> <code>RequestsDocumentLoader</code></a></p>
-<hr />
-<p>Synchronous remote document loading with <code>requests</code>.</p>
-</li>
-<li>
-<p><a href="sqlite-cache-requests/"><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 3C7.58 3 4 4.79 4 7s3.58 4 8 4 8-1.79 8-4-3.58-4-8-4M4 9v3c0 2.21 3.58 4 8 4s8-1.79 8-4V9c0 2.21-3.58 4-8 4s-8-1.79-8-4m0 5v3c0 2.21 3.58 4 8 4s8-1.79 8-4v-3c0 2.21-3.58 4-8 4s-8-1.79-8-4"/></svg></span> <code>SqliteCacheRequestsDocumentLoader</code></a></p>
-<hr />
-<p>Persistent <a href="https://www.sqlite.org/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.678.521c-1.032-.92-2.28-.55-3.513.544a9 9 0 0 0-.547.535c-2.109 2.237-4.066 6.38-4.674 9.544.237.48.422 1.093.544 1.561a13 13 0 0 1 .164.703s-.019-.071-.096-.296l-.05-.146-.033-.08c-.138-.32-.518-.995-.686-1.289-.143.423-.27.818-.376 1.176.484.884.778 2.4.778 2.4s-.025-.099-.147-.442c-.107-.303-.644-1.244-.772-1.464-.217.804-.304 1.346-.226 1.478.152.256.296.698.422 1.186.286 1.1.485 2.44.485 2.44l.017.224a22 22 0 0 0 .056 2.748c.095 1.146.273 2.13.5 2.657l.155-.084c-.334-1.038-.47-2.399-.41-3.967.09-2.398.642-5.29 1.661-8.304 1.723-4.55 4.113-8.201 6.3-9.945-1.993 1.8-4.692 7.63-5.5 9.788-.904 2.416-1.545 4.684-1.931 6.857.666-2.037 2.821-2.912 2.821-2.912s1.057-1.304 2.292-3.166c-.74.169-1.955.458-2.362.629-.6.251-.762.337-.762.337s1.945-1.184 3.613-1.72C21.695 7.9 24.195 2.767 21.678.521m-18.573.543A1.84 1.84 0 0 0 1.27 2.9v16.608a1.84 1.84 0 0 0 1.835 1.834h9.418a23 23 0 0 1-.052-2.707c-.006-.062-.011-.141-.016-.2a27 27 0 0 0-.473-2.378c-.121-.47-.275-.898-.369-1.057-.116-.197-.098-.31-.097-.432 0-.12.015-.245.037-.386a10 10 0 0 1 .234-1.045l.217-.028c-.017-.035-.014-.065-.031-.097l-.041-.381a33 33 0 0 1 .382-1.194l.2-.019c-.008-.016-.01-.038-.018-.053l-.043-.316c.63-3.28 2.587-7.443 4.8-9.791.066-.069.133-.128.198-.194Z"/></svg></span> SQLite</a> caching for
-remote JSON-LD documents.</p>
-</li>
-<li>
-<p><a href="aiohttp/"><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18a6 6 0 0 1-6-6c0-1 .25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12a8 8 0 0 0 8 8v3l4-4-4-4m0-11V1L8 5l4 4V6a6 6 0 0 1 6 6c0 1-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12a8 8 0 0 0-8-8"/></svg></span> <code>AioHttpDocumentLoader</code></a></p>
-<hr />
-<p>Asynchronous fetching with <code>aiohttp</code> while JSON-LD processing stays
-synchronous.</p>
-</li>
-<li>
-<p><a href="frozen/"><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m20.79 13.95-2.33.62-2-1.13v-2.88l2-1.13 2.33.62.52-1.93-1.77-.47.46-1.77-1.93-.52-.62 2.33-2 1.13L13 7.38V5.12l1.71-1.71L13.29 2 12 3.29 10.71 2 9.29 3.41 11 5.12v2.26L8.5 8.82l-2-1.13-.58-2.33L4 5.88l.47 1.77-1.77.47.52 1.93 2.33-.62 2 1.13v2.89l-2 1.13-2.33-.62-.52 1.93 1.77.47L4 18.12l1.93.52.62-2.33 2-1.13L11 16.62v2.26l-1.71 1.71L10.71 22 12 20.71 13.29 22l1.41-1.41-1.7-1.71v-2.26l2.5-1.45 2 1.13.62 2.33 1.88-.51-.47-1.77 1.77-.47zM9.5 10.56 12 9.11l2.5 1.45v2.88L12 14.89l-2.5-1.45z"/></svg></span> <code>FrozenDocumentLoader</code></a></p>
-<hr />
-<p>Serve only documents from an allowlist for air-gapped or reproducible runs.</p>
-</li>
-<li>
-<p><a href="custom/"><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 3a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2H3v2h1a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h2v-2H8v-5a2 2 0 0 0-2-2 2 2 0 0 0 2-2V5h2V3m6 0a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1v2h-1a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-2v-2h2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5h-2V3z"/></svg></span> <strong>Custom Document Loaders</strong></a></p>
-<hr />
-<p>Subclass <code>DocumentLoader</code> for application-specific loading logic.</p>
-</li>
-</ul>
+<h1 id="project"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.87 12.15 9 6.46a9.9 9.9 0 0 1 6 0l-.87 5.69c-.07.49-.5.85-1 .85h-2.27a1 1 0 0 1-.99-.85M22 16c0-.79-.47-1.5-1.2-1.83A9.08 9.08 0 0 0 17 8.5l-1.76 4.84c-.14.4-.52.66-.94.66H9.7c-.42 0-.8-.26-.94-.66L7 8.5a9.09 9.09 0 0 0-3.8 5.66C2.47 14.5 2 15.2 2 16l6.45 1.84c.36.1.73.16 1.1.16h4.88c.37 0 .74-.06 1.1-.16z"/></svg></span> Project<a class="headerlink" href="#project" title="Permanent link">&para;</a></h1>
+<p>Project documentation for PyLD — architecture decisions, development notes, and other material that sits alongside the API reference.</p>
+<h2 id="architecture-decision-records"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m2.3 20.28 9.6-9.6-1.4-1.42-.72.71a.996.996 0 0 1-1.41 0l-.71-.71a.996.996 0 0 1 0-1.41l5.66-5.66a.996.996 0 0 1 1.41 0l.71.71c.39.39.39 1.02 0 1.41l-.71.69 1.42 1.43a.996.996 0 0 1 1.41 0c.39.39.39 1.03 0 1.42l1.41 1.41.71-.71c.39-.39 1.03-.39 1.42 0l.7.71c.39.39.39 1.03 0 1.42l-5.65 5.65c-.39.39-1.03.39-1.42 0l-.7-.7a.99.99 0 0 1 0-1.42l.7-.71-1.41-1.41-9.61 9.61a.996.996 0 0 1-1.41 0c-.39-.39-.39-1.03 0-1.42M20 19a2 2 0 0 1 2 2v1H12v-1a2 2 0 0 1 2-2z"/></svg></span> Architecture Decision Records<a class="headerlink" href="#architecture-decision-records" title="Permanent link">&para;</a></h2>
+<p>Architecture Decision Records (ADRs) document the technical choices taken during development of PyLD.</p>
+<div id="adr-index">
+<div class="admonition success inline">
+<p class="admonition-title"><a href="decisions/use-requests-cache-for-sync-http-caching-in-document-loaders/">Use <code>requests-cache</code> for persistent HTTP caching in synchronous Python code</a></p>
+<p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 13h1.5v2.82l2.44 1.41-.75 1.3L15 16.69zm4-5H5v11h4.67c-.43-.91-.67-1.93-.67-3a7 7 0 0 1 7-7c1.07 0 2.09.24 3 .67zM5 21a2 2 0 0 1-2-2V5c0-1.11.89-2 2-2h1V1h2v2h8V1h2v2h1a2 2 0 0 1 2 2v6.1c1.24 1.26 2 2.99 2 4.9a7 7 0 0 1-7 7c-1.91 0-3.64-.76-4.9-2zm11-9.85A4.85 4.85 0 0 0 11.15 16c0 2.68 2.17 4.85 4.85 4.85A4.85 4.85 0 0 0 20.85 16c0-2.68-2.17-4.85-4.85-4.85"/></svg></span> 29 June 2026</p>
+<p>Choose <code>requests-cache</code> for persistent, HTTP-aware synchronous
+document-loader caching.</p>
 </div>
-<h2 id="default-document-loader">Default Document Loader<a class="headerlink" href="#default-document-loader" title="Permanent link">&para;</a></h2>
-<p>The default document loader is selected at import time. PyLD uses
-<code>RequestsDocumentLoader</code> if <code>requests</code> is available, falls back to
-<code>AioHttpDocumentLoader</code> if <code>aiohttp</code> is available, and otherwise installs a
-dummy loader that raises when invoked.</p>
+<div class="admonition quote inline">
+<p class="admonition-title">Document the next important project decision</p>
+<p>When a technical choice changes PyLD's architecture, public API, dependencies,
+or long-term maintenance path, capture the reasoning here as an
+<a href="https://adr.github.io/">Architecture Decision Record</a>.</p>
+</div>
+</div>
 
 
 
@@ -1322,8 +1304,13 @@ dummy loader that raises when invoked.</p>
 
 
 
+  
+  
 
 
+
+
+  
 
 
 
@@ -1347,10 +1334,12 @@ dummy loader that raises when invoked.</p>
   
     
       
+        
+      
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../to_rdf/" class="md-footer__link md-footer__link--prev" aria-label="Previous: jsonld.to_rdf()">
+          <a href="../reference/document-loaders/sqlite-cache-requests/" class="md-footer__link md-footer__link--prev" aria-label="Previous: SqliteCacheRequestsDocumentLoader">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1360,20 +1349,20 @@ dummy loader that raises when invoked.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                jsonld.to_rdf()
+                SqliteCacheRequestsDocumentLoader
               </div>
             </div>
           </a>
         
         
           
-          <a href="aiohttp/" class="md-footer__link md-footer__link--next" aria-label="Next: AioHttpDocumentLoader">
+          <a href="decisions/use-requests-cache-for-sync-http-caching-in-document-loaders/" class="md-footer__link md-footer__link--next" aria-label="Next: Use requests-cache for persistent HTTP caching in synchronous Python code">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                AioHttpDocumentLoader
+                Use requests-cache for persistent HTTP caching in synchronous Python code
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -1410,12 +1399,12 @@ dummy loader that raises when invoked.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "navigation.footer", "navigation.indexes", "navigation.sections", "navigation.tabs", "navigation.top", "search.highlight", "search.suggest"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "navigation.footer", "navigation.indexes", "navigation.sections", "navigation.tabs", "navigation.top", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
       
-        <script src="../../javascripts/mermaid.mjs" type="module"></script>
+        <script src="../javascripts/mermaid.mjs" type="module"></script>
       
     
   </body>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pyld.documentloader.requests &#8212; PyLD 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="../../../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">PyLD 0.0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">pyld.documentloader.requests</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pyld.documentloader.requests</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Remote document loader using Requests.</span>
+
+<span class="sd">.. module:: jsonld.documentloader.requests</span>
+<span class="sd">  :synopsis: Remote document loader using Requests</span>
+
+<span class="sd">.. moduleauthor:: Dave Longley</span>
+<span class="sd">.. moduleauthor:: Mike Johnson</span>
+<span class="sd">.. moduleauthor:: Tim McNamara &lt;tim.mcnamara@okfn.org&gt;</span>
+<span class="sd">.. moduleauthor:: Olaf Conradi &lt;olaf@conradi.org&gt;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">string</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">urllib_parse</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyld</span><span class="w"> </span><span class="kn">import</span> <span class="n">iri_resolver</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyld.documentloader.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">DocumentLoader</span><span class="p">,</span> <span class="n">RemoteDocument</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyld.jsonld</span><span class="w"> </span><span class="kn">import</span> <span class="n">JsonLdError</span><span class="p">,</span> <span class="n">parse_link_header</span><span class="p">,</span> <span class="n">LINK_HEADER_REL</span>
+
+
+<div class="viewcode-block" id="RequestsDocumentLoader">
+<a class="viewcode-back" href="../../../index.html#pyld.RequestsDocumentLoader">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RequestsDocumentLoader</span><span class="p">(</span><span class="n">DocumentLoader</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Remote document loader using Requests.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">secure</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">requests</span> <span class="o">=</span> <span class="n">requests</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">secure</span> <span class="o">=</span> <span class="n">secure</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RemoteDocument</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieves JSON-LD at the given URL.</span>
+
+<span class="sd">        :param url: the URL to retrieve.</span>
+
+<span class="sd">        :return: the RemoteDocument.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># validate URL</span>
+            <span class="n">pieces</span> <span class="o">=</span> <span class="n">urllib_parse</span><span class="o">.</span><span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">all</span><span class="p">([</span><span class="n">pieces</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span> <span class="n">pieces</span><span class="o">.</span><span class="n">netloc</span><span class="p">])</span> <span class="ow">or</span>
+                <span class="n">pieces</span><span class="o">.</span><span class="n">scheme</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;http&#39;</span><span class="p">,</span> <span class="s1">&#39;https&#39;</span><span class="p">]</span> <span class="ow">or</span>
+                <span class="nb">set</span><span class="p">(</span><span class="n">pieces</span><span class="o">.</span><span class="n">netloc</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">set</span><span class="p">(</span>
+                    <span class="n">string</span><span class="o">.</span><span class="n">ascii_letters</span> <span class="o">+</span> <span class="n">string</span><span class="o">.</span><span class="n">digits</span> <span class="o">+</span> <span class="s1">&#39;-.:&#39;</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="n">JsonLdError</span><span class="p">(</span>
+                    <span class="s1">&#39;URL could not be dereferenced; only &quot;http&quot; and &quot;https&quot; &#39;</span>
+                    <span class="s1">&#39;URLs are supported.&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;jsonld.InvalidUrl&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">url</span><span class="p">},</span>
+                    <span class="n">code</span><span class="o">=</span><span class="s1">&#39;loading document failed&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">secure</span> <span class="ow">and</span> <span class="n">pieces</span><span class="o">.</span><span class="n">scheme</span> <span class="o">!=</span> <span class="s1">&#39;https&#39;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">JsonLdError</span><span class="p">(</span>
+                    <span class="s1">&#39;URL could not be dereferenced; secure mode enabled and &#39;</span>
+                    <span class="s1">&#39;the URL</span><span class="se">\&#39;</span><span class="s1">s scheme is not &quot;https&quot;.&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;jsonld.InvalidUrl&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">url</span><span class="p">},</span>
+                    <span class="n">code</span><span class="o">=</span><span class="s1">&#39;loading document failed&#39;</span><span class="p">)</span>
+            <span class="n">headers</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;headers&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">headers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s1">&#39;Accept&#39;</span><span class="p">:</span> <span class="s1">&#39;application/ld+json, application/json&#39;</span>
+                <span class="p">}</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+
+            <span class="n">content_type</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;content-type&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">content_type</span><span class="p">:</span>
+                <span class="n">content_type</span> <span class="o">=</span> <span class="s1">&#39;application/octet-stream&#39;</span>
+            <span class="n">doc</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;contentType&#39;</span><span class="p">:</span> <span class="n">content_type</span><span class="p">,</span>
+                <span class="s1">&#39;contextUrl&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s1">&#39;documentUrl&#39;</span><span class="p">:</span> <span class="n">response</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="n">link_header</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;link&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">link_header</span><span class="p">:</span>
+                <span class="n">linked_context</span> <span class="o">=</span> <span class="n">parse_link_header</span><span class="p">(</span><span class="n">link_header</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="n">LINK_HEADER_REL</span><span class="p">)</span>
+                <span class="c1"># only 1 related link header permitted</span>
+                <span class="k">if</span> <span class="n">linked_context</span> <span class="ow">and</span> <span class="n">content_type</span> <span class="o">!=</span> <span class="s1">&#39;application/ld+json&#39;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">linked_context</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                        <span class="k">raise</span> <span class="n">JsonLdError</span><span class="p">(</span>
+                            <span class="s1">&#39;URL could not be dereferenced, &#39;</span>
+                            <span class="s1">&#39;it has more than one &#39;</span>
+                            <span class="s1">&#39;associated HTTP Link Header.&#39;</span><span class="p">,</span>
+                            <span class="s1">&#39;jsonld.LoadDocumentError&#39;</span><span class="p">,</span>
+                            <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">url</span><span class="p">},</span>
+                            <span class="n">code</span><span class="o">=</span><span class="s1">&#39;multiple context link headers&#39;</span><span class="p">)</span>
+                    <span class="n">doc</span><span class="p">[</span><span class="s1">&#39;contextUrl&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">linked_context</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+                <span class="n">linked_alternate</span> <span class="o">=</span> <span class="n">parse_link_header</span><span class="p">(</span><span class="n">link_header</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;alternate&#39;</span><span class="p">)</span>
+                <span class="c1"># if not JSON-LD, alternate may point there</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">linked_alternate</span> <span class="ow">and</span>
+                        <span class="n">linked_alternate</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;application/ld+json&#39;</span> <span class="ow">and</span>
+                        <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^application\/(\w*\+)?json$&#39;</span><span class="p">,</span> <span class="n">content_type</span><span class="p">)):</span>
+                    <span class="n">doc</span><span class="p">[</span><span class="s1">&#39;contentType&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;application/ld+json&#39;</span>
+                    <span class="n">doc</span><span class="p">[</span><span class="s1">&#39;documentUrl&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">iri_resolver</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span>
+                        <span class="n">linked_alternate</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">],</span> <span class="n">url</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="n">doc</span><span class="p">[</span><span class="s1">&#39;documentUrl&#39;</span><span class="p">],</span> <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">)</span>
+            <span class="n">doc</span><span class="p">[</span><span class="s1">&#39;document&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">doc</span>
+        <span class="k">except</span> <span class="n">JsonLdError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">cause</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">JsonLdError</span><span class="p">(</span>
+                <span class="s1">&#39;Could not retrieve a JSON-LD document from the URL.&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;jsonld.LoadDocumentError&#39;</span><span class="p">,</span>
+                <span class="n">code</span><span class="o">=</span><span class="s1">&#39;loading document failed&#39;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">cause</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">requests_document_loader</span><span class="p">(</span><span class="n">secure</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a Requests document loader.</span>
+
+<span class="sd">    Can be used to setup extra Requests args such as verify, cert, timeout,</span>
+<span class="sd">    or others.</span>
+
+<span class="sd">    :param secure: require all requests to use HTTPS (default: False).</span>
+<span class="sd">    :param **kwargs: extra keyword args for Requests get() call.</span>
+
+<span class="sd">    :return: the RemoteDocument loader function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">RequestsDocumentLoader</span><span class="p">(</span><span class="n">secure</span><span class="o">=</span><span class="n">secure</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">PyLD 0.0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">pyld.documentloader.requests</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2011, Digital Bazaar.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>
