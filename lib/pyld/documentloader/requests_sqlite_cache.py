@@ -15,12 +15,12 @@ def _resolve_sqlite_file_path(sqlite_file_path: Path | None) -> Path:
     from platformdirs import user_cache_dir
 
     if sqlite_file_path is None:
-        return Path(user_cache_dir('pyld')) / 'http_cache.sqlite'
-    path = sqlite_file_path.expanduser()
+        return (Path(user_cache_dir('pyld')) / 'http_cache.sqlite').resolve()
+    path = Path(sqlite_file_path).expanduser()
     if not path.is_absolute():
         raise ValueError(
             'sqlite_file_path must be an absolute path to the .sqlite file')
-    return path
+    return path.resolve()
 
 
 class SqliteCacheRequestsDocumentLoader(DocumentLoader):

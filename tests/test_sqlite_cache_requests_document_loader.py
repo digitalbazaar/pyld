@@ -12,6 +12,7 @@ from pyld import (
     RequestsDocumentLoader,
     SqliteCacheRequestsDocumentLoader,
 )
+from pyld.documentloader.requests_sqlite_cache import _resolve_sqlite_file_path
 
 requests_cache = pytest.importorskip('requests_cache')
 CachedSession = requests_cache.CachedSession
@@ -71,6 +72,13 @@ def test_sqlite_cache_requests_document_loader_rejects_relative_sqlite_file_path
     with pytest.raises(ValueError, match='absolute path'):
         SqliteCacheRequestsDocumentLoader(
             sqlite_file_path=Path('relative.sqlite'))
+
+
+def test_sqlite_cache_file_path_is_resolved(tmp_path):
+    """Absolute sqlite_file_path is normalized to a full path."""
+    sqlite_file_path = tmp_path / 'cache' / '..' / 'contexts.sqlite'
+    assert _resolve_sqlite_file_path(sqlite_file_path) == (
+        tmp_path / 'contexts.sqlite').resolve()
 
 
 def test_http_cache_headers_serve_from_cache_with_cache_control(context_url):
