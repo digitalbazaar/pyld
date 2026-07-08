@@ -5742,7 +5742,10 @@ class JsonLdProcessor:
                 mapping['_prefix'] = (
                     _simple_term
                     and not mapping['_term_has_colon']
-                    and bool(re.match(r'.*[:/\?#\[\]@]$', id_))
+                    and (
+                        id_.startswith('_:')
+                        or bool(re.match(r'.*[:/\?#\[\]@]$', id_))
+                    )
                 )
         if '@id' not in mapping:
             # see if the term has a prefix

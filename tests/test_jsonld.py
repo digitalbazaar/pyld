@@ -535,6 +535,20 @@ class TestExpand:
             'https://schema.org/publicationDate': [{'@value': '2021-01-11'}],
         }]
 
+    # Issue 167
+    def test_blank_node_prefixes(self):
+        """
+        Blank nodes as prefix should be used in IRI expansion. 
+        """
+        input = {"@context": {"t": "_:b"}, "@type": "t:x"}
+
+        expected = [{"@type": ["_:bx"]}]
+
+        expanded = jsonld.expand(input)
+
+        assert expanded == expected
+
+
 class TestFrame:
     # Issue 11 - PR: https://github.com/digitalbazaar/pyld/issues/149
     """
