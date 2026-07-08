@@ -1015,8 +1015,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest#te112$',
                 # number fixes
                 '.*toRdf-manifest#trt01$',
-                # type:none
-                '.*toRdf-manifest#ttn02$',
                 # well formed
                 '.*toRdf-manifest#twf05$',
                 # uncategorized

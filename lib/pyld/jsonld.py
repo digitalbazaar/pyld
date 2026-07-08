@@ -3960,7 +3960,7 @@ class JsonLdProcessor:
                     object['datatype'] = XSD_DOUBLE
                     return object
             elif _is_integer(value):
-                object['value'] = str(value)
+                object['value'] = str(int(value))
                 object['datatype'] = datatype or XSD_INTEGER
             elif rdf_direction == 'compound-literal' and '@direction' in item:
                 object['type'] = 'blank node'
@@ -6372,7 +6372,7 @@ def _is_integer(v):
 
     :return: True if the value is an Integer, False if not.
     """
-    return isinstance(v, Integral)
+    return isinstance(v, Integral) or (isinstance(v, Real) and float(v).is_integer())
 
 
 def _is_double(v):
@@ -6383,7 +6383,7 @@ def _is_double(v):
 
     :return: True if the value is a Double, False if not.
     """
-    return not isinstance(v, Integral) and isinstance(v, Real)
+    return not isinstance(v, Integral) and isinstance(v, Real) and not float(v).is_integer()
 
 
 def _canonicalize_double(value: float) -> str:
