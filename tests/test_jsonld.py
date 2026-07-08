@@ -1052,7 +1052,7 @@ _:b0 <http://purl.org/dc/terms/title> "Chapter 1: Jonathan Harker's Journal" .
 
         nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
         assert nquads == expected
-    
+
     # Issue 175
     def test_truncate_zeros_with_negative_exponent_numbers(self):
         """
