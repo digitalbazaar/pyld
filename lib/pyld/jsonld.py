@@ -6388,7 +6388,7 @@ def _is_double(v):
 
 def _canonicalize_double(value: float) -> str:
     """Convert a float value to canonical lexical form of `xsd:double`."""
-    return re.sub(r'(\d)0*E\+?0*(\d)', r'\1E\2', (f'{value:1.15E}'))
+    return re.sub(r'(\d)0*E\+?(-)?0*(\d)', r'\1E\2\3', (f'{value:1.15E}'))
 
 
 def _is_numeric(v):

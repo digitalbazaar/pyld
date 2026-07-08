@@ -1052,6 +1052,18 @@ _:b0 <http://purl.org/dc/terms/title> "Chapter 1: Jonathan Harker's Journal" .
 
         nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
         assert nquads == expected
+    
+    # Issue 175
+    def test_truncate_zeros_with_negative_exponent_numbers(self):
+        """
+        Numeric values with negative exponent should truncate zeros
+        """
+        input = { "ex:value": 0.97 }
+
+        expected = '_:b0 <ex:value> "9.7E-1"^^<http://www.w3.org/2001/XMLSchema#double> .\n'
+
+        nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
+        assert nquads == expected
 
 class TestFromRDF:
     def test_compound_literal_direction_without_language(self):
