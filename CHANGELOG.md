@@ -4,11 +4,13 @@
 
 ### Added
 - `*Options` TypedDict types and a `Context` type alias in `pyld.options` for JSON-LD API option dicts (typing and documentation).
+- A SQLite-backed HTTP cache document loader `SqliteCacheRequestsDocumentLoader` using `requests-cache`.
 
 ### Fixed
 - If value objects contain array values for `@type` during expansion, an error is now raised. Fixes [expand#ter54](https://w3c.github.io/json-ld-api/tests/expand-manifest.html#ter54) and [toRdf#ter54](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#ter54).
 - Inline contexts that try to redefine @context now raise an error. Fixes [expand#ter56](https://w3c.github.io/json-ld-api/tests/expand-manifest.html#ter56) and [toRdf#ter56](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#ter56).
 - When using native types, values of `xsd:boolean` and `xsd:integer` are now properly converted. Fixes [fromRdf#t0027](https://w3c.github.io/json-ld-api/tests/fromRdf-manifest.html#t0027).
+- Numbers with 0 as fractional part now parse to an `xsd:integer` instead of `xsd:double`. Fixes [toRdf#ttn02](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#ttn02).
 
 ## 3.1.0 - 2026-06-19
 
