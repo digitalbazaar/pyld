@@ -1048,7 +1048,7 @@ _:b0 <http://purl.org/dc/terms/title> "Chapter 1: Jonathan Harker's Journal" .
         """
         input = { "ex:value": 42.0 }
 
-        expected = '[] <ex:value> "42"^^xsd:integer.'
+        expected = '_:b0 <ex:value> "42"^^<http://www.w3.org/2001/XMLSchema#integer> .\n'
 
         nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
         assert nquads == expected
