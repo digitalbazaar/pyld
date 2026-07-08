@@ -10,6 +10,17 @@ Project documentation for PyLD — architecture decisions, development notes, an
 
 Architecture Decision Records (ADRs) document the technical choices taken during development of PyLD.
 
+## :material-source-branch: Decision Process
+
+ADRs are useful when a technical choice has meaningful consequences for PyLD's
+architecture, public API, dependencies, or long-term maintenance. A PR
+discussion is enough to establish consensus for an ADR: if the maintainers agree
+with the decision and merge the PR, the ADR lands as `decided`.
+
+When consensus has not been reached yet, an ADR can land as `draft` and be
+refined in follow-up PRs. If a later decision replaces an earlier one, mark the
+earlier ADR as `superseded` and link to the new decision.
+
 <div id="adr-index" markdown>
 
 !!! success inline "[Use `requests-cache` for persistent HTTP caching in synchronous Python code](decisions/use-requests-cache-for-sync-http-caching-in-document-loaders/)"
