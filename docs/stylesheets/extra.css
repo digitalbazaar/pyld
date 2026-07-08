@@ -65,6 +65,10 @@
   font-weight: normal;
 }
 
+.md-typeset #adr-index {
+  display: flow-root;
+}
+
 /* ADR comparison column tints — match mkdocs-material admonition hues at 10%. */
 :root,
 [data-md-color-scheme="slate"] {
