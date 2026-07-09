@@ -538,7 +538,7 @@ class TestExpand:
     # Issue 167
     def test_blank_node_prefixes(self):
         """
-        Blank nodes as prefix should be used in IRI expansion. 
+        Blank nodes as prefix should be used in IRI expansion.
         """
         input = {"@context": {"t": "_:b"}, "@type": "t:x"}
 
