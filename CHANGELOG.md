@@ -13,6 +13,7 @@
 - Numbers with 0 as fractional part now parse to an `xsd:integer` instead of `xsd:double`. Fixes [toRdf#ttn02](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#ttn02).
 - Zeros are now truncated for numeric values with negative exponent.
 - Blank node prefixes are now also used in IRI expansion.
+- Numbers with no fractions but that are >= 1e21 are now represented as xsd:double
 
 ## 3.1.0 - 2026-06-19
 
