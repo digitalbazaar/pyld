@@ -1013,8 +1013,6 @@ TEST_TYPES = {
                 # rel vocab
                 '.*toRdf-manifest#te111$',
                 '.*toRdf-manifest#te112$',
-                # number fixes
-                '.*toRdf-manifest#trt01$',
                 # well formed
                 '.*toRdf-manifest#twf05$',
                 # uncategorized
