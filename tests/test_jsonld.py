@@ -924,27 +924,11 @@ class TestToRdf:
             ],
         }
 
-        expected = {
-            "@default": [
-                {
-                    "subject": {
-                        "type": "IRI",
-                        "value": "ex:1",
-                    },
-                    "predicate": {
-                        "type": "IRI",
-                        "value": "ex:p",
-                    },
-                    "object": {
-                        "type": "literal",
-                        "value": "4.5E1",
-                        "datatype": "http://www.w3.org/2001/XMLSchema#double",
-                    },
-                }
-            ]
-        }
-
-        result = jsonld.to_rdf(input, {"legacyMode": True})
+        expected = (
+            '<ex:1> <ex:p> "4.5E1"'
+            "^^<http://www.w3.org/2001/XMLSchema#double>  .\n\n"
+        )
+        result = jsonld.to_rdf(input, {"format": "application/n-quads"})
         assert result == expected
 
     def test_large_integer_to_rdf_double_conversion_processing_mode(self):
