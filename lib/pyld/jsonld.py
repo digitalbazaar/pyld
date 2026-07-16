@@ -3861,9 +3861,7 @@ class JsonLdProcessor:
                     predicate['value'] = property
 
                     # convert list, value or node object to triple
-                    object = self._object_to_rdf(
-                        item, issuer, triples, options.get('rdfDirection')
-                    )
+                    object = self._object_to_rdf(item, issuer, triples, options)
                     # skip None objects (they are relative IRIs)
                     if object is not None:
                         triples.append(
@@ -3875,7 +3873,7 @@ class JsonLdProcessor:
                         )
         return triples
 
-    def _list_to_rdf(self, list_, issuer, triples, rdf_direction):
+    def _list_to_rdf(self, list_, issuer, triples, options):
         """
         Converts a @list value into a linked list of blank node RDF triples
         (and RDF collection).
@@ -3883,7 +3881,7 @@ class JsonLdProcessor:
         :param list_: the @list value.
         :param issuer: the IdentifierIssuer for issuing blank node identifiers.
         :param triples: the array of triples to append to.
-        :param rdf_direction: for creating datatyped literals.
+        :param options: the RDF serialization options.
 
         :return: the head of the list
         """
@@ -3897,7 +3895,7 @@ class JsonLdProcessor:
         subject = result
 
         for item in list_:
-            object = self._object_to_rdf(item, issuer, triples, rdf_direction)
+            object = self._object_to_rdf(item, issuer, triples, options)
             next = {'type': 'blank node', 'value': issuer.get_id()}
             triples.append({'subject': subject, 'predicate': first, 'object': object})
             triples.append({'subject': subject, 'predicate': rest, 'object': next})
@@ -3906,13 +3904,13 @@ class JsonLdProcessor:
 
         # tail of list
         if last:
-            object = self._object_to_rdf(last, issuer, triples, rdf_direction)
+            object = self._object_to_rdf(last, issuer, triples, options)
             triples.append({'subject': subject, 'predicate': first, 'object': object})
             triples.append({'subject': subject, 'predicate': rest, 'object': nil})
 
         return result
 
-    def _object_to_rdf(self, item, issuer, triples, rdf_direction):
+    def _object_to_rdf(self, item, issuer, triples, options):
         """
         Converts a JSON-LD value object to an RDF literal or a JSON-LD string
         or node object to an RDF resource.
@@ -3920,7 +3918,7 @@ class JsonLdProcessor:
         :param item: the JSON-LD value or node object.
         :param issuer: the IdentifierIssuer for issuing blank node identifiers.
         :param triples: the array of triples to append list entries to.
-        :param rdf_direction: for creating directional literals.
+        :param options: the RDF serialization options.
 
         :return: the RDF literal or RDF resource.
         """
@@ -3930,6 +3928,7 @@ class JsonLdProcessor:
             object['type'] = 'literal'
             value = item['@value']
             datatype = item.get('@type')
+            rdf_direction = options.get('rdfDirection')
 
             # convert to XSD datatypes as appropriate
             if datatype == '@json':
@@ -3959,6 +3958,13 @@ class JsonLdProcessor:
                     object['value'] = _canonicalize_double(float_value)
                     object['datatype'] = XSD_DOUBLE
                     return object
+            elif (
+                options['processingMode'] == 'json-ld-1.1'
+                and _is_integer(value)
+                and abs(value) >= 1e21
+            ):
+                object['value'] = _canonicalize_double(value)
+                object['datatype'] = datatype or XSD_DOUBLE
             elif _is_integer(value):
                 object['value'] = str(int(value))
                 object['datatype'] = datatype or XSD_INTEGER
@@ -4015,7 +4021,7 @@ class JsonLdProcessor:
                 object['datatype'] = datatype or XSD_STRING
         # convert list object to RDF
         elif _is_list(item):
-            list_ = self._list_to_rdf(item['@list'], issuer, triples, rdf_direction)
+            list_ = self._list_to_rdf(item['@list'], issuer, triples, options)
             object['value'] = list_['value']
             object['type'] = list_['type']
         # convert string/node object to RDF
