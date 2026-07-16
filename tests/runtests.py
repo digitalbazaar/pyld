@@ -91,12 +91,14 @@ LOCAL_BASES = [
     'https://w3c.github.io/json-ld-api/tests',
     'https://w3c.github.io/json-ld-framing/tests',
     'https://github.com/json-ld/normalization/tests',
+    'https://w3c.github.io/rdf-canon/tests/vocab#'
 ]
 
 SPEC_DIRS = [
     '../specifications/json-ld-api/tests/',
     '../specifications/json-ld-framing/tests/',
     '../specifications/normalization/tests/',
+    '../specifications/rdf-canon/tests/'
 ]
 
 # NOTE: The following TestRunner class can be removed because pytest now
@@ -475,6 +477,10 @@ class Test(unittest.TestCase):
                 else:
                     assert_results_equal(result, expect)
             elif not self.is_negative:
+                # If the result is a dict and the expected value is a string,
+                # the expected value is probably JSON.
+                if isinstance(result, dict) and isinstance(expect, str):
+                    expect = json.loads(expect)
                 # Perform order-independent equivalence test
                 if not equal_unordered(result, expect):
                     if _running_under_pytest():
@@ -677,6 +683,8 @@ def create_test_options(opts=None):
             if k not in http_options:
                 options[k] = v
         options['documentLoader'] = create_document_loader(test)
+        options['hashAlgorithm'] = test.data.get('hashAlgorithm')
+
         if 'expandContext' in options:
             filename = os.path.join(test.dirname, options['expandContext'])
             options['expandContext'] = read_json(filename)
@@ -1013,8 +1021,6 @@ TEST_TYPES = {
                 # rel vocab
                 '.*toRdf-manifest#te111$',
                 '.*toRdf-manifest#te112$',
-                # number fixes
-                '.*toRdf-manifest#trt01$',
                 # well formed
                 '.*toRdf-manifest#twf05$',
                 # uncategorized
@@ -1036,11 +1042,7 @@ TEST_TYPES = {
     },
     'rdfn:Urgna2012EvalTest': {
         'pending': {'idRegex': []},
-        'skip': {
-            'idRegex': [
-                '.*manifest-urgna2012#test060$',
-            ]
-        },
+        'skip': {'idRegex': []},
         'fn': 'normalize',
         'params': [
             read_test_property('action'),
@@ -1055,11 +1057,7 @@ TEST_TYPES = {
     },
     'rdfn:Urdna2015EvalTest': {
         'pending': {'idRegex': []},
-        'skip': {
-            'idRegex': [
-                '.*manifest-urdna2015#test060$',
-            ]
-        },
+        'skip': {'idRegex': []},
         'fn': 'normalize',
         'params': [
             read_test_property('action'),
@@ -1072,6 +1070,37 @@ TEST_TYPES = {
             ),
         ],
     },
+    'rdfc:RDFC10EvalTest': {
+        'pending': {'idRegex': []},
+        'skip': {'idRegex': []},
+        'fn': 'normalize',
+        'params': [
+            read_test_property('action'),
+            create_test_options({
+                'algorithm': 'RDFC10',
+                'inputFormat': 'application/n-quads',
+                'format': 'application/n-quads'
+            })
+        ]
+    },
+    'rdfc:RDFC10MapTest': {
+        'pending': {
+            'idRegex': []
+        },
+        'skip': {
+            'idRegex': []
+        },
+        'fn': 'normalize',
+        'params': [
+            read_test_property('action'),
+            create_test_options({
+                'algorithm': 'RDFC10',
+                'inputFormat': 'application/n-quads',
+                'format': 'application/n-quads',
+                'outputMap': True
+            })
+        ]
+    }
 }
 
 

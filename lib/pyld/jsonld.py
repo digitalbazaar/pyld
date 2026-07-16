@@ -34,7 +34,7 @@ from frozendict import frozendict
 
 from c14n.Canonicalize import canonicalize
 from pyld.__about__ import __copyright__, __license__, __version__
-from pyld.canon import URDNA2015, URGNA2012, UnknownFormatError
+from pyld.canon import RDFC10, URDNA2015, URGNA2012, UnknownFormatError
 from pyld.identifier_issuer import IdentifierIssuer
 from pyld.nquads import (
     ParserError,
@@ -877,8 +877,10 @@ class JsonLdProcessor:
 
         :param input_: the JSON-LD input to normalize.
         :param options: the options to use.
-          [algorithm] the algorithm to use: `URDNA2015` or `URGNA2012`
-            (default: `URGNA2012`).
+          [algorithm] the algorithm to use: `RDFC10`, `URDNA2015` or `URGNA2012`
+            (default: `RDFC10`).
+          [hashAlgorithm] the hashing algorithm to use; only applicable to `RDFC10`.
+            (default: `SHA256`).
           [base] the base IRI to use.
           [contextResolver] internal use only.
           [inputFormat] the format if input is not JSON-LD:
@@ -887,12 +889,15 @@ class JsonLdProcessor:
             'application/n-quads' for N-Quads.
           [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
+          [outputMap] if True, the function will return a map of blank node
+            identifiers to their normalized identifiers instead of the
+            normalized dataset (default: False).
 
-        :return: the normalized output.
+        :return: the normalized output or the map of blank node identifiers.
         """
         # set default options
         options = options.copy() if options else {}
-        options.setdefault('algorithm', 'URGNA2012')
+        options.setdefault('algorithm', 'RDFC10')
         options.setdefault('base', input_ if _is_string(input_) else '')
         options.setdefault('documentLoader', _default_document_loader)
         options.setdefault(
@@ -902,21 +907,14 @@ class JsonLdProcessor:
         options.setdefault('extractAllScripts', True)
         options.setdefault('processingMode', 'json-ld-1.1')
 
-        if options['algorithm'] not in ['URDNA2015', 'URGNA2012']:
+        if options['algorithm'] not in ['RDFC10', 'URDNA2015', 'URGNA2012']:
             raise JsonLdError(
                 'Unsupported normalization algorithm.', 'jsonld.NormalizeError'
             )
 
         try:
             if 'inputFormat' in options:
-                if (
-                    options['inputFormat'] != 'application/n-quads'
-                    and options['inputFormat'] != 'application/nquads'
-                ):
-                    raise JsonLdError(
-                        'Unknown normalization input format.', 'jsonld.NormalizeError'
-                    )
-                dataset = JsonLdProcessor.parse_nquads(input_)
+                dataset = input_
             else:
                 # convert to RDF dataset then do normalization
                 opts = dict(options)
@@ -931,16 +929,22 @@ class JsonLdProcessor:
             ) from cause
 
         # do normalization
-        if options['algorithm'] == 'URDNA2015':
-            try:
-                return URDNA2015().main(dataset, options)
-            except UnknownFormatError as cause:
-                raise JsonLdError(
-                    str(cause), 'jsonld.UnknownFormat', {'format': cause.format}
-                ) from cause
-
+        if options['algorithm'] == 'RDFC10':
+            algorithm = RDFC10(hash_algorithm = options.get('hashAlgorithm'))
+        elif options['algorithm'] == 'URDNA2015':
+            algorithm = URDNA2015()
         # assume URGNA2012
-        return URGNA2012().main(dataset, options)
+        else:
+            algorithm = URGNA2012()
+
+        try:
+            return algorithm.main(dataset, options)
+        except UnknownFormatError as cause:
+            raise JsonLdError(
+                str(cause),
+                'jsonld.UnknownFormat',
+                {'format': cause.format}) from cause
+
 
     def from_rdf(self, dataset, options):
         """
@@ -3861,9 +3865,7 @@ class JsonLdProcessor:
                     predicate['value'] = property
 
                     # convert list, value or node object to triple
-                    object = self._object_to_rdf(
-                        item, issuer, triples, options.get('rdfDirection')
-                    )
+                    object = self._object_to_rdf(item, issuer, triples, options)
                     # skip None objects (they are relative IRIs)
                     if object is not None:
                         triples.append(
@@ -3875,7 +3877,7 @@ class JsonLdProcessor:
                         )
         return triples
 
-    def _list_to_rdf(self, list_, issuer, triples, rdf_direction):
+    def _list_to_rdf(self, list_, issuer, triples, options):
         """
         Converts a @list value into a linked list of blank node RDF triples
         (and RDF collection).
@@ -3883,7 +3885,7 @@ class JsonLdProcessor:
         :param list_: the @list value.
         :param issuer: the IdentifierIssuer for issuing blank node identifiers.
         :param triples: the array of triples to append to.
-        :param rdf_direction: for creating datatyped literals.
+        :param options: the RDF serialization options.
 
         :return: the head of the list
         """
@@ -3897,7 +3899,7 @@ class JsonLdProcessor:
         subject = result
 
         for item in list_:
-            object = self._object_to_rdf(item, issuer, triples, rdf_direction)
+            object = self._object_to_rdf(item, issuer, triples, options)
             next = {'type': 'blank node', 'value': issuer.get_id()}
             triples.append({'subject': subject, 'predicate': first, 'object': object})
             triples.append({'subject': subject, 'predicate': rest, 'object': next})
@@ -3906,13 +3908,13 @@ class JsonLdProcessor:
 
         # tail of list
         if last:
-            object = self._object_to_rdf(last, issuer, triples, rdf_direction)
+            object = self._object_to_rdf(last, issuer, triples, options)
             triples.append({'subject': subject, 'predicate': first, 'object': object})
             triples.append({'subject': subject, 'predicate': rest, 'object': nil})
 
         return result
 
-    def _object_to_rdf(self, item, issuer, triples, rdf_direction):
+    def _object_to_rdf(self, item, issuer, triples, options):
         """
         Converts a JSON-LD value object to an RDF literal or a JSON-LD string
         or node object to an RDF resource.
@@ -3920,7 +3922,7 @@ class JsonLdProcessor:
         :param item: the JSON-LD value or node object.
         :param issuer: the IdentifierIssuer for issuing blank node identifiers.
         :param triples: the array of triples to append list entries to.
-        :param rdf_direction: for creating directional literals.
+        :param options: the RDF serialization options.
 
         :return: the RDF literal or RDF resource.
         """
@@ -3930,6 +3932,7 @@ class JsonLdProcessor:
             object['type'] = 'literal'
             value = item['@value']
             datatype = item.get('@type')
+            rdf_direction = options.get('rdfDirection')
 
             # convert to XSD datatypes as appropriate
             if datatype == '@json':
@@ -3959,6 +3962,13 @@ class JsonLdProcessor:
                     object['value'] = _canonicalize_double(float_value)
                     object['datatype'] = XSD_DOUBLE
                     return object
+            elif (
+                options['processingMode'] == 'json-ld-1.1'
+                and _is_integer(value)
+                and abs(value) >= 1e21
+            ):
+                object['value'] = _canonicalize_double(value)
+                object['datatype'] = datatype or XSD_DOUBLE
             elif _is_integer(value):
                 object['value'] = str(int(value))
                 object['datatype'] = datatype or XSD_INTEGER
@@ -4015,7 +4025,7 @@ class JsonLdProcessor:
                 object['datatype'] = datatype or XSD_STRING
         # convert list object to RDF
         elif _is_list(item):
-            list_ = self._list_to_rdf(item['@list'], issuer, triples, rdf_direction)
+            list_ = self._list_to_rdf(item['@list'], issuer, triples, options)
             object['value'] = list_['value']
             object['type'] = list_['type']
         # convert string/node object to RDF

@@ -947,6 +947,35 @@ class TestToRdf:
         result = jsonld.to_rdf(input)
         assert result == expected
 
+    def test_large_integer_to_rdf_double_conversion_processing_mode(self):
+        """
+        In json-ld-1.1 processing mode, large integers should be emitted as xsd:double,
+        while in json-ld-1.0 processing mode, they should be kept as xsd:integer.
+        """
+        input = {
+            '@id': 'http://example.com/s',
+            'http://example.com/p': 1000000000000000000000,
+        }
+
+        nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
+        assert nquads == (
+            '<http://example.com/s> <http://example.com/p> '
+            '"1.0E21"^^<http://www.w3.org/2001/XMLSchema#double> .\n'
+        )
+
+        nquads = jsonld.to_rdf(
+            input,
+            options={
+                'format': 'application/n-quads',
+                'processingMode': 'json-ld-1.0',
+            },
+        )
+        assert nquads == (
+            '<http://example.com/s> <http://example.com/p> '
+            '"1000000000000000000000"'
+            '^^<http://www.w3.org/2001/XMLSchema#integer> .\n'
+        )
+
     def test_compound_literal_direction_without_language(self):
         """
         Values with @direction should become compound literals during to_rdf
