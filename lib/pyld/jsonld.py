@@ -44,6 +44,7 @@ from pyld.__about__ import __copyright__, __license__, __version__
 from pyld.canon import RDFC10, URDNA2015, URGNA2012, UnknownFormatError
 from pyld.context_resolver import ContextResolver
 from pyld.identifier_issuer import IdentifierIssuer
+from pyld.iri_resolver import resolve, unresolve
 from pyld.options import (
     CompactOptions,
     Context,
@@ -54,7 +55,6 @@ from pyld.options import (
     NormalizeOptions,
     ToRdfOptions,
 )
-from pyld.iri_resolver import resolve, unresolve
 from pyld.util import from_legacy_dataset, from_legacy_triple, to_legacy_dataset
 
 __all__ = [
