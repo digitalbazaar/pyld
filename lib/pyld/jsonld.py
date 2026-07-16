@@ -29,23 +29,23 @@ from typing import Any
 from urllib.parse import urlparse
 
 import lxml.html
+import rdflib
 from cachetools import LRUCache
 from frozendict import frozendict
+from rdflib import RDF, XSD, BNode, Dataset, Literal, Node, URIRef
+from rdflib.graph import DATASET_DEFAULT_GRAPH_ID
+from rdflib.parser import StringInputSource
+from rdflib.plugins.parsers.nquads import NQuadsParser
+from rdflib.plugins.serializers.nquads import _nq_row
+from rdflib.term import Identifier
 
 from c14n.Canonicalize import canonicalize
 from pyld.__about__ import __copyright__, __license__, __version__
 from pyld.canon import RDFC10, URDNA2015, URGNA2012, UnknownFormatError
+from pyld.context_resolver import ContextResolver
 from pyld.identifier_issuer import IdentifierIssuer
-from pyld.nquads import (
-    ParserError,
-    parse_nquads,
-    serialize_nquad,
-    serialize_nquads,
-)
-
-from .context_resolver import ContextResolver
-from .iri_resolver import resolve, unresolve
-from .options import (
+from pyld.iri_resolver import resolve, unresolve
+from pyld.options import (
     CompactOptions,
     Context,
     ExpandOptions,
@@ -55,6 +55,7 @@ from .options import (
     NormalizeOptions,
     ToRdfOptions,
 )
+from pyld.util import from_legacy_dataset, from_legacy_triple, to_legacy_dataset
 
 __all__ = [
     '__copyright__',
@@ -90,24 +91,6 @@ __all__ = [
     'freeze',
 ]
 
-# XSD constants
-XSD_BOOLEAN = 'http://www.w3.org/2001/XMLSchema#boolean'
-XSD_DOUBLE = 'http://www.w3.org/2001/XMLSchema#double'
-XSD_INTEGER = 'http://www.w3.org/2001/XMLSchema#integer'
-XSD_STRING = 'http://www.w3.org/2001/XMLSchema#string'
-
-# RDF constants
-RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
-RDF_LIST = RDF + 'List'
-RDF_FIRST = RDF + 'first'
-RDF_REST = RDF + 'rest'
-RDF_NIL = RDF + 'nil'
-RDF_TYPE = RDF + 'type'
-RDF_LANGSTRING = RDF + 'langString'
-RDF_JSON_LITERAL = RDF + 'JSON'
-RDF_VALUE = RDF + 'value'
-RDF_LANGUAGE = RDF + 'language'
-RDF_DIRECTION = RDF + 'direction'
 
 # BCP47
 REGEX_BCP47 = r'^[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*$'
@@ -946,7 +929,7 @@ class JsonLdProcessor:
                 {'format': cause.format}) from cause
 
 
-    def from_rdf(self, dataset, options):
+    def from_rdf(self, dataset: dict | Dataset | str, options):
         """
         Converts an RDF dataset to JSON-LD.
 
@@ -994,6 +977,10 @@ class JsonLdProcessor:
                 parser = _rdf_parsers[options['format']]
             dataset = parser(dataset)
 
+        # Convert legacy datasets for backwards-compatibility
+        if not isinstance(dataset, Dataset):
+            dataset = from_legacy_dataset(dataset)
+
         # convert from RDF
         return self._from_rdf(dataset, options)
 
@@ -1013,6 +1000,7 @@ class JsonLdProcessor:
             (default: _default_document_loader).
           [rdfDirection] Either 'i18n-datatype' or 'compound-literal'
             (default: None).
+          [legacyMode] Output result as RDF.js-like dict.
 
         :return: the resulting RDF dataset (or a serialization of it).
         """
@@ -1041,25 +1029,29 @@ class JsonLdProcessor:
         node_map = {'@default': {}}
         self._create_node_map(expanded, node_map, '@default', issuer)
         # output RDF dataset
-        dataset = {}
+        dataset = Dataset()
         for graph_name, graph in sorted(node_map.items()):
             # skip relative IRIs
             if graph_name == '@default' or _is_absolute_iri(graph_name):
-                dataset[graph_name] = self._graph_to_rdf(graph, issuer, options)
-
+                g = self._rdflib_term_from_id(graph_name) if graph_name != '@default' else dataset.default_graph
+                for t in self._graph_to_rdf(graph, issuer, options):
+                    s, p, o = t
+                    dataset.add((s, p, o, g))
         # convert to output format
         if 'format' in options:
             if (
                 options['format'] == 'application/n-quads'
                 or options['format'] == 'application/nquads'
             ):
-                return self.to_nquads(dataset)
+                return dataset.serialize(format='nquads')
             raise JsonLdError(
                 'Unknown output format.',
                 'jsonld.UnknownFormat',
                 {'format': options['format']},
             )
-        return dataset
+        # In legacy mode, return RDF datasets as
+        # RDFJS-like dict objects equivalent to PyLD < 4.0
+        return to_legacy_dataset(dataset) if options.get('legacyMode', False) else dataset
 
     def process_context(self, active_ctx, local_ctx, options):
         """
@@ -1266,12 +1258,9 @@ class JsonLdProcessor:
             options = {}
         options.setdefault('propertyIsArray', False)
 
-        # filter out value
-        def filter_value(e):
-            return not JsonLdProcessor.compare_values(e, value)
-
         values = JsonLdProcessor.get_values(subject, property)
-        values = list(filter(filter_value, values))
+        # filter out value
+        values = [e for e in values if not JsonLdProcessor.compare_values(e, value)]
 
         if len(values) == 0:
             JsonLdProcessor.remove_property(subject, property)
@@ -1372,7 +1361,7 @@ class JsonLdProcessor:
         return rval
 
     @staticmethod
-    def parse_nquads(input_):
+    def parse_nquads(input_: str, **kwargs) -> Dataset | dict:
         """
         Parses RDF in the form of N-Quads.
 
@@ -1381,15 +1370,30 @@ class JsonLdProcessor:
         :return: an RDF dataset.
         """
         try:
-            result = parse_nquads(input_)
-            return result
-        except ParserError as cause:
+            dataset = Dataset()
+            # TODO: workaround to preserve bnodes for testing and preserve previous behaviour;
+            # this should be handled in the test harness instead
+            bnode_context = {
+                label: label
+                for label in re.findall(r'_:([A-Za-z0-9_][A-Za-z0-9_.-]*)', input_)
+            }
+            parser = NQuadsParser()
+            rdflib.NORMALIZE_LITERALS = False
+            parser.parse(StringInputSource(input_), dataset, bnode_context=bnode_context)
+            # In legacy mode, return RDF datasets as
+            # RDFJS-like dict objects equivalent to PyLD < 4.0
+            return to_legacy_dataset(dataset) if kwargs.get('legacy_mode', False) else dataset
+        except SyntaxError as cause:
             raise JsonLdError(
-                str(cause), 'jsonld.ParseError', {'line': cause.line_number}
+                str(cause), 'jsonld.ParseError', {'line': cause.lineno}
+            ) from cause
+        except Exception as cause:
+            raise JsonLdError(
+                str(cause), 'jsonld.ParseError', {}
             ) from cause
 
     @staticmethod
-    def to_nquads(dataset):
+    def to_nquads(dataset: dict | Dataset):
         """
         Converts an RDF dataset to N-Quads.
 
@@ -1397,11 +1401,21 @@ class JsonLdProcessor:
 
         :return: the N-Quads string.
         """
-        return serialize_nquads(dataset)
+        if not isinstance(dataset, Dataset):
+            dataset = from_legacy_dataset(dataset)
+        return dataset.serialize(format='nquads')
 
     @staticmethod
-    def to_nquad(triple, graph_name=None):
-        return serialize_nquad(triple, graph_name)
+    def to_nquad(triple: dict | tuple[Node, Node, Node], graph_name=None):
+        """Converts an RDF triple to an N-Quad string.
+        :param triple: the RDF triple to convert, either as a dict with keys
+                       'subject', 'predicate', 'object' (legacy) or as a tuple of rdflib Nodes.
+        :param graph_name: the name of the graph, if any (default: None).
+        :return: the N-Quad string representation of the triple.
+        """
+        if isinstance(triple, dict):
+            triple = from_legacy_triple(triple)
+        return _nq_row(triple, graph_name)
 
     @staticmethod
     def arrayify(value):
@@ -1622,7 +1636,7 @@ class JsonLdProcessor:
                             )
                             del compacted_value[compacted_property]
 
-                    if len(compacted_value.keys()) > 0:
+                    if compacted_value:
                         # use keyword alias and add value
                         alias = self._compact_iri(active_ctx, expanded_property)
                         JsonLdProcessor.add_value(rval, alias, compacted_value)
@@ -1939,7 +1953,7 @@ class JsonLdProcessor:
                             # whose key maps to @id, recompact without @type
                             if (
                                 _is_object(compacted_item)
-                                and len(compacted_item.keys()) == 1
+                                and len(compacted_item) == 1
                                 and '@id' in expanded_item
                             ):
                                 compacted_item = self._compact(
@@ -2922,7 +2936,7 @@ class JsonLdProcessor:
 
         return framed
 
-    def _from_rdf(self, dataset, options):
+    def _from_rdf(self, dataset: Dataset, options):
         """
         Converts an RDF dataset to JSON-LD.
 
@@ -2935,59 +2949,62 @@ class JsonLdProcessor:
         graph_map = {'@default': default_graph}
         referenced_once = {}
 
-        for name, graph in dataset.items():
+        for s, p, o, graph_name in dataset.quads((None, None, None, None)):
+            name = (
+                '@default'
+                if graph_name is None or graph_name == DATASET_DEFAULT_GRAPH_ID
+                else self._id_from_rdflib_term(graph_name)
+            )
             graph_map.setdefault(name, {})
             if name != '@default' and name not in default_graph:
                 default_graph[name] = {'@id': name}
             node_map = graph_map[name]
-            for triple in graph:
-                # get subject, predicate, object
-                s = triple['subject']['value']
-                p = triple['predicate']['value']
-                o = triple['object']
+            s = self._id_from_rdflib_term(s)
+            p = str(p)
 
-                node = node_map.setdefault(s, {'@id': s})
+            node = node_map.setdefault(s, {'@id': s})
 
-                object_is_id = o['type'] == 'IRI' or o['type'] == 'blank node'
-                if object_is_id and o['value'] not in node_map:
-                    node_map[o['value']] = {'@id': o['value']}
+            object_is_id = not isinstance(o, Literal)
+            object_id = self._id_from_rdflib_term(o) if object_is_id else None
+            if object_is_id and object_id not in node_map:
+                node_map[object_id] = {'@id': object_id}
 
-                if (
-                    p == RDF_TYPE
-                    and not options.get('useRdfType', False)
-                    and object_is_id
-                ):
-                    JsonLdProcessor.add_value(
-                        node, '@type', o['value'], {'propertyIsArray': True}
-                    )
-                    continue
-
-                value = self._rdf_to_object(
-                    o, options['useNativeTypes'], options['rdfDirection']
+            if (
+                p == str(RDF.type)
+                and not options.get('useRdfType', False)
+                and object_is_id
+            ):
+                JsonLdProcessor.add_value(
+                    node, '@type', object_id, {'propertyIsArray': True}
                 )
-                JsonLdProcessor.add_value(node, p, value, {'propertyIsArray': True})
+                continue
 
-                # object may be an RDF list/partial list node but we
-                # can't know easily until all triples are read
-                if object_is_id:
-                    # track rdf:nil uniquely per graph
-                    if o['value'] == RDF_NIL:
-                        object = node_map[o['value']]
-                        if 'usages' not in object:
-                            object['usages'] = []
-                        object['usages'].append(
-                            {'node': node, 'property': p, 'value': value}
-                        )
-                    # object referenced more than once
-                    elif o['value'] in referenced_once:
-                        referenced_once[o['value']] = False
-                    # track single reference
-                    else:
-                        referenced_once[o['value']] = {
-                            'node': node,
-                            'property': p,
-                            'value': value,
-                        }
+            value = self._rdf_to_object(
+                o, options['useNativeTypes'], options['rdfDirection']
+            )
+            JsonLdProcessor.add_value(node, p, value, {'propertyIsArray': True})
+
+            # object may be an RDF list/partial list node but we
+            # can't know easily until all triples are read
+            if object_is_id:
+                # track rdf:nil uniquely per graph
+                if object_id == str(RDF.nil):
+                    object = node_map[object_id]
+                    if 'usages' not in object:
+                        object['usages'] = []
+                    object['usages'].append(
+                        {'node': node, 'property': p, 'value': value}
+                    )
+                # object referenced more than once
+                elif object_id in referenced_once:
+                    referenced_once[object_id] = False
+                # track single reference
+                else:
+                    referenced_once[object_id] = {
+                        'node': node,
+                        'property': p,
+                        'value': value,
+                    }
 
         for _name, graph_object in graph_map.items():
             # Convert compound-literal blank nodes before list conversion, so
@@ -2998,11 +3015,11 @@ class JsonLdProcessor:
             # convert linked lists to @list arrays
 
             # no @lists to be converted, continue
-            if RDF_NIL not in graph_object:
+            if str(RDF.nil) not in graph_object:
                 continue
 
             # iterate backwards through each RDF list
-            nil = graph_object[RDF_NIL]
+            nil = graph_object[str(RDF.nil)]
             if 'usages' not in nil:
                 continue
             for usage in nil['usages']:
@@ -3018,25 +3035,25 @@ class JsonLdProcessor:
                 # 3. Have an array for rdf:rest that has 1 item
                 # 4. Have no keys other than: @id, rdf:first, rdf:rest
                 #   and, optionally, @type where the value is rdf:List.
-                node_key_count = len(node.keys())
+                node_key_count = len(node)
                 while (
-                    property == RDF_REST
+                    property == str(RDF.rest)
                     and _is_object(referenced_once.get(node['@id']))
-                    and _is_array(node[RDF_FIRST])
-                    and len(node[RDF_FIRST]) == 1
-                    and _is_array(node[RDF_REST])
-                    and len(node[RDF_REST]) == 1
+                    and _is_array(node[str(RDF.first)])
+                    and len(node[str(RDF.first)]) == 1
+                    and _is_array(node[str(RDF.rest)])
+                    and len(node[str(RDF.rest)]) == 1
                     and (
                         node_key_count == 3
                         or (
                             node_key_count == 4
                             and _is_array(node.get('@type'))
                             and len(node['@type']) == 1
-                            and node['@type'][0] == RDF_LIST
+                            and node['@type'][0] == str(RDF.List)
                         )
                     )
                 ):
-                    list_.append(node[RDF_FIRST][0])
+                    list_.append(node[str(RDF.first)][0])
                     list_nodes.append(node['@id'])
 
                     # get next node, moving backwards through list
@@ -3044,7 +3061,7 @@ class JsonLdProcessor:
                     node = usage['node']
                     property = usage['property']
                     head = usage['value']
-                    node_key_count = len(node.keys())
+                    node_key_count = len(node)
 
                     # if node is not a blank node, then list head found
                     if not node['@id'].startswith('_:'):
@@ -3132,26 +3149,31 @@ class JsonLdProcessor:
         rdf:direction, and optionally rdf:language. Each RDF property must
         have exactly one JSON-LD value-object entry.
         """
-        allowed_keys = {RDF_VALUE, RDF_LANGUAGE, RDF_DIRECTION, '@id'}
+
+        rdf_value = str(RDF.value)
+        rdf_language= str(RDF.language)
+        rdf_direction= str(RDF.direction)
+
+        allowed_keys = {rdf_value, rdf_language, rdf_direction, '@id'}
 
         # Anything with extra properties is an ordinary node, not the special
         # compound-literal encoding.
         if (
             not id_.startswith('_:')
             or set(node.keys()) - allowed_keys
-            or RDF_VALUE not in node
-            or RDF_DIRECTION not in node
+            or rdf_value not in node
+            or rdf_direction not in node
         ):
             return None
 
-        if not self._is_single_rdf_value(node, RDF_VALUE):
+        if not self._is_single_rdf_value(node, rdf_value):
             raise JsonLdError(
                 'Invalid JSON-LD syntax; rdf:value must be a single value.',
                 'jsonld.SyntaxError',
                 code='invalid value object',
             )
 
-        if not self._is_single_rdf_value(node, RDF_DIRECTION):
+        if not self._is_single_rdf_value(node, rdf_direction):
             raise JsonLdError(
                 'Invalid JSON-LD syntax; rdf:direction must be a single value.',
                 'jsonld.InvalidBaseDirection',
@@ -3160,8 +3182,8 @@ class JsonLdProcessor:
 
         # Start from rdf:value so datatype/native literal handling already
         # done by _rdf_to_object is preserved.
-        value = node[RDF_VALUE][0].copy()
-        direction = node[RDF_DIRECTION][0].get('@value')
+        value = node[rdf_value][0].copy()
+        direction = node[rdf_direction][0].get('@value')
         if direction not in ['ltr', 'rtl']:
             raise JsonLdError(
                 'Invalid JSON-LD syntax; @direction must be "ltr" or "rtl".',
@@ -3169,14 +3191,14 @@ class JsonLdProcessor:
                 code='invalid base direction',
             )
 
-        if RDF_LANGUAGE in node:
-            if not self._is_single_rdf_value(node, RDF_LANGUAGE):
+        if rdf_language in node:
+            if not self._is_single_rdf_value(node, rdf_language):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; rdf:language must be a single value.',
                     'jsonld.InvalidLanguageTaggedString',
                     code='invalid language-tagged string',
                 )
-            language = node[RDF_LANGUAGE][0].get('@value')
+            language = node[rdf_language][0].get('@value')
             if not _is_string(language) or not re.match(REGEX_BCP47, language):
                 raise JsonLdError(
                     'Invalid JSON-LD syntax; rdf:language must be a valid BCP47 language.',
@@ -3831,53 +3853,39 @@ class JsonLdProcessor:
 
         :return: the array of RDF triples for the given graph.
         """
-        triples = []
+        triples = [] # TODO: use rdflib.Graph instead
         for id_, node in sorted(graph.items()):
             for property, items in sorted(node.items()):
-                if property == '@type':
-                    property = RDF_TYPE
-                elif _is_keyword(property):
+                if property != '@type' and _is_keyword(property):
                     continue
 
                 for item in items:
                     # skip relative IRI subjects and predicates
-                    if not (_is_absolute_iri(id_) and _is_absolute_iri(property)):
+                    if not _is_absolute_iri(id_) or (
+                        property != '@type' and not _is_absolute_iri(property)
+                    ):
                         continue
 
                     # RDF subject
-                    subject = {}
-                    if id_.startswith('_:'):
-                        subject['type'] = 'blank node'
-                    else:
-                        subject['type'] = 'IRI'
-                    subject['value'] = id_
+                    subject = self._rdflib_term_from_id(id_)
 
                     # RDF predicate
-                    predicate = {}
-                    if property.startswith('_:'):
-                        # skip bnode predicates unless producing
-                        # generalized RDF
-                        if not options['produceGeneralizedRdf']:
-                            continue
-                        predicate['type'] = 'blank node'
-                    else:
-                        predicate['type'] = 'IRI'
-                    predicate['value'] = property
+
+                    # skip bnode predicates unless producing
+                    # generalized RDF
+                    if property.startswith('_:') and not options['produceGeneralizedRdf']:
+                        continue
+
+                    predicate = self._rdflib_term_from_id(property) if property != '@type' else RDF.type
 
                     # convert list, value or node object to triple
                     object = self._object_to_rdf(item, issuer, triples, options)
                     # skip None objects (they are relative IRIs)
                     if object is not None:
-                        triples.append(
-                            {
-                                'subject': subject,
-                                'predicate': predicate,
-                                'object': object,
-                            }
-                        )
+                        triples.append((subject, predicate, object))
         return triples
 
-    def _list_to_rdf(self, list_, issuer, triples, options):
+    def _list_to_rdf(self, list_: list, issuer: IdentifierIssuer, triples, options) -> BNode | URIRef:
         """
         Converts a @list value into a linked list of blank node RDF triples
         (and RDF collection).
@@ -3889,30 +3897,46 @@ class JsonLdProcessor:
 
         :return: the head of the list
         """
-        first = {'type': 'IRI', 'value': RDF_FIRST}
-        rest = {'type': 'IRI', 'value': RDF_REST}
-        nil = {'type': 'IRI', 'value': RDF_NIL}
 
         last = list_.pop() if list_ else None
         # result is the head of the list
-        result = {'type': 'blank node', 'value': issuer.get_id()} if last else nil
+        result = BNode(issuer.get_id()) if last else RDF.nil
         subject = result
 
         for item in list_:
             object = self._object_to_rdf(item, issuer, triples, options)
-            next = {'type': 'blank node', 'value': issuer.get_id()}
-            triples.append({'subject': subject, 'predicate': first, 'object': object})
-            triples.append({'subject': subject, 'predicate': rest, 'object': next})
+            next = BNode(issuer.get_id())
+            triples.append((subject, RDF.first, object))
+            triples.append((subject, RDF.rest, next))
 
             subject = next
 
         # tail of list
         if last:
             object = self._object_to_rdf(last, issuer, triples, options)
-            triples.append({'subject': subject, 'predicate': first, 'object': object})
-            triples.append({'subject': subject, 'predicate': rest, 'object': nil})
+            triples.append((subject, RDF.first, object))
+            triples.append((subject, RDF.rest, RDF.nil))
 
         return result
+
+
+    def _rdflib_term_from_id(self, id_: str) -> BNode | URIRef:
+        """
+        Converts a JSON-LD @id value to an RDFLib term.
+        :param id_: the JSON-LD @id value.
+        :return: the RDFLib term.
+        """
+        if id_.startswith('_:'):
+            return BNode(id_[2:])
+        return URIRef(id_)
+
+    def _id_from_rdflib_term(self, term: Identifier) -> str:
+        """
+        Converts an RDFLib term to a JSON-LD @id value.
+        :param term: the RDFLib term.
+        :return: the JSON-LD @id value.
+        """
+        return '_:' + str(term) if isinstance(term, BNode) else str(term)
 
     def _object_to_rdf(self, item, issuer, triples, options):
         """
@@ -3926,124 +3950,122 @@ class JsonLdProcessor:
 
         :return: the RDF literal or RDF resource.
         """
-        object = {}
 
         if _is_value(item):
-            object['type'] = 'literal'
             value = item['@value']
             datatype = item.get('@type')
             rdf_direction = options.get('rdfDirection')
 
             # convert to XSD datatypes as appropriate
             if datatype == '@json':
-                object['value'] = canonicalize(value).decode('UTF-8')
-                object['datatype'] = RDF_JSON_LITERAL
+                return Literal(
+                    canonicalize(value).decode('UTF-8'), datatype=RDF.JSON
+                )
             elif _is_bool(value):
-                object['value'] = 'true' if value else 'false'
-                object['datatype'] = datatype or XSD_BOOLEAN
+                return Literal(
+                    'true' if value else 'false',
+                    datatype=URIRef(datatype) if datatype else XSD.boolean,
+                )
             # if `value` is a float number,
             elif _is_double(value):
-                # use the canonical double representation
-                object['value'] = _canonicalize_double(value)
-                # add the double datatype if none is given
-                object['datatype'] = datatype or XSD_DOUBLE
-                return object
-            elif datatype == XSD_DOUBLE:
+                return Literal(
+                    # use the canonical double representation
+                    _canonicalize_double(value),
+                    # add the double datatype if none is given
+                    datatype=URIRef(datatype) if datatype else XSD.double,
+                    normalize=False,
+                )
+            elif datatype == str(XSD.double):
                 # since the previous branch did not activate, we know that `value` is not a float number.
                 try:
                     float_value = float(value)
                 except (ValueError, TypeError):
                     # if `value` is not convertible to float, we will return it as-is.
-                    object['value'] = value
-                    object['datatype'] = XSD_DOUBLE
-                    return object
+                    return Literal(value, datatype=XSD.double, normalize=False)
                 else:
                     # we have a float, and canonicalization may proceed.
-                    object['value'] = _canonicalize_double(float_value)
-                    object['datatype'] = XSD_DOUBLE
-                    return object
+                    return Literal(
+                        _canonicalize_double(float_value),
+                        datatype=XSD.double,
+                        normalize=False,
+                    )
             elif (
                 options['processingMode'] == 'json-ld-1.1'
                 and _is_integer(value)
                 and abs(value) >= 1e21
             ):
-                object['value'] = _canonicalize_double(value)
-                object['datatype'] = datatype or XSD_DOUBLE
+                return Literal(
+                    # use the canonical double representation
+                    _canonicalize_double(value),
+                    # add the double datatype if none is given
+                    datatype=URIRef(datatype) if datatype else XSD.double,
+                    normalize=False,
+                )
             elif _is_integer(value):
-                object['value'] = str(int(value))
-                object['datatype'] = datatype or XSD_INTEGER
+                return Literal(
+                    str(int(value)),
+                    datatype=datatype if datatype else XSD.integer,
+                    normalize=False,
+                )
             elif rdf_direction == 'compound-literal' and '@direction' in item:
-                object['type'] = 'blank node'
-                object['value'] = issuer.get_id()
-                subject = {'type': 'blank node', 'value': object['value']}
+                # Create bnode to describe compound literal
+                subject = self._rdflib_term_from_id(issuer.get_id())
                 triples.append(
-                    {
-                        'subject': subject,
-                        'predicate': {'type': 'IRI', 'value': RDF_VALUE},
-                        'object': {
-                            'type': 'literal',
-                            'value': value,
-                            'datatype': XSD_STRING,
-                        },
-                    }
+                    (subject, RDF.value, Literal(value, datatype=XSD.string))
                 )
                 triples.append(
-                    {
-                        'subject': subject,
-                        'predicate': {'type': 'IRI', 'value': RDF_DIRECTION},
-                        'object': {
-                            'type': 'literal',
-                            'value': item['@direction'],
-                            'datatype': XSD_STRING,
-                        },
-                    }
+                    (
+                        subject,
+                        RDF.direction,
+                        Literal(item['@direction'], datatype=XSD.string,
+                        normalize=False),
+                    )
                 )
                 if '@language' in item:
                     triples.append(
-                        {
-                            'subject': subject,
-                            'predicate': {'type': 'IRI', 'value': RDF_LANGUAGE},
-                            'object': {
-                                'type': 'literal',
-                                'value': item['@language'],
-                                'datatype': XSD_STRING,
-                            },
-                        }
+                        (
+                            subject,
+                            RDF.language,
+                            Literal(item['@language'], datatype=XSD.string, normalize=False),
+                        )
                     )
+                return subject
             elif rdf_direction == 'i18n-datatype' and '@direction' in item:
-                datatype = 'https://www.w3.org/ns/i18n#{}_{}'.format(
-                    item.get('@language', ''), item['@direction']
+                return Literal(
+                    value,
+                    datatype='https://www.w3.org/ns/i18n#{}_{}'.format(
+                        item.get('@language', ''), item['@direction']
+                    ),
+                    normalize=False,
                 )
-                object['value'] = value
-                object['datatype'] = datatype
+
             elif '@language' in item:
-                object['value'] = value
-                object['datatype'] = datatype or RDF_LANGSTRING
-                object['language'] = item['@language']
-            else:
-                object['value'] = value
-                object['datatype'] = datatype or XSD_STRING
+                return Literal(
+                    value,
+                    lang=item['@language'],
+                    datatype=None,
+                    normalize=False,
+                )
+            return Literal(
+                value,
+                datatype=URIRef(datatype) if datatype else XSD.string,
+                normalize=False,
+            )
         # convert list object to RDF
         elif _is_list(item):
-            list_ = self._list_to_rdf(item['@list'], issuer, triples, options)
-            object['value'] = list_['value']
-            object['type'] = list_['type']
+            return self._list_to_rdf(item['@list'], issuer, triples, options)
+
         # convert string/node object to RDF
         else:
             id_ = item['@id'] if _is_object(item) else item
-            if id_.startswith('_:'):
-                object['type'] = 'blank node'
-            else:
-                object['type'] = 'IRI'
-            object['value'] = id_
 
         # skip relative IRIs
-        if object['type'] == 'IRI' and not _is_absolute_iri(object['value']):
+        if not id_.startswith('_:') and not _is_absolute_iri(id_):
             return None
 
-        return object
+        return self._rdflib_term_from_id(id_)
 
-    def _rdf_to_object(self, o, use_native_types, rdf_direction):
+    def _rdf_to_object(self, o: Identifier, use_native_types, rdf_direction) -> dict:
         """
         Converts an RDF triple object to a JSON-LD object.
 
@@ -4054,22 +4076,21 @@ class JsonLdProcessor:
         :return: the JSON-LD object.
         """
         # convert IRI/BlankNode object to JSON-LD
-        if o['type'] == 'IRI' or o['type'] == 'blank node':
-            return {'@id': o['value']}
+        if not isinstance(o, Literal):
+            id_ = self._id_from_rdflib_term(o)
+            return {'@id': id_}
 
         # convert literal object to JSON-LD
-        rval = {'@value': o['value']}
+        rval = {'@value': str(o)}
 
         # add language
-        if 'language' in o:
-            rval['@language'] = o['language']
+        if o.language is not None:
+            rval['@language'] = o.language
         # add datatype
         else:
-            type_ = o['datatype']
-            if not type_:
-                type_ = XSD_STRING
+            type_ = o.datatype if o.datatype else XSD.string
 
-            if type_ == RDF_JSON_LITERAL:
+            if type_ == RDF.JSON:
                 type_ = '@json'
                 try:
                     rval['@value'] = json.loads(rval['@value'])
@@ -4084,24 +4105,24 @@ class JsonLdProcessor:
             # use native types for certain xsd types
             if use_native_types:
                 converted = False
-                if type_ == XSD_BOOLEAN:
+                if type_ == XSD.boolean:
                     if rval['@value'] in ['true', '1']:
                         rval['@value'] = True
                         converted = True
                     elif rval['@value'] in ['false', '0']:
                         rval['@value'] = False
                         converted = True
-                elif type_ == XSD_INTEGER and re.match(r'^[+-]?\d+$', rval['@value']):
+                elif type_ == XSD.integer and re.match(r'^[+-]?\d+$', rval['@value']):
                     rval['@value'] = int(rval['@value'])
                     converted = True
-                elif type_ == XSD_DOUBLE and _is_numeric(rval['@value']):
+                elif type_ == XSD.double and _is_numeric(rval['@value']):
                     value = float(rval['@value'])
                     if math.isfinite(value):
                         rval['@value'] = value
                         converted = True
                 # do not add native type
-                if not converted and type_ != XSD_STRING:
-                    rval['@type'] = type_
+                if not converted and type_ != XSD.string:
+                    rval['@type'] = str(type_)
             elif rdf_direction == 'i18n-datatype' and type_.startswith(
                 'https://www.w3.org/ns/i18n#'
             ):
@@ -4111,8 +4132,8 @@ class JsonLdProcessor:
                     if not re.match(REGEX_BCP47, language):
                         warnings.warn('@language must be valid BCP47', stacklevel=2)
                 rval['@direction'] = direction
-            elif type_ != XSD_STRING:
-                rval['@type'] = type_
+            elif type_ != XSD.string:
+                rval['@type'] = str(type_)
         return rval
 
     def _create_node_map(
@@ -4908,11 +4929,7 @@ class JsonLdProcessor:
         def remove_dependents(id_):
             # get embed keys as a separate array to enable deleting keys
             # in map
-            try:
-                ids = list(embeds.iterkeys())
-            except AttributeError:
-                ids = list(embeds.keys())
-            for next in ids:
+            for next in list(embeds):
                 if (
                     next in embeds
                     and _is_object(embeds[next]['parent'])
@@ -6493,7 +6510,8 @@ def _is_graph(v):
     return (
         _is_object(v)
         and '@graph' in v
-        and len([k for k, vv in v.items() if (k != '@id' and k != '@index')]) == 1
+        # count non-@id/@index keys
+        and set(v) <= {'@graph', '@id', '@index'}
     )
 
 
