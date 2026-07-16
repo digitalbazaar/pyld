@@ -3960,9 +3960,9 @@ class JsonLdProcessor:
                     object['datatype'] = XSD_DOUBLE
                     return object
             # Numbers without fractions but larger or equal to 1e21 should be double
-            elif _is_integer(value) and value >= 1e21:
+            elif _is_integer(value) and abs(value) >= 1e21:
                 object['value'] = _canonicalize_double(value)
-                object['datatype'] = XSD_DOUBLE
+                object['datatype'] = datatype or XSD_DOUBLE
             elif _is_integer(value):
                 object['value'] = str(int(value))
                 object['datatype'] = datatype or XSD_INTEGER
