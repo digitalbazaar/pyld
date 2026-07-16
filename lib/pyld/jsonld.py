@@ -4004,7 +4004,7 @@ class JsonLdProcessor:
             elif _is_integer(value):
                 return Literal(
                     str(value),
-                    datatype=URIRef(datatype) if datatype else XSD.integer,
+                    datatype=datatype if datatype else XSD.integer,
                     normalize=False,
                 )
             elif rdf_direction == 'compound-literal' and '@direction' in item:
@@ -4122,7 +4122,7 @@ class JsonLdProcessor:
                         converted = True
                 # do not add native type
                 if not converted and type_ != XSD.string:
-                    rval['@type'] = type_
+                    rval['@type'] = str(type_)
             elif rdf_direction == 'i18n-datatype' and type_.startswith(
                 'https://www.w3.org/ns/i18n#'
             ):
