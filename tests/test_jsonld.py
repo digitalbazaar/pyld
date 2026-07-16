@@ -960,7 +960,7 @@ class TestToRdf:
         nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
         assert nquads == (
             '<http://example.com/s> <http://example.com/p> '
-            '"1.0E21"^^<http://www.w3.org/2001/XMLSchema#double> .\n'
+            '"1.0E21"^^<http://www.w3.org/2001/XMLSchema#double>  .\n'
         )
 
         nquads = jsonld.to_rdf(
@@ -973,7 +973,7 @@ class TestToRdf:
         assert nquads == (
             '<http://example.com/s> <http://example.com/p> '
             '"1000000000000000000000"'
-            '^^<http://www.w3.org/2001/XMLSchema#integer> .\n'
+            '^^<http://www.w3.org/2001/XMLSchema#integer>  .\n'
         )
 
     def test_compound_literal_direction_without_language(self):
