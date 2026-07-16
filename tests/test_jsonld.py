@@ -944,7 +944,7 @@ class TestToRdf:
         nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
         assert nquads == (
             '<http://example.com/s> <http://example.com/p> '
-            '"1.0E21"^^<http://www.w3.org/2001/XMLSchema#double>  .\n'
+            '"1.0E21"^^<http://www.w3.org/2001/XMLSchema#double>  .\n\n'
         )
 
         nquads = jsonld.to_rdf(
@@ -957,7 +957,7 @@ class TestToRdf:
         assert nquads == (
             '<http://example.com/s> <http://example.com/p> '
             '"1000000000000000000000"'
-            '^^<http://www.w3.org/2001/XMLSchema#integer>  .\n'
+            '^^<http://www.w3.org/2001/XMLSchema#integer>  .\n\n'
         )
 
     def test_compound_literal_direction_without_language(self):
@@ -1081,7 +1081,7 @@ _:b0 <http://purl.org/dc/terms/title> "Chapter 1: Jonathan Harker's Journal"^^<h
         """
         input = { "ex:value": 42.0 }
 
-        expected = '_:b0 <ex:value> "42"^^<http://www.w3.org/2001/XMLSchema#integer> .\n'
+        expected = '_:b0 <ex:value> "42"^^<http://www.w3.org/2001/XMLSchema#integer>  .\n\n'
 
         nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
         assert nquads == expected
@@ -1093,7 +1093,7 @@ _:b0 <http://purl.org/dc/terms/title> "Chapter 1: Jonathan Harker's Journal"^^<h
         """
         input = { "ex:value": 0.97 }
 
-        expected = '_:b0 <ex:value> "9.7E-1"^^<http://www.w3.org/2001/XMLSchema#double> .\n'
+        expected = '_:b0 <ex:value> "9.7E-1"^^<http://www.w3.org/2001/XMLSchema#double>  .\n\n'
 
         nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
         assert nquads == expected

@@ -4003,7 +4003,7 @@ class JsonLdProcessor:
                 )
             elif _is_integer(value):
                 return Literal(
-                    str(value),
+                    str(int(value)),
                     datatype=datatype if datatype else XSD.integer,
                     normalize=False,
                 )
