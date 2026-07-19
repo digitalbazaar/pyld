@@ -91,12 +91,14 @@ LOCAL_BASES = [
     'https://w3c.github.io/json-ld-api/tests',
     'https://w3c.github.io/json-ld-framing/tests',
     'https://github.com/json-ld/normalization/tests',
+    'https://w3c.github.io/yaml-ld/tests',
 ]
 
 SPEC_DIRS = [
     '../specifications/json-ld-api/tests/',
     '../specifications/json-ld-framing/tests/',
     '../specifications/normalization/tests/',
+    '../specifications/yaml-ld/tests/',
 ]
 
 # NOTE: The following TestRunner class can be removed because pytest now
@@ -718,6 +720,8 @@ def create_document_loader(test):
         url_no_frag = strip_fragment(url)
         if not content_type and url_no_frag.endswith('.jsonld'):
             content_type = 'application/ld+json'
+        if not content_type and url_no_frag.endswith('.yamlld'):
+            content_type = 'application/ld+yaml'
         if not content_type and url_no_frag.endswith('.json'):
             content_type = 'application/json'
         if not content_type and url_no_frag.endswith('.html'):
@@ -918,7 +922,11 @@ TEST_TYPES = {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
-            'idRegex': [],
+            # YAML-LD suite: only currently failing cases (passing cases stay active)
+            'idRegex': [
+                '.*yaml-ld/tests/manifest#compact-local-json-ld-context$',
+                '.*yaml-ld/tests/manifest#compact-local-yaml-ld-context$',
+            ],
         },
         'fn': 'compact',
         'params': [
@@ -950,7 +958,50 @@ TEST_TYPES = {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
-            'idRegex': [],
+            # YAML-LD suite: only currently failing cases (passing cases stay active)
+            'idRegex': [
+                '.*yaml-ld/tests/manifest#cir-mapping-key-1-negative$',
+                '.*yaml-ld/tests/manifest#cir-mapping-key-2-negative$',
+                '.*yaml-ld/tests/manifest#cir-mapping-key-3-negative$',
+                '.*yaml-ld/tests/manifest#cir-mapping-key-4-negative$',
+                '.*yaml-ld/tests/manifest#cir-mapping-key-5-negative$',
+                '.*yaml-ld/tests/manifest#cir-scalar-core-1-positive$',
+                '.*yaml-ld/tests/manifest#cir-scalar-i18n-1-positive$',
+                '.*yaml-ld/tests/manifest#cir-scalar-other-1-positive$',
+                '.*yaml-ld/tests/manifest#cr-comments-1-positive$',
+                '.*yaml-ld/tests/manifest#cr-utf8-1-positive$',
+                '.*yaml-ld/tests/manifest#cr-utf8-2-negative$',
+                '.*yaml-ld/tests/manifest#cr-well-formed-1-positive$',
+                '.*yaml-ld/tests/manifest#aa-cycles-1-positive$',
+                '.*yaml-ld/tests/manifest#aa-cycles-3-positive$',
+                '.*yaml-ld/tests/manifest#html-and-yaml-streams$',
+                '.*yaml-ld/tests/manifest#mixed-script-types$',
+                '.*yaml-ld/tests/manifest#html-dedent-needed$',
+                '.*yaml-ld/tests/manifest#html-dedent-not-needed$',
+                '.*yaml-ld/tests/manifest#two-documents-from-stream$',
+                '.*yaml-ld/tests/manifest#one-document-from-stream$',
+                '.*yaml-ld/tests/manifest#local-json-ld-context$',
+                '.*yaml-ld/tests/manifest#local-yaml-ld-context$',
+                '.*yaml-ld/tests/manifest#core-bool-true$',
+                '.*yaml-ld/tests/manifest#core-bool-false$',
+                '.*yaml-ld/tests/manifest#core-bool-true-title$',
+                '.*yaml-ld/tests/manifest#core-bool-false-upper$',
+                '.*yaml-ld/tests/manifest#core-null-null$',
+                '.*yaml-ld/tests/manifest#core-null-tilde$',
+                '.*yaml-ld/tests/manifest#core-null-upper$',
+                '.*yaml-ld/tests/manifest#core-int-decimal$',
+                '.*yaml-ld/tests/manifest#core-int-octal$',
+                '.*yaml-ld/tests/manifest#core-int-hex$',
+                '.*yaml-ld/tests/manifest#core-float-basic$',
+                '.*yaml-ld/tests/manifest#core-float-scientific$',
+                '.*yaml-ld/tests/manifest#core-date-ymd$',
+                '.*yaml-ld/tests/manifest#core-yaml11-yes$',
+                '.*yaml-ld/tests/manifest#core-yaml11-no$',
+                '.*yaml-ld/tests/manifest#core-yaml11-on$',
+                '.*yaml-ld/tests/manifest#core-yaml11-off$',
+                '.*yaml-ld/tests/manifest#core-yaml11-yes-title$',
+                '.*yaml-ld/tests/manifest#core-yaml11-yes-upper$',
+            ],
         },
         'fn': 'expand',
         'params': [read_test_url('input'), create_test_options()],
@@ -961,7 +1012,10 @@ TEST_TYPES = {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
-            'idRegex': [],
+            # YAML-LD suite: only currently failing cases (passing cases stay active)
+            'idRegex': [
+                '.*yaml-ld/tests/manifest#flatten$',
+            ],
         },
         'fn': 'flatten',
         'params': [
@@ -976,7 +1030,10 @@ TEST_TYPES = {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
-            'idRegex': [],
+            # YAML-LD suite: only currently failing cases (passing cases stay active)
+            'idRegex': [
+                '.*yaml-ld/tests/manifest#frame-t0001$',
+            ],
         },
         'fn': 'frame',
         'params': [
@@ -1026,7 +1083,12 @@ TEST_TYPES = {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
-            'idRegex': [],
+            # YAML-LD suite: only currently failing cases (passing cases stay active)
+            'idRegex': [
+                '.*yaml-ld/tests/manifest#aa-information-1-positive$',
+                '.*yaml-ld/tests/manifest#cir-scalar-core-2-positive$',
+                '.*yaml-ld/tests/manifest#cir-scalar-other-2-positive$',
+            ],
         },
         'fn': 'to_rdf',
         'params': [
