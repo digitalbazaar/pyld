@@ -69,6 +69,7 @@ jobs:
         pytest tests/test_manifests.py --tests=./specifications/json-ld-api/tests --loader=${{ matrix.loader }}
         pytest tests/test_manifests.py --tests=./specifications/json-ld-framing/tests --loader=${{ matrix.loader }}
         pytest tests/test_manifests.py --tests=./specifications/normalization/tests --loader=${{ matrix.loader }}
+        pytest tests/test_manifests.py --tests=./specifications/yaml-ld/tests --loader=${{ matrix.loader }}
         pytest --ignore ./tests/test_manifests.py
       env:
         LOADER: ${{ matrix.loader }}
