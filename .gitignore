@@ -19,3 +19,6 @@ tests/data/test_caching.json
 
 # Local version file for pyenv
 .python-version
+
+# Local lock file for uv
+uv.lock
