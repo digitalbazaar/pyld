@@ -11,14 +11,25 @@ from mkdocs.utils.meta import YAML_RE
 from yaml import SafeLoader
 
 ROOT_DIR = Path(__file__).resolve().parent
-EXAMPLES_DIR = ROOT_DIR / 'docs' / 'examples'
+DOCS_DIR = ROOT_DIR / 'docs'
+EXAMPLES_DIR = DOCS_DIR / 'examples'
 sys.path.insert(0, str(ROOT_DIR / 'lib'))
 sys.path.insert(0, str(ROOT_DIR / 'tests'))
+
+_SOURCE_LANG = {
+    '.yamlld': 'yaml',
+    '.yaml': 'yaml',
+    '.yml': 'yaml',
+    '.jsonld': 'json',
+    '.json': 'json',
+    '.py': 'python',
+}
 
 MANIFEST_BASES = {
     'frame-manifest': 'https://w3c.github.io/json-ld-framing/tests',
     'manifest-urgna2012': 'https://w3c.github.io/rdf-canon/tests',
     'manifest-urdna2015': 'https://w3c.github.io/rdf-canon/tests',
+    'manifest': 'https://w3c.github.io/yaml-ld/tests',
 }
 DEFAULT_TEST_BASE = 'https://w3c.github.io/json-ld-api/tests'
 
@@ -26,6 +37,7 @@ _SKIP_ID_PATTERN = re.compile(r'^\.\*(?P<manifest>[^#]+)#(?P<test_id>[^$]+)\$$')
 _MANIFEST_PATHS = (
     ROOT_DIR / 'specifications' / 'json-ld-api' / 'tests',
     ROOT_DIR / 'specifications' / 'json-ld-framing' / 'tests',
+    ROOT_DIR / 'specifications' / 'yaml-ld' / 'tests',
 )
 
 
@@ -33,12 +45,19 @@ def _parse_skip_id_regex(pattern):
     match = _SKIP_ID_PATTERN.fullmatch(pattern)
     if not match:
         return None
-    return match.group('manifest'), match.group('test_id')
+    # Suite-scoped patterns may include a path prefix, e.g.
+    # .*yaml-ld/tests/manifest#two-documents-from-stream$
+    manifest = match.group('manifest')
+    if '/' in manifest:
+        manifest = manifest.rsplit('/', 1)[-1]
+    return manifest, match.group('test_id')
 
 
 def _test_url(manifest, test_id):
-    base = MANIFEST_BASES.get(manifest, DEFAULT_TEST_BASE)
-    return f'{base}/{manifest}.html#{test_id}'
+    # Basename only — suite-scoped regex captures may still contain '/'.
+    manifest_name = manifest.rsplit('/', 1)[-1]
+    base = MANIFEST_BASES.get(manifest_name, DEFAULT_TEST_BASE)
+    return f'{base}/{manifest_name}.html#{test_id}'
 
 
 def _jsonld_values(data, key):
@@ -59,7 +78,11 @@ def _manifest_entries():
     for manifest_dir in _MANIFEST_PATHS:
         if not manifest_dir.exists():
             continue
-        for path in sorted(manifest_dir.glob('*-manifest.jsonld')):
+        paths = {
+            *manifest_dir.glob('*-manifest.jsonld'),
+            *manifest_dir.glob('manifest.jsonld'),
+        }
+        for path in sorted(paths):
             data = json.loads(path.read_text())
             manifest = path.stem
             for entry in _jsonld_values(data, 'sequence'):
@@ -81,6 +104,11 @@ def _skip_reason(test_type, skip, test):
     entry = test['entry']
     for pattern in skip.get('idRegex', []):
         if re.match(pattern, test_id):
+            return f'Explicit skip (`{test_type}`)'
+        # Suite-scoped patterns (e.g. .*yaml-ld/tests/manifest#id$) still
+        # refer to the same short manifest#id used in local entries.
+        parsed = _parse_skip_id_regex(pattern)
+        if parsed and f'{parsed[0]}#{parsed[1]}' == test_id:
             return f'Explicit skip (`{test_type}`)'
 
     for pattern in skip.get('descriptionRegex', []):
@@ -114,6 +142,13 @@ def _example_path(name):
     return path
 
 
+def _docs_path(rel):
+    path = (DOCS_DIR / rel).resolve()
+    if not path.is_relative_to(DOCS_DIR.resolve()):
+        raise ValueError(f'Invalid docs path: {rel}')
+    return path
+
+
 def _github_branch():
     branch = os.environ.get('GITHUB_REF_NAME')
     if branch:
@@ -129,10 +164,20 @@ def _github_branch():
     return 'master'
 
 
-def _example_github_url(name, repo_url):
-    rel_path = Path('docs/examples') / name
+def _docs_github_url(rel, repo_url):
     branch = 'master'
-    return f'{repo_url.rstrip("/")}/blob/{branch}/{rel_path.as_posix()}'
+    return f'{repo_url.rstrip("/")}/blob/{branch}/docs/{Path(rel).as_posix()}'
+
+
+def _example_github_url(name, repo_url):
+    return _docs_github_url(Path('examples') / name, repo_url)
+
+
+def _example_admonition(title, body, indent=0):
+    content_indent = indent + 4
+    pad = ' ' * content_indent
+    indented = '\n'.join(f'{pad}{line}' for line in body.splitlines())
+    return f'!!! example "{title}"\n\n{indented}\n'
 
 
 def _human_date(value):
@@ -319,7 +364,19 @@ def define_env(env):
             f'```python\n{source}```\n\n'
             f'```{output_lang} title="Output"\n{result.stdout}```'
         )
-        content_indent = indent + 4
-        pad = ' ' * content_indent
-        indented = '\n'.join(f'{pad}{line}' for line in body.splitlines())
-        return f'!!! example "{title}"\n\n{indented}\n'
+        return _example_admonition(title, body, indent=indent)
+
+    @env.macro
+    def source_file(rel, indent=0):
+        """Include a docs file in an example admonition with a GitHub source link."""
+        path = _docs_path(rel)
+        source = path.read_text()
+        github_url = _docs_github_url(rel, env.conf['repo_url'])
+        lang = _SOURCE_LANG.get(path.suffix.lower(), 'text')
+        title = (
+            f'Example<span class="example-source-link" markdown>'
+            f':fontawesome-brands-github: [`{path.name}`]({github_url})'
+            f'</span>'
+        )
+        body = f'```{lang}\n{source}```'
+        return _example_admonition(title, body, indent=indent)
