@@ -32,6 +32,12 @@ class-based loaders for common cases and supports custom subclasses of
 
     Serve only documents from an allowlist for air-gapped or reproducible runs.
 
+-   [:material-file-outline:{ .lg .middle } `FileDocumentLoader`](file.md)
+
+    ---
+
+    Read local JSON-LD documents from `file:` URLs.
+
 -   [:material-code-braces:{ .lg .middle } __Custom Document Loaders__](custom.md)
 
     ---
@@ -42,7 +48,9 @@ class-based loaders for common cases and supports custom subclasses of
 
 ## Default Document Loader
 
-The default document loader is selected at import time. PyLD uses
-`RequestsDocumentLoader` if `requests` is available, falls back to
-`AioHttpDocumentLoader` if `aiohttp` is available, and otherwise installs a
-dummy loader that raises when invoked.
+The default document loader is selected at import time, in this order:
+
+1. [`RequestsDocumentLoader`](requests.md) if `requests` is available
+2. [`AioHttpDocumentLoader`](aiohttp.md) if `aiohttp` is available
+
+If neither is installed, document loading raises.
