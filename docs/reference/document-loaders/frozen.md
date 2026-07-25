@@ -1,8 +1,11 @@
 # :material-snowflake: `FrozenDocumentLoader`
 
-`FrozenDocumentLoader` serves only URLs in an allowlist and refuses all other
-document loads. It is intended for air-gapped runs, reproducible builds, and
-deployments that must avoid remote context fetching.
+::: pyld.FrozenDocumentLoader
+    options:
+      show_root_heading: false
+      show_bases: false
+      heading_level: 3
+      members: false
 
 With no arguments, the loader serves the curated `BUNDLED_CONTEXTS` mapping:
 
