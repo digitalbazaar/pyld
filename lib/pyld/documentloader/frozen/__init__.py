@@ -2,13 +2,13 @@
 Frozen JSON-LD document loader.
 
 A document loader that serves *only* the URLs in its ``documents`` allowlist
-and refuses everything else with :class:`pyld.jsonld.JsonLdError`. Suitable for
-secure / air-gapped / privacy-sensitive deployments and for honoring the
-guidance in the W3C *JSON-LD Best Practices* note that clients SHOULD attempt
-to use a locally cached version of contexts (§ Cache JSON-LD Contexts,
+and refuses everything else with ``JsonLdError``. Suitable for secure /
+air-gapped / privacy-sensitive deployments and for honoring the guidance in
+the W3C *JSON-LD Best Practices* note that clients SHOULD attempt to use a
+locally cached version of contexts (§ Cache JSON-LD Contexts,
 https://w3c.github.io/json-ld-bp/#cache-json-ld-contexts).
 
-This module also defines :data:`BUNDLED_CONTEXTS`, a curated mapping of
+This module also defines ``BUNDLED_CONTEXTS``, a curated mapping of
 high-traffic public W3C / W3ID JSON-LD context URLs to vendored on-disk copies
 shipped with the package. See ``scripts/download_contexts.py`` for how the
 files in ``bundled/`` are refreshed.
@@ -45,15 +45,18 @@ class FrozenDocumentLoader(DocumentLoader):
     """Document loader that serves only a sealed allowlist of URLs.
 
     ``documents`` maps each allowed URL to either a parsed JSON-LD ``dict`` or
-    a :class:`pathlib.Path` pointing to a JSON file on disk. Path entries are
-    read and parsed lazily on first request, then cached in place so subsequent
+    a ``pathlib.Path`` pointing to a JSON file on disk. Path entries are read
+    and parsed lazily on first request, then cached in place so subsequent
     calls skip the file read. Any URL not present in the mapping raises
-    :class:`pyld.jsonld.JsonLdError` with code ``'loading document failed'``.
+    ``JsonLdError`` with code ``'loading document failed'``.
 
     With no arguments, a ``FrozenDocumentLoader`` serves the curated
-    :data:`BUNDLED_CONTEXTS` set. To extend rather than replace the bundle::
+    ``BUNDLED_CONTEXTS`` set. To extend rather than replace the bundle::
 
         FrozenDocumentLoader(documents=dict(BUNDLED_CONTEXTS, **extras))
+
+    :param documents: allowlist mapping each URL to a parsed JSON-LD ``dict``
+        or a ``pathlib.Path`` to a JSON file; defaults to ``BUNDLED_CONTEXTS``.
     """
 
     def __init__(self, documents: Mapping[str, dict | Path] | None = None) -> None:
