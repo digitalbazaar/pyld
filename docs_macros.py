@@ -237,6 +237,22 @@ def define_env(env):
         return '\n'.join(rows)
 
     @env.macro
+    def file_content_types_table():
+        from pyld.documentloader.file import CONTENT_TYPES
+
+        by_type: dict[str, list[str]] = {}
+        for extension, content_type in CONTENT_TYPES.items():
+            by_type.setdefault(content_type, []).append(f'`{extension}`')
+
+        rows = [
+            '| Extension | Content type |',
+            '| --- | --- |',
+        ]
+        for content_type, extensions in by_type.items():
+            rows.append(f'| {", ".join(extensions)} | `{content_type}` |')
+        return '\n'.join(rows)
+
+    @env.macro
     def skipped_tests_table():
         from runtests import TEST_TYPES
 
