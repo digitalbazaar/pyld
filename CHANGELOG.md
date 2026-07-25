@@ -5,6 +5,7 @@
 ### Added
 - `*Options` TypedDict types and a `Context` type alias in `pyld.options` for JSON-LD API option dicts (typing and documentation).
 - `pyld.SqliteCacheRequestsDocumentLoader`: a SQLite-backed HTTP cache document loader using `requests-cache`.
+- `pyld.FileDocumentLoader`: a document loader for local `file:` URLs with optional root confinement.
 
 ### Fixed
 - If value objects contain array values for `@type` during expansion, an error is now raised. Fixes [expand#ter54](https://w3c.github.io/json-ld-api/tests/expand-manifest.html#ter54) and [toRdf#ter54](https://w3c.github.io/json-ld-api/tests/toRdf-manifest.html#ter54).
