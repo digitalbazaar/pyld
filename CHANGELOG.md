@@ -8,6 +8,9 @@
   strings to per-scheme loaders.
 - `pyld.TypeDirectedDocumentLoader`: a document loader that dispatches by Python
   input type (e.g. `pathlib.Path` vs `str`).
+- `pyld` command-line tool (`get`, `expand`, `cache clear`), installed via
+  `pip install "PyLD[cli]"`, with remote contexts cached in a CLI-specific
+  SQLite file (overridable via `--cache-file` / `PYLD_CACHE_FILE`).
 
 ## 3.2.0 - 2026-08-17
 
