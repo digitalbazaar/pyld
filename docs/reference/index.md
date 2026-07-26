@@ -1,5 +1,6 @@
 ---
 hide: [toc]
+icon: octicons/book-24
 ---
 
 # :octicons-book-24: Reference
@@ -72,6 +73,12 @@ hide: [toc]
     ---
 
     Resolve and cache remote `@context` documents during JSON-LD processing.
+
+-   [:material-console:{ .lg .middle } __CLI__](../cli/index.md)
+
+    ---
+
+    Transform JSON-LD from the command line.
 
 -   :material-hard-hat:{ .lg .middle } __In construction__
 
