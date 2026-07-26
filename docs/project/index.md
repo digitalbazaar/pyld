@@ -1,5 +1,6 @@
 ---
 hide: [toc]
+icon: material/hard-hat
 ---
 
 # :material-hard-hat: Project
