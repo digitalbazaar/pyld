@@ -10,6 +10,10 @@ hide: [toc]
       heading_level: 3
       members: false
 
+`FileDocumentLoader` accepts `file:` URLs, scheme-less absolute paths, and
+`pathlib.Path` instances. Its optional `root` constructor argument confines
+the files it may read to a chosen directory.
+
 {{ example('document_loaders/file_basic.py', output_syntax='json') }}
 
 ## Content Types
@@ -22,8 +26,7 @@ Unsupported extensions raise `JsonLdError` with code `loading document failed`.
 
 ## Root Confinement
 
-Pass `root` to refuse paths that resolve outside a directory. Resolved paths
-and symlink targets are checked, so `..` traversal and symlink escapes are
-rejected:
+All requested paths, including symlink targets, must resolve beneath `root`,
+so `..` traversal and symlink escapes are rejected:
 
 {{ example('document_loaders/file_root.py', output_syntax='json') }}
