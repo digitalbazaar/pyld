@@ -1020,8 +1020,6 @@ TEST_TYPES = {
                 # rel vocab
                 '.*toRdf-manifest#te111$',
                 '.*toRdf-manifest#te112$',
-                # well formed
-                '.*toRdf-manifest#twf05$',
             ]
         },
         'skip': {
