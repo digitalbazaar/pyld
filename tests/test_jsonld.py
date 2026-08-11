@@ -256,6 +256,28 @@ class TestExpand:
             }
         ]
 
+    # Issue 143
+    def test_expand_with_base_from_context(self):
+        """Expand with set or not should rely upon @base inside its @context."""
+
+        input = {
+            "@context": {
+                "name": "https://www.exmaple.com/name",
+                "@base": "https://www.example.com/",
+            },
+            "@id": "c/123",
+            "name": "alice",
+        }
+        expected = [
+            {
+                "@id": "https://www.example.com/c/123",
+                "https://www.exmaple.com/name": [{"@value": "alice"}],
+            }
+        ]
+        assert jsonld.expand(input, options={'base': ''}) == expected
+        assert jsonld.expand(input) == expected
+        assert jsonld.expand(input, options={'base': 'abc'}) == expected
+
     def _make_context(self, num_terms):
         """Build a context with `num_terms` @type:@vocab terms sharing a scoped context."""
         ctx = {"ex": "https://example.org/"}
