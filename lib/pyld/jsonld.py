@@ -35,7 +35,7 @@ from rdflib import RDF, XSD, BNode, Dataset, Literal, Node, URIRef
 from rdflib.graph import DATASET_DEFAULT_GRAPH_ID
 from rdflib.parser import StringInputSource
 from rdflib.plugins.serializers.nquads import _nq_row
-from rdflib.term import Identifier
+from rdflib.term import Identifier, _is_valid_uri
 
 from c14n.Canonicalize import canonicalize
 from pyld.__about__ import __copyright__, __license__, __version__
@@ -1048,7 +1048,7 @@ class JsonLdProcessor:
         dataset = Dataset()
         for graph_name, graph in sorted(node_map.items()):
             # skip relative IRIs
-            if graph_name == '@default' or _is_absolute_iri(graph_name):
+            if graph_name == '@default' or _is_valid_absolute_iri(graph_name):
                 g = self._rdflib_term_from_id(graph_name) if graph_name != '@default' else dataset.default_graph
                 for t in self._graph_to_rdf(graph, issuer, options):
                     s, p, o = t
@@ -3880,8 +3880,8 @@ class JsonLdProcessor:
 
                 for item in items:
                     # skip relative IRI subjects and predicates
-                    if not _is_absolute_iri(id_) or (
-                        property != '@type' and not _is_absolute_iri(property)
+                    if not _is_valid_absolute_iri(id_) or (
+                        property != '@type' and not _is_valid_absolute_iri(property)
                     ):
                         continue
 
@@ -3919,13 +3919,14 @@ class JsonLdProcessor:
 
         last = list_.pop() if list_ else None
         # result is the head of the list
-        result = BNode(issuer.get_id()) if last else RDF.nil
+        result = self._rdflib_term_from_id(issuer.get_id()) if last else RDF.nil
         subject = result
 
         for item in list_:
             object = self._object_to_rdf(item, issuer, triples, options)
-            next = BNode(issuer.get_id())
-            triples.append((subject, RDF.first, object))
+            next = self._rdflib_term_from_id(issuer.get_id())
+            if object is not None:
+                triples.append((subject, RDF.first, object))
             triples.append((subject, RDF.rest, next))
 
             subject = next
@@ -3933,7 +3934,8 @@ class JsonLdProcessor:
         # tail of list
         if last:
             object = self._object_to_rdf(last, issuer, triples, options)
-            triples.append((subject, RDF.first, object))
+            if object is not None:
+                triples.append((subject, RDF.first, object))
             triples.append((subject, RDF.rest, RDF.nil))
 
         return result
@@ -4079,7 +4081,7 @@ class JsonLdProcessor:
             id_ = item['@id'] if _is_object(item) else item
 
         # skip relative IRIs
-        if not id_.startswith('_:') and not _is_absolute_iri(id_):
+        if not id_.startswith('_:') and not _is_valid_absolute_iri(id_):
             return None
 
         return self._rdflib_term_from_id(id_)
@@ -6575,6 +6577,18 @@ def _is_absolute_iri(v):
     :return: True if the value is an absolute IRI, False if not.
     """
     return _is_string(v) and re.match(r'^([A-Za-z][A-Za-z0-9+-.]*|_):[^\s]*$', v)
+
+
+def _is_valid_absolute_iri(v):
+    """
+    Returns True if the given value is an absolute IRI that RDFLib can
+    serialize, False if not.
+
+    :param v: the value to check.
+
+    :return: True if the value is a valid absolute IRI, False if not.
+    """
+    return _is_absolute_iri(v) and _is_valid_uri(v)
 
 
 def _is_relative_iri(v):
