@@ -28,6 +28,7 @@ class RequestsDocumentLoader(DocumentLoader):
             session = requests.Session()
         self.session = session
         self.secure = secure
+        self.headers = kwargs.pop('headers', None)
         self.kwargs = kwargs
 
     def __call__(self, url, options=None) -> RemoteDocument:
@@ -58,7 +59,7 @@ class RequestsDocumentLoader(DocumentLoader):
                     'the URL\'s scheme is not "https".',
                     'jsonld.InvalidUrl', {'url': url},
                     code='loading document failed')
-            headers = options.get('headers')
+            headers = options.get('headers', self.headers)
             if headers is None:
                 headers = {
                     'Accept': 'application/ld+json, application/json'
