@@ -3964,6 +3964,9 @@ class JsonLdProcessor:
             datatype = item.get('@type')
             rdf_direction = options.get('rdfDirection')
 
+            if '@language' in item and not re.match(REGEX_BCP47, item['@language']):
+                return None
+
             # convert to XSD datatypes as appropriate
             if datatype == '@json':
                 return Literal(
