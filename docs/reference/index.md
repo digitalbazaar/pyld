@@ -67,6 +67,12 @@ hide: [toc]
 
     Load remote JSON-LD documents and contexts with the built-in loader classes.
 
+-   [:material-cached:{ .lg .middle } `ContextResolver`](context-resolver.md)
+
+    ---
+
+    Resolve and cache remote `@context` documents during JSON-LD processing.
+
 -   :material-hard-hat:{ .lg .middle } __In construction__
 
     ---

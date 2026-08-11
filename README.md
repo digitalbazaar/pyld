@@ -216,7 +216,7 @@ attempt to use a locally cached version of contexts (see
 [§ Cache JSON-LD Contexts](https://w3c.github.io/json-ld-bp/#cache-json-ld-contexts)).
 Refresh the bundled copies with `make download-bundled-contexts`.
 
-### Customizing the ContextLoader
+### Customizing the ContextResolver
 
 You can customize the way contexts are loaded and cached by passing an instance
 of `ContextResolver`. The following example implements a loader with a prefilled
