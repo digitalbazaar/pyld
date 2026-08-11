@@ -1158,6 +1158,21 @@ _:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "en-US"^^<http://www.w3.
 
         assert sorted(nquads.splitlines()) == sorted(expected.splitlines())
 
+    def test_invalid_language_tag_is_skipped(self):
+        """
+        Conversion to RDF should skip values with invalid language tags.
+        """
+        input = {
+            '@id': 'http://example.com/foo',
+            'http://example.com/bar': {
+                '@value': 'bar',
+                '@language': 'a b',
+            },
+        }
+
+        nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
+        assert nquads == '\n'
+
     # Issue 204
     def test_conflicting_property_names(self):
         """
