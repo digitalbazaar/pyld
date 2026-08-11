@@ -88,6 +88,32 @@ def test_requests_document_loader_factory_returns_document_loader():
     assert callable(loader)
 
 
+def test_requests_document_loader_accepts_custom_headers():
+    """Requests factory accepts default headers without passing headers twice."""
+    class Response:
+        headers = {'content-type': 'application/ld+json'}
+        url = 'http://example.com/context'
+
+        def json(self):
+            return {'@context': {}}
+
+    class Session:
+        def __init__(self):
+            self.headers = None
+
+        def get(self, url, headers=None):
+            self.headers = headers
+            return Response()
+
+    session = Session()
+    headers = {'Accept': 'application/json'}
+
+    loader = jsonld.requests_document_loader(session=session, headers=headers)
+    loader('http://example.com/context')
+
+    assert session.headers == headers
+
+
 def test_aiohttp_document_loader_factory_returns_document_loader():
     """Aiohttp factory returns a class-based callable document loader."""
     pytest.importorskip("aiohttp")
