@@ -1238,6 +1238,32 @@ _:b0 <http://purl.org/dc/terms/title> "Chapter 1: Jonathan Harker's Journal"^^<h
         nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
         assert nquads == expected
 
+    def test_list_skips_invalid_iri_items(self):
+        """
+        Conversion to RDF should skip invalid list item IRIs without dropping
+        the list node.
+        """
+        input = {
+            "@context": {
+                "@base": "http://invalid/<>/",
+                "list": {
+                    "@id": "foo:bar",
+                    "@container": "@list",
+                    "@type": "@id",
+                },
+            },
+            "list": ["test"],
+        }
+
+        expected = """_:b0 <foo:bar> _:b1  .
+_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil>  .
+
+"""
+
+        nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
+        assert sorted(nquads.splitlines()) == sorted(expected.splitlines())
+
+
 class TestFromRDF:
     def test_compound_literal_direction_without_language(self):
         """
