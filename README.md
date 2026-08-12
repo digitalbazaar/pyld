@@ -41,6 +41,7 @@ memory footprint in order to operate.
 ## Requirements
 
 * Python (3.10 or later)
+* rdflib (7.3 or later)
 * [Requests](http://docs.python-requests.org/) (optional)
 * [aiohttp](https://aiohttp.readthedocs.io/) (optional)
 
@@ -151,6 +152,15 @@ rdf = jsonld.to_rdf(
     doc,
     {'identifierIssuer': issuer, 'format': 'application/n-quads'})
 # flatten() and frame() accept the same identifierIssuer option
+```
+
+`jsonld.to_rdf()` returns an `rdflib.Dataset` when no output `format` is
+requested. To keep the RDF.js-like dataset `dict` used by PyLD versions lower
+than 4, pass
+`{'legacyMode': True}`:
+
+```python
+dataset = jsonld.to_rdf(doc, {'legacyMode': True})
 ```
 
 ## Features & conformance
