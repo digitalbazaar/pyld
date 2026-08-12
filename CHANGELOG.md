@@ -14,6 +14,7 @@
 - Zeros are now truncated for numeric values with negative exponent.
 - Blank node prefixes are now also used in IRI expansion.
 - Numbers with no fractions but that are >= 1e21 are now represented as xsd:double in json-ld-1.1 processing mode.
+- In `RequestsDocumentLoader`, constructor-level headers are now removed from `**kwargs` and stored separately, avoiding duplicate `headers=` when calling `session.get`. Per-call `options["headers"]` still takes precedence.
 
 ## 3.1.0 - 2026-06-19
 
