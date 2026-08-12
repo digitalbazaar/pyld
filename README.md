@@ -41,6 +41,7 @@ memory footprint in order to operate.
 ## Requirements
 
 * Python (3.10 or later)
+* rdflib (7.3 or later)
 * [Requests](http://docs.python-requests.org/) (optional)
 * [aiohttp](https://aiohttp.readthedocs.io/) (optional)
 
@@ -126,6 +127,15 @@ normalized = jsonld.normalize(
     doc, {'algorithm': 'URDNA2015', 'format': 'application/n-quads'})
 # normalized is a string that is a canonical representation of the document
 # that can be used for hashing, comparison, etc.
+```
+
+`jsonld.to_rdf()` returns an `rdflib.Dataset` when no output `format` is
+requested. To keep the RDF.js-like dataset `dict` used by PyLD versions lower
+than 4, pass
+`{'legacyMode': True}`:
+
+```python
+dataset = jsonld.to_rdf(doc, {'legacyMode': True})
 ```
 
 ## Features & conformance
