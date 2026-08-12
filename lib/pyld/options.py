@@ -178,6 +178,9 @@ class ToRdfOptions(ProcessingOptions, total=False):
     rdfDirection: Literal['i18n-datatype']
     """Only `i18n-datatype` supported."""
 
+    legacyMode: bool
+    """`True` to return the RDF.js-like dataset `dict` used by PyLD versions lower than 4 instead of an `rdflib.Dataset` when `format` is not set (default: `False`)."""
+
 
 class FromRdfOptions(TypedDict, total=False):
     format: Literal['application/n-quads']
