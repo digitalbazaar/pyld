@@ -1,5 +1,7 @@
 from rdflib import BNode, Dataset, Literal, URIRef
 from rdflib.graph import DATASET_DEFAULT_GRAPH_ID
+from rdflib.plugins.parsers.nquads import NQuadsParser
+from rdflib.plugins.parsers.ntriples import r_literal, unquote, uriquote
 
 
 # Helpers for converting between rdflib.Dataset and legacy dict structure used in pyld
@@ -118,3 +120,17 @@ def from_legacy_triple(triple: dict, normalize=False) -> tuple:
     o = to_node(triple['object'])
 
     return (s, p, o)
+
+class UnnormalizedNQuadsParser(NQuadsParser):
+    """
+    Subclass of NQuadsParser that constructs rdflib Literals with
+    normalize=False, so PyLD preserves N-Quads literal lexical
+    forms without mutating rdflib.NORMALIZE_LITERALS.
+    """
+
+    def literal(self):
+        if self.peek('"'):
+            lit, lang, dtype = self.eat(r_literal).groups()
+            dtype = URIRef(uriquote(unquote(dtype))) if dtype else None
+            return Literal(unquote(lit), lang or None, dtype, normalize=False)
+        return False
