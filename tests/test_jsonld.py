@@ -1,4 +1,5 @@
 import pytest
+from rdflib import Dataset
 
 import pyld.jsonld as jsonld
 
@@ -952,6 +953,52 @@ class TestToRdf:
         )
         result = jsonld.to_rdf(input, {"format": "application/n-quads"})
         assert result == expected
+    
+    def test_legacy_mode(self):
+        """
+        legacyMode should return the PyLD 3.x RDF.js-like dataset dict.
+        """
+        input = {
+            "@context": {"xsd": "http://www.w3.org/2001/XMLSchema#"},
+            "@graph": [
+                {"@id": "ex:1", "ex:p": {"@type": "xsd:double", "@value": "45"}}
+            ],
+        }
+        expected = {
+            "@default": [
+                {
+                    "subject": {"type": "IRI", "value": "ex:1"},
+                    "predicate": {"type": "IRI", "value": "ex:p"},
+                    "object": {
+                        "type": "literal",
+                        "value": "4.5E1",
+                        "datatype": "http://www.w3.org/2001/XMLSchema#double",
+                    },
+                }
+            ]
+        }
+
+        assert isinstance(jsonld.to_rdf(input), Dataset)
+        assert jsonld.to_rdf(input, {"legacyMode": True}) == expected
+
+    def test_format_takes_precedence_over_legacy_mode(self):
+        """
+        N-Quads format output should still be returned when legacyMode is true.
+        """
+        input = {
+            "@context": {"xsd": "http://www.w3.org/2001/XMLSchema#"},
+            "@graph": [
+                {"@id": "ex:1", "ex:p": {"@type": "xsd:double", "@value": "45"}}
+            ],
+        }
+
+        assert jsonld.to_rdf(
+            input,
+            {"format": "application/n-quads", "legacyMode": True},
+        ) == (
+            '<ex:1> <ex:p> "4.5E1"'
+            "^^<http://www.w3.org/2001/XMLSchema#double>  .\n\n"
+        )
 
     def test_large_integer_to_rdf_double_conversion_processing_mode(self):
         """
