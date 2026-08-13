@@ -953,7 +953,7 @@ class TestToRdf:
         )
         result = jsonld.to_rdf(input, {"format": "application/n-quads"})
         assert result == expected
-    
+
     def test_legacy_mode(self):
         """
         legacyMode should return the PyLD 3.x RDF.js-like dataset dict.
