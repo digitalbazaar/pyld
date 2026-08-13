@@ -53,7 +53,12 @@ from pyld.options import (
     NormalizeOptions,
     ToRdfOptions,
 )
-from pyld.util import UnnormalizedNQuadsParser, from_legacy_dataset, from_legacy_triple, to_legacy_dataset
+from pyld.util import (
+    UnnormalizedNQuadsParser,
+    from_legacy_dataset,
+    from_legacy_triple,
+    to_legacy_dataset,
+)
 
 __all__ = [
     '__copyright__',
