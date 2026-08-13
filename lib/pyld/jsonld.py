@@ -29,13 +29,11 @@ from typing import Any
 from urllib.parse import urlparse
 
 import lxml.html
-import rdflib
 from cachetools import LRUCache
 from frozendict import frozendict
 from rdflib import RDF, XSD, BNode, Dataset, Literal, Node, URIRef
 from rdflib.graph import DATASET_DEFAULT_GRAPH_ID
 from rdflib.parser import StringInputSource
-from rdflib.plugins.parsers.nquads import NQuadsParser
 from rdflib.plugins.serializers.nquads import _nq_row
 from rdflib.term import Identifier
 
@@ -55,7 +53,7 @@ from pyld.options import (
     NormalizeOptions,
     ToRdfOptions,
 )
-from pyld.util import from_legacy_dataset, from_legacy_triple, to_legacy_dataset
+from pyld.util import UnnormalizedNQuadsParser, from_legacy_dataset, from_legacy_triple, to_legacy_dataset
 
 __all__ = [
     '__copyright__',
@@ -1379,6 +1377,10 @@ class JsonLdProcessor:
         Parses RDF in the form of N-Quads.
 
         :param input_: the N-Quads input to parse.
+        :param **kwargs: Additional keyword arguments.
+
+        :Keyword Arguments:
+        * *legacy_mode* (``bool``) -- Output result as RDF.js-like dict.
 
         :return: an RDF dataset.
         """
@@ -1390,8 +1392,7 @@ class JsonLdProcessor:
                 label: label
                 for label in re.findall(r'_:([A-Za-z0-9_][A-Za-z0-9_.-]*)', input_)
             }
-            parser = NQuadsParser()
-            rdflib.NORMALIZE_LITERALS = False
+            parser = UnnormalizedNQuadsParser()
             parser.parse(StringInputSource(input_), dataset, bnode_context=bnode_context)
             # In legacy mode, return RDF datasets as
             # RDFJS-like dict objects equivalent to PyLD < 4.0
