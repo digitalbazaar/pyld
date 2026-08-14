@@ -1017,9 +1017,6 @@ TEST_TYPES = {
                 # blank node property
                 '.*toRdf-manifest#te075$',
                 '.*toRdf-manifest#te122$',
-                # rel vocab
-                '.*toRdf-manifest#te111$',
-                '.*toRdf-manifest#te112$',
             ]
         },
         'skip': {
