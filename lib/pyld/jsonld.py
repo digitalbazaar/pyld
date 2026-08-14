@@ -4241,6 +4241,10 @@ class JsonLdProcessor:
         id_ = input_.get('@id')
         if _is_bnode(input_):
             id_ = issuer.get_id(id_)
+        # drop explicitly ignored @id: None subjects before they enter the node map,
+        # while leaving normal blank nodes without @id alone.
+        elif id_ is None and '@id' in input_:
+            return
 
         # create new subject or merge into existing one
         node = graph_map.setdefault(active_graph, {}).setdefault(id_, {'@id': id_})
