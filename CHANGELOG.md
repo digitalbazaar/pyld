@@ -23,9 +23,6 @@
 
 - Preserved RDF literal lexical forms when converting through RDFLib, including canonical double output, large numeric values, and compound literal handling.
 - Fixed `iri_resolver.unresolve()` query/fragment reconstruction while cleaning up the resolver docstring.
-
-### Fixed
-
 - Invalid IRI base values within lists are now skipped when serializing to RDF. Fixes [toRdf#tli12](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#tli12) and [toRdf#tli14](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#tli14).
 
 ### Changed
