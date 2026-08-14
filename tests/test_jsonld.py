@@ -1000,6 +1000,33 @@ class TestToRdf:
             "^^<http://www.w3.org/2001/XMLSchema#double>  .\n\n"
         )
 
+    def test_to_rdf_skips_relative_vocab_property_that_expands_to_invalid_iri(self):
+        """
+        to_rdf should omit property IRIs that expand to invalid RDF IRIs.
+        """
+        input = {
+            "@context": [
+                {
+                    "@version": 1.1,
+                    "@base": "http://example.com/some/deep/directory/and/file/",
+                    "@vocab": "http://example.com/vocabulary/",
+                },
+                {"@vocab": "./rel2#"},
+            ],
+            "@id": "relativePropertyIris",
+            "link": "link",
+            "#fragment-works": "#fragment-works",
+        }
+
+        nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
+
+        assert (
+            '<http://example.com/some/deep/directory/and/file/relativePropertyIris> '
+            '<http://example.com/vocabulary/./rel2#link> '
+            '"link"^^<http://www.w3.org/2001/XMLSchema#string>  .'
+        ) in nquads
+        assert '##fragment-works' not in nquads
+
     def test_large_integer_to_rdf_double_conversion_processing_mode(self):
         """
         In json-ld-1.1 processing mode, large integers should be emitted as xsd:double,
