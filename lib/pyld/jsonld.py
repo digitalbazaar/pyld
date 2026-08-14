@@ -6578,7 +6578,8 @@ def _is_valid_absolute_iri(v):
 
     :return: True if the value is a valid absolute IRI, False if not.
     """
-    return _is_absolute_iri(v) and _is_valid_uri(v)
+    # TODO: _is_valid_uri is flawed, so maybe replace it with something better
+    return _is_absolute_iri(v) and v.count('#') <= 1 and _is_valid_uri(v)
 
 
 def _is_relative_iri(v):
