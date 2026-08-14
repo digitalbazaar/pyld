@@ -1016,7 +1016,6 @@ TEST_TYPES = {
             'idRegex': [
                 # blank node property
                 '.*toRdf-manifest#te075$',
-                '.*toRdf-manifest#te122$',
             ]
         },
         'skip': {
