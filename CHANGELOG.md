@@ -1,6 +1,6 @@
 # pyld ChangeLog
 
-## 3.2.0 - unreleased
+## 3.2.0 - 2026-08-17
 
 ### Added
 - `*Options` TypedDict types and a `Context` type alias in `pyld.options` for JSON-LD API option dicts (typing and documentation).
