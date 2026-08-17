@@ -858,7 +858,6 @@ class EarlTestResult(TextTestResult):
     def writeReport(self, filename):
         self.report.write(filename)
 
-
 class EarlReport:
     """
     Generates an EARL report.
@@ -901,7 +900,10 @@ class EarlReport:
             'dc:title': 'PyLD',
             'doap:homepage': 'https://github.com/digitalbazaar/pyld',
             'doap:license': 'https://github.com/digitalbazaar/pyld/blob/master/LICENSE',
-            'doap:description': 'A JSON-LD processor for Python',
+            'doap:description': {
+                '@value': 'A JSON-LD processor for Python',
+                '@language': 'en',
+            },
             'doap:programming-language': 'Python',
             'dc:creator': 'https://github.com/dlongley',
             'doap:developer': {
