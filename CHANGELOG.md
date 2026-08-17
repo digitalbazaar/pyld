@@ -27,6 +27,7 @@
 - Literals with invalid `@language` no longer output triples. Fixes [toRdf#twf05](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#twf05).
 - IRI validation now detects multiple # fragments so these IRI's are skipped during toRDF. Fixes [toRdf#te111](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#te111) and [toRdf#te112](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#te112).
 - In `_create_node_map()`, ignored `@id: None` subjects are now dropped before they enter the node map to prevent `_graph_to_rdf()` from crashing when sorting mixed `None` and string keys. Fixes [toRdf#te122](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#te122).
+- Use a helper for generalized N-Quads normalization in the test runner, since rdflib cannot parse blank-node predicates. Fixes [toRdf#te075](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#te075).
 
 ### Changed
 - **BREAKING**: Migrated `jsonld.to_rdf()`, `jsonld.from_rdf()`, and N-Quads parsing/serialization to use `rdflib.Dataset` and RDFLib terms directly.
