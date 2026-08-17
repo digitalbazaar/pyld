@@ -153,8 +153,8 @@ class NormalizeOptions(ProcessingOptions, total=False):
     processingMode: Literal['json-ld-1.0', 'json-ld-1.1']
     """Either `json-ld-1.0` or `json-ld-1.1` (default: `json-ld-1.1`)."""
 
-    algorithm: Literal['URDNA2015', 'URGNA2012']
-    """The algorithm to use (default: `URGNA2012`)."""
+    algorithm: Literal['URDNA2015', 'URGNA2012', 'RDFC10']
+    """The algorithm to use (default: `RDFC10`)."""
 
     inputFormat: Literal['application/n-quads']
     """The format if input is not JSON-LD: `application/n-quads` for N-Quads."""
