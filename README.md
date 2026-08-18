@@ -331,13 +331,14 @@ git submodule update
 #### Cloning manually
 
 You can also avoid using git submodules by manually cloning the `json-ld-api`,
-`json-ld-framing`, and `normalization` repositories hosted on GitHub using the
-following commands:
+`json-ld-framing`, `normalization`, and `yaml-ld` repositories hosted on GitHub
+using the following commands:
 
 ```bash
 git clone https://github.com/w3c/json-ld-api ./specifications/json-ld-api
 git clone https://github.com/w3c/json-ld-framing ./specifications/json-ld-framing
 git clone https://github.com/json-ld/normalization ./specifications/normalization
+git clone https://github.com/w3c/yaml-ld ./specifications/yaml-ld
 ```
 
 Note that you can clone these repositories into any location you wish; however,

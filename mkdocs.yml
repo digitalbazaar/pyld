@@ -34,6 +34,10 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.highlight:
       anchor_linenums: true
+  - pymdownx.snippets:
+      base_path:
+        - docs
+      check_paths: true
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid

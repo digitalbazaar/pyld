@@ -12,6 +12,12 @@ Architecture Decision Records (ADRs) document the technical choices taken during
 
 <div id="adr-index" markdown>
 
+!!! warning inline "[Treat YAML-LD support as …](decisions/choose-where-to-host-yaml-ld-support/)"
+    :material-calendar-clock: 19 July 2026
+
+    Bundle into PyLD, keep a separate package (with suite under `specifications/`),
+    expose a thin PyLD facade, or treat YAML-LD as out of scope (no suite either).
+
 !!! success inline "[Use `requests-cache` for persistent HTTP caching in synchronous Python code](decisions/use-requests-cache-for-sync-http-caching-in-document-loaders/)"
     :material-calendar-clock: 29 June 2026
 

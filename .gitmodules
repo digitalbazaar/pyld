@@ -7,3 +7,6 @@
 [submodule "specifications/normalization"]
 	path = specifications/normalization
 	url = https://github.com/json-ld/normalization.git
+[submodule "specifications/yaml-ld"]
+	path = specifications/yaml-ld
+	url = https://github.com/w3c/yaml-ld.git
