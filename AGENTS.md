@@ -8,6 +8,11 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for code style, linting (e.g. `make lint
 - For brand-new test files, prefer function-based pytest tests (module-level `def test_...`) over class-based tests.
 - Use descriptive test names that reflect behavior (e.g. `test_remote_context_via_link_alternate`).
 
+## Document loaders
+
+- Class-based composed Document Loaders accept only `DocumentLoader` instances — never plain
+  callables, and never type as `DocumentLoader | Callable`.
+
 ## Documentation
 
 - Put docs-specific CSS in `docs/stylesheets/extra.css` and register it via `extra_css` in `mkdocs.yml`.
