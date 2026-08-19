@@ -4,6 +4,8 @@
 
 ### Added
 - `pyld.FileDocumentLoader`: a document loader for local `file:` URLs with optional root confinement.
+- `pyld.SchemeDirectedDocumentLoader`: a document loader that dispatches URL
+  strings to per-scheme loaders.
 
 ## 3.2.0 - 2026-08-17
 
