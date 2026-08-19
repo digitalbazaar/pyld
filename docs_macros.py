@@ -339,3 +339,23 @@ def define_env(env):
         pad = ' ' * content_indent
         indented = '\n'.join(f'{pad}{line}' for line in body.splitlines())
         return f'!!! example "{title}"\n\n{indented}\n'
+
+    @env.macro
+    def example_data(name, indent=0):
+        path = _example_path(name)
+        source = path.read_text().rstrip('\n')
+        suffix = path.suffix.lower()
+        lang = (
+            'json' if suffix in {'.json', '.jsonld'} else (suffix.lstrip('.') or 'text')
+        )
+        github_url = _example_github_url(name, env.conf['repo_url'])
+        title = (
+            f'Source<span class="example-source-link" markdown>'
+            f':fontawesome-brands-github: [`{path.name}`]({github_url})'
+            f'</span>'
+        )
+        body = f'```{lang}\n{source}\n```'
+        content_indent = indent + 4
+        pad = ' ' * content_indent
+        indented = '\n'.join(f'{pad}{line}' for line in body.splitlines())
+        return f'!!! example "{title}"\n\n{indented}\n'
