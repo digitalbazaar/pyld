@@ -14,7 +14,13 @@ hide: [toc]
 `pathlib.Path` instances. Its optional `root` constructor argument confines
 the files it may read to a chosen directory.
 
-{{ example('document_loaders/file_basic.py', output_syntax='json') }}
+=== "Example"
+
+    {{ example('document_loaders/file_basic.py', output_syntax='json', indent=4) }}
+
+=== "person.jsonld"
+
+    {{ example_data('data/person.jsonld', indent=4) }}
 
 ## Content Types
 
@@ -29,4 +35,10 @@ Unsupported extensions raise `JsonLdError` with code `loading document failed`.
 All requested paths, including symlink targets, must resolve beneath `root`,
 so `..` traversal and symlink escapes are rejected:
 
-{{ example('document_loaders/file_root.py', output_syntax='json') }}
+=== "Example"
+
+    {{ example('document_loaders/file_root.py', output_syntax='json', indent=4) }}
+
+=== "person.jsonld"
+
+    {{ example_data('data/person.jsonld', indent=4) }}
