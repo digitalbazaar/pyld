@@ -38,6 +38,12 @@ class-based loaders for common cases and supports custom subclasses of
 
     Read local JSON-LD documents from `file:` URLs.
 
+-   [:material-call-split:{ .lg .middle } `SchemeDirectedDocumentLoader`](scheme-directed.md)
+
+    ---
+
+    Delegate to another Document Loader based on the scheme of the URL, for instance, `file:` vs `https://`.
+
 -   [:material-code-braces:{ .lg .middle } __Custom Document Loaders__](custom.md)
 
     ---
