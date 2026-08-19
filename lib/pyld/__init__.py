@@ -8,10 +8,12 @@ from .documentloader.file import FileDocumentLoader
 from .documentloader.frozen import BUNDLED_CONTEXTS, FrozenDocumentLoader
 from .documentloader.requests import RequestsDocumentLoader
 from .documentloader.requests_sqlite_cache import SqliteCacheRequestsDocumentLoader
+from .documentloader.scheme_directed import SchemeDirectedDocumentLoader
 
 __all__ = [
     'AioHttpDocumentLoader',
     'BUNDLED_CONTEXTS',
+    'SchemeDirectedDocumentLoader',
     'ContextResolver',
     'DocumentLoader',
     'FileDocumentLoader',
