@@ -4241,6 +4241,10 @@ class JsonLdProcessor:
         id_ = input_.get('@id')
         if _is_bnode(input_):
             id_ = issuer.get_id(id_)
+        # drop explicitly ignored @id: None subjects before they enter the node map,
+        # while leaving normal blank nodes without @id alone.
+        elif id_ is None and '@id' in input_:
+            return
 
         # create new subject or merge into existing one
         node = graph_map.setdefault(active_graph, {}).setdefault(id_, {'@id': id_})
@@ -6578,7 +6582,8 @@ def _is_valid_absolute_iri(v):
 
     :return: True if the value is a valid absolute IRI, False if not.
     """
-    return _is_absolute_iri(v) and _is_valid_uri(v)
+    # TODO: _is_valid_uri is flawed, so maybe replace it with something better
+    return _is_absolute_iri(v) and v.count('#') <= 1 and _is_valid_uri(v)
 
 
 def _is_relative_iri(v):

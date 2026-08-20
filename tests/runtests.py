@@ -455,23 +455,29 @@ class Test(unittest.TestCase):
             if self.is_syntax and not self.pending:
                 self.assertTrue(True)
             elif self.test_type == 'jld:ToRDFTest':
-                # Test normalized results
-                result = jsonld.normalize(
-                    result,
-                    {
-                        'algorithm': 'URGNA2012',
-                        'inputFormat': 'application/n-quads',
-                        'format': 'application/n-quads',
-                    },
-                )
-                expect = jsonld.normalize(
-                    expect,
-                    {
-                        'algorithm': 'URGNA2012',
-                        'inputFormat': 'application/n-quads',
-                        'format': 'application/n-quads',
-                    },
-                )
+                # avoid normalization when produceGeneralizedRdf is enabled,
+                # since the rdflib parser cannot parse blank-node predicates.
+                if data.get('option', {}).get('produceGeneralizedRdf'):
+                    result = _normalize_generalized_nquads_text(result)
+                    expect = _normalize_generalized_nquads_text(expect)
+                else:
+                    # Test normalized results
+                    result = jsonld.normalize(
+                        result,
+                        {
+                            'algorithm': 'RDFC10',
+                            'inputFormat': 'application/n-quads',
+                            'format': 'application/n-quads',
+                        },
+                    )
+                    expect = jsonld.normalize(
+                        expect,
+                        {
+                            'algorithm': 'RDFC10',
+                            'inputFormat': 'application/n-quads',
+                            'format': 'application/n-quads',
+                        },
+                    )
                 if _running_under_pytest():
                     assert result == expect
                 else:
@@ -533,6 +539,26 @@ def assert_results_equal(result, expect, json_output=False):
 
 def _running_under_pytest():
     return 'pytest' in sys.modules
+
+
+def _normalize_generalized_nquads_text(nquads):
+    """Normalize generalized N-Quads text for test-suite comparisons."""
+    # Remove string datatype
+    nquads = nquads.replace(
+        '^^<http://www.w3.org/2001/XMLSchema#string>  .',
+        '.',
+    )
+
+    # Re-label blank nodes
+    bnodes = {}
+
+    # Generalized N-Quads expected results only need deterministic comparison,
+    # not preservation of input blank node labels.
+    nquads = re.sub(r'_:([A-Za-z][A-Za-z0-9]*)', lambda m: bnodes.setdefault(m[0], f'_:b{len(bnodes)}'), nquads)
+    lines = (re.sub(r'\s*\.$', '.', line.strip()) for line in nquads.splitlines())
+
+    # Sort nquads
+    return '\n'.join(sorted(line for line in lines if line))
 
 
 # Compare values with order-insensitive array tests
@@ -832,7 +858,6 @@ class EarlTestResult(TextTestResult):
     def writeReport(self, filename):
         self.report.write(filename)
 
-
 class EarlReport:
     """
     Generates an EARL report.
@@ -875,7 +900,10 @@ class EarlReport:
             'dc:title': 'PyLD',
             'doap:homepage': 'https://github.com/digitalbazaar/pyld',
             'doap:license': 'https://github.com/digitalbazaar/pyld/blob/master/LICENSE',
-            'doap:description': 'A JSON-LD processor for Python',
+            'doap:description': {
+                '@value': 'A JSON-LD processor for Python',
+                '@language': 'en',
+            },
             'doap:programming-language': 'Python',
             'dc:creator': 'https://github.com/dlongley',
             'doap:developer': {
@@ -925,7 +953,6 @@ TEST_TYPES = {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
-            'idRegex': [],
         },
         'fn': 'compact',
         'params': [
@@ -957,7 +984,6 @@ TEST_TYPES = {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
-            'idRegex': [],
         },
         'fn': 'expand',
         'params': [read_test_url('input'), create_test_options()],
@@ -968,7 +994,6 @@ TEST_TYPES = {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
-            'idRegex': [],
         },
         'fn': 'flatten',
         'params': [
@@ -983,7 +1008,6 @@ TEST_TYPES = {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
-            'idRegex': [],
         },
         'fn': 'frame',
         'params': [
@@ -995,7 +1019,6 @@ TEST_TYPES = {
     'jld:FromRDFTest': {
         'skip': {
             'specVersion': ['json-ld-1.0'],
-            'idRegex': [],
         },
         'fn': 'from_rdf',
         'params': [
@@ -1012,21 +1035,11 @@ TEST_TYPES = {
         ],
     },
     'jld:ToRDFTest': {
-        'pending': {
-            'idRegex': [
-                # blank node property
-                '.*toRdf-manifest#te075$',
-                '.*toRdf-manifest#te122$',
-                # rel vocab
-                '.*toRdf-manifest#te111$',
-                '.*toRdf-manifest#te112$',
-            ]
-        },
+        'pending': {},
         'skip': {
             # skip tests where behavior changed for a 1.1 processor
             # see JSON-LD 1.0 Errata
             'specVersion': ['json-ld-1.0'],
-            'idRegex': [],
         },
         'fn': 'to_rdf',
         'params': [
@@ -1035,8 +1048,8 @@ TEST_TYPES = {
         ],
     },
     'rdfn:Urgna2012EvalTest': {
-        'pending': {'idRegex': []},
-        'skip': {'idRegex': []},
+        'pending': {},
+        'skip': {},
         'fn': 'normalize',
         'params': [
             read_test_property('action'),
@@ -1050,8 +1063,8 @@ TEST_TYPES = {
         ],
     },
     'rdfn:Urdna2015EvalTest': {
-        'pending': {'idRegex': []},
-        'skip': {'idRegex': []},
+        'pending': {},
+        'skip': {},
         'fn': 'normalize',
         'params': [
             read_test_property('action'),
@@ -1065,8 +1078,8 @@ TEST_TYPES = {
         ],
     },
     'rdfc:RDFC10EvalTest': {
-        'pending': {'idRegex': []},
-        'skip': {'idRegex': []},
+        'pending': {},
+        'skip': {},
         'fn': 'normalize',
         'params': [
             read_test_property('action'),
@@ -1078,12 +1091,8 @@ TEST_TYPES = {
         ]
     },
     'rdfc:RDFC10MapTest': {
-        'pending': {
-            'idRegex': []
-        },
-        'skip': {
-            'idRegex': []
-        },
+        'pending': {},
+        'skip': {},
         'fn': 'normalize',
         'params': [
             read_test_property('action'),
