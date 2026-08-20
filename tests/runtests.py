@@ -1022,9 +1022,6 @@ TEST_TYPES = {
                 '.*toRdf-manifest#te112$',
                 # well formed
                 '.*toRdf-manifest#twf05$',
-                # uncategorized
-                '.*toRdf-manifest#tli12$',
-                '.*toRdf-manifest#tli14$',
             ]
         },
         'skip': {
