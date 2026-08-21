@@ -15,6 +15,15 @@ applications add meaning to existing JSON documents with in-band or out-of-band
 contexts, while keeping the document shape practical for web APIs, JavaScript,
 and JSON document stores.
 
+## :material-new-box: What's new in version 4
+
+PyLD 4 uses [:material-library: RDFLib](https://rdflib.readthedocs.io/)
+`rdflib.Dataset` as the native RDF dataset representation, adds `RDFC10`
+canonicalization, and removes the internal `pyld.nquads` parser/serializer
+module.
+
+[Read the version 4 upgrade notes :octicons-arrow-right-24:](whats-new-version-4.md)
+
 ## :material-lightning-bolt: Quick Examples
 
 === "jsonld.compact()"
