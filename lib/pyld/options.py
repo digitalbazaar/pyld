@@ -149,11 +149,17 @@ class NormalizeOptions(ProcessingOptions, total=False):
     algorithm: Literal['URDNA2015', 'URGNA2012', 'RDFC10']
     """The algorithm to use (default: `RDFC10`)."""
 
+    hashAlgorithm: str
+    """The hashing algorithm for `RDFC10` (default: `SHA256`)."""
+
     inputFormat: Literal['application/n-quads']
     """The format if input is not JSON-LD: `application/n-quads` for N-Quads."""
 
     format: Literal['application/n-quads']
     """The format if output is a string: `application/n-quads` for N-Quads."""
+
+    outputMap: bool
+    """`True` to return a blank node identifier map instead of the normalized dataset (default: `False`)."""
 
 
 class ToRdfOptions(ProcessingOptions, total=False):

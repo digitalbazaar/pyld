@@ -2,7 +2,8 @@
 
 [Documentation](https://digitalbazaar.github.io/pyld/) |
 [Installation](#installation) | [Usage](#usage) | [Advanced
-Topics](#advanced-topics) | [Contributing](./CONTRIBUTING.md) |
+Topics](#advanced-topics) | [What's new in version 4](#whats-new-in-version-4) |
+[Contributing](./CONTRIBUTING.md) |
 [Changelog](./CHANGELOG.md)
 
 ## Introduction
@@ -44,6 +45,27 @@ memory footprint in order to operate.
 * rdflib (7.3 or later)
 * [Requests](http://docs.python-requests.org/) (optional)
 * [aiohttp](https://aiohttp.readthedocs.io/) (optional)
+
+## What's new in version 4
+
+PyLD 4 moves RDF handling to [RDFLib](https://rdflib.readthedocs.io/) and adds
+RDF Dataset Canonicalization 1.0 support.
+
+The main developer-facing changes are:
+
+* `jsonld.to_rdf()` returns an `rdflib.Dataset` by default when no output
+  `format` is requested.
+* `jsonld.to_rdf(doc, {'legacyMode': True})` returns the RDF.js-like dataset
+  `dict` used by PyLD versions lower than 4.
+* `jsonld.from_rdf()` accepts `rdflib.Dataset`, N-Quads strings, and the legacy
+  dataset `dict`.
+* `jsonld.normalize()` defaults to `RDFC10`; pass `{'algorithm': 'URDNA2015'}`
+  if older canonicalization output must remain stable.
+* The internal `pyld.nquads` parser/serializer module has been removed. Use the
+  JSON-LD APIs with `format: 'application/n-quads'` or RDFLib directly.
+
+See the full [version 4 upgrade notes](https://digitalbazaar.github.io/pyld/whats-new-version-4/)
+and the [`4.0.0` changelog entry](./CHANGELOG.md#400---unreleased).
 
 ## Installation
 
@@ -121,10 +143,10 @@ flattened = jsonld.flatten(doc)
 framed = jsonld.frame(doc, frame)
 # document transformed into a particular tree structure per the given frame
 
-# normalize a document using the RDF Dataset Normalization Algorithm
-# (URDNA2015), see: https://www.w3.org/TR/rdf-canon/
+# normalize a document using RDF Dataset Canonicalization 1.0
+# (RDFC10), see: https://www.w3.org/TR/rdf-canon/
 normalized = jsonld.normalize(
-    doc, {'algorithm': 'URDNA2015', 'format': 'application/n-quads'})
+    doc, {'algorithm': 'RDFC10', 'format': 'application/n-quads'})
 # normalized is a string that is a canonical representation of the document
 # that can be used for hashing, comparison, etc.
 ```

@@ -9,6 +9,15 @@ doc = {
     },
 }
 
+# Normalize with RDFC10
+normalized = jsonld.normalize(
+    doc,
+    {"format": "application/n-quads"},
+)
+
+print(normalized)
+
+# Normalize with URDNA2015
 normalized = jsonld.normalize(
     doc,
     {"algorithm": "URDNA2015", "format": "application/n-quads"},
