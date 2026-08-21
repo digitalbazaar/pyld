@@ -133,6 +133,7 @@ issuer = IdentifierIssuer('_:doc')
 rdf = jsonld.to_rdf(
     doc,
     {'identifierIssuer': issuer, 'format': 'application/n-quads'})
+# flatten() and frame() accept the same identifierIssuer option
 ```
 
 ## Features & conformance

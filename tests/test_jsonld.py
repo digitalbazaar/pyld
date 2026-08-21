@@ -630,6 +630,22 @@ class TestFrame:
         assert "namespace" in output_json["system"][0]
         assert "uri" in output_json["system"][0]["contents"][0]
 
+    def test_frame_uses_identifier_issuer_option(self):
+        input = {'http://example.org/p': {'@id': '_:old'}}
+
+        result = jsonld.frame(
+            input,
+            {},
+            options={'identifierIssuer': IdentifierIssuer('_:custom')},
+        )
+
+        assert result == {
+            '@graph': [
+                {'http://example.org/p': {'@id': '_:custom1'}},
+                {'@id': '_:custom1'},
+            ]
+        }
+
     # PR: https://github.com/digitalbazaar/pyld/pull/31
 
     FRAME_0001_IN = {
@@ -931,6 +947,42 @@ class TestFrame:
         frame = {'@context': 'http://schema.org', '@embed': '@link'}
         with pytest.raises(RecursionError):
             jsonld.frame(input, frame)
+
+
+class TestFlatten:
+    def test_flatten_uses_identifier_issuer_option(self):
+        input = {'http://example.org/p': {'@id': '_:old'}}
+
+        result = jsonld.flatten(
+            input,
+            options={'identifierIssuer': IdentifierIssuer('_:custom')},
+        )
+
+        assert result == [
+            {
+                '@id': '_:custom0',
+                'http://example.org/p': [{'@id': '_:custom1'}],
+            }
+        ]
+
+
+class TestNormalize:
+    def test_normalize_does_not_pass_identifier_issuer_to_to_rdf(self):
+        class RaisingIdentifierIssuer(IdentifierIssuer):
+            def get_id(self, old=None):
+                raise AssertionError('identifierIssuer leaked into normalize')
+
+        input = {'http://example.org/p': {'@id': '_:old'}}
+
+        result = jsonld.normalize(
+            input,
+            options={
+                'format': 'application/n-quads',
+                'identifierIssuer': RaisingIdentifierIssuer('_:custom'),
+            },
+        )
+
+        assert result == '_:c14n1 <http://example.org/p> _:c14n0 .\n'
 
 
 class TestToRdf:

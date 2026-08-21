@@ -8,9 +8,10 @@
   strings to per-scheme loaders.
 - `pyld.TypeDirectedDocumentLoader`: a document loader that dispatches by Python
   input type (e.g. `pathlib.Path` vs `str`).
-- `jsonld.to_rdf()` now accepts an `identifierIssuer` option with an
-  `IdentifierIssuer` instance for blank node identifiers. Defaults to `IdentifierIssuer('_:b')`, 
-  which preserves the previous behaviour.
+- `jsonld.flatten()`, `jsonld.frame()`, and `jsonld.to_rdf()` now accept an
+  `identifierIssuer` option with an `IdentifierIssuer` instance for blank node
+  identifiers. Defaults to `IdentifierIssuer('_:b')`, which preserves the
+  previous behaviour.
 
 ## 3.2.0 - 2026-08-17
 

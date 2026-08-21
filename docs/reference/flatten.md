@@ -12,6 +12,9 @@
       show_bases: false
       heading_level: 3
 
+Pass an `IdentifierIssuer` instance as the `identifierIssuer` option to control
+blank node identifiers generated during flattening.
+
 ## Example
 
 {{ example('flatten.py', 'json') }}
