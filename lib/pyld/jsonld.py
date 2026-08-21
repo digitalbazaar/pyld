@@ -1007,6 +1007,8 @@ class JsonLdProcessor:
             to produce only standard RDF (default: false).
           [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
+          [identifierIssuer] an IdentifierIssuer instance to use for blank node
+            identifiers (default: IdentifierIssuer('_:b')).
           [rdfDirection] Either 'i18n-datatype' or 'compound-literal'
             (default: None).
 
@@ -1023,6 +1025,7 @@ class JsonLdProcessor:
         )
         options.setdefault('extractAllScripts', True)
         options.setdefault('processingMode', 'json-ld-1.1')
+        options.setdefault('identifierIssuer', IdentifierIssuer('_:b'))
 
         try:
             # expand input
@@ -1033,7 +1036,7 @@ class JsonLdProcessor:
             ) from cause
 
         # create node map for default graph (and any named graphs)
-        issuer = IdentifierIssuer('_:b')
+        issuer = options['identifierIssuer']
         node_map = {'@default': {}}
         self._create_node_map(expanded, node_map, '@default', issuer)
         # output RDF dataset

@@ -65,6 +65,7 @@ Here are some quick examples to get started:
 
 ```python
 from pyld import jsonld
+from pyld.identifier_issuer import IdentifierIssuer
 import json
 
 doc = {
@@ -126,6 +127,12 @@ normalized = jsonld.normalize(
     doc, {'algorithm': 'URDNA2015', 'format': 'application/n-quads'})
 # normalized is a string that is a canonical representation of the document
 # that can be used for hashing, comparison, etc.
+
+# convert a document to RDF with a custom blank node issuer
+issuer = IdentifierIssuer('_:doc')
+rdf = jsonld.to_rdf(
+    doc,
+    {'identifierIssuer': issuer, 'format': 'application/n-quads'})
 ```
 
 ## Features & conformance

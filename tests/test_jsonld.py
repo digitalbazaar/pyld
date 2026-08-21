@@ -1,6 +1,7 @@
 import pytest
 
 import pyld.jsonld as jsonld
+from pyld.identifier_issuer import IdentifierIssuer
 
 
 def raise_this(value):
@@ -996,6 +997,24 @@ class TestToRdf:
             '<http://example.com/s> <http://example.com/p> '
             '"1000000000000000000000"'
             '^^<http://www.w3.org/2001/XMLSchema#integer> .\n'
+        )
+
+    def test_to_rdf_uses_identifier_issuer_option(self):
+        input = {'http://example.org/p': [{'@list': ['a', 'b']}]}
+        issuer = IdentifierIssuer('_:custom')
+
+        nquads = jsonld.to_rdf(
+            input,
+            options={'format': 'application/n-quads', 'identifierIssuer': issuer},
+        )
+
+        assert nquads == (
+            '_:custom0 <http://example.org/p> _:custom1 .\n'
+            '_:custom1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "a" .\n'
+            '_:custom1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:custom2 .\n'
+            '_:custom2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "b" .\n'
+            '_:custom2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> '
+            '<http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .\n'
         )
 
     def test_compound_literal_direction_without_language(self):
