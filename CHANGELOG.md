@@ -6,6 +6,8 @@
 - `pyld.FileDocumentLoader`: a document loader for local `file:` URLs with optional root confinement.
 - `pyld.SchemeDirectedDocumentLoader`: a document loader that dispatches URL
   strings to per-scheme loaders.
+- `pyld.TypeDirectedDocumentLoader`: a document loader that dispatches by Python
+  input type (e.g. `pathlib.Path` vs `str`).
 
 ## 3.2.0 - 2026-08-17
 
