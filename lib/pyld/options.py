@@ -9,6 +9,7 @@ from collections.abc import Callable
 from typing import Any, Literal, TypedDict
 
 from .documentloader.base import DocumentLoader, RemoteDocument
+from .identifier_issuer import IdentifierIssuer
 
 ContextObject = dict[str, Any]
 Context = str | ContextObject | list[str | ContextObject]
@@ -100,6 +101,9 @@ class FlattenOptions(ExpandContextOptions, total=False):
     expandContext: Context
     """A context to expand with."""
 
+    identifierIssuer: IdentifierIssuer
+    """An identifier issuer to use for blank node identifiers (default: `IdentifierIssuer('_:b')`)."""
+
 
 class FrameOptions(ExpandContextOptions, total=False):
     documentLoader: DocumentLoader | DocumentLoaderCallable
@@ -131,6 +135,9 @@ class FrameOptions(ExpandContextOptions, total=False):
 
     requireAll: bool
     """Default `@requireAll` flag (default: `False`)."""
+
+    identifierIssuer: IdentifierIssuer
+    """An identifier issuer to use for blank node identifiers (default: `IdentifierIssuer('_:b')`)."""
 
 
 class NormalizeOptions(ProcessingOptions, total=False):
@@ -174,6 +181,9 @@ class ToRdfOptions(ProcessingOptions, total=False):
 
     produceGeneralizedRdf: bool
     """`True` to output generalized RDF, `False` to produce only standard RDF (default: `False`)."""
+
+    identifierIssuer: IdentifierIssuer
+    """An identifier issuer to use for blank node identifiers (default: `IdentifierIssuer('_:b')`)."""
 
     rdfDirection: Literal['i18n-datatype']
     """Only `i18n-datatype` supported."""
