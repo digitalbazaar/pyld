@@ -1,6 +1,7 @@
 nav:
   - Quickstart:
       - index.md
+      - whats-new-version-4.md
       - installation.md
       - conformance.md
   - API:
