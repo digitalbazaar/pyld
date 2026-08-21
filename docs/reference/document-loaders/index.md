@@ -44,6 +44,12 @@ class-based loaders for common cases and supports custom subclasses of
 
     Delegate to another Document Loader based on the scheme of the URL, for instance, `file:` vs `https://`.
 
+-   [:material-shape-outline:{ .lg .middle } `TypeDirectedDocumentLoader`](type-directed.md)
+
+    ---
+
+    Delegate by Python input type, for instance `pathlib.Path` vs URL `str`.
+
 -   [:material-code-braces:{ .lg .middle } __Custom Document Loaders__](custom.md)
 
     ---
