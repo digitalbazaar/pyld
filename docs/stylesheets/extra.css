@@ -69,6 +69,12 @@
   display: flow-root;
 }
 
+/* termynal.css leaves `.termy` without margins, so a terminal window sits flush
+   against the next one; mkdocs-typer2 only spaces its own stacked blocks. */
+.md-typeset .termy {
+  margin-bottom: 1.25em;
+}
+
 /* ADR comparison column tints — match mkdocs-material admonition hues at 10%. */
 :root,
 [data-md-color-scheme="slate"] {

@@ -29,7 +29,8 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for code style, linting (e.g. `make lint
 ### Documentation validation
 
 - **No in-repo Playwright.** Do not add `@playwright/test`, `playwright.config.js`, or e2e test dependencies. Live browser checks use **only** the Playwright MCP server (`user-playwright`).
-- After doc changes, run `make docs-build` (strict). For interactive checks, run `make docs-serve` and validate with Playwright MCP: `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_wait_for`. Prefer `browser_run_code_unsafe` with `page.screenshot({ animations: 'disabled', timeout: 60000 })` over `browser_take_screenshot` (font load timeouts).
+- **Never start a second dev server.** Before any browser check, grep the terminals folder for a running `make docs-serve` / `mkdocs serve` (look for `active_command`) and use that one — it serves http://127.0.0.1:8000/pyld/. Only start a server if none is running.
+- After doc changes, run `make docs-build` (strict). For interactive checks, validate against the running `make docs-serve` with Playwright MCP: `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_wait_for`. Prefer `browser_run_code_unsafe` with `page.screenshot({ animations: 'disabled', timeout: 60000 })` over `browser_take_screenshot` (font load timeouts).
 
 ## Committing
 

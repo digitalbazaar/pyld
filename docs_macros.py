@@ -359,3 +359,37 @@ def define_env(env):
         pad = ' ' * content_indent
         indented = '\n'.join(f'{pad}{line}' for line in body.splitlines())
         return f'!!! example "{title}"\n\n{indented}\n'
+
+    @env.macro
+    def terminal(command, title='pyld', indent=0):
+        """Run a shell command and embed it as a termynal terminal block."""
+        # Prefer this project's console scripts over another `pyld` on PATH
+        # (for example the yaml-ld package). Do not resolve symlinks: the venv
+        # python often points at a shared interpreter whose bin/ has no pyld.
+        venv_bin = str(Path(sys.executable).parent)
+        path = os.environ.get('PATH', '')
+        result = subprocess.run(
+            ['bash', '-c', command],
+            capture_output=True,
+            text=True,
+            check=True,
+            cwd=ROOT_DIR,
+            env={
+                **os.environ,
+                'TERM': 'dumb',
+                'PATH': f'{venv_bin}:{path}',
+            },
+        )
+        # The termynal plugin converts a fence preceded by this comment, reading
+        # `$ ` lines as typed input and the rest as output.
+        config = json.dumps({'title': title})
+        body = f'<!-- termynal: {config} -->\n\n```\n$ {command}\n{result.stdout}```'
+        if not indent:
+            return body
+        # First line inherits the call-site indent (same pattern as example /
+        # example_data); remaining lines need explicit padding for tab nesting.
+        pad = ' ' * indent
+        lines = body.splitlines()
+        return lines[0] + '\n' + '\n'.join(
+            f'{pad}{line}' if line else line for line in lines[1:]
+        )
