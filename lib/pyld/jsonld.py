@@ -250,6 +250,8 @@ def link(input_, ctx, options=None):
         defaults to 'json-ld-1.1'.
       [documentLoader(url, options)] the document loader
         (default: _default_document_loader).
+      [identifierIssuer] an IdentifierIssuer instance to use for blank node
+        identifiers (default: IdentifierIssuer('_:b')).
 
     :return: the linked JSON-LD output.
     """
@@ -685,6 +687,8 @@ class JsonLdProcessor:
             defaults to 'json-ld-1.1'.
           [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
+          [identifierIssuer] an IdentifierIssuer instance to use for blank node
+            identifiers (default: IdentifierIssuer('_:b')).
 
         :return: the flattened JSON-LD output.
         """
@@ -697,6 +701,7 @@ class JsonLdProcessor:
         )
         options.setdefault('extractAllScripts', True)
         options.setdefault('processingMode', 'json-ld-1.1')
+        options.setdefault('identifierIssuer', IdentifierIssuer('_:b'))
 
         try:
             # expand input
@@ -707,7 +712,7 @@ class JsonLdProcessor:
             ) from cause
 
         # do flattening
-        flattened = self._flatten(expanded)
+        flattened = self._flatten(expanded, options)
 
         if ctx is None:
             return flattened
@@ -750,6 +755,8 @@ class JsonLdProcessor:
           [requireAll] default @requireAll flag (default: False).
           [documentLoader(url, options)] the document loader
             (default: _default_document_loader).
+          [identifierIssuer] an IdentifierIssuer instance to use for blank node
+            identifiers (default: IdentifierIssuer('_:b')).
 
         :return: the framed JSON-LD output.
         """
@@ -769,6 +776,7 @@ class JsonLdProcessor:
         )
         options.setdefault('extractAllScripts', False)
         options.setdefault('processingMode', 'json-ld-1.1')
+        options.setdefault('identifierIssuer', IdentifierIssuer('_:b'))
 
         # if frame is a string, attempt to dereference remote document
         if _is_string(frame):
@@ -901,6 +909,8 @@ class JsonLdProcessor:
         )
         options.setdefault('extractAllScripts', True)
         options.setdefault('processingMode', 'json-ld-1.1')
+        # Prevent a custom identifier issuer accidentally messing up normalization.
+        options.pop('identifierIssuer', None)
 
         if options['algorithm'] not in ['URDNA2015', 'URGNA2012']:
             raise JsonLdError(
@@ -2845,7 +2855,7 @@ class JsonLdProcessor:
 
         return active_ctx, type_key, type_scoped_ctx
 
-    def _flatten(self, input):
+    def _flatten(self, input, options):
         """
         Performs JSON-LD flattening.
 
@@ -2854,7 +2864,7 @@ class JsonLdProcessor:
         :return: the flattened JSON-LD output.
         """
         # produce a map of all subjects and label each bnode
-        issuer = IdentifierIssuer('_:b')
+        issuer = options['identifierIssuer'] or IdentifierIssuer('_:b')
         graphs = {'@default': {}}
         self._create_node_map(input, graphs, '@default', issuer)
 
@@ -2900,7 +2910,7 @@ class JsonLdProcessor:
         }
 
         # produce a map of all graphs and name each bnode
-        issuer = IdentifierIssuer('_:b')
+        issuer = options['identifierIssuer'] or IdentifierIssuer('_:b')
         self._create_node_map(input_, state['graphMap'], '@default', issuer)
         if options['merged']:
             state['graphMap']['@merged'] = self._merge_node_map_graphs(

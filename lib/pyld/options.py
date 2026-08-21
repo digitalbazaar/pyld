@@ -101,6 +101,9 @@ class FlattenOptions(ExpandContextOptions, total=False):
     expandContext: Context
     """A context to expand with."""
 
+    identifierIssuer: IdentifierIssuer
+    """An identifier issuer to use for blank node identifiers (default: `IdentifierIssuer('_:b')`)."""
+
 
 class FrameOptions(ExpandContextOptions, total=False):
     documentLoader: DocumentLoader | DocumentLoaderCallable
@@ -132,6 +135,9 @@ class FrameOptions(ExpandContextOptions, total=False):
 
     requireAll: bool
     """Default `@requireAll` flag (default: `False`)."""
+
+    identifierIssuer: IdentifierIssuer
+    """An identifier issuer to use for blank node identifiers (default: `IdentifierIssuer('_:b')`)."""
 
 
 class NormalizeOptions(ProcessingOptions, total=False):
