@@ -9,11 +9,13 @@ from .documentloader.frozen import BUNDLED_CONTEXTS, FrozenDocumentLoader
 from .documentloader.requests import RequestsDocumentLoader
 from .documentloader.requests_sqlite_cache import SqliteCacheRequestsDocumentLoader
 from .documentloader.scheme_directed import SchemeDirectedDocumentLoader
+from .documentloader.type_directed import TypeDirectedDocumentLoader
 
 __all__ = [
     'AioHttpDocumentLoader',
     'BUNDLED_CONTEXTS',
     'SchemeDirectedDocumentLoader',
+    'TypeDirectedDocumentLoader',
     'ContextResolver',
     'DocumentLoader',
     'FileDocumentLoader',
