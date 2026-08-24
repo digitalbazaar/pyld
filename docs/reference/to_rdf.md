@@ -17,15 +17,19 @@ When `format` is not set, `jsonld.to_rdf()` returns a
 Set `legacyMode` to `True` to return the RDF.js-like dataset `dict` used by
 PyLD versions lower than 4.
 
-```python
-dataset = jsonld.to_rdf(doc)
-nquads = jsonld.to_rdf(doc, {"format": "application/n-quads"})
-legacy_dataset = jsonld.to_rdf(doc, {"legacyMode": True})
-```
-
 `legacyMode` only affects the unformatted return value. If `format` is set,
 `jsonld.to_rdf()` returns the requested serialization.
 
-## Example
+## Examples
+
+### Serializing JSON-LD to N-Quads
 
 {{ example('to_rdf.py') }}
+
+### Transforming JSON-LD into an `rdflib.Dataset`
+
+{{ example('to_rdf_dataset.py') }}
+
+### Transforming JSON-LD into an legacy RDF.js-like dict
+
+{{ example('to_rdf_legacy.py', 'json') }}
