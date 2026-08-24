@@ -15,14 +15,12 @@
 `RDFC10` is the default algorithm in PyLD 4. Use `URDNA2015` or `URGNA2012`
 explicitly when an integration requires the older canonicalization output.
 
-```python
-canonical = jsonld.normalize(
-    doc,
-    {"algorithm": "URDNA2015", "format": "application/n-quads"},
-)
-identifier_map = jsonld.normalize(doc, {"algorithm": "RDFC10", "outputMap": True})
-```
+## Examples
 
-## Example
+### Normalizing RDF as canonical N-Quads
 
 {{ example('normalize.py') }}
+
+### Outputting the Identifier Map of the canonicalization process (RDFC1.0)
+
+{{ example('normalize_output_map.py', 'json') }}
