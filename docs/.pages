@@ -4,6 +4,8 @@ nav:
       - whats-new-version-4.md
       - installation.md
       - conformance.md
+  - Tutorials:
+      - tutorials
   - Reference:
       - reference
   - Project:
