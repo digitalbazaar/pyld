@@ -4,9 +4,11 @@ nav:
       - whats-new-version-4.md
       - installation.md
       - conformance.md
-  - API:
-      - reference
   - CLI:
       - cli
+  - Tutorials:
+      - tutorials
+  - API:
+      - reference
   - Project:
       - project
