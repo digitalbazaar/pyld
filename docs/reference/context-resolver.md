@@ -16,6 +16,12 @@ documents, so pass the same loader with `documentLoader`.
 
 {{ example('context_resolver.py', output_syntax='json') }}
 
+Use the built-in `SqliteCacheRequestsDocumentLoader` when you want the resolver
+to combine PyLD's in-memory resolved-context cache with persistent HTTP caching
+for fetched remote contexts.
+
+{{ example('context_resolver_sqlite_cache.py', output_syntax='json') }}
+
 The `shared_cache` object must behave like a mutable mapping. PyLD uses
 `cachetools.LRUCache` by default, but applications can provide another mapping
 when they need a different eviction policy.
