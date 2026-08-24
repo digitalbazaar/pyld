@@ -17,11 +17,12 @@
 an N-Quads string, or the RDF.js-like dataset `dict` returned by PyLD versions
 lower than 4. Prefer `rdflib.Dataset` for new in-memory RDF code.
 
-```python
-doc = jsonld.from_rdf(dataset)
-doc = jsonld.from_rdf(nquads, {"format": "application/n-quads"})
-```
+## Examples
 
-## Example
+### Parsing N-Quads as JSON-LD
 
 {{ example('from_rdf.py', 'json') }}
+
+### Transforming an `rdflib.Dataset` into JSON-LD
+
+{{ example('from_rdf_dataset.py', 'json') }}
