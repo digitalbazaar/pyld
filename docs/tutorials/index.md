@@ -27,4 +27,11 @@ hide: [toc]
     Load a local `.jsonld` file, process it with PyLD, and choose the right
     dependencies for local or remote contexts.
 
+-   [:material-cached:{ .lg .middle } Cache remote contexts with `DocumentLoader`](document-loader-caching.md)
+
+    ---
+
+    Combine PyLD's context cache with no-cache, in-memory, and persistent
+    document-loader HTTP caching.
+
 </div>
