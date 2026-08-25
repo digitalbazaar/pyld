@@ -12,7 +12,9 @@ hide: [toc]
 
 `TypeDirectedDocumentLoader` dispatches a value to the loader registered for its Python type. Applications can register any types that represent distinct document locations or loading policies.
 
-This example registers `Path` for local documents and `str` for URL values. A local document is loaded through `FileDocumentLoader`; its remote `@context` is a URL string, so the `str` registration delegates to a nested `SchemeDirectedDocumentLoader`.
+## Example use case
+
+One use case for `TypeDirectedDocumentLoader` is an application that accepts local `pathlib.Path` values and remote URL strings in the same JSON-LD workflow. This example routes paths through `FileDocumentLoader`; when a local document references a remote `@context`, its `str` URL is delegated to `SchemeDirectedDocumentLoader`.
 
 === "Example"
 
