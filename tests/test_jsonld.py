@@ -1113,19 +1113,20 @@ class TestToRdf:
         input = {'http://example.org/p': [{'@list': ['a', 'b']}]}
         issuer = IdentifierIssuer('_:custom')
 
+        expected = """_:custom0 <http://example.org/p> _:custom1  .
+_:custom1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "a"^^<http://www.w3.org/2001/XMLSchema#string>  .
+_:custom1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:custom2  .
+_:custom2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "b"^^<http://www.w3.org/2001/XMLSchema#string>  .
+_:custom2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil>  .
+
+"""
+
         nquads = jsonld.to_rdf(
             input,
             options={'format': 'application/n-quads', 'identifierIssuer': issuer},
         )
 
-        assert nquads == (
-            '_:custom0 <http://example.org/p> _:custom1 .\n'
-            '_:custom1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "a" .\n'
-            '_:custom1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:custom2 .\n'
-            '_:custom2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "b" .\n'
-            '_:custom2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> '
-            '<http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .\n'
-        )
+        assert sorted(nquads.splitlines()) == sorted(expected.splitlines())
 
     def test_compound_literal_direction_without_language(self):
         """
