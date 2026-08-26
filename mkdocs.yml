@@ -6,6 +6,10 @@ repo_name: digitalbazaar/pyld
 exclude_docs: |
   **/AGENTS.md
 
+extra:
+  version:
+    provider: mike
+
 extra_css:
   - stylesheets/extra.css
 

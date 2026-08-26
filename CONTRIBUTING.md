@@ -26,9 +26,16 @@ The public documentation site is built with MkDocs Material.
 
   * `make docs-build`
 
-* Preview documentation locally:
+* Preview documentation locally (with
+  [mike](https://github.com/jimporter/mike)):
 
   * `make docs-serve` (override port with `PORT=8008 make docs-serve`)
+
+* Deploy a version of the documentation:
+
+  * `VERSION=3.2 ALIASES=latest PUSH=1 make docs-deploy`
+  * `VERSION=3.1 GIT_REF=v3.1.0 make docs-deploy`
+  * `DEFAULT_VERSION=latest PUSH=1 make docs-set-default`
 
 * Refresh bundled JSON-LD context files:
 
