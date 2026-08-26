@@ -1,6 +1,16 @@
-.PHONY: install test docs-install docs-build docs-serve upgrade-submodules download-bundled-contexts
+.PHONY: install test docs-install docs-build docs-serve docs-deploy docs-set-default upgrade-submodules download-bundled-contexts
 
 PORT ?= 8000
+VERSION ?=
+GIT_REF ?=
+ALIASES ?=
+DEFAULT_VERSION ?= latest
+PUSH ?=
+DOCS_DEPLOY_BRANCH ?= gh-pages
+DOCS_DEPLOY_REMOTE ?= origin
+DOCS_RETRO_WORKTREE ?= .docs-retro-worktree
+MIKE_FLAGS ?=
+MIKE_PUSH = $(if $(PUSH),--push,)
 
 install:
 	pip install -e .
@@ -17,7 +27,23 @@ docs-build:
 	mkdocs build --strict
 
 docs-serve:
-	mkdocs serve --dev-addr 127.0.0.1:$(PORT)
+	mike serve --dev-addr 127.0.0.1:$(PORT) --remote $(DOCS_DEPLOY_REMOTE) --branch $(DOCS_DEPLOY_BRANCH) $(MIKE_FLAGS)
+
+docs-deploy:
+	@test -n "$(VERSION)" || (echo "VERSION is required, e.g. VERSION=3.2 make docs-deploy"; exit 1)
+	@if [ -n "$(GIT_REF)" ]; then \
+		test ! -e "$(DOCS_RETRO_WORKTREE)" || (echo "$(DOCS_RETRO_WORKTREE) already exists"; exit 1); \
+		set -e; \
+		trap 'git worktree remove "$(DOCS_RETRO_WORKTREE)"' EXIT; \
+		git worktree add --detach "$(DOCS_RETRO_WORKTREE)" "$(GIT_REF)"; \
+		python -m pip install -e "$(DOCS_RETRO_WORKTREE)"; \
+		mike deploy --config-file "$(DOCS_RETRO_WORKTREE)/mkdocs.yml" --update-aliases --remote $(DOCS_DEPLOY_REMOTE) --branch $(DOCS_DEPLOY_BRANCH) $(MIKE_PUSH) $(MIKE_FLAGS) $(VERSION) $(ALIASES); \
+	else \
+		mike deploy --update-aliases --remote $(DOCS_DEPLOY_REMOTE) --branch $(DOCS_DEPLOY_BRANCH) $(MIKE_PUSH) $(MIKE_FLAGS) $(VERSION) $(ALIASES); \
+	fi
+
+docs-set-default:
+	mike set-default --remote $(DOCS_DEPLOY_REMOTE) --branch $(DOCS_DEPLOY_BRANCH) $(MIKE_PUSH) $(MIKE_FLAGS) $(DEFAULT_VERSION)
 
 upgrade-submodules:
 	git submodule update --remote --init --recursive
