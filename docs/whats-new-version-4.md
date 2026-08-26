@@ -10,26 +10,15 @@ defaults, and N-Quads behavior before upgrading.
 `jsonld.to_rdf()` returns an `rdflib.Dataset` by default when `format` is not
 set. In PyLD 3.x and earlier, it returned a RDF.js-like nested `dict`.
 
-```python
-from rdflib import Dataset
-
-from pyld import jsonld
-
-dataset = jsonld.to_rdf(doc)
-assert isinstance(dataset, Dataset)
-```
+{{ example('to_rdf_dataset.py') }}
 
 Request N-Quads when you need a serialized string:
 
-```python
-nquads = jsonld.to_rdf(doc, {"format": "application/n-quads"})
-```
+{{ example('to_rdf.py') }}
 
 Use `legacyMode` when existing code still expects the PyLD 3.x dataset `dict`:
 
-```python
-legacy_dataset = jsonld.to_rdf(doc, {"legacyMode": True})
-```
+{{ example('to_rdf_legacy.py', 'json') }}
 
 `jsonld.from_rdf()` accepts an `rdflib.Dataset`, an N-Quads string, or the
 legacy dataset `dict`. New code should prefer `rdflib.Dataset` for in-memory RDF
@@ -41,19 +30,12 @@ work and `application/n-quads` for process or storage boundaries.
 1.0 algorithm. `URDNA2015` and `URGNA2012` remain available by setting
 `algorithm` explicitly.
 
-```python
-canonical_urdna2015 = jsonld.normalize(
-    doc,
-    {"algorithm": "URDNA2015", "format": "application/n-quads"},
-)
-```
+{{ example('normalize.py') }}
 
 For RDFC 1.0 test vectors and integrations that need the canonical blank node
 identifier map, pass `outputMap`:
 
-```python
-identifier_map = jsonld.normalize(doc, {"algorithm": "RDFC10", "outputMap": True})
-```
+{{ example('normalize_output_map.py', 'json') }}
 
 `RDFC10` also accepts `hashAlgorithm` for test suites and specialized
 integrations. Most applications should keep the default SHA-256 behavior.
@@ -85,12 +67,7 @@ paths:
 PyLD 4 includes conversion helpers for applications that need to bridge between
 the old in-memory RDF.js-like nested `dict` and RDFLib:
 
-```python
-from pyld.util import from_legacy_dataset, to_legacy_dataset
-
-rdflib_dataset = from_legacy_dataset(legacy_dataset)
-legacy_dataset = to_legacy_dataset(rdflib_dataset)
-```
+{{ example('legacy_helpers.py') }}
 
 Treat these helpers as migration aids. Prefer RDFLib terms and datasets in new
 code so RDF processing is compatible with the rest of the Python RDF ecosystem.
