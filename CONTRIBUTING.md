@@ -36,6 +36,11 @@ The public documentation site is built with MkDocs Material.
   * `VERSION=3.2 ALIASES=latest PUSH=1 make docs-deploy`
   * `VERSION=3.1 GIT_REF=v3.1.0 make docs-deploy`
   * `DEFAULT_VERSION=latest PUSH=1 make docs-set-default`
+  * `make docs-export`
+
+The GitHub Pages source is GitHub Actions. The `gh-pages` branch is still used
+by `mike` to store all rendered documentation versions, then the workflow
+exports that branch and deploys it with `actions/deploy-pages`.
 
 * Refresh bundled JSON-LD context files:
 
