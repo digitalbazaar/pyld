@@ -1,4 +1,4 @@
-.PHONY: install test docs-install docs-build docs-serve docs-deploy docs-set-default upgrade-submodules download-bundled-contexts
+.PHONY: install test docs-install docs-build docs-serve docs-deploy docs-export docs-set-default upgrade-submodules download-bundled-contexts
 
 PORT ?= 8000
 VERSION ?=
@@ -8,6 +8,7 @@ DEFAULT_VERSION ?= latest
 PUSH ?=
 DOCS_DEPLOY_BRANCH ?= gh-pages
 DOCS_DEPLOY_REMOTE ?= origin
+DOCS_EXPORT_DIR ?= site-versioned
 DOCS_RETRO_WORKTREE ?= .docs-retro-worktree
 MIKE_FLAGS ?=
 MIKE_PUSH = $(if $(PUSH),--push,)
@@ -41,6 +42,11 @@ docs-deploy:
 	else \
 		mike deploy --update-aliases --remote $(DOCS_DEPLOY_REMOTE) --branch $(DOCS_DEPLOY_BRANCH) $(MIKE_PUSH) $(MIKE_FLAGS) $(VERSION) $(ALIASES); \
 	fi
+
+docs-export:
+	@test ! -e "$(DOCS_EXPORT_DIR)" || (echo "$(DOCS_EXPORT_DIR) already exists"; exit 1)
+	mkdir "$(DOCS_EXPORT_DIR)"
+	git archive "$(DOCS_DEPLOY_BRANCH)" | tar -x -C "$(DOCS_EXPORT_DIR)"
 
 docs-set-default:
 	mike set-default --remote $(DOCS_DEPLOY_REMOTE) --branch $(DOCS_DEPLOY_BRANCH) $(MIKE_PUSH) $(MIKE_FLAGS) $(DEFAULT_VERSION)
