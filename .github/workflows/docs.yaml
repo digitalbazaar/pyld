@@ -37,8 +37,18 @@ jobs:
           cache: 'pip'
       - name: Install documentation dependencies
         run: make docs-install
-      - name: Build documentation
-        run: make docs-build
+      - name: Build versioned documentation
+        run: |
+          # Exercise the same `mike deploy` and export path used by releases,
+          # but on a local throwaway branch with no push, alias, or default.
+          VERSION=pr-preview \
+          DOCS_DEPLOY_BRANCH=docs-preview \
+          MIKE_FLAGS="--ignore-remote-status" \
+          make docs-deploy
+
+          DOCS_DEPLOY_BRANCH=docs-preview \
+          DOCS_EXPORT_DIR=site-versioned \
+          make docs-export
 
   deploy:
     # Only release tags publish docs. A master push validates docs but must not
