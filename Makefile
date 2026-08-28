@@ -25,7 +25,7 @@ upgrade-submodules:
 download-bundled-contexts:
 	python scripts/download_contexts.py
 
-RUFF_TARGET = lib/pyld/*.py tests/*.py docs_macros.py
+RUFF_TARGET = lib/pyld/*.py lib/pyld/cli/*.py lib/pyld/cli/commands/*.py tests/*.py docs_macros.py
 
 lint:
 	ruff check $(RUFF_TARGET)
