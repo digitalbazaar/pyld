@@ -14,7 +14,12 @@ matching extra:
 pip install "PyLD[requests]"
 pip install "PyLD[aiohttp]"
 pip install "PyLD[requests-cache]"
+pip install "PyLD[cli]"
 ```
+
+`PyLD[cli]` installs [:simple-typer: Typer](https://typer.tiangolo.com/) and
+[:simple-pypi: `requests-cache`](https://pypi.org/project/requests-cache/), and
+registers the [`pyld`](cli/index.md) console script.
 
 You can also depend on `requests` or `aiohttp` directly if your project already
 manages those dependencies.
