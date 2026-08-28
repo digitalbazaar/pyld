@@ -12,9 +12,10 @@
   `identifierIssuer` option with an `IdentifierIssuer` instance for blank node
   identifiers. Defaults to `IdentifierIssuer('_:b')`, which preserves the
   previous behaviour.
-- `pyld` command-line tool (`get`, `expand`, `cache clear`), installed via
-  `pip install "PyLD[cli]"`, with remote contexts cached in a CLI-specific
-  SQLite file (overridable via `--cache-file` / `PYLD_CACHE_FILE`).
+- `pyld` command-line tool (`get`, `expand`, `compact`, `flatten`, `frame`,
+  `to-rdf`, `from-rdf`, and `cache clear`), installed via
+  `pip install "PyLD[cli]"`. Remote contexts are cached in a CLI-specific SQLite
+  file (overridable via `--cache-file` / `PYLD_CACHE_FILE`).
 
 ## 3.2.0 - 2026-08-17
 
