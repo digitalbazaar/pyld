@@ -2,4 +2,9 @@ nav:
   - index.md
   - get.md
   - expand.md
+  - compact.md
+  - flatten.md
+  - frame.md
+  - to-rdf.md
+  - from-rdf.md
   - cache.md
