@@ -33,6 +33,8 @@ setup(
     packages=[
         'c14n',
         'pyld',
+        'pyld.cli',
+        'pyld.cli.commands',
         'pyld.documentloader',
         'pyld.documentloader.frozen',
     ],
