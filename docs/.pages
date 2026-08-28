@@ -3,7 +3,9 @@ nav:
       - index.md
       - installation.md
       - conformance.md
-  - Reference:
+  - API:
       - reference
+  - CLI:
+      - cli
   - Project:
       - project
