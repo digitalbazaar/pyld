@@ -59,6 +59,18 @@ Defining a dependency on pyld will not pull in
 [Document Loader](#document-loader) then either depend on the desired external library directly
 or define the requirement as `PyLD[requests]` or `PyLD[aiohttp]`.
 
+## Command line
+
+Install the optional CLI extra to get a `pyld` console script:
+
+```bash
+pip install "PyLD[cli]"
+pyld expand document.jsonld
+pyld expand https://example.com/doc.jsonld
+```
+
+See the [CLI documentation](https://digitalbazaar.github.io/pyld/cli/).
+
 ## Usage
 
 Here are some quick examples to get started:
