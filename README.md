@@ -61,15 +61,20 @@ or define the requirement as `PyLD[requests]` or `PyLD[aiohttp]`.
 
 ## Command line
 
-Install the optional CLI extra to get a `pyld` console script:
+Install the optional CLI extra to get a JSON-LD 1.1 `pyld` console script:
 
 ```bash
 pip install "PyLD[cli]"
 pyld expand document.jsonld
-pyld expand https://example.com/doc.jsonld
+pyld compact document.jsonld context.jsonld
+pyld frame document.jsonld frame.jsonld
+pyld to-rdf document.jsonld
+pyld from-rdf document.nq
 ```
 
-See the [CLI documentation](https://digitalbazaar.github.io/pyld/cli/).
+The CLI also provides `get`, `flatten`, and HTTP cache management. See the
+[CLI documentation](https://digitalbazaar.github.io/pyld/cli/) for all commands,
+options, and stdin support.
 
 ## Usage
 
