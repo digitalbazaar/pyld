@@ -1,5 +1,6 @@
 ---
 hide: [toc]
+icon: material/rocket-launch
 ---
 
 # :material-graph-outline: PyLD
