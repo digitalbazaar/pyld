@@ -214,7 +214,17 @@ def _adr_metadata_date(value):
     return f':material-calendar-clock: {_human_date(value)}'
 
 
-def _adr_metadata(date, status):
+def _adr_metadata_prerequisite(value):
+    if not value:
+        return ''
+    title = value.get('title')
+    url = value.get('url')
+    if not title or not url:
+        return ''
+    return f'Depends on [{title}]({url})'
+
+
+def _adr_metadata(date, status, prerequisite=None):
     kind = _ADR_STATUS_ADMONITION.get(str(status).lower(), 'note')
     parts = []
     label = _adr_status_label(status)
@@ -223,6 +233,9 @@ def _adr_metadata(date, status):
     date_part = _adr_metadata_date(date)
     if date_part:
         parts.append(date_part)
+    prerequisite_part = _adr_metadata_prerequisite(prerequisite)
+    if prerequisite_part:
+        parts.append(prerequisite_part)
     title = ' · '.join(parts)
     return f'!!! {kind} "{title}"\n'
 
@@ -266,8 +279,8 @@ def define_env(env):
         return _adr_status(value)
 
     @env.macro
-    def adr_metadata(date, status):
-        return _adr_metadata(date, status)
+    def adr_metadata(date, status, prerequisite=None):
+        return _adr_metadata(date, status, prerequisite)
 
     @env.macro
     def bundled_contexts_table():
