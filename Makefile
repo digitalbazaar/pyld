@@ -35,7 +35,7 @@ docs-deploy:
 	@if [ -n "$(GIT_REF)" ]; then \
 		test ! -e "$(DOCS_RETRO_WORKTREE)" || (echo "$(DOCS_RETRO_WORKTREE) already exists"; exit 1); \
 		set -e; \
-		trap 'git worktree remove "$(DOCS_RETRO_WORKTREE)"' EXIT; \
+		trap 'git worktree remove --force "$(DOCS_RETRO_WORKTREE)"' EXIT; \
 		git worktree add --detach "$(DOCS_RETRO_WORKTREE)" "$(GIT_REF)"; \
 		: "Older tags predate Material's mike version selector config, so patch mkdocs.yml."; \
 		python -c 'from pathlib import Path; p = Path("$(DOCS_RETRO_WORKTREE)/mkdocs.yml"); s = p.read_text(); b = "extra:\n  version:\n    provider: mike\n\n"; p.write_text(s if "provider: mike" in s else s.replace("extra_css:", b + "extra_css:", 1) if "extra_css:" in s else s.rstrip() + "\n\n" + b)'; \
