@@ -741,8 +741,8 @@ class JsonLdProcessor:
           [expandContext] a context to expand with.
           [extractAllScripts] True to extract all JSON-LD script elements
             from HTML, False to extract just the first.
-          [embed] default @embed flag: '@last', '@always', '@never', '@link'
-            (default: '@last').
+          [embed] default @embed flag: '@once', '@last', '@always', '@never',
+            '@link' (default: '@once').
           [explicit] default @explicit flag (default: False).
           [omitDefault] default @omitDefault flag (default: False).
           [omitGraph] does not use '@graph' at top level unless necessary
