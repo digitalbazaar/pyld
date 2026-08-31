@@ -22,3 +22,6 @@ tests/data/test_caching.json
 
 # Local lock file for uv
 uv.lock
+
+# Codex CLI
+.codex
