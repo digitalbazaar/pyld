@@ -59,24 +59,28 @@ def _cli_cache_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
 
 def test_get_local_file(person_file: Path):
+    """`pyld get` prints a local JSON-LD file as JSON."""
     result = runner.invoke(cli.pyld, ['get', str(person_file)])
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout) == PERSON
 
 
 def test_get_from_stdin():
+    """`pyld get -` reads JSON-LD from standard input and prints it."""
     result = runner.invoke(cli.pyld, ['get', '-'], input=json.dumps(PERSON))
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout) == PERSON
 
 
 def test_get_requires_input():
+    """`pyld get` without an input argument exits as a usage error."""
     result = runner.invoke(cli.pyld, ['get'])
     assert result.exit_code == 2
     assert 'Missing argument' in result.output
 
 
 def test_get_missing_file_exits_without_traceback(tmp_path: Path, capsys):
+    """A missing get input exits with a traceback hint and no stack trace."""
     missing = tmp_path / 'missing.jsonld'
     with pytest.raises(SystemExit) as exited:
         cli.main(['get', str(missing)])
@@ -103,6 +107,7 @@ def test_traceback_hint_repeats_the_failed_invocation(tmp_path: Path, capsys):
 
 
 def test_expand_local_file(person_file: Path):
+    """`pyld expand` expands a local JSON-LD file."""
     result = runner.invoke(cli.pyld, ['expand', str(person_file)])
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout) == [
@@ -111,6 +116,7 @@ def test_expand_local_file(person_file: Path):
 
 
 def test_expand_from_stdin():
+    """`pyld expand -` expands JSON-LD from standard input."""
     result = runner.invoke(cli.pyld, ['expand', '-'], input=json.dumps(PERSON))
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout) == [
@@ -119,6 +125,7 @@ def test_expand_from_stdin():
 
 
 def test_expand_with_base(tmp_path: Path):
+    """`--base` resolves relative IRIs during expansion."""
     input = {
         '@context': {
             'knows': {'@id': 'http://schema.org/knows', '@type': '@id'},
@@ -141,6 +148,7 @@ def test_expand_with_base(tmp_path: Path):
 
 
 def test_expand_with_context_from_stdin(tmp_path: Path):
+    """`--context -` expands using a context read from standard input."""
     input = {'name': 'Ada Lovelace'}
     input_path = write_json(tmp_path, 'person.jsonld', input)
     result = runner.invoke(
@@ -155,6 +163,7 @@ def test_expand_with_context_from_stdin(tmp_path: Path):
 
 
 def test_expand_with_context_file(tmp_path: Path):
+    """`--context` expands using a context loaded from a local file."""
     context_path = write_json(
         tmp_path,
         'context.jsonld',
@@ -172,6 +181,7 @@ def test_expand_with_context_file(tmp_path: Path):
 
 
 def test_invalid_json_on_stdin_exits_without_traceback(monkeypatch, capsys):
+    """Invalid JSON on stdin exits with a traceback hint and no stack trace."""
     monkeypatch.setattr(sys, 'stdin', io.StringIO('{not-json'))
     with pytest.raises(SystemExit) as exited:
         cli.main(['expand', '-'])
@@ -199,12 +209,14 @@ def test_bare_pyld_prints_help():
 
 
 def test_expand_requires_input():
+    """`pyld expand` without an input argument exits as a usage error."""
     result = runner.invoke(cli.pyld, ['expand'])
     assert result.exit_code == 2
     assert 'Missing argument' in result.output
 
 
 def test_cli_is_jsonld_11_only():
+    """The CLI does not expose `--processing-mode` and rejects `json-ld-1.0`."""
     help_result = runner.invoke(cli.pyld, ['expand', '--help'])
     assert help_result.exit_code == 0
     assert '--processing-mode' not in help_result.stdout
@@ -223,12 +235,14 @@ def test_cli_is_jsonld_11_only():
     ['compact', 'flatten', 'frame', 'to-rdf', 'from-rdf'],
 )
 def test_new_commands_require_input(command: str):
+    """Transformation commands without an input argument exit as a usage error."""
     result = runner.invoke(cli.pyld, [command])
     assert result.exit_code == 2
     assert 'Missing argument' in result.output
 
 
 def test_compact_local_file_with_context_from_stdin(tmp_path: Path):
+    """`pyld compact` compacts a local file using a context from stdin."""
     input_path = write_json(tmp_path, 'person.jsonld', PERSON)
     result = runner.invoke(
         cli.pyld,
@@ -243,6 +257,7 @@ def test_compact_local_file_with_context_from_stdin(tmp_path: Path):
 
 
 def test_compact_from_stdin_with_context_file(tmp_path: Path):
+    """`pyld compact` compacts stdin using a context from a local file."""
     context_path = write_json(tmp_path, 'context.jsonld', {'@context': CONTEXT})
     result = runner.invoke(
         cli.pyld,
@@ -254,6 +269,7 @@ def test_compact_from_stdin_with_context_file(tmp_path: Path):
 
 
 def test_flatten_local_file(person_file: Path):
+    """`pyld flatten` flattens a local JSON-LD file."""
     result = runner.invoke(cli.pyld, ['flatten', str(person_file)])
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout)[0]['http://schema.org/name'] == [
@@ -262,6 +278,7 @@ def test_flatten_local_file(person_file: Path):
 
 
 def test_flatten_with_context_from_stdin(tmp_path: Path):
+    """`pyld flatten --context -` flattens using a context from stdin."""
     input_path = write_json(tmp_path, 'person.jsonld', PERSON)
     result = runner.invoke(
         cli.pyld,
@@ -273,6 +290,7 @@ def test_flatten_with_context_from_stdin(tmp_path: Path):
 
 
 def test_frame_local_file_with_frame_file(tmp_path: Path):
+    """`pyld frame` frames a local document with a local frame file."""
     input_path = write_json(tmp_path, 'person.jsonld', IDENTIFIED_PERSON)
     frame_path = write_json(tmp_path, 'frame.jsonld', FRAME)
     result = runner.invoke(
@@ -284,6 +302,7 @@ def test_frame_local_file_with_frame_file(tmp_path: Path):
 
 
 def test_frame_with_frame_from_stdin(tmp_path: Path):
+    """`pyld frame` frames a local document with a frame from stdin."""
     input_path = write_json(tmp_path, 'person.jsonld', IDENTIFIED_PERSON)
     result = runner.invoke(
         cli.pyld,
@@ -307,6 +326,7 @@ def test_frame_with_frame_from_stdin(tmp_path: Path):
     ],
 )
 def test_multiple_operands_reject_stdin(command: str, secondary: str):
+    """Commands reject using standard input for more than one operand."""
     args = [command, '-']
     if command in ('compact', 'frame') and not secondary.startswith('--'):
         args.append(secondary)
@@ -320,6 +340,7 @@ def test_multiple_operands_reject_stdin(command: str, secondary: str):
 
 
 def test_to_rdf_local_file_writes_exact_nquads(tmp_path: Path):
+    """`pyld to-rdf` writes exact N-Quads for a local JSON-LD file."""
     input_path = write_json(tmp_path, 'person.jsonld', IDENTIFIED_PERSON)
     result = runner.invoke(cli.pyld, ['to-rdf', str(input_path)])
     assert result.exit_code == 0, result.output
@@ -328,6 +349,7 @@ def test_to_rdf_local_file_writes_exact_nquads(tmp_path: Path):
 
 
 def test_to_rdf_from_stdin_writes_exact_nquads():
+    """`pyld to-rdf -` writes exact N-Quads from standard input."""
     result = runner.invoke(
         cli.pyld,
         ['to-rdf', '-'],
@@ -338,6 +360,7 @@ def test_to_rdf_from_stdin_writes_exact_nquads():
 
 
 def test_from_rdf_local_file(tmp_path: Path):
+    """`pyld from-rdf` converts a local N-Quads file to JSON-LD."""
     input_path = write_text(tmp_path, 'person.nq', NQUADS)
     result = runner.invoke(cli.pyld, ['from-rdf', str(input_path)])
     assert result.exit_code == 0, result.output
@@ -350,12 +373,14 @@ def test_from_rdf_local_file(tmp_path: Path):
 
 
 def test_from_rdf_from_stdin():
+    """`pyld from-rdf -` converts N-Quads from standard input to JSON-LD."""
     result = runner.invoke(cli.pyld, ['from-rdf', '-'], input=NQUADS)
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout)[0]['@id'] == 'http://example.com/ada'
 
 
 def test_from_rdf_rejects_remote_input():
+    """`pyld from-rdf` rejects remote URLs and requires a local path or `-`."""
     result = runner.invoke(
         cli.pyld,
         ['from-rdf', 'https://example.com/person.nq'],
@@ -365,6 +390,7 @@ def test_from_rdf_rejects_remote_input():
 
 
 def test_from_rdf_help_describes_only_local_input():
+    """`from-rdf --help` describes local path or stdin input only."""
     result = runner.invoke(cli.pyld, ['from-rdf', '--help'])
     assert result.exit_code == 0, result.output
     assert 'Local path. Pass - to read from standard input.' in result.stdout
@@ -372,6 +398,7 @@ def test_from_rdf_help_describes_only_local_input():
 
 
 def test_print_nquads_preserves_empty_output(monkeypatch: pytest.MonkeyPatch):
+    """Empty N-Quads output is printed without adding a trailing newline."""
     monkeypatch.setattr(jsonld, 'to_rdf', lambda *args, **kwargs: '')
     result = runner.invoke(cli.pyld, ['to-rdf', '-'], input=json.dumps(PERSON))
     assert result.exit_code == 0, result.output
@@ -500,6 +527,7 @@ def test_command_options_are_mapped_to_api_keys(
     function_name: str,
     expected: dict,
 ):
+    """CLI flags are mapped to the corresponding JSON-LD API option keys."""
     captured = {}
 
     def transform(*positional, options):
@@ -537,6 +565,7 @@ def test_omitted_cli_options_do_not_override_api_defaults(
     function_name: str,
     forced_keys: set[str],
 ):
+    """Omitted CLI flags leave API defaults unset except forced keys."""
     captured = {}
 
     def transform(*positional, options):
@@ -584,6 +613,7 @@ def test_jsonld_commands_preserve_remote_input_urls(
     args: list[str],
     function_name: str,
 ):
+    """Remote input URLs are passed through to the JSON-LD API unchanged."""
     captured = {}
 
     def transform(input_, *positional, options):
@@ -604,14 +634,17 @@ def test_jsonld_commands_preserve_remote_input_urls(
     ],
 )
 def test_document_value_preserves_remote_urls(value: str):
+    """`document_value` leaves remote URLs unchanged."""
     assert cli_input.document_value(value) == value
 
 
 def test_document_value_treats_inline_json_as_a_path():
+    """`document_value` treats inline JSON text as a local path."""
     assert cli_input.document_value('{}') == Path('{}').resolve().as_uri()
 
 
 def test_missing_nquads_file_exits_without_traceback(tmp_path: Path, capsys):
+    """A missing from-rdf input exits with a traceback hint and no stack trace."""
     missing = tmp_path / 'missing.nq'
     with pytest.raises(SystemExit) as exited:
         cli.main(['from-rdf', str(missing)])
@@ -622,6 +655,7 @@ def test_missing_nquads_file_exits_without_traceback(tmp_path: Path, capsys):
 
 
 def test_invalid_nquads_exits_without_traceback(monkeypatch, capsys):
+    """Invalid N-Quads on stdin exits with a traceback hint and no stack trace."""
     monkeypatch.setattr(sys, 'stdin', io.StringIO('not n-quads'))
     with pytest.raises(SystemExit) as exited:
         cli.main(['from-rdf', '-'])
@@ -632,6 +666,7 @@ def test_invalid_nquads_exits_without_traceback(monkeypatch, capsys):
 
 
 def test_cache_clear(tmp_path: Path):
+    """`pyld cache clear` deletes the configured HTTP cache file."""
     cache_file = tmp_path / 'http_cache.sqlite'
     cache_file.write_text('cache', encoding='utf-8')
     result = runner.invoke(cli.pyld, ['cache', 'clear'])
@@ -641,6 +676,7 @@ def test_cache_clear(tmp_path: Path):
 
 
 def test_cache_clear_uses_env_var_cache_file(tmp_path: Path):
+    """`cache clear` deletes the cache file named by `PYLD_CACHE_FILE`."""
     cache_file = tmp_path / 'http_cache.sqlite'
     cache_file.write_text('cache', encoding='utf-8')
     result = runner.invoke(cli.pyld, ['cache', 'clear'])
@@ -652,6 +688,7 @@ def test_cache_file_option_overrides_env_var(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
+    """`--cache-file` overrides `PYLD_CACHE_FILE` for cache clear."""
     env_cache = tmp_path / 'from-env.sqlite'
     option_cache = tmp_path / 'from-option.sqlite'
     env_cache.write_text('env', encoding='utf-8')
@@ -669,6 +706,7 @@ def test_cache_file_option_overrides_env_var(
 def test_parse_location_treats_windows_drive_as_path(
     monkeypatch: pytest.MonkeyPatch,
 ):
+    """On Windows, drive-letter paths are treated as filesystem paths."""
     monkeypatch.setattr(cli_input.sys, 'platform', 'win32')
     for path in (
         r'C:\Users\ada\doc.jsonld',
@@ -682,17 +720,20 @@ def test_parse_location_treats_windows_drive_as_path(
 def test_parse_location_preserves_single_letter_scheme_outside_windows(
     monkeypatch: pytest.MonkeyPatch,
 ):
+    """Outside Windows, a single-letter scheme is left as a URL."""
     monkeypatch.setattr(cli_input.sys, 'platform', 'linux')
     assert cli_input.parse_location('x:document') == 'x:document'
 
 
 def test_parse_location_preserves_http_urls():
+    """`parse_location` leaves HTTP(S) URLs unchanged."""
     assert cli_input.parse_location('https://example.com/x.jsonld') == (
         'https://example.com/x.jsonld'
     )
 
 
 def test_parse_location_resolves_local_path(tmp_path: Path):
+    """`parse_location` resolves a local path to an absolute Path."""
     path = write_json(tmp_path, 'person.jsonld', {})
     result = cli_input.parse_location(str(path))
     assert result == path.resolve()
@@ -700,11 +741,13 @@ def test_parse_location_resolves_local_path(tmp_path: Path):
 
 
 def test_document_url_converts_local_path_to_file_url(tmp_path: Path):
+    """`document_url` converts a local path to a file: URL."""
     path = write_json(tmp_path, 'person.jsonld', {})
     assert cli_input.document_url(str(path)) == path.as_uri()
 
 
 def test_document_url_preserves_http_url():
+    """`document_url` leaves HTTP(S) URLs unchanged."""
     assert cli_input.document_url('https://example.com/x.jsonld') == (
         'https://example.com/x.jsonld'
     )
@@ -714,6 +757,7 @@ def test_configured_cache_file_resolves_relative_path(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
+    """`configured_cache_file` resolves a relative cache path against cwd."""
     monkeypatch.chdir(tmp_path)
     cli_state.current = State(cache_file=Path('rel.sqlite'))
     assert cli_input.configured_cache_file() == (tmp_path / 'rel.sqlite').resolve()
@@ -734,6 +778,7 @@ def test_cli_entry_exits_when_cli_deps_missing(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ):
+    """Missing CLI dependencies exit with an install hint for `PyLD[cli]`."""
     from pyld.cli import entry
 
     def fail():
