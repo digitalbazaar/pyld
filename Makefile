@@ -29,8 +29,8 @@ docs-build:
 	mkdocs build --strict
 
 docs-serve:
-	mike serve --dev-addr 127.0.0.1:$(PORT) --remote $(DOCS_DEPLOY_REMOTE) --branch $(DOCS_DEPLOY_BRANCH) $(MIKE_FLAGS)
-
+	mkdocs serve --dev-addr 127.0.0.1:$(PORT)
+	
 docs-deploy:
 	@test -n "$(VERSION)" || (echo "VERSION is required, e.g. VERSION=3.2 make docs-deploy"; exit 1)
 	@if [ -n "$(GIT_REF)" ]; then \
