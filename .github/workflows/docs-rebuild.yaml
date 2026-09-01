@@ -8,6 +8,11 @@ on:
         required: true
         default: true
         type: boolean
+      continue_on_failed_tags:
+        description: Ignore failed tags and publish successfully rebuilt docs
+        required: true
+        default: true
+        type: boolean
 
 permissions: {}
 
@@ -33,6 +38,7 @@ jobs:
     env:
       DOCS_DEPLOY_BRANCH: docs-rebuild
       INCLUDE_DEV: ${{ inputs.include_dev }}
+      CONTINUE_ON_FAILED_TAGS: ${{ inputs.continue_on_failed_tags }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -57,21 +63,41 @@ jobs:
           git update-ref "refs/heads/$DOCS_DEPLOY_BRANCH" "$rebuild_commit"
 
           mapfile -t release_tags < <(git tag --list 'v*' --sort=version:refname)
+          failed_tags=()
+          latest_successful_version=
 
           if [ "${#release_tags[@]}" -gt 0 ]; then
-            latest_tag="${release_tags[${#release_tags[@]} - 1]}"
-
             for tag in "${release_tags[@]}"; do
               version="${tag#v}"
-              aliases=
-              if [ "$tag" = "$latest_tag" ]; then
-                aliases=latest
-              fi
 
-              make docs-deploy VERSION="$version" GIT_REF="$tag" ALIASES="$aliases"
+              # Use the current checkout's Makefile; GIT_REF selects the old
+              # source tree to render, even if that tag predates docs-deploy.
+              if make docs-deploy VERSION="$version" GIT_REF="$tag"; then
+                latest_successful_version="$version"
+              else
+                if [ "$CONTINUE_ON_FAILED_TAGS" != "true" ]; then
+                  exit 1
+                fi
+
+                failed_tags+=("$tag")
+              fi
             done
 
-            make docs-set-default DEFAULT_VERSION=latest
+            if [ "${#failed_tags[@]}" -gt 0 ]; then
+              printf 'Skipped documentation tags:\n'
+              printf '  %s\n' "${failed_tags[@]}"
+            fi
+
+            if [ -n "$latest_successful_version" ]; then
+              mike alias \
+                --update-aliases \
+                --alias-type=copy \
+                --remote origin \
+                --branch "$DOCS_DEPLOY_BRANCH" \
+                "$latest_successful_version" \
+                latest
+              make docs-set-default DEFAULT_VERSION=latest
+            fi
           fi
 
           if [ "$INCLUDE_DEV" = "true" ]; then
