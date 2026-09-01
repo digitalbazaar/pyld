@@ -16,6 +16,8 @@ Want to contribute to PyLD? Great! Here are a few notes:
 
 ## Documentation
 
+### Building and serving docs
+
 The public documentation site is built with MkDocs Material.
 
 * Install documentation dependencies:
@@ -30,7 +32,9 @@ The public documentation site is built with MkDocs Material.
 
   * `make docs-serve` (override port with `PORT=8008 make docs-serve`)
 
-* Deploy a version of the documentation (with
+### Versioning docs
+
+Deploy a version of the documentation (with
   [mike](https://github.com/jimporter/mike)):
 
   * `VERSION=3.2 ALIASES=latest PUSH=1 make docs-deploy`
@@ -47,13 +51,25 @@ documentation version. Pushing a `v*` release tag publishes that release
 version, updates the `latest` docs alias, and keeps `latest` as the default
 documentation version.
 
+### Rebuilding the documentation
+
 Use the manual "Rebuild documentation" GitHub Actions workflow to rebuild the
 full documentation site from scratch. It rebuilds every `v*` release tag into a
 versioned docs entry, marks the newest release as `latest`, sets `latest` as
 the default version, optionally rebuilds current `master` as `dev`, then
 replaces the `gh-pages` docs store and deploys the rebuilt Pages artifact. This
 is useful when older release docs need to be generated retroactively or when
-the rendered docs store needs to be recreated.
+the rendered docs store needs to be recreated. 
+
+The workflow uses the current
+`master` Makefile for the rebuild and passes each older tag through `GIT_REF`,
+so the historical tags do not need to contain the `docs-deploy` target.
+Enable the workflow's `continue_on_failed_tags` option to try every release tag
+and print a summary of tags whose docs failed to build; successful docs are
+still published, and `latest` points to the newest release tag that rebuilt
+successfully.
+
+### Bundled JSON-LD contexts
 
 * Refresh bundled JSON-LD context files:
 
