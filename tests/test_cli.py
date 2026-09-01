@@ -32,7 +32,7 @@ FRAME = {
 }
 NQUADS = (
     '<http://example.com/ada> '
-    '<http://schema.org/name> "Ada Lovelace" .\n'
+    '<http://schema.org/name> "Ada Lovelace"^^<http://www.w3.org/2001/XMLSchema#string>  .\n\n'
 )
 
 
