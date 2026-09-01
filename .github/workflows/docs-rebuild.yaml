@@ -1,0 +1,100 @@
+name: Rebuild documentation
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_dev:
+        description: Publish current master as the moving dev docs version
+        required: true
+        default: true
+        type: boolean
+
+permissions: {}
+
+concurrency:
+  # Versioned docs update the same Git branch and Pages deployment, so publish
+  # jobs must run one at a time. Do not cancel queued release-tag deploys.
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      # `mike` stores the complete versioned site on `gh-pages`.
+      contents: write
+      # GitHub Pages still publishes from this workflow's uploaded artifact.
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      DOCS_DEPLOY_BRANCH: docs-rebuild
+      INCLUDE_DEV: ${{ inputs.include_dev }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: master
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.14'
+      - name: Install documentation dependencies
+        run: make docs-install
+      - name: Configure git identity
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+      - name: Rebuild documentation versions
+        run: |
+          git fetch --force --tags origin 'refs/tags/v*:refs/tags/v*'
+
+          empty_tree="$(git mktree </dev/null)"
+          rebuild_commit="$(git commit-tree "$empty_tree" -m "Rebuild documentation")"
+          git update-ref "refs/heads/$DOCS_DEPLOY_BRANCH" "$rebuild_commit"
+
+          mapfile -t release_tags < <(git tag --list 'v*' --sort=version:refname)
+
+          if [ "${#release_tags[@]}" -gt 0 ]; then
+            latest_tag="${release_tags[${#release_tags[@]} - 1]}"
+
+            for tag in "${release_tags[@]}"; do
+              version="${tag#v}"
+              aliases=
+              if [ "$tag" = "$latest_tag" ]; then
+                aliases=latest
+              fi
+
+              make docs-deploy VERSION="$version" GIT_REF="$tag" ALIASES="$aliases"
+            done
+
+            make docs-set-default DEFAULT_VERSION=latest
+          fi
+
+          if [ "$INCLUDE_DEV" = "true" ]; then
+            git checkout --detach origin/master
+            make docs-deploy VERSION=dev
+          fi
+
+          make docs-export
+        env:
+          # Fetch through git without writing the token into .git/config.
+          GIT_CONFIG_COUNT: 1
+          GIT_CONFIG_KEY_0: http.https://github.com/.extraheader
+          GIT_CONFIG_VALUE_0: "AUTHORIZATION: bearer ${{ github.token }}"
+      - name: Push rebuilt documentation branch
+        run: git push --force origin "refs/heads/$DOCS_DEPLOY_BRANCH:refs/heads/gh-pages"
+        env:
+          # Push through git without writing the token into .git/config.
+          GIT_CONFIG_COUNT: 1
+          GIT_CONFIG_KEY_0: http.https://github.com/.extraheader
+          GIT_CONFIG_VALUE_0: "AUTHORIZATION: bearer ${{ github.token }}"
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+        with:
+          path: site-versioned
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5

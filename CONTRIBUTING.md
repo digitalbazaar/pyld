@@ -47,6 +47,14 @@ documentation version. Pushing a `v*` release tag publishes that release
 version, updates the `latest` docs alias, and keeps `latest` as the default
 documentation version.
 
+Use the manual "Rebuild documentation" GitHub Actions workflow to rebuild the
+full documentation site from scratch. It rebuilds every `v*` release tag into a
+versioned docs entry, marks the newest release as `latest`, sets `latest` as
+the default version, optionally rebuilds current `master` as `dev`, then
+replaces the `gh-pages` docs store and deploys the rebuilt Pages artifact. This
+is useful when older release docs need to be generated retroactively or when
+the rendered docs store needs to be recreated.
+
 * Refresh bundled JSON-LD context files:
 
   * `make download-bundled-contexts`
