@@ -20,9 +20,9 @@ concurrency:
 
 jobs:
   build:
-    # Release tags are published by the deploy job. This job keeps PR and master
-    # docs checks fast without building the same tag twice.
-    if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+    # Pushes are published by the deploy job. This job keeps PR docs checks fast
+    # without building the same commit twice.
+    if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -55,9 +55,9 @@ jobs:
           make docs-export
 
   deploy:
-    # Only release tags publish docs. A master push validates docs but must not
-    # move the `latest` alias or default version.
-    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+    # Release tags publish stable docs. Master publishes the moving `dev`
+    # version without moving the `latest` alias or default version.
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -87,11 +87,17 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
       - name: Build and export documentation version
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          # Build this tag into the version store, mark it as the only `latest`,
-          # then export the full versioned site for GitHub Actions Pages.
-          make docs-deploy VERSION="$VERSION" ALIASES=latest
-          make docs-set-default DEFAULT_VERSION=latest PUSH=1
+          if [ "$GITHUB_REF" = "refs/heads/master" ]; then
+            # Publish current master as moving development docs only.
+            make docs-deploy VERSION=dev PUSH=1
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+            # Build this tag into the version store, mark it as the only `latest`,
+            # then export the full versioned site for GitHub Actions Pages.
+            make docs-deploy VERSION="$VERSION" ALIASES=latest
+            make docs-set-default DEFAULT_VERSION=latest PUSH=1
+          fi
+
           make docs-export
         env:
           # Let `mike` push through git without writing the token into .git/config.

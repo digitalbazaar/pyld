@@ -26,12 +26,12 @@ The public documentation site is built with MkDocs Material.
 
   * `make docs-build`
 
-* Preview documentation locally (with
-  [mike](https://github.com/jimporter/mike)):
+* Preview documentation locally:
 
   * `make docs-serve` (override port with `PORT=8008 make docs-serve`)
 
-* Deploy a version of the documentation:
+* Deploy a version of the documentation (with
+  [mike](https://github.com/jimporter/mike)):
 
   * `VERSION=3.2 ALIASES=latest PUSH=1 make docs-deploy`
   * `VERSION=3.1 GIT_REF=v3.1.0 make docs-deploy`
@@ -41,6 +41,11 @@ The public documentation site is built with MkDocs Material.
 The GitHub Pages source is GitHub Actions. The `gh-pages` branch is still used
 by `mike` to store all rendered documentation versions, then the workflow
 exports that branch and deploys it with `actions/deploy-pages`.
+
+Pushing to `master` publishes the current branch as the moving `dev`
+documentation version. Pushing a `v*` release tag publishes that release
+version, updates the `latest` docs alias, and keeps `latest` as the default
+documentation version.
 
 * Refresh bundled JSON-LD context files:
 
