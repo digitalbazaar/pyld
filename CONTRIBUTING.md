@@ -56,10 +56,12 @@ exports that branch and deploys it with `actions/deploy-pages`.
 * commit changes
 * `$EDITOR lib/pyld/__about__.py`: update to release version and remove `-dev` suffix.
 * `git commit CHANGELOG.md lib/pyld/__about__.py -m "Release {version}."`
-* `git tag {version}`
+* `git tag v{version}`. Release tags must use the `v` prefix because the
+  documentation publish workflow only runs for `v*` tags.
 * `$EDITOR lib/pyld/__about__.py`: update to next version and add `-dev` suffix.
 * `git commit lib/pyld/__about__.py -m "Start {next-version}."`
-* `git push --tags`
+* `git push origin v{version}`. This deploys the versioned documentation site
+  and updates the `latest` docs alias.
 
 To ensure a clean [package](https://pypi.org/project/PyLD/) upload to [PyPI](https://pypi.org/),
 use a clean checkout, and run the following:
@@ -72,7 +74,7 @@ use a clean checkout, and run the following:
   for use in the upload command.
 * The below builds and uploads a sdist and wheel. Adjust as needed depending
   on how you manage and clean "dist/" dir files.
-* `git checkout {version}`
+* `git checkout v{version}`
 * `python3 -m build`
 * `twine check dist/*`
 * `twine upload -r PyLD dist/*`
