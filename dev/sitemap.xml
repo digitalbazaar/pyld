@@ -13,6 +13,10 @@
          <lastmod>2026-09-02</lastmod>
     </url>
     <url>
+         <loc>https://digitalbazaar.github.io/pyld/dev/whats-new-version-4/</loc>
+         <lastmod>2026-09-02</lastmod>
+    </url>
+    <url>
          <loc>https://digitalbazaar.github.io/pyld/dev/cli/</loc>
          <lastmod>2026-09-02</lastmod>
     </url>
@@ -126,6 +130,26 @@
     </url>
     <url>
          <loc>https://digitalbazaar.github.io/pyld/dev/reference/document-loaders/type-directed/</loc>
+         <lastmod>2026-09-02</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/dev/tutorials/</loc>
+         <lastmod>2026-09-02</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/dev/tutorials/document-loader-caching/</loc>
+         <lastmod>2026-09-02</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/dev/tutorials/inject-context/</loc>
+         <lastmod>2026-09-02</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/dev/tutorials/open-jsonld-file/</loc>
+         <lastmod>2026-09-02</lastmod>
+    </url>
+    <url>
+         <loc>https://digitalbazaar.github.io/pyld/dev/tutorials/rdflib-processing/</loc>
          <lastmod>2026-09-02</lastmod>
     </url>
 </urlset>
