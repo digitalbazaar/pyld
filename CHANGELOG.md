@@ -1,6 +1,6 @@
 # pyld ChangeLog
 
-## 3.3.0 - unreleased
+## 3.3.0 - 2026-09-02
 
 ### Added
 - `pyld.FileDocumentLoader`: a document loader for local `file:` URLs with optional root confinement.
