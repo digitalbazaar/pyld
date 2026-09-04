@@ -30,6 +30,7 @@ theme:
 
 markdown_extensions:
   - admonition
+  - abbr
   - attr_list
   - md_in_html
   - pymdownx.details
@@ -38,6 +39,10 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.highlight:
       anchor_linenums: true
+  - pymdownx.snippets:
+      base_path:
+        - docs
+      check_paths: true
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
