@@ -51,3 +51,13 @@ class IdentifierIssuer:
           False if not.
         """
         return old in self.existing
+
+    def copy(self):
+        """
+        Return a copy of this issuer with the same prefix and issued IDs.
+        """
+        issuer = IdentifierIssuer(self.prefix)
+        issuer.counter = self.counter
+        issuer.existing = self.existing.copy()
+        issuer.order = self.order.copy()
+        return issuer
