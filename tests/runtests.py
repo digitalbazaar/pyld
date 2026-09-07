@@ -293,7 +293,10 @@ class Manifest:
             # don't add tests that are not focused
 
             # assume entry is a test
-            elif not ONLY_IDENTIFIER or ONLY_IDENTIFIER in entry['@id']:
+            elif not ONLY_IDENTIFIER or ONLY_IDENTIFIER in entry.get(
+                '@id',
+                entry.get('id', ''),
+            ):
                 self.suite.addTest(Test(self, entry, filename))
 
             # For simple test entries we construct a `Test` object which
@@ -318,7 +321,10 @@ class Test(unittest.TestCase):
         self.filename = filename
         self.dirname = os.path.dirname(filename)
         self.is_positive = is_jsonld_type(data, 'jld:PositiveEvaluationTest')
-        self.is_negative = is_jsonld_type(data, 'jld:NegativeEvaluationTest')
+        self.accept_any_error = is_jsonld_type(data, 'rdfc:RDFC10NegativeEvalTest')
+        self.is_negative = is_jsonld_type(data, 'jld:NegativeEvaluationTest') or (
+            self.accept_any_error
+        )
         self.is_syntax = is_jsonld_type(data, 'jld:PositiveSyntaxTest')
         self.test_type = None
         self.pending = False
@@ -430,7 +436,11 @@ class Test(unittest.TestCase):
         params = [param(self) for param in params]
         result = None
         if self.is_negative:
-            expect = data[self._get_expect_error_code_property()]
+            expect = (
+                None
+                if self.accept_any_error
+                else data[self._get_expect_error_code_property()]
+            )
         elif self.is_syntax:
             expect = None
         else:
@@ -522,7 +532,9 @@ class Test(unittest.TestCase):
                 print('pending')
             else:
                 # import pdb; pdb.set_trace()
-                if _running_under_pytest():
+                if self.accept_any_error:
+                    self.assertTrue(True)
+                elif _running_under_pytest():
                     assert result == expect
                 else:
                     assert_results_equal(result, expect)
@@ -1086,9 +1098,22 @@ TEST_TYPES = {
             create_test_options({
                 'algorithm': 'RDFC10',
                 'inputFormat': 'application/n-quads',
-                'format': 'application/n-quads'
+                'format': 'application/n-quads',
             })
-        ]
+        ],
+    },
+    'rdfc:RDFC10NegativeEvalTest': {
+        'pending': {},
+        'skip': {},
+        'fn': 'normalize',
+        'params': [
+            read_test_property('action'),
+            create_test_options({
+                'algorithm': 'RDFC10',
+                'inputFormat': 'application/n-quads',
+                'format': 'application/n-quads',
+            })
+        ],
     },
     'rdfc:RDFC10MapTest': {
         'pending': {},
@@ -1100,10 +1125,10 @@ TEST_TYPES = {
                 'algorithm': 'RDFC10',
                 'inputFormat': 'application/n-quads',
                 'format': 'application/n-quads',
-                'outputMap': True
+                'outputMap': True,
             })
-        ]
-    }
+        ],
+    },
 }
 
 
