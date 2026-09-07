@@ -1,4 +1,3 @@
-import copy
 import hashlib
 
 import rdflib
@@ -24,6 +23,8 @@ class URDNA2015:
         self.dataset = None
         self.POSITIONS = ['s', 'p', 'o', 'g']
         self.hash_algorithm = hashlib.sha256
+        self.max_permutations = 100000
+        self.permutations = 0
 
     # 4.4) Normalization Algorithm
     def main(self, dataset: str | dict | Dataset, options) -> str | dict:
@@ -52,6 +53,12 @@ class URDNA2015:
             rdflib_dataset = dataset
         else:
             raise ValueError(f'Unsupported dataset type: {type(dataset)}')
+
+        self.max_permutations = options.get(
+            'maxPermutations',
+            self.max_permutations,
+        )
+        self.permutations = 0
 
         normalized, bnode_map = self._canonicalize(rdflib_dataset)
 
@@ -343,7 +350,22 @@ class URDNA2015:
             # 5.4) For each permutation of blank node list:
             for permutation in permutations(blank_nodes):
                 # 5.4.1) Create a copy of issuer, issuer copy.
-                issuer_copy = copy.deepcopy(issuer)
+                self.permutations += 1
+                if (
+                    self.max_permutations is not None
+                    and self.permutations
+                    > self.max_permutations
+                ):
+                    raise CanonicalizationError(
+                        'Maximum canonicalization permutations exceeded.',
+                        code='maximum canonicalization work exceeded',
+                        details={
+                            'maxCanonicalizationPermutations': (
+                                self.max_permutations
+                            )
+                        },
+                    )
+                issuer_copy = issuer.copy()
 
                 # 5.4.2) Create a string path.
                 path = ''
@@ -657,3 +679,17 @@ class UnknownFormatError(ValueError):
     def __init__(self, message, format):
         Exception.__init__(self, message)
         self.format = format
+
+
+class CanonicalizationError(ValueError):
+    """
+    Base class for RDF canonicalization errors.
+    """
+
+    def __init__(self, message, code=None, details=None):
+        """
+        Initialize an RDF canonicalization error.
+        """
+        Exception.__init__(self, message)
+        self.code = code
+        self.details = details
