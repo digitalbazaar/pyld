@@ -168,6 +168,9 @@ class NormalizeOptions(ProcessingOptions, total=False):
     outputMap: bool
     """`True` to return a blank node identifier map instead of the normalized dataset (default: `False`)."""
 
+    maxPermutations: int | None
+    """Maximum `Hash N-Degree Quads` permutations before aborting canonicalization to prevent dataset poisoning, or `None` for no limit (default: `100000`)."""
+
 
 class ToRdfOptions(ProcessingOptions, total=False):
     documentLoader: DocumentLoader | DocumentLoaderCallable

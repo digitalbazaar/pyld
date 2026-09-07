@@ -14,6 +14,7 @@
   - Added the RDFC1.0 test-suite in `tests/runtests.py`
     - Added support for testing blank-node identifier maps. 
     - Added support for testing with different hashing algorithms
+- Added `maxPermutations` option to `jsonld.normalize()`. When exceeded, normalization raises `JsonLdError` with code `maximum canonicalization work exceeded`. Fixes test074c with respect to dataset poisoning
 
 ### Removed
 
@@ -49,6 +50,7 @@
       - a `dict`: the result as RDFJS-like dataset or the blank node identifier map when the new parameter `outputMap` is `True`.
   - The hashing algorithm is now an class attribute `URDNA2015.hash_algorithm` so it  configurable (required for RDFC1.0)
   - The `permutations()` function now uses `itertools.permutations` instead of a custom implementation.
+  - Added `IdentifierIssuer.copy()` and replaced `copy.deepcopy(issuer)` in `canon.py` to lower generic copy overhead in the hot permutation loop.
   - Replacements for rdflib's `_nq_row` and `_quoteLiteral` (these should eventually move to a fix for rdflib's nquads serializer).
   - Re-enabled all skipped URDNA2015, URDNA2012 tests in `tests/runtests.py`
 - If the result of a test is a dict and the expected value is a string, the expected value is now parsed as JSON (needed for testing blank-node identifier maps).
