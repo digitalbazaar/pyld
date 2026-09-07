@@ -39,7 +39,13 @@ from rdflib.term import Identifier, _is_valid_uri
 
 from c14n.Canonicalize import canonicalize
 from pyld.__about__ import __copyright__, __license__, __version__
-from pyld.canon import RDFC10, URDNA2015, URGNA2012, UnknownFormatError
+from pyld.canon import (
+    RDFC10,
+    URDNA2015,
+    URGNA2012,
+    CanonicalizationError,
+    UnknownFormatError,
+)
 from pyld.context_resolver import ContextResolver
 from pyld.identifier_issuer import IdentifierIssuer
 from pyld.iri_resolver import resolve, unresolve
@@ -935,6 +941,13 @@ class JsonLdProcessor:
 
         try:
             return algorithm.main(dataset, options)
+        except CanonicalizationError as cause:
+            raise JsonLdError(
+                str(cause),
+                'jsonld.NormalizeError',
+                cause.details,
+                code=cause.code,
+            ) from cause
         except UnknownFormatError as cause:
             raise JsonLdError(
                 str(cause),
