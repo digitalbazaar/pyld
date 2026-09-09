@@ -14,7 +14,7 @@
   - Added the RDFC1.0 test-suite in `tests/runtests.py`
     - Added support for testing blank-node identifier maps. 
     - Added support for testing with different hashing algorithms
-- Added `maxPermutations` option to `jsonld.normalize()`. When exceeded, normalization raises `JsonLdError` with code `maximum canonicalization work exceeded`. Fixes test074c with respect to dataset poisoning
+- **BREAKING**: Added `maxPermutations` option to `jsonld.normalize()` (default: 10000). When exceeded, normalization raises `JsonLdError` with code `maximum canonicalization work exceeded`. Fixes test074c with respect to dataset poisoning
 
 ### Removed
 
