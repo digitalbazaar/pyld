@@ -3536,7 +3536,8 @@ class JsonLdProcessor:
                         code='invalid context entry',
                     )
                 if value is None:
-                    del rval['@direction']
+                    # mirror JS `delete`: a no-op when no direction is set
+                    rval.pop('@direction', None)
                 elif value != 'ltr' and value != 'rtl':
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; @direction value must be null, "ltr", or "rtl".',
@@ -6310,6 +6311,8 @@ class JsonLdProcessor:
             child['previousContext'] = active_ctx['previousContext']
         if '@language' in active_ctx:
             child['@language'] = active_ctx['@language']
+        if '@direction' in active_ctx:
+            child['@direction'] = active_ctx['@direction']
         if '@vocab' in active_ctx:
             child['@vocab'] = active_ctx['@vocab']
         return child
