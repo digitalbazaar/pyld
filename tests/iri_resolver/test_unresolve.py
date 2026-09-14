@@ -2,8 +2,6 @@ import pytest
 
 from pyld.iri_resolver import unresolve
 
-# Tests ported from relative-to-absolute-iri.js: https://github.com/rubensworks/relative-to-absolute-iri.js/blob/master/test/Resolve-test.ts
-# (c) Ruben Taelman <stevenlevithan.com>
 
 
 # ---------- Tests for unresolve() ----------
