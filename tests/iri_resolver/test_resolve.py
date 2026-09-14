@@ -3,7 +3,7 @@ import pytest
 from pyld.iri_resolver import resolve
 
 # Tests ported from relative-to-absolute-iri.js: https://github.com/rubensworks/relative-to-absolute-iri.js/blob/master/test/Resolve-test.ts
-# (c) Ruben Taelman <stevenlevithan.com>
+# (c) Ruben Taelman <https://www.rubensworks.net>
 
 
 # ---------- Tests for resolve() ----------
