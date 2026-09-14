@@ -16,12 +16,11 @@ def test_double_and_float_values():
         ],
     }
 
-    expected = (
-        '<ex:1> <ex:p> "4.5E1"'
-        "^^<http://www.w3.org/2001/XMLSchema#double>  .\n\n"
-    )
-    result = jsonld.to_rdf(input, {"format": "application/n-quads"})
-    assert result == expected
+    expected = """<ex:1> <ex:p> "4.5E1"^^<http://www.w3.org/2001/XMLSchema#double>  .
+
+"""
+    nquads = jsonld.to_rdf(input, {"format": "application/n-quads"})
+    assert nquads == expected
 
 def test_legacy_mode():
     """
@@ -61,13 +60,14 @@ def test_format_takes_precedence_over_legacy_mode():
         ],
     }
 
-    assert jsonld.to_rdf(
+    expected = """<ex:1> <ex:p> "4.5E1"^^<http://www.w3.org/2001/XMLSchema#double>  .
+
+"""
+    nquads = jsonld.to_rdf(
         input,
         {"format": "application/n-quads", "legacyMode": True},
-    ) == (
-        '<ex:1> <ex:p> "4.5E1"'
-        "^^<http://www.w3.org/2001/XMLSchema#double>  .\n\n"
     )
+    assert nquads == expected
 
 def test_to_rdf_skips_relative_vocab_property_that_expands_to_invalid_iri():
     """
@@ -107,10 +107,10 @@ def test_large_integer_to_rdf_double_conversion_processing_mode():
     }
 
     nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
-    assert nquads == (
-        '<http://example.com/s> <http://example.com/p> '
-        '"1.0E21"^^<http://www.w3.org/2001/XMLSchema#double>  .\n\n'
-    )
+    expected = """<http://example.com/s> <http://example.com/p> "1.0E21"^^<http://www.w3.org/2001/XMLSchema#double>  .
+
+"""
+    assert nquads == expected
 
     nquads = jsonld.to_rdf(
         input,
@@ -119,11 +119,10 @@ def test_large_integer_to_rdf_double_conversion_processing_mode():
             'processingMode': 'json-ld-1.0',
         },
     )
-    assert nquads == (
-        '<http://example.com/s> <http://example.com/p> '
-        '"1000000000000000000000"'
-        '^^<http://www.w3.org/2001/XMLSchema#integer>  .\n\n'
-    )
+    expected = """<http://example.com/s> <http://example.com/p> "1000000000000000000000"^^<http://www.w3.org/2001/XMLSchema#integer>  .
+
+"""
+    assert nquads == expected
 
 def test_to_rdf_uses_identifier_issuer_option():
     input = {'http://example.org/p': [{'@list': ['a', 'b']}]}
@@ -280,7 +279,9 @@ def test_fractional():
     """
     input = { "ex:value": 42.0 }
 
-    expected = '_:b0 <ex:value> "42"^^<http://www.w3.org/2001/XMLSchema#integer>  .\n\n'
+    expected = """_:b0 <ex:value> "42"^^<http://www.w3.org/2001/XMLSchema#integer>  .
+
+"""
 
     nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
     assert nquads == expected
@@ -292,7 +293,9 @@ def test_truncate_zeros_with_negative_exponent_numbers():
     """
     input = { "ex:value": 0.97 }
 
-    expected = '_:b0 <ex:value> "9.7E-1"^^<http://www.w3.org/2001/XMLSchema#double>  .\n\n'
+    expected = """_:b0 <ex:value> "9.7E-1"^^<http://www.w3.org/2001/XMLSchema#double>  .
+
+"""
 
     nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
     assert nquads == expected
