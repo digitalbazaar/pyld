@@ -3,8 +3,6 @@ from pyld.iri_resolver import remove_dot_segments
 # Tests ported from relative-to-absolute-iri.js: https://github.com/rubensworks/relative-to-absolute-iri.js/blob/master/test/Resolve-test.ts
 # (c) Ruben Taelman <https://www.rubensworks.net>
 
-
-# ---------- Tests for remove_dot_segments() ----------
 def test_no_slash():
     assert remove_dot_segments('abc') == '/abc'
 
