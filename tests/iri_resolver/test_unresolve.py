@@ -3,7 +3,6 @@ import pytest
 from pyld.iri_resolver import unresolve
 
 
-# ---------- Tests for unresolve() ----------
 def test_absolute_iri_no_base():
     assert unresolve('http://example.org/') == 'http://example.org/'
 
