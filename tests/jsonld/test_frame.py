@@ -132,6 +132,22 @@ FRAME_0001_FRAME_CONTEXT = {
 
 FRAME_0001_FRAME_PARTIAL_CONTEXT = {"@context": {"ex": "http://example.org/vocab#"}}
 
+SCHEMA_ORG_DATE_CONTEXT = {
+    "@context": {
+        "schema": "http://schema.org/",
+        "name": "http://schema.org/name",
+        "birthDate": {
+            "@id": "http://schema.org/birthDate",
+            "@type": "schema:Date",
+        },
+        "deathDate": {
+            "@id": "http://schema.org/deathDate",
+            "@type": "schema:Date",
+        },
+    }
+}
+
+
 def _frame_with_remote_context(input, frame, context):
     def fake_loader(url, options):
         if url == "http://example.com/frame.json":
@@ -266,8 +282,8 @@ def test_remote_context_half_context_local_and_half_remote():
 
     assert framed == expected
 
+
 # Issue 59 - PR: https://github.com/digitalbazaar/pyld/pull/60
-@pytest.mark.network
 def test_do_not_compact_dates_without_datatype():
     """
     Dates without explicit datatype should not be compacted during framing,
@@ -287,10 +303,21 @@ def test_do_not_compact_dates_without_datatype():
         "schema:deathDate": "2015-02-25",
     }
 
-    framed = jsonld.frame(input, frame)
+    def loader(url, options):
+        if url == "https://schema.org/":
+            return {
+                "contextUrl": None,
+                "document": SCHEMA_ORG_DATE_CONTEXT,
+                "documentUrl": url,
+                "contentType": "application/ld+json",
+            }
+        raise Exception(f"Unknown URL: {url}")
+
+    framed = jsonld.frame(input, frame, options={"documentLoader": loader})
+
     assert framed == expected
 
-@pytest.mark.network
+
 def test_compact_dates_with_datatype():
     """
     Dates with explicit datatype should be compacted during framing.
@@ -316,7 +343,18 @@ def test_compact_dates_with_datatype():
         "deathDate": "2015-02-25",
     }
 
-    framed = jsonld.frame(input, frame)
+    def loader(url, options):
+        if url == "https://schema.org/":
+            return {
+                "contextUrl": None,
+                "document": SCHEMA_ORG_DATE_CONTEXT,
+                "documentUrl": url,
+                "contentType": "application/ld+json",
+            }
+        raise Exception(f"Unknown URL: {url}")
+
+    framed = jsonld.frame(input, frame, options={"documentLoader": loader})
+
     assert framed == expected
 
 def test_circular_references_link_and_embed():
