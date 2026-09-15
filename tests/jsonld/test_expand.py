@@ -568,3 +568,109 @@ def test_blank_node_prefixes():
     expanded = jsonld.expand(input)
 
     assert expanded == expected
+
+
+# Issue 337
+def test_default_direction_survives_context_layers():
+    """
+    The default @direction should be kept across context layers, like the
+    default @language.
+    """
+    input = {
+        "@context": [
+            {"@language": "en", "@direction": "rtl"},
+            {"dummy": "http://example.com/dummy"},
+        ],
+        "http://example.com/p": "v",
+    }
+
+    expected = [
+        {
+            "http://example.com/p": [
+                {"@language": "en", "@direction": "rtl", "@value": "v"}
+            ],
+        }
+    ]
+
+    expanded = jsonld.expand(input)
+
+    assert expanded == expected
+
+# Issue 337
+def test_default_direction_inherited_into_scoped_context():
+    """
+    A property-scoped context should inherit the default @direction.
+    """
+    input = {
+        "@context": {
+            "@language": "en",
+            "@direction": "rtl",
+            "thing": {
+                "@id": "http://example.com/thing",
+                "@context": {"other": "http://example.com/other"},
+            },
+        },
+        "thing": {"http://example.com/label": "hello"},
+    }
+
+    expected = [
+        {
+            "http://example.com/thing": [
+                {
+                    "http://example.com/label": [
+                        {
+                            "@language": "en",
+                            "@direction": "rtl",
+                            "@value": "hello",
+                        }
+                    ],
+                }
+            ],
+        }
+    ]
+
+    expanded = jsonld.expand(input)
+
+    assert expanded == expected
+
+# Issue 337
+def test_scoped_context_can_override_or_clear_default_direction():
+    """
+    A scoped @direction entry should still override or clear the default.
+    """
+    input = {
+        "@context": {
+            "@direction": "rtl",
+            "ltr": {
+                "@id": "http://example.com/ltr",
+                "@context": {"@direction": "ltr"},
+            },
+            "none": {
+                "@id": "http://example.com/none",
+                "@context": {"@direction": None},
+            },
+        },
+        "ltr": {"http://example.com/label": "a"},
+        "none": {"http://example.com/label": "b"},
+    }
+
+    expected = [
+        {
+            "http://example.com/ltr": [
+                {
+                    "http://example.com/label": [
+                        {"@direction": "ltr", "@value": "a"}
+                    ],
+                }
+            ],
+            "http://example.com/none": [
+                {
+                    "http://example.com/label": [{"@value": "b"}],
+                }
+            ],
+        }
+    ]
+
+    expanded = jsonld.expand(input)
+
+    assert expanded == expected
