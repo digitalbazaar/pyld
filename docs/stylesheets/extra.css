@@ -94,3 +94,18 @@
 .md-typeset :is(th, td).adr-col-rejected {
   background-color: var(--adr-col-rejected-bg);
 }
+
+/* ADR comparison row tints. */
+:root,
+[data-md-color-scheme="slate"] {
+  --adr-chosen-bg: color-mix(in srgb, #00c853 10%, transparent);
+  --adr-excluded-bg: color-mix(in srgb, #ff1744 10%, transparent);
+}
+
+.md-typeset :is(th, td).chosen {
+  background-color: var(--adr-chosen-bg);
+}
+
+.md-typeset :is(th, td).excl {
+  background-color: var(--adr-excluded-bg);
+}
