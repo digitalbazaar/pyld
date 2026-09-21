@@ -2,12 +2,15 @@
 
 Want to contribute to PyLD? Great! Here are a few notes:
 
+Install [uv](https://docs.astral.sh/uv/) and run `uv sync --locked` to create
+the development environment before using the commands below.
+
 ## Code
 
 * In general, follow the common [PEP 8 Style Guide](https://www.python.org/dev/peps/pep-0008/).
 * Try to make the code pass [ruff](https://docs.astral.sh/ruff/) checks.
   
-  * `make lint` or `ruff check lib/pyld/*`
+  * `make lint` or `uv run --locked ruff check lib/pyld/*`
   * You can also apply automatic fixing and formatting 
     using `make fmt`
 
@@ -95,18 +98,16 @@ successfully.
 To ensure a clean [package](https://pypi.org/project/PyLD/) upload to [PyPI](https://pypi.org/),
 use a clean checkout, and run the following:
 
-* For more info, look at the packaging 
-  [guide](https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/).
-* Setup an [API token](https://pypi.org/help/#apitoken). Recommend using a
-  specific "PyLD" token and set it up as a "repository" in your
-  [`~/.pypirc`](https://packaging.python.org/en/latest/specifications/pypirc/)
-  for use in the upload command.
+* For more info, see uv's
+  [package publishing guide](https://docs.astral.sh/uv/guides/package/).
+* Set up a PyPI [API token](https://pypi.org/help/#apitoken) scoped to PyLD and
+  export it as `UV_PUBLISH_TOKEN` before publishing.
 * The below builds and uploads a sdist and wheel. Adjust as needed depending
   on how you manage and clean "dist/" dir files.
 * `git checkout v{version}`
-* `python3 -m build`
-* `twine check dist/*`
-* `twine upload -r PyLD dist/*`
+* `uv build --no-sources`
+* `uvx twine check dist/*`
+* `uv publish`
 
 ## Implementation Report Process
 
