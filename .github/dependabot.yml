@@ -1,5 +1,13 @@
 version: 2
 updates:
+  # Update dependencies in pyproject.toml and uv.lock.
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+
   # Update specifications' submodules
   # https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
   - package-ecosystem: "gitsubmodule"
