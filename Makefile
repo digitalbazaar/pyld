@@ -15,23 +15,21 @@ MIKE_FLAGS ?=
 MIKE_PUSH = $(if $(PUSH),--push,)
 
 install:
-	pip install -e .
+	uv sync --locked
 
 test:
-	pytest --cov=pyld
+	uv run --locked pytest --cov=pyld
 
 docs-install:
-	python -m pip install --upgrade pip
-	pip install -e ".[cli]"
-	pip install -r docs/requirements.txt
+	uv sync --locked --no-default-groups --group docs --extra cli
 
-docs-build:
-	mkdocs build --strict
+docs-build: docs-install
+	uv run --no-sync mkdocs build --strict
 
-docs-serve:
-	mkdocs serve --dev-addr 127.0.0.1:$(PORT)
-	
-docs-deploy:
+docs-serve: docs-install
+	uv run --no-sync mkdocs serve --dev-addr 127.0.0.1:$(PORT)
+
+docs-deploy: docs-install
 	@test -n "$(VERSION)" || (echo "VERSION is required, e.g. VERSION=3.2 make docs-deploy"; exit 1)
 	@if [ -n "$(GIT_REF)" ]; then \
 		test ! -e "$(DOCS_RETRO_WORKTREE)" || (echo "$(DOCS_RETRO_WORKTREE) already exists"; exit 1); \
@@ -39,11 +37,11 @@ docs-deploy:
 		trap 'git worktree remove --force "$(DOCS_RETRO_WORKTREE)"' EXIT; \
 		git worktree add --detach "$(DOCS_RETRO_WORKTREE)" "$(GIT_REF)"; \
 		: "Older tags predate Material's mike version selector config, so patch mkdocs.yml."; \
-		python -c 'from pathlib import Path; p = Path("$(DOCS_RETRO_WORKTREE)/mkdocs.yml"); s = p.read_text(); b = "extra:\n  version:\n    provider: mike\n\n"; p.write_text(s if "provider: mike" in s else s.replace("extra_css:", b + "extra_css:", 1) if "extra_css:" in s else s.rstrip() + "\n\n" + b)'; \
-		python -m pip install -e "$(DOCS_RETRO_WORKTREE)"; \
-		mike deploy --config-file "$(DOCS_RETRO_WORKTREE)/mkdocs.yml" --update-aliases --alias-type=$(DOCS_ALIAS_TYPE) --remote $(DOCS_DEPLOY_REMOTE) --branch $(DOCS_DEPLOY_BRANCH) $(MIKE_PUSH) $(MIKE_FLAGS) $(VERSION) $(ALIASES); \
+		uv run --no-sync python -c 'from pathlib import Path; p = Path("$(DOCS_RETRO_WORKTREE)/mkdocs.yml"); s = p.read_text(); b = "extra:\n  version:\n    provider: mike\n\n"; p.write_text(s if "provider: mike" in s else s.replace("extra_css:", b + "extra_css:", 1) if "extra_css:" in s else s.rstrip() + "\n\n" + b)'; \
+		uv pip install --python .venv --editable "$(DOCS_RETRO_WORKTREE)"; \
+		uv run --no-sync mike deploy --config-file "$(DOCS_RETRO_WORKTREE)/mkdocs.yml" --update-aliases --alias-type=$(DOCS_ALIAS_TYPE) --remote $(DOCS_DEPLOY_REMOTE) --branch $(DOCS_DEPLOY_BRANCH) $(MIKE_PUSH) $(MIKE_FLAGS) $(VERSION) $(ALIASES); \
 	else \
-		mike deploy --update-aliases --alias-type=$(DOCS_ALIAS_TYPE) --remote $(DOCS_DEPLOY_REMOTE) --branch $(DOCS_DEPLOY_BRANCH) $(MIKE_PUSH) $(MIKE_FLAGS) $(VERSION) $(ALIASES); \
+		uv run --no-sync mike deploy --update-aliases --alias-type=$(DOCS_ALIAS_TYPE) --remote $(DOCS_DEPLOY_REMOTE) --branch $(DOCS_DEPLOY_BRANCH) $(MIKE_PUSH) $(MIKE_FLAGS) $(VERSION) $(ALIASES); \
 	fi
 
 docs-export:
@@ -51,20 +49,20 @@ docs-export:
 	mkdir "$(DOCS_EXPORT_DIR)"
 	git archive "$(DOCS_DEPLOY_BRANCH)" | tar -x -C "$(DOCS_EXPORT_DIR)"
 
-docs-set-default:
-	mike set-default --remote $(DOCS_DEPLOY_REMOTE) --branch $(DOCS_DEPLOY_BRANCH) $(MIKE_PUSH) $(MIKE_FLAGS) $(DEFAULT_VERSION)
+docs-set-default: docs-install
+	uv run --no-sync mike set-default --remote $(DOCS_DEPLOY_REMOTE) --branch $(DOCS_DEPLOY_BRANCH) $(MIKE_PUSH) $(MIKE_FLAGS) $(DEFAULT_VERSION)
 
 upgrade-submodules:
 	git submodule update --remote --init --recursive
 
 download-bundled-contexts:
-	python scripts/download_contexts.py
+	uv run --locked python scripts/download_contexts.py
 
 RUFF_TARGET = lib/pyld/*.py lib/pyld/cli/*.py lib/pyld/cli/commands/*.py tests docs_macros.py
 
 lint:
-	ruff check $(RUFF_TARGET)
+	uv run --locked ruff check $(RUFF_TARGET)
 
 fmt:
-	ruff check --fix $(RUFF_TARGET)
-	ruff format $(RUFF_TARGET)
+	uv run --locked ruff check --fix $(RUFF_TARGET)
+	uv run --locked ruff format $(RUFF_TARGET)
