@@ -53,6 +53,34 @@ Documentation = "https://digitalbazaar.github.io/pyld/"
 Repository = "https://github.com/digitalbazaar/pyld"
 Changelog = "https://github.com/digitalbazaar/pyld/blob/master/CHANGELOG.md"
 
+[dependency-groups]
+dev = [
+    { include-group = "lint" },
+    { include-group = "test" },
+]
+docs = [
+    "aiohttp",
+    "mike>=2.1",
+    "mkdocs-awesome-pages-plugin==2.10.1",
+    "mkdocs-macros-plugin==1.5.0",
+    "mkdocs-material==9.7.7",
+    "mkdocs-typer2[mkdocs,termynal]==0.4.1",
+    "mkdocstrings[python]>=0.30",
+    "requests",
+    "requests-cache>=1.3",
+    "typing-extensions",
+]
+lint = ["ruff"]
+test = [
+    "aiohttp",
+    "pytest",
+    "pytest-cov",
+    "requests",
+    "requests-cache>=1.3",
+    "typer>=0.27",
+    "typing-extensions",
+]
+
 [tool.setuptools]
 package-dir = { "" = "lib" }
 include-package-data = true
