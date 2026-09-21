@@ -674,3 +674,21 @@ def test_scoped_context_can_override_or_clear_default_direction():
     expanded = jsonld.expand(input)
 
     assert expanded == expected
+
+
+# Issue 337
+def test_default_direction_null_reset_is_noop_when_unset():
+    input = {
+        "@context": {"@direction": None},
+        "http://example.com/p": "v",
+    }
+
+    expected = [
+        {
+            "http://example.com/p": [
+                {"@value": "v"},
+            ],
+        },
+    ]
+
+    assert jsonld.expand(input) == expected
