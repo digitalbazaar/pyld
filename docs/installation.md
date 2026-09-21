@@ -26,16 +26,17 @@ manages those dependencies.
 
 ## Development Install
 
-From a local checkout:
+Install [:simple-uv: uv](https://docs.astral.sh/uv/), then sync the locked
+development environment from a local checkout:
 
 ```bash
-pip install -e .
+uv sync --locked
 ```
 
 Run the project tests with:
 
 ```bash
-pytest
+uv run --locked pytest
 ```
 
 The JSON-LD specification test suites are stored under `specifications/` and are
