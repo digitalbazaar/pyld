@@ -357,11 +357,11 @@ at:
 
 [https://github.com/digitalbazaar/pyld](https://github.com/digitalbazaar/pyld)
 
-You can install the source using `make`:
+Install [uv](https://docs.astral.sh/uv/), then create the locked development
+environment:
 
-```
-pip install -r requirements.txt requirements-test.txt
-make install
+```bash
+uv sync --locked
 ```
 
 ### Testing
@@ -409,7 +409,7 @@ PyLD source directory, then all unittests, including the sample test suites, can
 be run with `pytest`:
 
 ```bash
-pytest 
+uv run --locked pytest
 ```
 
 If you wish to store the test suites in a different location than the default
@@ -418,8 +418,8 @@ files or directories containing a `manifest.jsonld`, then you can supply these
 files or directories as arguments:
 
 ```bash
-# use: pytest --tests=TEST_PATH [--tests=TEST_PATH...]
-pytest --tests=./specifications/json-ld-api/tests
+# use: uv run --locked pytest --tests=TEST_PATH [--tests=TEST_PATH...]
+uv run --locked pytest --tests=./specifications/json-ld-api/tests
 ```
 
 The test runner supports different document loaders by setting `--loader
@@ -427,13 +427,15 @@ requests` or `--loader aiohttp`. The default document loader is set to
 [Requests](http://docs.python-requests.org/).
 
 ```bash
-pytest --loader=requests --tests=./specifications/json-ld-api/tests
+uv run --locked pytest \
+  --loader=requests \
+  --tests=./specifications/json-ld-api/tests
 ```
 
 An EARL report can be generated using the `--earl` option.
 
 ```bash
-pytest --earl=./earl-report.json
+uv run --locked pytest --earl=./earl-report.json
 ```
 
 #### Running the sample test suites using the original test runner
@@ -442,7 +444,7 @@ You can also run the JSON-LD test suites using the original test runner script
 provided:
 
 ```bash
-python tests/runtests.py
+uv run --locked python tests/runtests.py
 ```
 
 If you wish to store the test suites in a different location than the default
@@ -451,7 +453,7 @@ files or directories containing a `manifest.jsonld`, then you can supply these
 files or directories as arguments:
 
 ```bash
-python tests/runtests.py TEST_PATH [TEST_PATH...]
+uv run --locked python tests/runtests.py TEST_PATH [TEST_PATH...]
 ```
 
 The test runner supports different document loaders by setting `-l requests` or
@@ -459,13 +461,15 @@ The test runner supports different document loaders by setting `-l requests` or
 [Requests](http://docs.python-requests.org/).
 
 ```bash
-python tests/runtests.py -l requests ./specifications/json-ld-api/tests
+uv run --locked python tests/runtests.py \
+  -l requests \
+  ./specifications/json-ld-api/tests
 ```
 
 An EARL report can be generated using the `-e` or `--earl` option.
 
 ```bash
-python tests/runtests.py -e ./earl-report.json
+uv run --locked python tests/runtests.py -e ./earl-report.json
 ```
 
 ## License
