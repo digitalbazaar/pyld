@@ -1,3 +1,72 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "PyLD"
+dynamic = ["version"]
+description = "Python implementation of the JSON-LD API"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "BSD-3-Clause"
+authors = [
+    { name = "Digital Bazaar", email = "support@digitalbazaar.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+    "cachetools",
+    "frozendict",
+    "lxml",
+    "rdflib",
+]
+
+[project.optional-dependencies]
+requests = ["requests"]
+aiohttp = ["aiohttp"]
+requests-cache = ["requests-cache>=1.3"]
+cachetools = ["cachetools"]
+frozendict = ["frozendict"]
+cli = ["typer>=0.27", "requests-cache>=1.3"]
+
+[project.scripts]
+pyld = "pyld.cli.entry:main"
+
+[project.urls]
+Homepage = "https://github.com/digitalbazaar/pyld"
+Documentation = "https://digitalbazaar.github.io/pyld/"
+Repository = "https://github.com/digitalbazaar/pyld"
+Changelog = "https://github.com/digitalbazaar/pyld/blob/master/CHANGELOG.md"
+
+[tool.setuptools]
+package-dir = { "" = "lib" }
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = { attr = "pyld.__about__.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["lib"]
+include = ["c14n*", "pyld*"]
+
+[tool.setuptools.package-data]
+"pyld.documentloader.frozen" = ["bundled/*.jsonld"]
+
 [tool.ruff]
 # Target Python version
 target-version = "py310"
@@ -54,4 +123,3 @@ line-ending = "auto"
 [tool.ruff.lint.isort]
 # Import sorting configuration
 known-first-party = ["pyld", "c14n"]
-
