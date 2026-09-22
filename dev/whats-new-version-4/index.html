@@ -545,6 +545,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#development-builds-use-uv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development builds use uv
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#rdflib-datasets-are-now-the-native-rdf-model" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2221,6 +2232,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#development-builds-use-uv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development builds use uv
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#rdflib-datasets-are-now-the-native-rdf-model" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2311,6 +2333,14 @@
 and adds RDF Dataset Canonicalization 1.0 support. The JSON-LD document APIs
 remain the same, but RDF-facing code should review return types, canonicalization
 defaults, and N-Quads behavior before upgrading.</p>
+<h2 id="development-builds-use-uv">Development builds use <code>uv</code><a class="headerlink" href="#development-builds-use-uv" title="Permanent link">&para;</a></h2>
+<p>PyLD 4 uses <a href="https://docs.astral.sh/uv/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m0 .106.05 11.95.04 9.56a2.39 2.39 0 0 0 2.4 2.379l9.56-.04 5.975-.026.608-.002c1.316-.006 2.38-1.097 2.38-2.413h1.094v2.39H24L23.9.005 12.905.051l.046 9.525v5.963h-1.958l.046-5.955-.046-9.525Z"/></svg></span> uv</a> for source checkout
+workflows. Run <code>uv sync --locked</code> or <code>make install</code> to create the locked
+development environment, then run commands through that environment, such as
+<code>uv run --locked pytest</code> or <code>make docs-build</code>.</p>
+<p>Release artifacts are built with <code>uv build --no-sources</code>. The package build
+backend remains <code>setuptools.build_meta</code> as declared in <code>pyproject.toml</code>; <code>uv</code>
+is the project workflow for syncing, running, building, and publishing.</p>
 <h2 id="rdflib-datasets-are-now-the-native-rdf-model">RDFLib datasets are now the native RDF model<a class="headerlink" href="#rdflib-datasets-are-now-the-native-rdf-model" title="Permanent link">&para;</a></h2>
 <p><code>jsonld.to_rdf()</code> returns an <code>rdflib.Dataset</code> by default when <code>format</code> is not
 set. In PyLD 3.x and earlier, it returned a RDF.js-like nested <code>dict</code>.</p>
@@ -2557,6 +2587,7 @@ code so RDF processing is compatible with the rest of the Python RDF ecosystem.<
 </ul>
 <h2 id="upgrade-checklist">Upgrade checklist<a class="headerlink" href="#upgrade-checklist" title="Permanent link">&para;</a></h2>
 <ul>
+<li>Install <code>uv</code> and run <code>uv sync --locked</code> when working from a source checkout.</li>
 <li>Add <code>rdflib</code> to application constraints if dependencies are pinned outside
   PyLD's package metadata.</li>
 <li>Audit <code>jsonld.to_rdf()</code> call sites that do not pass <code>format</code>. Update them to
