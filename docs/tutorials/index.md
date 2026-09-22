@@ -1,6 +1,6 @@
 ---
 hide: [toc]
-icon: material/developer_guide
+icon: material/school-outline
 ---
 
 # :material-school-outline: Tutorials
