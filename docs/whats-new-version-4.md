@@ -5,6 +5,17 @@ and adds RDF Dataset Canonicalization 1.0 support. The JSON-LD document APIs
 remain the same, but RDF-facing code should review return types, canonicalization
 defaults, and N-Quads behavior before upgrading.
 
+## Development builds use `uv`
+
+PyLD 4 uses [:simple-uv: uv](https://docs.astral.sh/uv/) for source checkout
+workflows. Run `uv sync --locked` or `make install` to create the locked
+development environment, then run commands through that environment, such as
+`uv run --locked pytest` or `make docs-build`.
+
+Release artifacts are built with `uv build --no-sources`. The package build
+backend remains `setuptools.build_meta` as declared in `pyproject.toml`; `uv`
+is the project workflow for syncing, running, building, and publishing.
+
 ## RDFLib datasets are now the native RDF model
 
 `jsonld.to_rdf()` returns an `rdflib.Dataset` by default when `format` is not
@@ -87,6 +98,7 @@ The RDFLib migration also fixes several RDF conversion edge cases:
 
 ## Upgrade checklist
 
+- Install `uv` and run `uv sync --locked` when working from a source checkout.
 - Add `rdflib` to application constraints if dependencies are pinned outside
   PyLD's package metadata.
 - Audit `jsonld.to_rdf()` call sites that do not pass `format`. Update them to

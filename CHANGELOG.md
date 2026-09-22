@@ -33,6 +33,8 @@
 - Use a helper for generalized N-Quads normalization in the test runner, since rdflib cannot parse blank-node predicates. Fixes [toRdf#te075](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#te075).
 
 ### Changed
+- **BREAKING**: Developer install, command execution, documentation, and release artifact
+  workflows now use `uv`.
 - **BREAKING**: Migrated `jsonld.to_rdf()`, `jsonld.from_rdf()`, and N-Quads parsing/serialization to use `rdflib.Dataset` and RDFLib terms directly.
   - `jsonld.to_rdf()` now returns an `rdflib.Dataset` by default when no output `format` is requested.
   - Added `legacyMode` to `jsonld.to_rdf()` to return the previous RDF.js-like dataset `dict`.
