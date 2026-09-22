@@ -2214,11 +2214,12 @@ registers the <a href="../cli/"><code>pyld</code></a> console script.</p>
 <p>You can also depend on <code>requests</code> or <code>aiohttp</code> directly if your project already
 manages those dependencies.</p>
 <h2 id="development-install">Development Install<a class="headerlink" href="#development-install" title="Permanent link">&para;</a></h2>
-<p>From a local checkout:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+<p>Install <a href="https://docs.astral.sh/uv/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m0 .106.05 11.95.04 9.56a2.39 2.39 0 0 0 2.4 2.379l9.56-.04 5.975-.026.608-.002c1.316-.006 2.38-1.097 2.38-2.413h1.094v2.39H24L23.9.005 12.905.051l.046 9.525v5.963h-1.958l.046-5.955-.046-9.525Z"/></svg></span> uv</a>, then sync the locked
+development environment from a local checkout:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--locked
 </code></pre></div>
 <p>Run the project tests with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pytest
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--locked<span class="w"> </span>pytest
 </code></pre></div>
 <p>The JSON-LD specification test suites are stored under <code>specifications/</code> and are
 usually initialized as git submodules:</p>
