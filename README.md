@@ -361,7 +361,7 @@ Install [uv](https://docs.astral.sh/uv/), then create the locked development
 environment:
 
 ```bash
-uv sync --locked
+uv sync --locked # or 'make install'
 ```
 
 ### Testing
