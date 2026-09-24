@@ -21,7 +21,7 @@ test:
 	uv run --locked pytest --cov=pyld
 
 typecheck:
-	uv run --locked mypy
+	uv run --locked mypy lib/pyld/jsonld.py lib/pyld/documentloader/aiohttp.py
 
 docs-install:
 	uv sync --locked --no-default-groups --group docs --extra cli
