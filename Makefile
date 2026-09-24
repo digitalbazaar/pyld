@@ -1,4 +1,4 @@
-.PHONY: install test docs-install docs-build docs-serve docs-deploy docs-export docs-set-default upgrade-submodules download-bundled-contexts
+.PHONY: install test typecheck docs-install docs-build docs-serve docs-deploy docs-export docs-set-default upgrade-submodules download-bundled-contexts
 
 PORT ?= 8000
 VERSION ?=
@@ -19,6 +19,9 @@ install:
 
 test:
 	uv run --locked pytest --cov=pyld
+
+typecheck:
+	uv run --locked mypy
 
 docs-install:
 	uv sync --locked --no-default-groups --group docs --extra cli
@@ -58,7 +61,7 @@ upgrade-submodules:
 download-bundled-contexts:
 	uv run --locked python scripts/download_contexts.py
 
-RUFF_TARGET = lib/pyld/*.py lib/pyld/cli/*.py lib/pyld/cli/commands/*.py tests docs_macros.py
+RUFF_TARGET = lib/pyld tests docs_macros.py
 
 lint:
 	uv run --locked ruff check $(RUFF_TARGET)

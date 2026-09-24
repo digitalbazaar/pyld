@@ -70,7 +70,12 @@ docs = [
     "requests-cache>=1.3",
     "typing-extensions",
 ]
-lint = ["ruff"]
+lint = [
+    "lxml-stubs",
+    "mypy",
+    "ruff",
+    "types-requests",
+]
 test = [
     "aiohttp",
     "pytest",
@@ -93,7 +98,17 @@ where = ["lib"]
 include = ["c14n*", "pyld*"]
 
 [tool.setuptools.package-data]
+"pyld" = ["py.typed"]
 "pyld.documentloader.frozen" = ["bundled/*.jsonld"]
+
+[tool.mypy]
+python_version = "3.10"
+files = ["lib/pyld", "tests"]
+strict = true
+explicit_package_bases = true
+mypy_path = "lib"
+show_error_codes = true
+warn_unreachable = true
 
 [tool.ruff]
 # Target Python version
