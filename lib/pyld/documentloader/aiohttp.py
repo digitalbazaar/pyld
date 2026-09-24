@@ -12,29 +12,35 @@ import re
 import string
 import threading
 import urllib.parse as urllib_parse
+from typing import Any, cast
 
 from pyld import iri_resolver
 from pyld.documentloader.base import DocumentLoader, RemoteDocument
-from pyld.jsonld import (JsonLdError, parse_link_header, LINK_HEADER_REL)
-
+from pyld.jsonld import (
+    LINK_HEADER_REL,
+    JsonLdError,
+    LinkHeaderEntry,
+    parse_link_header,
+)
 
 # Background event loop (used when inside an existing async environment)
-_background_loop = None
-_background_thread = None
+_background_loop: asyncio.AbstractEventLoop | None = None
+_background_thread: threading.Thread | None = None
 
 
-def _ensure_background_loop():
+def _ensure_background_loop() -> asyncio.AbstractEventLoop:
     """Start a persistent background event loop if not running."""
     global _background_loop, _background_thread
     if _background_loop is None:
         _background_loop = asyncio.new_event_loop()
 
-        def run_loop(loop):
+        def run_loop(loop: asyncio.AbstractEventLoop) -> None:
             asyncio.set_event_loop(loop)
             loop.run_forever()
 
         _background_thread = threading.Thread(
-            target=run_loop, args=(_background_loop,), daemon=True)
+            target=run_loop, args=(_background_loop,), daemon=True
+        )
         _background_thread.start()
     return _background_loop
 
@@ -42,14 +48,14 @@ def _ensure_background_loop():
 class AioHttpDocumentLoader(DocumentLoader):
     """Remote document loader using aiohttp."""
 
-    def __init__(self, secure=False, **kwargs):
+    def __init__(self, secure: bool = False, **kwargs: Any) -> None:
         import aiohttp
 
         self.aiohttp = aiohttp
         self.secure = secure
         self.kwargs = kwargs
 
-    async def async_loader(self, url, headers) -> RemoteDocument:
+    async def async_loader(self, url: str, headers: dict[str, str]) -> RemoteDocument:
         """
         Retrieves JSON-LD at the given URL asynchronously.
 
@@ -61,69 +67,85 @@ class AioHttpDocumentLoader(DocumentLoader):
         try:
             # validate URL
             pieces = urllib_parse.urlparse(url)
-            if (not all([pieces.scheme, pieces.netloc]) or
-                pieces.scheme not in ['http', 'https'] or
-                set(pieces.netloc) > set(
-                    string.ascii_letters + string.digits + '-.:')):
+            if (
+                not all([pieces.scheme, pieces.netloc])
+                or pieces.scheme not in ['http', 'https']
+                or set(pieces.netloc)
+                > set(string.ascii_letters + string.digits + '-.:')
+            ):
                 raise JsonLdError(
                     'URL could not be dereferenced; '
                     'only "http" and "https" URLs are supported.',
-                    'jsonld.InvalidUrl', {'url': url},
-                    code='loading document failed')
+                    'jsonld.InvalidUrl',
+                    {'url': url},
+                    code='loading document failed',
+                )
             if self.secure and pieces.scheme != 'https':
                 raise JsonLdError(
                     'URL could not be dereferenced; '
                     'secure mode enabled and '
                     'the URL\'s scheme is not "https".',
-                    'jsonld.InvalidUrl', {'url': url},
-                    code='loading document failed')
-            async with self.aiohttp.ClientSession() as session:
-                async with session.get(url,
-                                       headers=headers,
-                                       **self.kwargs) as response:
-                    content_type = response.headers.get('content-type')
-                    if not content_type:
-                        content_type = 'application/octet-stream'
-                    doc = {
-                        'contentType': content_type,
-                        'contextUrl': None,
-                        'documentUrl': response.url.human_repr(),
-                    }
-                    link_header = response.headers.get('link')
-                    if link_header:
-                        linked_context = parse_link_header(link_header).get(
-                            LINK_HEADER_REL)
-                        # only 1 related link header permitted
-                        if linked_context and content_type != 'application/ld+json':
-                            if isinstance(linked_context, list):
-                                raise JsonLdError(
-                                    'URL could not be dereferenced, '
-                                    'it has more than one '
-                                    'associated HTTP Link Header.',
-                                    'jsonld.LoadDocumentError',
-                                    {'url': url},
-                                    code='multiple context link headers')
-                            doc['contextUrl'] = linked_context['target']
-                        linked_alternate = parse_link_header(link_header).get('alternate')
-                        # if not JSON-LD, alternate may point there
-                        if (linked_alternate and
-                                linked_alternate.get('type') == 'application/ld+json' and
-                                not re.match(r'^application\/(\w*\+)?json$', content_type)):
-                            doc['contentType'] = 'application/ld+json'
-                            doc['documentUrl'] = iri_resolver.resolve(
-                                linked_alternate['target'], url)
-                            return await self.async_loader(doc['documentUrl'], headers)
-                    doc['document'] = await response.json(content_type=None)
-                    return doc
+                    'jsonld.InvalidUrl',
+                    {'url': url},
+                    code='loading document failed',
+                )
+            async with (
+                self.aiohttp.ClientSession() as session,
+                session.get(url, headers=headers, **self.kwargs) as response,
+            ):
+                content_type = response.headers.get('content-type')
+                if not content_type:
+                    content_type = 'application/octet-stream'
+                doc = {
+                    'contentType': content_type,
+                    'contextUrl': None,
+                    'documentUrl': response.url.human_repr(),
+                }
+                link_header = response.headers.get('link')
+                if link_header:
+                    linked_context = parse_link_header(link_header).get(LINK_HEADER_REL)
+                    # only 1 related link header permitted
+                    if linked_context and content_type != 'application/ld+json':
+                        if isinstance(linked_context, list):
+                            raise JsonLdError(
+                                'URL could not be dereferenced, '
+                                'it has more than one '
+                                'associated HTTP Link Header.',
+                                'jsonld.LoadDocumentError',
+                                {'url': url},
+                                code='multiple context link headers',
+                            )
+                        doc['contextUrl'] = linked_context['target']
+                    linked_alternate = parse_link_header(link_header).get('alternate')
+                    # Existing loader behavior expects at most one alternate link.
+                    linked_alternate = cast(LinkHeaderEntry | None, linked_alternate)
+                    # if not JSON-LD, alternate may point there
+                    if (
+                        linked_alternate
+                        and linked_alternate.get('type') == 'application/ld+json'
+                        and not re.match(r'^application\/(\w*\+)?json$', content_type)
+                    ):
+                        doc['contentType'] = 'application/ld+json'
+                        alternate_url = iri_resolver.resolve(
+                            linked_alternate['target'], url
+                        )
+                        doc['documentUrl'] = alternate_url
+                        return await self.async_loader(alternate_url, headers)
+                doc['document'] = await response.json(content_type=None)
+                # All required RemoteDocument keys have now been populated.
+                return cast(RemoteDocument, doc)
         except JsonLdError as e:
             raise e
         except Exception as cause:
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
                 'jsonld.LoadDocumentError',
-                code='loading document failed') from cause
+                code='loading document failed',
+            ) from cause
 
-    def __call__(self, url, options=None) -> RemoteDocument:
+    def __call__(
+        self, url: str, options: dict[str, Any] | None = None
+    ) -> RemoteDocument:
         """
         Retrieves JSON-LD at the given URL synchronously.
 
@@ -137,7 +159,8 @@ class AioHttpDocumentLoader(DocumentLoader):
         if options is None:
             options = {}
         headers = options.get(
-            'headers', {'Accept': 'application/ld+json, application/json'})
+            'headers', {'Accept': 'application/ld+json, application/json'}
+        )
 
         # Detect whether we're already in an async environment
         try:
@@ -151,12 +174,13 @@ class AioHttpDocumentLoader(DocumentLoader):
 
         # Inside async environment: use background event loop
         loop = _ensure_background_loop()
-        future = asyncio.run_coroutine_threadsafe(
-            self.async_loader(url, headers), loop)
+        future = asyncio.run_coroutine_threadsafe(self.async_loader(url, headers), loop)
         return future.result()
 
 
-def aiohttp_document_loader(loop=None, secure=False, **kwargs):
+def aiohttp_document_loader(
+    loop: Any = None, secure: bool = False, **kwargs: Any
+) -> AioHttpDocumentLoader:
     """
     Create an Asynchronous document loader using aiohttp.
 
