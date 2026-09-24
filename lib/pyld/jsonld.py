@@ -23,9 +23,9 @@ import re
 import sys
 import uuid
 import warnings
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from numbers import Integral, Real
-from typing import Any
+from typing import TYPE_CHECKING, Any, TypeAlias, TypedDict, cast
 from urllib.parse import urlparse
 
 import lxml.html
@@ -47,11 +47,13 @@ from pyld.canon import (
     UnknownFormatError,
 )
 from pyld.context_resolver import ContextResolver
+from pyld.documentloader.base import RemoteDocument
 from pyld.identifier_issuer import IdentifierIssuer
 from pyld.iri_resolver import resolve, unresolve
 from pyld.options import (
     CompactOptions,
     Context,
+    DocumentLoaderCallable,
     ExpandOptions,
     FlattenOptions,
     FrameOptions,
@@ -66,6 +68,25 @@ from pyld.util import (
     to_legacy_dataset,
 )
 
+if TYPE_CHECKING:
+    from pyld.documentloader.aiohttp import AioHttpDocumentLoader
+    from pyld.documentloader.requests import RequestsDocumentLoader
+
+
+class LinkHeaderEntry(TypedDict, total=False):
+    """One parsed HTTP Link header entry."""
+
+    target: str
+    rel: str
+    type: str
+
+
+LinkHeaderValue: TypeAlias = LinkHeaderEntry | list[LinkHeaderEntry]
+RdfParser: TypeAlias = Callable[[Any], Any]
+
+# c14n does not publish annotations for its canonicalize entry point.
+_canonicalize = cast(Callable[[Any], bytes], canonicalize)
+
 __all__ = [
     '__copyright__',
     '__license__',
@@ -76,6 +97,7 @@ __all__ = [
     'FlattenOptions',
     'FrameOptions',
     'FromRdfOptions',
+    'LinkHeaderEntry',
     'NormalizeOptions',
     'ToRdfOptions',
     'compact',
@@ -151,22 +173,22 @@ DEFAULT_BASE_IRI = 'http://example.org/base/'
 # resolved context cache
 # TODO: consider basing max on context size rather than number
 RESOLVED_CONTEXT_CACHE_MAX_SIZE = 100
-_resolved_context_cache = LRUCache(maxsize=RESOLVED_CONTEXT_CACHE_MAX_SIZE)
+_resolved_context_cache: Any = LRUCache(maxsize=RESOLVED_CONTEXT_CACHE_MAX_SIZE)
 INVERSE_CONTEXT_CACHE_MAX_SIZE = 20
-_inverse_context_cache = LRUCache(maxsize=INVERSE_CONTEXT_CACHE_MAX_SIZE)
+_inverse_context_cache: Any = LRUCache(maxsize=INVERSE_CONTEXT_CACHE_MAX_SIZE)
 # Initial contexts, defined on first access
-INITIAL_CONTEXTS = {}
+INITIAL_CONTEXTS: Any = {}
 
 # Handler to call if a property was dropped during expansion
-OnPropertyDropped = Callable[[str | None], Any]
+OnPropertyDropped = Callable[[str], Any]
 
 
 # No-op function to use as default handler and other purposes
-def noop(*args, **kwargs):
+def noop(*args: Any, **kwargs: Any) -> None:
     return None
 
 
-def compact(input_, ctx: Context, options: CompactOptions | None = None):
+def compact(input_: Any, ctx: Context, options: CompactOptions | None = None) -> Any:
     """
     Performs JSON-LD compaction.
 
@@ -180,10 +202,10 @@ def compact(input_, ctx: Context, options: CompactOptions | None = None):
 
 
 def expand(
-    input_,
+    input_: Any,
     options: ExpandOptions | None = None,
     on_property_dropped: OnPropertyDropped = noop,
-):
+) -> Any:
     """
     Performs JSON-LD expansion.
 
@@ -198,7 +220,9 @@ def expand(
     )
 
 
-def flatten(input_, ctx: Context | None = None, options: FlattenOptions | None = None):
+def flatten(
+    input_: Any, ctx: Context | None = None, options: FlattenOptions | None = None
+) -> Any:
     """
     Performs JSON-LD flattening.
 
@@ -211,7 +235,7 @@ def flatten(input_, ctx: Context | None = None, options: FlattenOptions | None =
     return JsonLdProcessor().flatten(input_, ctx, options)
 
 
-def frame(input_, frame, options: FrameOptions | None = None):
+def frame(input_: Any, frame: Any, options: FrameOptions | None = None) -> Any:
     """
     Performs JSON-LD framing.
 
@@ -224,7 +248,7 @@ def frame(input_, frame, options: FrameOptions | None = None):
     return JsonLdProcessor().frame(input_, frame, options)
 
 
-def link(input_, ctx, options=None):
+def link(input_: Any, ctx: Any, options: Any = None) -> Any:
     """
     **Experimental**
 
@@ -256,7 +280,7 @@ def link(input_, ctx, options=None):
     return frame(input_, frame_, options)
 
 
-def normalize(input_, options: NormalizeOptions | None = None):
+def normalize(input_: Any, options: NormalizeOptions | None = None) -> Any:
     """
     Performs RDF dataset normalization on the given input. The input is
     JSON-LD unless the 'inputFormat' option is used. The output is an RDF
@@ -270,7 +294,7 @@ def normalize(input_, options: NormalizeOptions | None = None):
     return JsonLdProcessor().normalize(input_, options)
 
 
-def from_rdf(input_, options: FromRdfOptions | None = None):
+def from_rdf(input_: Any, options: FromRdfOptions | None = None) -> Any:
     """
     Converts an RDF dataset to JSON-LD.
 
@@ -283,7 +307,7 @@ def from_rdf(input_, options: FromRdfOptions | None = None):
     return JsonLdProcessor().from_rdf(input_, options)
 
 
-def to_rdf(input_, options: ToRdfOptions | None = None):
+def to_rdf(input_: Any, options: ToRdfOptions | None = None) -> Any:
     """
     Outputs the RDF dataset found in the given JSON-LD object.
 
@@ -295,7 +319,7 @@ def to_rdf(input_, options: ToRdfOptions | None = None):
     return JsonLdProcessor().to_rdf(input_, options)
 
 
-def set_document_loader(load_document_):
+def set_document_loader(load_document_: DocumentLoaderCallable) -> None:
     """
     Sets the default JSON-LD document loader.
 
@@ -305,7 +329,7 @@ def set_document_loader(load_document_):
     _default_document_loader = load_document_
 
 
-def get_document_loader():
+def get_document_loader() -> DocumentLoaderCallable:
     """
     Gets the default JSON-LD document loader.
 
@@ -314,7 +338,7 @@ def get_document_loader():
     return _default_document_loader
 
 
-def parse_link_header(header):
+def parse_link_header(header: str) -> dict[str, LinkHeaderValue]:
     """
     Parses a link header. The results will be key'd by the value of "rel".
 
@@ -335,7 +359,7 @@ def parse_link_header(header):
 
     :return: the parsed result.
     """
-    rval = {}
+    rval: dict[str, LinkHeaderValue] = {}
     # split on unbracketed/unquoted commas
     entries = re.findall(r'(?:<[^>]*?>|"[^"]*?"|[^,])+', header)
     if not entries:
@@ -345,24 +369,27 @@ def parse_link_header(header):
         match = re.search(r_link_header, entry)
         if not match:
             continue
-        match = match.groups()
-        result = {'target': match[0]}
-        params = match[1]
+        groups = match.groups()
+        result = {'target': groups[0]}
+        params = groups[1]
         r_params = r'(.*?)=(?:(?:"([^"]*?)")|([^"]*?))\s*(?:(?:;\s*)|$)'
         matches = re.findall(r_params, params)
         for match in matches:
             result[match[0]] = match[2] if match[1] is None else match[1]
         rel = result.get('rel', '')
-        if isinstance(rval.get(rel), list):
-            rval[rel].append(result)
-        elif rel in rval:
-            rval[rel] = [rval[rel], result]
+        # Parameter names are dynamic, while the documented fields form this shape.
+        parsed_result = cast(LinkHeaderEntry, result)
+        existing = rval.get(rel)
+        if isinstance(existing, list):
+            existing.append(parsed_result)
+        elif existing is not None:
+            rval[rel] = [existing, parsed_result]
         else:
-            rval[rel] = result
+            rval[rel] = parsed_result
     return rval
 
 
-def dummy_document_loader(**kwargs):
+def dummy_document_loader(**kwargs: Any) -> DocumentLoaderCallable:
     """
     Create a dummy document loader that will raise an exception on use.
 
@@ -371,7 +398,7 @@ def dummy_document_loader(**kwargs):
     :return: the RemoteDocument loader function.
     """
 
-    def loader(url, options):
+    def loader(url: str, options: dict[str, Any] | None = None) -> RemoteDocument:
         """
         Raises an exception on every call.
 
@@ -389,19 +416,19 @@ def dummy_document_loader(**kwargs):
     return loader
 
 
-def requests_document_loader(**kwargs):
+def requests_document_loader(**kwargs: Any) -> 'RequestsDocumentLoader':
     import pyld.documentloader.requests
 
     return pyld.documentloader.requests.requests_document_loader(**kwargs)
 
 
-def aiohttp_document_loader(**kwargs):
+def aiohttp_document_loader(**kwargs: Any) -> 'AioHttpDocumentLoader':
     import pyld.documentloader.aiohttp
 
     return pyld.documentloader.aiohttp.aiohttp_document_loader(**kwargs)
 
 
-def register_rdf_parser(content_type, parser):
+def register_rdf_parser(content_type: str, parser: RdfParser) -> None:
     """
     Registers a global RDF parser by content-type, for use with
     from_rdf. Global parsers will be used by JsonLdProcessors that
@@ -415,7 +442,7 @@ def register_rdf_parser(content_type, parser):
     _rdf_parsers[content_type] = parser
 
 
-def unregister_rdf_parser(content_type):
+def unregister_rdf_parser(content_type: str) -> None:
     """
     Unregisters a global RDF parser by content-type.
 
@@ -431,15 +458,15 @@ class JsonLdProcessor:
     A JSON-LD processor.
     """
 
-    def __init__(self, on_property_dropped: OnPropertyDropped = noop):
+    def __init__(self, on_property_dropped: OnPropertyDropped = noop) -> None:
         """
         Initialize the JSON-LD processor.
         """
         # processor-specific RDF parsers
-        self.rdf_parsers = None
+        self.rdf_parsers: dict[str, Callable[[Any], Any]] | None = None
         self.on_property_dropped = on_property_dropped
 
-    def compact(self, input_, ctx, options):
+    def compact(self, input_: Any, ctx: Any, options: Any) -> Any:
         """
         Performs JSON-LD compaction.
 
@@ -568,7 +595,7 @@ class JsonLdProcessor:
 
         return compacted
 
-    def expand(self, input_, options):
+    def expand(self, input_: Any, options: Any) -> Any:
         """
         Performs JSON-LD expansion.
 
@@ -663,7 +690,7 @@ class JsonLdProcessor:
         # normalize to an array
         return JsonLdProcessor.arrayify(expanded)
 
-    def flatten(self, input_, ctx, options):
+    def flatten(self, input_: Any, ctx: Any, options: Any) -> Any:
         """
         Performs JSON-LD flattening.
 
@@ -721,7 +748,7 @@ class JsonLdProcessor:
 
         return compacted
 
-    def frame(self, input_, frame, options):
+    def frame(self, input_: Any, frame: Any, options: Any) -> Any:
         """
         Performs JSON-LD framing.
 
@@ -869,7 +896,7 @@ class JsonLdProcessor:
         options['link'] = {}
         return self._cleanup_null(result, options)
 
-    def normalize(self, input_, options):
+    def normalize(self, input_: Any, options: Any) -> Any:
         """
         Performs RDF dataset normalization on the given input. The input is
         JSON-LD unless the 'inputFormat' option is used. The output is an RDF
@@ -932,7 +959,7 @@ class JsonLdProcessor:
 
         # do normalization
         if options['algorithm'] == 'RDFC10':
-            algorithm = RDFC10(hash_algorithm = options.get('hashAlgorithm'))
+            algorithm: Any = RDFC10(hash_algorithm=options.get('hashAlgorithm'))
         elif options['algorithm'] == 'URDNA2015':
             algorithm = URDNA2015()
         # assume URGNA2012
@@ -950,12 +977,10 @@ class JsonLdProcessor:
             ) from cause
         except UnknownFormatError as cause:
             raise JsonLdError(
-                str(cause),
-                'jsonld.UnknownFormat',
-                {'format': cause.format}) from cause
+                str(cause), 'jsonld.UnknownFormat', {'format': cause.format}
+            ) from cause
 
-
-    def from_rdf(self, dataset: dict | Dataset | str, options):
+    def from_rdf(self, dataset: dict[str, Any] | Dataset | str, options: Any) -> Any:
         """
         Converts an RDF dataset to JSON-LD.
 
@@ -1005,12 +1030,13 @@ class JsonLdProcessor:
 
         # Convert legacy datasets for backwards-compatibility
         if not isinstance(dataset, Dataset):
-            dataset = from_legacy_dataset(dataset)
+            # Registered parsers may return PyLD's legacy mapping representation.
+            dataset = from_legacy_dataset(cast(Mapping[Any, Any], dataset))
 
         # convert from RDF
         return self._from_rdf(dataset, options)
 
-    def to_rdf(self, input_, options):
+    def to_rdf(self, input_: Any, options: Any) -> Any:
         """
         Outputs the RDF dataset found in the given JSON-LD object.
 
@@ -1055,17 +1081,22 @@ class JsonLdProcessor:
 
         # create node map for default graph (and any named graphs)
         issuer = options['identifierIssuer']
-        node_map = {'@default': {}}
+        node_map: Any = {'@default': {}}
         self._create_node_map(expanded, node_map, '@default', issuer)
         # output RDF dataset
         dataset = Dataset()
         for graph_name, graph in sorted(node_map.items()):
             # skip relative IRIs
             if graph_name == '@default' or _is_valid_absolute_iri(graph_name):
-                g = self._rdflib_term_from_id(graph_name) if graph_name != '@default' else dataset.default_graph
+                g = (
+                    self._rdflib_term_from_id(graph_name)
+                    if graph_name != '@default'
+                    else dataset.default_graph
+                )
                 for t in self._graph_to_rdf(graph, issuer, options):
                     s, p, o = t
-                    dataset.add((s, p, o, g))
+                    # Dataset.add accepts quads although rdflib's stubs reject this shape.
+                    dataset.add(cast(Any, (s, p, o, g)))
         # convert to output format
         if 'format' in options:
             if (
@@ -1080,9 +1111,11 @@ class JsonLdProcessor:
             )
         # In legacy mode, return RDF datasets as
         # RDFJS-like dict objects equivalent to PyLD < 4.0
-        return to_legacy_dataset(dataset) if options.get('legacyMode', False) else dataset
+        return (
+            to_legacy_dataset(dataset) if options.get('legacyMode', False) else dataset
+        )
 
-    def process_context(self, active_ctx, local_ctx, options):
+    def process_context(self, active_ctx: Any, local_ctx: Any, options: Any) -> Any:
         """
         Processes a local context, retrieving any URLs as necessary, and
         returns a new active context in its callback.
@@ -1111,7 +1144,7 @@ class JsonLdProcessor:
 
         return self._process_context(active_ctx, local_ctx, options)
 
-    def register_rdf_parser(self, content_type, parser):
+    def register_rdf_parser(self, content_type: Any, parser: Any) -> None:
         """
         Registers a processor-specific RDF parser by content-type.
         Global parsers will no longer be used by this processor.
@@ -1124,7 +1157,7 @@ class JsonLdProcessor:
             self.rdf_parsers = {}
             self.rdf_parsers[content_type] = parser
 
-    def unregister_rdf_parser(self, content_type):
+    def unregister_rdf_parser(self, content_type: Any) -> None:
         """
         Unregisters a process-specific RDF parser by content-type.
         If there are no remaining processor-specific parsers, then the global
@@ -1138,7 +1171,7 @@ class JsonLdProcessor:
                 self.rdf_parsers = None
 
     @staticmethod
-    def has_property(subject, property):
+    def has_property(subject: Any, property: Any) -> Any:
         """
         Returns True if the given subject has the given property.
 
@@ -1153,7 +1186,7 @@ class JsonLdProcessor:
         return False
 
     @staticmethod
-    def has_value(subject, property, value):
+    def has_value(subject: Any, property: Any, value: Any) -> Any:
         """
          Determines if the given value is a property of the given subject.
 
@@ -1191,7 +1224,7 @@ class JsonLdProcessor:
         return False
 
     @staticmethod
-    def add_value(subject, property, value, options=None):
+    def add_value(subject: Any, property: Any, value: Any, options: Any = None) -> None:
         """
         Adds a value to a subject. If the value is an array, all values in the
         array will be added.
@@ -1246,7 +1279,7 @@ class JsonLdProcessor:
             subject[property] = [value] if options['propertyIsArray'] else value
 
     @staticmethod
-    def get_values(subject, property):
+    def get_values(subject: Any, property: Any) -> Any:
         """
         Gets all of the values for a subject's property as an array.
 
@@ -1262,7 +1295,7 @@ class JsonLdProcessor:
         )
 
     @staticmethod
-    def remove_property(subject, property):
+    def remove_property(subject: Any, property: Any) -> None:
         """
         Removes a property from a subject.
 
@@ -1272,7 +1305,9 @@ class JsonLdProcessor:
         del subject[property]
 
     @staticmethod
-    def remove_value(subject, property, value, options=None):
+    def remove_value(
+        subject: Any, property: Any, value: Any, options: Any = None
+    ) -> None:
         """
         Removes a value from a subject.
 
@@ -1299,7 +1334,7 @@ class JsonLdProcessor:
             subject[property] = values
 
     @staticmethod
-    def compare_values(v1, v2):
+    def compare_values(v1: Any, v2: Any) -> Any:
         """
         Compares two JSON-LD values for equality. Two JSON-LD values will be
         considered equal if:
@@ -1319,7 +1354,7 @@ class JsonLdProcessor:
             return True
 
         # Helper for strict type checking (prevents 1 == True)
-        def _strict_eq(a, b):
+        def _strict_eq(a: Any, b: Any) -> Any:
             return a == b and (
                 type(a) is type(b)
                 if isinstance(a, bool) or isinstance(b, bool)
@@ -1348,7 +1383,7 @@ class JsonLdProcessor:
         return False
 
     @staticmethod
-    def get_context_value(ctx, key, type_):
+    def get_context_value(ctx: Any, key: Any, type_: Any) -> Any:
         """
         Gets the value for the given active context key and type, None if none
         is set.
@@ -1390,7 +1425,7 @@ class JsonLdProcessor:
         return rval
 
     @staticmethod
-    def parse_nquads(input_: str, **kwargs) -> Dataset | dict:
+    def parse_nquads(input_: str, **kwargs: Any) -> Dataset | dict[str, Any]:
         """
         Parses RDF in the form of N-Quads.
 
@@ -1411,21 +1446,25 @@ class JsonLdProcessor:
                 for label in re.findall(r'_:([A-Za-z0-9_][A-Za-z0-9_.-]*)', input_)
             }
             parser = UnnormalizedNQuadsParser()
-            parser.parse(StringInputSource(input_), dataset, bnode_context=bnode_context)
+            parser.parse(
+                StringInputSource(input_), dataset, bnode_context=bnode_context
+            )
             # In legacy mode, return RDF datasets as
             # RDFJS-like dict objects equivalent to PyLD < 4.0
-            return to_legacy_dataset(dataset) if kwargs.get('legacy_mode', False) else dataset
+            return (
+                to_legacy_dataset(dataset)
+                if kwargs.get('legacy_mode', False)
+                else dataset
+            )
         except SyntaxError as cause:
             raise JsonLdError(
                 str(cause), 'jsonld.ParseError', {'line': cause.lineno}
             ) from cause
         except Exception as cause:
-            raise JsonLdError(
-                str(cause), 'jsonld.ParseError', {}
-            ) from cause
+            raise JsonLdError(str(cause), 'jsonld.ParseError', {}) from cause
 
     @staticmethod
-    def to_nquads(dataset: dict | Dataset):
+    def to_nquads(dataset: dict[str, Any] | Dataset) -> Any:
         """
         Converts an RDF dataset to N-Quads.
 
@@ -1438,7 +1477,9 @@ class JsonLdProcessor:
         return dataset.serialize(format='nquads')
 
     @staticmethod
-    def to_nquad(triple: dict | tuple[Node, Node, Node], graph_name=None):
+    def to_nquad(
+        triple: dict[str, Any] | tuple[Node, Node, Node], graph_name: Any = None
+    ) -> Any:
         """Converts an RDF triple to an N-Quad string.
         :param triple: the RDF triple to convert, either as a dict with keys
                        'subject', 'predicate', 'object' (legacy) or as a tuple of rdflib Nodes.
@@ -1447,10 +1488,11 @@ class JsonLdProcessor:
         """
         if isinstance(triple, dict):
             triple = from_legacy_triple(triple)
-        return _nq_row(triple, graph_name)
+        # rdflib keeps this serializer private and does not expose a usable signature.
+        return cast(Any, _nq_row)(triple, graph_name)
 
     @staticmethod
-    def arrayify(value):
+    def arrayify(value: Any) -> Any:
         """
         If value is an array, returns value, otherwise returns an array
         containing value as the only element.
@@ -1461,7 +1503,9 @@ class JsonLdProcessor:
         """
         return value if _is_array(value) else [value]
 
-    def _compact(self, active_ctx, active_property, element, options):
+    def _compact(
+        self, active_ctx: Any, active_property: Any, element: Any, options: Any
+    ) -> Any:
         """
         Recursively compacts an element using the given active context. All
         values must be in expanded form before this method is called.
@@ -1476,7 +1520,7 @@ class JsonLdProcessor:
         """
         # recursively compact array
         if _is_array(element):
-            rval = []
+            rval: Any = []
             for e in element:
                 # compact, dropping any None values
                 e = self._compact(active_ctx, active_property, e, options)
@@ -2033,14 +2077,14 @@ class JsonLdProcessor:
 
     def _expand(
         self,
-        active_ctx,
-        active_property,
-        element,
-        options,
-        inside_list=False,
-        inside_index=False,
-        type_scoped_ctx=None,
-    ):
+        active_ctx: Any,
+        active_property: Any,
+        element: Any,
+        options: Any,
+        inside_list: Any = False,
+        inside_index: Any = False,
+        type_scoped_ctx: Any = None,
+    ) -> Any:
         """
         Recursively expands an element using the given context. Any context in
         the element will be removed. All context URLs must have been retrieved
@@ -2069,7 +2113,7 @@ class JsonLdProcessor:
 
         # recursively expand array
         if _is_array(element):
-            rval = []
+            rval: Any = []
             container = JsonLdProcessor.arrayify(
                 JsonLdProcessor.get_context_value(
                     active_ctx, active_property, '@container'
@@ -2310,16 +2354,16 @@ class JsonLdProcessor:
 
     def _expand_object(
         self,
-        active_ctx,
-        active_property,
-        expanded_active_property,
-        element,
-        expanded_parent,
-        options,
-        inside_list=False,
-        type_key=None,
-        type_scoped_ctx=None,
-    ):
+        active_ctx: Any,
+        active_property: Any,
+        expanded_active_property: Any,
+        element: Any,
+        expanded_parent: Any,
+        options: Any,
+        inside_list: Any = False,
+        type_key: Any = None,
+        type_scoped_ctx: Any = None,
+    ) -> None:
         """
         Expand each key and value of element adding to result.
 
@@ -2813,8 +2857,7 @@ class JsonLdProcessor:
                 )
 
                 if any(
-                    self._expand_iri(active_ctx, k, vocab=True) == '@value'
-                    for k in nv
+                    self._expand_iri(active_ctx, k, vocab=True) == '@value' for k in nv
                 ):
                     raise JsonLdError(
                         'Invalid JSON-LD syntax; nested value must be a node object.',
@@ -2835,7 +2878,9 @@ class JsonLdProcessor:
                     type_scoped_ctx=type_scoped_ctx,
                 )
 
-    def _prepare_nested_context(self, active_ctx, element, options):
+    def _prepare_nested_context(
+        self, active_ctx: Any, element: Any, options: Any
+    ) -> Any:
         """
         Prepare local and type-scoped contexts for a nested node object.
 
@@ -2892,7 +2937,7 @@ class JsonLdProcessor:
 
         return active_ctx, type_key, type_scoped_ctx
 
-    def _flatten(self, input, options):
+    def _flatten(self, input: Any, options: Any) -> Any:
         """
         Performs JSON-LD flattening.
 
@@ -2902,7 +2947,7 @@ class JsonLdProcessor:
         """
         # produce a map of all subjects and label each bnode
         issuer = options['identifierIssuer'] or IdentifierIssuer('_:b')
-        graphs = {'@default': {}}
+        graphs: Any = {'@default': {}}
         self._create_node_map(input, graphs, '@default', issuer)
 
         # add all non-default graphs to default graph
@@ -2924,7 +2969,7 @@ class JsonLdProcessor:
             if not _is_subject_reference(value)
         ]
 
-    def _frame(self, input_, frame, options):
+    def _frame(self, input_: Any, frame: Any, options: Any) -> Any:
         """
         Performs JSON-LD framing.
 
@@ -2957,7 +3002,7 @@ class JsonLdProcessor:
         state['subjects'] = state['graphMap'][state['graph']]
 
         # frame the subjects
-        framed = []
+        framed: Any = []
         self._match_frame(state, sorted(state['subjects']), frame, framed, None)
 
         # if pruning blank nodes, find those to prune
@@ -2968,7 +3013,7 @@ class JsonLdProcessor:
 
         return framed
 
-    def _from_rdf(self, dataset: Dataset, options):
+    def _from_rdf(self, dataset: Dataset, options: Any) -> Any:
         """
         Converts an RDF dataset to JSON-LD.
 
@@ -2977,9 +3022,9 @@ class JsonLdProcessor:
 
         :return: the JSON-LD output.
         """
-        default_graph = {}
+        default_graph: Any = {}
         graph_map = {'@default': default_graph}
-        referenced_once = {}
+        referenced_once: Any = {}
 
         for s, p, o, graph_name in dataset.quads((None, None, None, None)):
             name = (
@@ -2991,18 +3036,22 @@ class JsonLdProcessor:
             if name != '@default' and name not in default_graph:
                 default_graph[name] = {'@id': name}
             node_map = graph_map[name]
-            s = self._id_from_rdflib_term(s)
-            p = str(p)
+            # RDF subject positions are identifiers; rdflib's quad type is broader.
+            subject_id = self._id_from_rdflib_term(cast(Identifier, s))
+            predicate_id = str(p)
 
-            node = node_map.setdefault(s, {'@id': s})
+            node = node_map.setdefault(subject_id, {'@id': subject_id})
 
             object_is_id = not isinstance(o, Literal)
-            object_id = self._id_from_rdflib_term(o) if object_is_id else None
+            object_id = (
+                # Non-literal RDF objects are identifiers.
+                self._id_from_rdflib_term(cast(Identifier, o)) if object_is_id else None
+            )
             if object_is_id and object_id not in node_map:
                 node_map[object_id] = {'@id': object_id}
 
             if (
-                p == str(RDF.type)
+                predicate_id == str(RDF.type)
                 and not options.get('useRdfType', False)
                 and object_is_id
             ):
@@ -3012,9 +3061,14 @@ class JsonLdProcessor:
                 continue
 
             value = self._rdf_to_object(
-                o, options['useNativeTypes'], options['rdfDirection']
+                # Literal and identifier objects are both valid for this converter.
+                cast(Identifier, o),
+                options['useNativeTypes'],
+                options['rdfDirection'],
             )
-            JsonLdProcessor.add_value(node, p, value, {'propertyIsArray': True})
+            JsonLdProcessor.add_value(
+                node, predicate_id, value, {'propertyIsArray': True}
+            )
 
             # object may be an RDF list/partial list node but we
             # can't know easily until all triples are read
@@ -3025,7 +3079,7 @@ class JsonLdProcessor:
                     if 'usages' not in object:
                         object['usages'] = []
                     object['usages'].append(
-                        {'node': node, 'property': p, 'value': value}
+                        {'node': node, 'property': predicate_id, 'value': value}
                     )
                 # object referenced more than once
                 elif object_id in referenced_once:
@@ -3034,7 +3088,7 @@ class JsonLdProcessor:
                 else:
                     referenced_once[object_id] = {
                         'node': node,
-                        'property': p,
+                        'property': predicate_id,
                         'value': value,
                     }
 
@@ -3124,7 +3178,7 @@ class JsonLdProcessor:
 
         return result
 
-    def _rdf_direction_to_compound_literal(self, graph_object):
+    def _rdf_direction_to_compound_literal(self, graph_object: Any) -> None:
         """
         Replace RDF compound-literal blank nodes with JSON-LD value objects.
 
@@ -3146,7 +3200,7 @@ class JsonLdProcessor:
 
         # Track where each compound literal is referenced. Only the first two
         # locations matter: one reference can be inlined, two means shared.
-        references = {}
+        references: Any = {}
         for node in graph_object.values():
             for key, values in node.items():
                 if key == '@id' or not _is_array(values):
@@ -3173,7 +3227,7 @@ class JsonLdProcessor:
             # only reference has been rewritten.
             del graph_object[id_]
 
-    def _compound_literal_to_value(self, id_, node):
+    def _compound_literal_to_value(self, id_: Any, node: Any) -> Any:
         """
         Return a JSON-LD value object if node has the compound-literal shape.
 
@@ -3183,8 +3237,8 @@ class JsonLdProcessor:
         """
 
         rdf_value = str(RDF.value)
-        rdf_language= str(RDF.language)
-        rdf_direction= str(RDF.direction)
+        rdf_language = str(RDF.language)
+        rdf_direction = str(RDF.direction)
 
         allowed_keys = {rdf_value, rdf_language, rdf_direction, '@id'}
 
@@ -3242,7 +3296,7 @@ class JsonLdProcessor:
         value['@direction'] = direction
         return value
 
-    def _is_single_rdf_value(self, node, key):
+    def _is_single_rdf_value(self, node: Any, key: Any) -> bool:
         """
         Return True when a node property has exactly one JSON-LD value object.
         """
@@ -3255,14 +3309,14 @@ class JsonLdProcessor:
 
     def _process_context(
         self,
-        active_ctx,
-        local_ctx,
-        options,
-        override_protected=False,
-        propagate=True,
-        validate_scoped=True,
-        cycles=None,
-    ):
+        active_ctx: Any,
+        local_ctx: Any,
+        options: Any,
+        override_protected: Any = False,
+        propagate: Any = True,
+        validate_scoped: Any = True,
+        cycles: Any = None,
+    ) -> Any:
         """
         Processes a local context and returns a new active context.
 
@@ -3639,12 +3693,12 @@ class JsonLdProcessor:
 
         return rval
 
-    def _revert_to_previous_context(self, active_ctx):
+    def _revert_to_previous_context(self, active_ctx: Any) -> Any:
         if 'previousContext' not in active_ctx:
             return active_ctx
         return active_ctx['previousContext']
 
-    def _processing_mode(self, active_ctx, version):
+    def _processing_mode(self, active_ctx: Any, version: Any) -> Any:
         """
         Processing Mode check.
 
@@ -3658,7 +3712,7 @@ class JsonLdProcessor:
         else:
             return active_ctx.get('processingMode', 'json-ld-1.0') == 'json-ld-1.0'
 
-    def _check_nest_property(self, active_ctx, nest_property):
+    def _check_nest_property(self, active_ctx: Any, nest_property: Any) -> None:
         """
         The value of `@nest` in the term definition must either be `@nest`, or a term
         which resolves to `@nest`.
@@ -3674,7 +3728,9 @@ class JsonLdProcessor:
                 code='invalid @nest value',
             )
 
-    def _expand_language_map(self, active_ctx, language_map, direction):
+    def _expand_language_map(
+        self, active_ctx: Any, language_map: Any, direction: Any
+    ) -> Any:
         """
         Expands a language map.
 
@@ -3708,14 +3764,14 @@ class JsonLdProcessor:
 
     def _expand_index_map(
         self,
-        active_ctx,
-        active_property,
-        value,
-        index_key,
-        as_graph,
-        property_index,
-        options,
-    ):
+        active_ctx: Any,
+        active_property: Any,
+        value: Any,
+        index_key: Any,
+        as_graph: Any,
+        property_index: Any,
+        options: Any,
+    ) -> Any:
         """
         Expands in index, id or type map.
 
@@ -3802,7 +3858,9 @@ class JsonLdProcessor:
                 rval.append(item)
         return rval
 
-    def _expand_value(self, active_ctx, active_property, value, options):
+    def _expand_value(
+        self, active_ctx: Any, active_property: Any, value: Any, options: Any
+    ) -> Any:
         """
         Expands the given value by using the coercion and keyword rules in the
         given context.
@@ -3876,7 +3934,7 @@ class JsonLdProcessor:
         rval['@value'] = value
         return rval
 
-    def _graph_to_rdf(self, graph, issuer, options):
+    def _graph_to_rdf(self, graph: Any, issuer: Any, options: Any) -> Any:
         """
         Creates an array of RDF triples for the given graph.
 
@@ -3886,7 +3944,7 @@ class JsonLdProcessor:
 
         :return: the array of RDF triples for the given graph.
         """
-        triples = [] # TODO: use rdflib.Graph instead
+        triples: Any = []  # TODO: use rdflib.Graph instead
         for id_, node in sorted(graph.items()):
             for property, items in sorted(node.items()):
                 if property != '@type' and _is_keyword(property):
@@ -3906,10 +3964,17 @@ class JsonLdProcessor:
 
                     # skip bnode predicates unless producing
                     # generalized RDF
-                    if property.startswith('_:') and not options['produceGeneralizedRdf']:
+                    if (
+                        property.startswith('_:')
+                        and not options['produceGeneralizedRdf']
+                    ):
                         continue
 
-                    predicate = self._rdflib_term_from_id(property) if property != '@type' else RDF.type
+                    predicate = (
+                        self._rdflib_term_from_id(property)
+                        if property != '@type'
+                        else RDF.type
+                    )
 
                     # convert list, value or node object to triple
                     object = self._object_to_rdf(item, issuer, triples, options)
@@ -3918,7 +3983,13 @@ class JsonLdProcessor:
                         triples.append((subject, predicate, object))
         return triples
 
-    def _list_to_rdf(self, list_: list, issuer: IdentifierIssuer, triples, options) -> BNode | URIRef:
+    def _list_to_rdf(
+        self,
+        list_: list[Any],
+        issuer: IdentifierIssuer,
+        triples: Any,
+        options: Any,
+    ) -> BNode | URIRef:
         """
         Converts a @list value into a linked list of blank node RDF triples
         (and RDF collection).
@@ -3954,7 +4025,6 @@ class JsonLdProcessor:
 
         return result
 
-
     def _rdflib_term_from_id(self, id_: str) -> BNode | URIRef:
         """
         Converts a JSON-LD @id value to an RDFLib term.
@@ -3973,7 +4043,7 @@ class JsonLdProcessor:
         """
         return '_:' + str(term) if isinstance(term, BNode) else str(term)
 
-    def _object_to_rdf(self, item, issuer, triples, options):
+    def _object_to_rdf(self, item: Any, issuer: Any, triples: Any, options: Any) -> Any:
         """
         Converts a JSON-LD value object to an RDF literal or a JSON-LD string
         or node object to an RDF resource.
@@ -3996,9 +4066,7 @@ class JsonLdProcessor:
 
             # convert to XSD datatypes as appropriate
             if datatype == '@json':
-                return Literal(
-                    canonicalize(value).decode('UTF-8'), datatype=RDF.JSON
-                )
+                return Literal(_canonicalize(value).decode('UTF-8'), datatype=RDF.JSON)
             elif _is_bool(value):
                 return Literal(
                     'true' if value else 'false',
@@ -4055,8 +4123,9 @@ class JsonLdProcessor:
                     (
                         subject,
                         RDF.direction,
-                        Literal(item['@direction'], datatype=XSD.string,
-                        normalize=False),
+                        Literal(
+                            item['@direction'], datatype=XSD.string, normalize=False
+                        ),
                     )
                 )
                 if '@language' in item:
@@ -4064,7 +4133,9 @@ class JsonLdProcessor:
                         (
                             subject,
                             RDF.language,
-                            Literal(item['@language'], datatype=XSD.string, normalize=False),
+                            Literal(
+                                item['@language'], datatype=XSD.string, normalize=False
+                            ),
                         )
                     )
                 return subject
@@ -4103,7 +4174,9 @@ class JsonLdProcessor:
 
         return self._rdflib_term_from_id(id_)
 
-    def _rdf_to_object(self, o: Identifier, use_native_types, rdf_direction) -> dict:
+    def _rdf_to_object(
+        self, o: Identifier, use_native_types: Any, rdf_direction: Any
+    ) -> dict[str, Any]:
         """
         Converts an RDF triple object to a JSON-LD object.
 
@@ -4119,14 +4192,14 @@ class JsonLdProcessor:
             return {'@id': id_}
 
         # convert literal object to JSON-LD
-        rval = {'@value': str(o)}
+        rval: dict[str, Any] = {'@value': str(o)}
 
         # add language
         if o.language is not None:
             rval['@language'] = o.language
         # add datatype
         else:
-            type_ = o.datatype if o.datatype else XSD.string
+            type_: Any = o.datatype if o.datatype else XSD.string
 
             if type_ == RDF.JSON:
                 type_ = '@json'
@@ -4176,14 +4249,14 @@ class JsonLdProcessor:
 
     def _create_node_map(
         self,
-        input_,
-        graph_map,
-        active_graph,
-        issuer,
-        active_subject=None,
-        active_property=None,
-        list_=None,
-    ):
+        input_: Any,
+        graph_map: Any,
+        active_graph: Any,
+        issuer: Any,
+        active_subject: Any = None,
+        active_property: Any = None,
+        list_: Any = None,
+    ) -> None:
         """
         Recursively flattens the subjects in the given JSON-LD expanded
         input into a node map.
@@ -4244,7 +4317,7 @@ class JsonLdProcessor:
             return
 
         if _is_list(input_):
-            o = {'@list': []}
+            o: Any = {'@list': []}
             self._create_node_map(
                 input_['@list'],
                 graph_map,
@@ -4379,7 +4452,7 @@ class JsonLdProcessor:
                         active_property=property,
                     )
 
-    def _merge_node_map_graphs(self, graph_map):
+    def _merge_node_map_graphs(self, graph_map: Any) -> Any:
         """
         Merge separate named graphs into a single merged graph including
         all nodes from the default graph and named graphs.
@@ -4409,7 +4482,9 @@ class JsonLdProcessor:
                             )
         return merged
 
-    def _match_frame(self, state, subjects, frame, parent, property):
+    def _match_frame(
+        self, state: Any, subjects: Any, frame: Any, parent: Any, property: Any
+    ) -> None:
         """
         Frames subjects according to the given frame.
 
@@ -4523,7 +4598,8 @@ class JsonLdProcessor:
 
             # subject is also the name of a graph
             if id_ in state['graphMap']:
-                recurse, subframe = False, None
+                recurse = False
+                subframe: Any = None
                 if '@graph' not in frame:
                     recurse = state['graph'] != '@merged'
                     subframe = {}
@@ -4592,7 +4668,7 @@ class JsonLdProcessor:
                             subframe = self._create_implicit_frame(flags)
 
                         # add empty list
-                        list_ = {'@list': []}
+                        list_: Any = {'@list': []}
                         self._add_frame_output(output, prop, list_)
 
                         # add list objects
@@ -4679,7 +4755,7 @@ class JsonLdProcessor:
             # pop matching subject from circular ref-checking stack
             state['subjectStack'].pop()
 
-    def _create_implicit_frame(self, flags):
+    def _create_implicit_frame(self, flags: Any) -> Any:
         """
         Creates an implicit frame when recursing through subject matches. If
         a frame doesn't have an explicit frame for a particular property, then
@@ -4695,7 +4771,9 @@ class JsonLdProcessor:
             frame['@' + key] = [flags[key]]
         return [frame]
 
-    def _creates_circular_reference(self, subject_to_embed, graph, subject_stack):
+    def _creates_circular_reference(
+        self, subject_to_embed: Any, graph: Any, subject_stack: Any
+    ) -> Any:
         """
         Checks the current subject stack to see if embedding the given subject
         would cause a circular reference.
@@ -4714,7 +4792,7 @@ class JsonLdProcessor:
                 return True
         return False
 
-    def _get_frame_flag(self, frame, options, name):
+    def _get_frame_flag(self, frame: Any, options: Any, name: Any) -> Any:
         """
         Gets the frame flag value for the given flag name.
 
@@ -4750,7 +4828,7 @@ class JsonLdProcessor:
                 )
         return rval
 
-    def _validate_frame(self, frame):
+    def _validate_frame(self, frame: Any) -> None:
         """
         Validates a JSON-LD frame, throwing an exception if the frame is
         invalid.
@@ -4789,7 +4867,9 @@ class JsonLdProcessor:
                         code='invalid frame',
                     )
 
-    def _filter_subjects(self, state, subjects, frame, flags):
+    def _filter_subjects(
+        self, state: Any, subjects: Any, frame: Any, flags: Any
+    ) -> Any:
         """
         Returns a map of all of the subjects that match a parsed frame.
 
@@ -4807,7 +4887,7 @@ class JsonLdProcessor:
                 rval[id_] = subject
         return rval
 
-    def _filter_subject(self, state, subject, frame, flags):
+    def _filter_subject(self, state: Any, subject: Any, frame: Any, flags: Any) -> Any:
         """
         Returns True if the given subject matches the given frame.
 
@@ -4935,7 +5015,7 @@ class JsonLdProcessor:
         # return true if wildcard or subject matches some properties
         return wildcard or matches_some
 
-    def _remove_embed(self, state, id_):
+    def _remove_embed(self, state: Any, id_: Any) -> None:
         """
         Removes an existing embed.
 
@@ -4968,7 +5048,7 @@ class JsonLdProcessor:
             )
 
         # recursively remove dependent dangling embeds
-        def remove_dependents(id_):
+        def remove_dependents(id_: Any) -> None:
             # get embed keys as a separate array to enable deleting keys
             # in map
             for next in list(embeds):
@@ -4983,7 +5063,7 @@ class JsonLdProcessor:
 
         remove_dependents(id_)
 
-    def _add_frame_output(self, parent, property, output):
+    def _add_frame_output(self, parent: Any, property: Any, output: Any) -> None:
         """
         Adds framing output to the given parent.
 
@@ -4998,7 +5078,7 @@ class JsonLdProcessor:
         else:
             parent.append(output)
 
-    def _node_match(self, state, pattern, value, flags):
+    def _node_match(self, state: Any, pattern: Any, value: Any, flags: Any) -> Any:
         """
         Node matches if it is a node, and matches the pattern as a frame.
 
@@ -5012,7 +5092,7 @@ class JsonLdProcessor:
         node_object = state['subjects'][value['@id']]
         return node_object and self._filter_subject(state, node_object, pattern, flags)
 
-    def _value_match(self, pattern, value):
+    def _value_match(self, pattern: Any, value: Any) -> Any:
         """
         Value matches if it is a value and matches the value pattern
 
@@ -5045,7 +5125,7 @@ class JsonLdProcessor:
             (not l1 and not l2) or (l1 in l2) or (l1 and l2 and _is_empty_object(l2[0]))
         )
 
-    def _cleanup_preserve(self, input_, options):
+    def _cleanup_preserve(self, input_: Any, options: Any) -> Any:
         """
         Removes the @preserve keywords as the last step of the framing
         algorithm.
@@ -5105,7 +5185,7 @@ class JsonLdProcessor:
                 input_[prop] = self._cleanup_preserve(v, options)
         return input_
 
-    def _cleanup_null(self, input_, options):
+    def _cleanup_null(self, input_: Any, options: Any) -> Any:
         """
         Replace '@null' with None, removing it from arrays.
 
@@ -5141,13 +5221,13 @@ class JsonLdProcessor:
 
     def _select_term(
         self,
-        active_ctx,
-        iri,
-        value,
-        containers,
-        type_or_language,
-        type_or_language_value,
-    ):
+        active_ctx: Any,
+        iri: Any,
+        value: Any,
+        containers: Any,
+        type_or_language: Any,
+        type_or_language_value: Any,
+    ) -> Any:
         """
         Picks the preferred compaction term from the inverse context entry.
 
@@ -5208,8 +5288,14 @@ class JsonLdProcessor:
         return None
 
     def _compact_iri(
-        self, active_ctx, iri, value=None, vocab=False, base=None, reverse=False
-    ):
+        self,
+        active_ctx: Any,
+        iri: Any,
+        value: Any = None,
+        vocab: Any = False,
+        base: Any = None,
+        reverse: Any = False,
+    ) -> Any:
         """
         Compacts an IRI or keyword into a term or CURIE if it can be. If the
         IRI has an associated value it may be passed.
@@ -5454,7 +5540,9 @@ class JsonLdProcessor:
         # return IRI as is
         return iri
 
-    def _compact_value(self, active_ctx, active_property, value, options):
+    def _compact_value(
+        self, active_ctx: Any, active_property: Any, value: Any, options: Any
+    ) -> Any:
         """
         Performs value compaction on an object with @value or @id as the only
         property.
@@ -5568,14 +5656,14 @@ class JsonLdProcessor:
 
     def _create_term_definition(
         self,
-        active_ctx,
-        local_ctx,
-        term,
-        defined,
-        options,
-        override_protected=False,
-        validate_scoped=True,
-    ):
+        active_ctx: Any,
+        local_ctx: Any,
+        term: Any,
+        defined: Any,
+        options: Any,
+        override_protected: Any = False,
+        validate_scoped: Any = True,
+    ) -> None:
         """
         Creates a term definition during context processing.
 
@@ -5671,7 +5759,7 @@ class JsonLdProcessor:
             )
 
         # create new mapping
-        mapping = {'reverse': False, 'protected': False, '_prefix': False}
+        mapping: Any = {'reverse': False, 'protected': False, '_prefix': False}
 
         # make sure term definition only has expected keywords
         valid_keys = ['@container', '@id', '@language', '@reverse', '@type']
@@ -5812,8 +5900,7 @@ class JsonLdProcessor:
                     _simple_term
                     and not mapping['_term_has_colon']
                     and (
-                        id_.startswith('_:')
-                        or bool(re.match(r'.*[:/\?#\[\]@]$', id_))
+                        id_.startswith('_:') or bool(re.match(r'.*[:/\?#\[\]@]$', id_))
                     )
                 )
         if '@id' not in mapping:
@@ -6100,8 +6187,14 @@ class JsonLdProcessor:
         defined[term] = True
 
     def _expand_iri(
-        self, active_ctx, value, base=None, vocab=False, local_ctx=None, defined=None
-    ):
+        self,
+        active_ctx: Any,
+        value: Any,
+        base: Any = None,
+        vocab: Any = False,
+        local_ctx: Any = None,
+        defined: Any = None,
+    ) -> Any:
         """
         Expands a string value to a full IRI. The string may be a term, a
         prefix, a relative IRI, or an absolute IRI. The associated absolute
@@ -6188,7 +6281,7 @@ class JsonLdProcessor:
 
         return rval
 
-    def _get_initial_context(self, options):
+    def _get_initial_context(self, options: Any) -> Any:
         """
         Gets the initial context.
 
@@ -6204,7 +6297,7 @@ class JsonLdProcessor:
             )
         return INITIAL_CONTEXTS[pm]
 
-    def _get_inverse_context(self, active_ctx):
+    def _get_inverse_context(self, active_ctx: Any) -> Any:
         """
         Generates an inverse context for use in the compaction algorithm, if
         not already generated for the given active context.
@@ -6296,7 +6389,7 @@ class JsonLdProcessor:
         _inverse_context_cache[active_ctx['_uuid']] = inverse
         return inverse
 
-    def _clone_active_context(self, active_ctx):
+    def _clone_active_context(self, active_ctx: Any) -> Any:
         """
         Clones an active context, creating a child active context.
 
@@ -6323,13 +6416,15 @@ class JsonLdError(Exception):
     Base class for JSON-LD errors.
     """
 
-    def __init__(self, message, type_, details=None, code=None):
+    def __init__(
+        self, message: Any, type_: Any, details: Any = None, code: Any = None
+    ) -> None:
         Exception.__init__(self, message)
         self.type = type_
         self.details = details
         self.code = code
 
-    def __str__(self):
+    def __str__(self) -> Any:
         rval = str(self.args)
         rval += '\nType: ' + self.type
         if self.code:
@@ -6339,7 +6434,7 @@ class JsonLdError(Exception):
         return rval
 
 
-def _is_keyword(v):
+def _is_keyword(v: Any) -> bool:
     """
     Returns whether or not the given value is a keyword.
 
@@ -6352,7 +6447,7 @@ def _is_keyword(v):
     return v in KEYWORDS
 
 
-def _is_object(v):
+def _is_object(v: Any) -> bool:
     """
     Returns True if the given value is an Object.
 
@@ -6363,7 +6458,7 @@ def _is_object(v):
     return isinstance(v, (dict, frozendict))
 
 
-def _is_empty_object(v):
+def _is_empty_object(v: Any) -> bool:
     """
     Returns True if the given value is an empty Object.
 
@@ -6374,7 +6469,7 @@ def _is_empty_object(v):
     return _is_object(v) and len(v) == 0
 
 
-def _is_array(v):
+def _is_array(v: Any) -> bool:
     """
     Returns True if the given value is an Array.
 
@@ -6385,7 +6480,7 @@ def _is_array(v):
     return isinstance(v, list)
 
 
-def _is_string(v):
+def _is_string(v: Any) -> bool:
     """
     Returns True if the given value is a String.
 
@@ -6396,7 +6491,7 @@ def _is_string(v):
     return isinstance(v, str)
 
 
-def _validate_type_value(v, is_frame):
+def _validate_type_value(v: Any, is_frame: Any) -> None:
     """
     Raises an exception if the given value is not a valid @type value.
 
@@ -6427,7 +6522,7 @@ def _validate_type_value(v, is_frame):
     )
 
 
-def _is_bool(v):
+def _is_bool(v: Any) -> bool:
     """
     Returns True if the given value is a Boolean.
 
@@ -6438,7 +6533,7 @@ def _is_bool(v):
     return isinstance(v, bool)
 
 
-def _is_integer(v):
+def _is_integer(v: Any) -> bool:
     """
     Returns True if the given value is an Integer.
 
@@ -6449,7 +6544,7 @@ def _is_integer(v):
     return isinstance(v, Integral) or (isinstance(v, Real) and float(v).is_integer())
 
 
-def _is_double(v):
+def _is_double(v: Any) -> bool:
     """
     Returns True if the given value is a Double.
 
@@ -6457,7 +6552,11 @@ def _is_double(v):
 
     :return: True if the value is a Double, False if not.
     """
-    return not isinstance(v, Integral) and isinstance(v, Real) and not float(v).is_integer()
+    return (
+        not isinstance(v, Integral)
+        and isinstance(v, Real)
+        and not float(v).is_integer()
+    )
 
 
 def _canonicalize_double(value: float) -> str:
@@ -6465,7 +6564,7 @@ def _canonicalize_double(value: float) -> str:
     return re.sub(r'(\d)0*E\+?(-)?0*(\d)', r'\1E\2\3', (f'{value:1.15E}'))
 
 
-def _is_numeric(v):
+def _is_numeric(v: Any) -> bool:
     """
     Returns True if the given value is numeric.
 
@@ -6480,7 +6579,7 @@ def _is_numeric(v):
         return False
 
 
-def _is_subject(v):
+def _is_subject(v: Any) -> bool:
     """
     Returns True if the given value is a subject with properties.
 
@@ -6498,7 +6597,7 @@ def _is_subject(v):
     return rval
 
 
-def _is_subject_reference(v):
+def _is_subject_reference(v: Any) -> bool:
     """
     Returns True if the given value is a subject reference.
 
@@ -6512,7 +6611,7 @@ def _is_subject_reference(v):
     return _is_object(v) and len(v) == 1 and '@id' in v
 
 
-def _is_value(v):
+def _is_value(v: Any) -> bool:
     """
     Returns True if the given value is a @value.
 
@@ -6526,7 +6625,7 @@ def _is_value(v):
     return _is_object(v) and '@value' in v
 
 
-def _is_list(v):
+def _is_list(v: Any) -> bool:
     """
     Returns True if the given value is a @list.
 
@@ -6540,7 +6639,7 @@ def _is_list(v):
     return _is_object(v) and '@list' in v
 
 
-def _is_graph(v):
+def _is_graph(v: Any) -> bool:
     """
     Note: A value is a graph if all of these hold true:
     1. It is an object.
@@ -6559,7 +6658,7 @@ def _is_graph(v):
     )
 
 
-def _is_simple_graph(v):
+def _is_simple_graph(v: Any) -> bool:
     """
     Returns true if the given value is a simple @graph
 
@@ -6570,7 +6669,7 @@ def _is_simple_graph(v):
     return _is_graph(v) and '@id' not in v
 
 
-def _is_bnode(v):
+def _is_bnode(v: Any) -> bool:
     """
     Returns True if the given value is a blank node.
 
@@ -6591,7 +6690,7 @@ def _is_bnode(v):
     return rval
 
 
-def _is_absolute_iri(v):
+def _is_absolute_iri(v: Any) -> bool:
     """
     Returns True if the given value is an absolute IRI, False if not.
 
@@ -6599,10 +6698,10 @@ def _is_absolute_iri(v):
 
     :return: True if the value is an absolute IRI, False if not.
     """
-    return _is_string(v) and re.match(r'^([A-Za-z][A-Za-z0-9+-.]*|_):[^\s]*$', v)
+    return bool(_is_string(v) and re.match(r'^([A-Za-z][A-Za-z0-9+-.]*|_):[^\s]*$', v))
 
 
-def _is_valid_absolute_iri(v):
+def _is_valid_absolute_iri(v: Any) -> bool:
     """
     Returns True if the given value is an absolute IRI that RDFLib can
     serialize, False if not.
@@ -6615,7 +6714,7 @@ def _is_valid_absolute_iri(v):
     return _is_absolute_iri(v) and v.count('#') <= 1 and _is_valid_uri(v)
 
 
-def _is_relative_iri(v):
+def _is_relative_iri(v: Any) -> bool:
     """
     Returns true if the given value is a relative IRI, false if not.
     Note: this is a weak check.
@@ -6627,13 +6726,14 @@ def _is_relative_iri(v):
     return _is_string(v)
 
 
-def freeze(value):
+def freeze(value: Any) -> Any:
     if isinstance(value, dict):
         return frozendict(value)
     return value
 
 
 # The default JSON-LD document loader.
+_default_document_loader: DocumentLoaderCallable
 try:
     _default_document_loader = requests_document_loader()
 except ImportError:
@@ -6643,7 +6743,13 @@ except ImportError:
         _default_document_loader = dummy_document_loader()
 
 
-def load_document(url, options, base=None, profile=None, request_profile=None):
+def load_document(
+    url: Any,
+    options: Any,
+    base: Any = None,
+    profile: Any = None,
+    request_profile: Any = None,
+) -> Any:
     """
     Uses built-in or provided documentLoader to retrieve a parsed document.
 
@@ -6721,7 +6827,7 @@ def load_document(url, options, base=None, profile=None, request_profile=None):
     return remote_doc
 
 
-def load_html(input, url, profile, options):
+def load_html(input: Any, url: Any, profile: Any, options: Any) -> Any:
     """
     Load one or more script tags from an HTML source.
     Unescapes and uncomments input, returns the internal representation.
@@ -6739,9 +6845,9 @@ def load_html(input, url, profile, options):
 
     :return: the extracted JSON.
     """
-    document = lxml.html.fromstring(input)
+    document: Any = lxml.html.fromstring(input)
     # potentially update options[:base]
-    html_base = document.xpath('/html/head/base/@href')
+    html_base: Any = document.xpath('/html/head/base/@href')
     if html_base:
         # use either specified base, or document location
         effective_base = options.get('base', url)
@@ -6753,7 +6859,7 @@ def load_html(input, url, profile, options):
     if url_elements.fragment:
         # FIXME: CGI decode
         id = url_elements.fragment
-        element = document.xpath(f'//script[@id="{id}"]')
+        element: Any = document.xpath(f'//script[@id="{id}"]')
         if not element:
             raise JsonLdError(
                 'No script tag found for id.',
@@ -6780,7 +6886,7 @@ def load_html(input, url, profile, options):
                 code='invalid script element',
             ) from cause
 
-    elements = []
+    elements: Any = []
     if profile:
         elements = document.xpath(
             f'//script[starts-with(@type, "application/ld+json;profile={profile}")]'
@@ -6824,7 +6930,7 @@ def load_html(input, url, profile, options):
 
 
 # Registered global RDF parsers hashed by content-type.
-_rdf_parsers = {}
+_rdf_parsers: dict[str, RdfParser] = {}
 
 # register the N-Quads RDF parser
 register_rdf_parser('application/n-quads', JsonLdProcessor.parse_nquads)
