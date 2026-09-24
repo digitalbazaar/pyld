@@ -31,6 +31,8 @@ jobs:
       run: uv sync --locked
     - name: Lint
       run: make lint
+    - name: Type check
+      run: make typecheck
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
