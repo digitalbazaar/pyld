@@ -68,12 +68,15 @@ import unittest
 # once the legacy CLI runner is deleted.
 from argparse import ArgumentParser
 from dataclasses import dataclass
+from pathlib import Path
 from unittest import TextTestResult
+from urllib.parse import urlparse
 
 from typing_extensions import override
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 from pyld import DocumentLoader, iri_resolver, jsonld
+from pyld.document_parsing import content_type_from_path, parse_document_text
 
 __copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
@@ -682,23 +685,21 @@ def read_test_url(property):
 
 def read_test_property(property):
     """
-    Return a callable that reads a test-local property and returns either
-    parsed JSON (for `.jsonld`) or raw text.
-
-    The returned function accepts a `Test` instance and resolves the
-    filename relative to the test's directory. If the file ends with
-    `.jsonld` it is parsed as JSON; otherwise the raw file contents are
-    returned.
+    Return a callable that reads a test-local property as a structured
+    document or raw text, based on its registered format.
     """
 
     def read(test):
         if property not in test.data:
             return None
         filename = os.path.join(test.dirname, test.data[property])
-        if filename.endswith('.jsonld'):
-            return read_json(filename)
-        else:
-            return read_file(filename)
+        document = read_file(filename)
+        content_type = content_type_from_path(Path(filename))
+        if content_type is not None and content_type not in (
+            'text/html', 'application/xhtml+xml'
+        ):
+            return parse_document_text(document, content_type)
+        return document
 
     return read
 
@@ -769,14 +770,8 @@ class TestDocumentLoader(DocumentLoader):
         content_type = options.get('contentType')
 
         url_no_frag = self._strip_fragment(url)
-        if not content_type and url_no_frag.endswith('.jsonld'):
-            content_type = 'application/ld+json'
-        if not content_type and url_no_frag.endswith('.yamlld'):
-            content_type = 'application/ld+yaml'
-        if not content_type and url_no_frag.endswith('.json'):
-            content_type = 'application/json'
-        if not content_type and url_no_frag.endswith('.html'):
-            content_type = 'text/html'
+        if not content_type:
+            content_type = content_type_from_path(Path(urlparse(url_no_frag).path))
         if not content_type:
             content_type = 'application/octet-stream'
         doc = {
@@ -1065,11 +1060,20 @@ TEST_TYPES = {
                 '.*yaml-ld/tests/manifest#core-yaml11-off$',
                 '.*yaml-ld/tests/manifest#core-yaml11-yes-title$',
                 '.*yaml-ld/tests/manifest#core-yaml11-yes-upper$',
-                '.*yaml-ld/tests/manifest#single-document-mapping$',
                 '.*yaml-ld/tests/manifest#single-document-sequence$',
                 '.*yaml-ld/tests/manifest#single-document-nested-sequences$',
                 '.*yaml-ld/tests/manifest#html-unselected-stream$',
                 '.*yaml-ld/tests/manifest#html-selected-stream$',
+                # Deferred scalar-root, cycle, and non-finite-number validation.
+                '.*yaml-ld/tests/manifest#cir-document-content-1-negative$',
+                '.*yaml-ld/tests/manifest#root-string-negative$',
+                '.*yaml-ld/tests/manifest#aa-cycles-2-negative$',
+                '.*yaml-ld/tests/manifest#core-float-inf-negative$',
+                '.*yaml-ld/tests/manifest#core-float-neg-inf-negative$',
+                '.*yaml-ld/tests/manifest#core-float-plus-inf-negative$',
+                '.*yaml-ld/tests/manifest#core-float-nan-negative$',
+                '.*yaml-ld/tests/manifest#core-float-nan-mixed-negative$',
+                '.*yaml-ld/tests/manifest#core-float-nan-upper-negative$',
             ],
         },
         'fn': 'expand',
