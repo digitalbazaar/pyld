@@ -33,7 +33,7 @@ Key classes and functions
     `unittest.TestSuite` / `Test` instances.
 - `Test` (subclass of `unittest.TestCase`): encapsulates execution and
     verification logic for a single JSON-LD test case.
-- Utility helpers: `read_json`, `read_file`, `create_document_loader`, and
+- Utility helpers: `read_json`, `read_file`, `TestDocumentLoader`, and
     `equalUnordered` (used for order-insensitive comparisons).
 
 .. module:: runtests
@@ -67,12 +67,13 @@ import unittest
 # pytest now provides the test harness; these imports can be removed
 # once the legacy CLI runner is deleted.
 from argparse import ArgumentParser
+from dataclasses import dataclass
 from unittest import TextTestResult
 
 from typing_extensions import override
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
-from pyld import iri_resolver, jsonld
+from pyld import DocumentLoader, iri_resolver, jsonld
 
 __copyright__ = 'Copyright (c) 2011-2013 Digital Bazaar, Inc.'
 __license__ = 'New BSD license'
@@ -720,7 +721,7 @@ def create_test_options(opts=None):
         for k, v in test_options.items():
             if k not in http_options:
                 options[k] = v
-        options['documentLoader'] = create_document_loader(test)
+        options['documentLoader'] = TestDocumentLoader(test, jsonld.get_document_loader())
         options['hashAlgorithm'] = test.data.get('hashAlgorithm')
         if 'expandContext' in options:
             filename = os.path.join(test.dirname, options['expandContext'])
@@ -730,37 +731,35 @@ def create_test_options(opts=None):
     return create
 
 
-def create_document_loader(test):
-    """
-    create_document_loader returns a callable compatible with the JSON-LD
-    API's document loader interface. The returned `local_loader` will
-    decide whether to load a URL from the local test-tree (mapping
-    `LOCAL_BASES` to local files) or delegate to the normal network
-    loader. This enables deterministic tests without requiring network
-    access for suite-hosted resources.
-    """
-    loader = jsonld.get_document_loader()
+@dataclass
+class TestDocumentLoader(DocumentLoader):
+    """Load manifest fixtures locally and delegate other URLs to a loader."""
 
-    def is_test_suite_url(url):
+    __test__ = False
+
+    test: Test
+    loader: DocumentLoader
+
+    def _is_test_suite_url(self, url):
         return any(url.startswith(base) for base in LOCAL_BASES)
 
-    def strip_base(url):
+    def _strip_base(self, url):
         for base in LOCAL_BASES:
             if url.startswith(base):
                 return url[len(base) :]
-        raise Exception('unkonwn base')
+        raise Exception('unknown base')
 
-    def strip_fragment(url):
+    def _strip_fragment(self, url):
         if '#' in url:
             return url[: url.index('#')]
         else:
             return url
 
-    def load_locally(url):
-        options = test.data.get('option', {})
+    def _load_locally(self, url):
+        options = self.test.data.get('option', {})
         content_type = options.get('contentType')
 
-        url_no_frag = strip_fragment(url)
+        url_no_frag = self._strip_fragment(url)
         if not content_type and url_no_frag.endswith('.jsonld'):
             content_type = 'application/ld+json'
         if not content_type and url_no_frag.endswith('.json'):
@@ -775,10 +774,10 @@ def create_document_loader(test):
             'documentUrl': url,
             'document': None,
         }
-        if options and url == test.base:
+        if options and url == self.test.base:
             if 'redirectTo' in options and options.get('httpStatus') >= 300:
                 doc['documentUrl'] = (
-                    test.manifest.data['baseIri'] + options['redirectTo']
+                    self.test.manifest.data['baseIri'] + options['redirectTo']
                 )
             elif 'httpLink' in options:
                 link_header = options.get('httpLink', '')
@@ -809,29 +808,29 @@ def create_document_loader(test):
             filename = os.path.join(ROOT_MANIFEST_DIR, doc['documentUrl'])
             doc['documentUrl'] = 'file://' + filename
         else:
-            filename = test.dirname + strip_fragment(strip_base(doc['documentUrl']))
+            filename = self.test.dirname + self._strip_fragment(
+                self._strip_base(doc['documentUrl'])
+            )
         try:
             doc['document'] = read_file(filename)
         except Exception as e:
             raise Exception('loading document failed') from e
         return doc
 
-    def local_loader(url, headers):
+    def __call__(self, url, options=None):
         # always load remote-doc tests remotely
         # (some skipped due to lack of reasonable HTTP header support)
-        if test.manifest.data.get('name') == 'Remote document' and not test.data.get(
-            'runLocal'
+        if self.test.manifest.data.get('name') == 'Remote document' and not (
+            self.test.data.get('runLocal')
         ):
-            return loader(url)
+            return self.loader(url, options)
 
         # always load non-base tests remotely
-        if not is_test_suite_url(url) and url.find(':') != -1:
-            return loader(url)
+        if not self._is_test_suite_url(url) and url.find(':') != -1:
+            return self.loader(url, options)
 
         # attempt to load locally
-        return load_locally(url)
-
-    return local_loader
+        return self._load_locally(url)
 
 
 # NOTE: The EarlTestResult class can be removed because pytest now
