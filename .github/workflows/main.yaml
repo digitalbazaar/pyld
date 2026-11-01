@@ -71,6 +71,7 @@ jobs:
         uv run --locked pytest tests/test_manifests.py --tests=./specifications/json-ld-framing/tests --loader=${{ matrix.loader }}
         uv run --locked pytest tests/test_manifests.py --tests=./specifications/normalization/tests --loader=${{ matrix.loader }}
         uv run --locked pytest tests/test_manifests.py --tests=./specifications/rdf-canon/tests --loader=${{ matrix.loader }}
+        uv run --locked pytest tests/test_manifests.py --tests=./specifications/yaml-ld/tests --loader=${{ matrix.loader }}
         uv run --locked pytest --ignore ./tests/test_manifests.py
       env:
         LOADER: ${{ matrix.loader }}
