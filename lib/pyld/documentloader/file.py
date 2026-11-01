@@ -9,16 +9,9 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 
+from pyld.document_parsing import content_type_from_path
 from pyld.documentloader.base import DocumentLoader, RemoteDocument
 from pyld.jsonld import JsonLdError
-
-CONTENT_TYPES = {
-    '.jsonld': 'application/ld+json',
-    '.json': 'application/json',
-    '.html': 'text/html',
-    '.htm': 'text/html',
-    '.xhtml': 'application/xhtml+xml',
-}
 
 
 class FileDocumentLoader(DocumentLoader):
@@ -77,7 +70,7 @@ class FileDocumentLoader(DocumentLoader):
                 code='loading document failed',
             )
 
-        content_type = CONTENT_TYPES.get(path.suffix.lower())
+        content_type = content_type_from_path(path)
         if content_type is None:
             raise JsonLdError(
                 'URL could not be dereferenced; unsupported file extension.',
