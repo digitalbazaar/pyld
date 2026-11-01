@@ -1004,11 +1004,6 @@ TEST_TYPES = {
                 '.*yaml-ld/tests/manifest#zero-documents$',
                 '.*yaml-ld/tests/manifest#whitespace-only$',
                 '.*yaml-ld/tests/manifest#comments-only$',
-                '.*yaml-ld/tests/manifest#root-integer-negative$',
-                '.*yaml-ld/tests/manifest#root-float-negative$',
-                '.*yaml-ld/tests/manifest#root-boolean-negative$',
-                '.*yaml-ld/tests/manifest#root-quoted-null-negative$',
-                '.*yaml-ld/tests/manifest#root-quoted-tilde-negative$',
                 '.*yaml-ld/tests/manifest#cir-mapping-key-1-negative$',
                 '.*yaml-ld/tests/manifest#cir-mapping-key-2-negative$',
                 '.*yaml-ld/tests/manifest#cir-mapping-key-3-negative$',
@@ -1042,9 +1037,7 @@ TEST_TYPES = {
                 '.*yaml-ld/tests/manifest#core-yaml11-yes-upper$',
                 '.*yaml-ld/tests/manifest#html-unselected-stream$',
                 '.*yaml-ld/tests/manifest#html-selected-stream$',
-                # Deferred scalar-root, cycle, and non-finite-number validation.
-                '.*yaml-ld/tests/manifest#cir-document-content-1-negative$',
-                '.*yaml-ld/tests/manifest#root-string-negative$',
+                # Deferred cycle and non-finite-number validation.
                 '.*yaml-ld/tests/manifest#aa-cycles-2-negative$',
                 '.*yaml-ld/tests/manifest#core-float-inf-negative$',
                 '.*yaml-ld/tests/manifest#core-float-neg-inf-negative$',
