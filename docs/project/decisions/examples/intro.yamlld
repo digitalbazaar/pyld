@@ -1,0 +1,19 @@
+"@context":
+  - https://json-ld.org/contexts/dollar-convenience.jsonld
+  - schema: https://schema.org/
+    dbo: http://dbpedia.org/ontology/
+    dbp: http://dbpedia.org/property/
+    dbr: http://dbpedia.org/resource/
+    xsd: http://www.w3.org/2001/XMLSchema#
+    dbp:discovered:
+      "@type": xsd:date
+    dbp:star:
+      "@type": "@id"
+
+$id: dbr:Proxima_Centauri_b
+$type: dbo:Planet
+schema:description: >-
+  The closest known exoplanet to Earth,
+  orbiting in Proxima Centauri's habitable zone.
+dbp:discovered: 2016-08-24
+dbp:star: dbr:Proxima_Centauri
