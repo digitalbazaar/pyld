@@ -1037,8 +1037,6 @@ TEST_TYPES = {
                 '.*yaml-ld/tests/manifest#core-yaml11-yes-upper$',
                 '.*yaml-ld/tests/manifest#html-unselected-stream$',
                 '.*yaml-ld/tests/manifest#html-selected-stream$',
-                # Deferred cycle validation.
-                '.*yaml-ld/tests/manifest#aa-cycles-2-negative$',
             ],
         },
         'fn': 'expand',
