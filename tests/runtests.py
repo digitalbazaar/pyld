@@ -996,14 +996,6 @@ TEST_TYPES = {
             'specVersion': ['json-ld-1.0'],
             # YAML-LD suite: only currently failing cases (passing cases stay active)
             'idRegex': [
-                '.*yaml-ld/tests/manifest#empty-document$',
-                '.*yaml-ld/tests/manifest#root-null-null$',
-                '.*yaml-ld/tests/manifest#root-null-title$',
-                '.*yaml-ld/tests/manifest#root-null-upper$',
-                '.*yaml-ld/tests/manifest#root-null-tilde$',
-                '.*yaml-ld/tests/manifest#zero-documents$',
-                '.*yaml-ld/tests/manifest#whitespace-only$',
-                '.*yaml-ld/tests/manifest#comments-only$',
                 '.*yaml-ld/tests/manifest#cir-mapping-key-1-negative$',
                 '.*yaml-ld/tests/manifest#cir-mapping-key-2-negative$',
                 '.*yaml-ld/tests/manifest#cir-mapping-key-3-negative$',
@@ -1096,8 +1088,6 @@ TEST_TYPES = {
             'specVersion': ['json-ld-1.0'],
             # YAML-LD suite: only currently failing cases (passing cases stay active)
             'idRegex': [
-                '.*yaml-ld/tests/manifest#empty-document-rdf$',
-                '.*yaml-ld/tests/manifest#zero-documents-rdf$',
                 '.*yaml-ld/tests/manifest#cir-scalar-other-2-positive$',
             ],
         },
