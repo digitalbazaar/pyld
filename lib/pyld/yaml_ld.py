@@ -26,18 +26,4 @@ def parse_yaml(document):
     if parsed_document is not None and not isinstance(parsed_document, (dict, list)):
         raise ValueError('YAML-LD document root must be a mapping, sequence, or null.')
 
-    ancestors = set()
-
-    def validate_no_cycles(value):
-        if not isinstance(value, (dict, list)):
-            return
-        identity = id(value)
-        if identity in ancestors:
-            raise ValueError('YAML-LD documents must not contain cycles.')
-        ancestors.add(identity)
-        for child in value.values() if isinstance(value, dict) else value:
-            validate_no_cycles(child)
-        ancestors.remove(identity)
-
-    validate_no_cycles(parsed_document)
     return parsed_document
