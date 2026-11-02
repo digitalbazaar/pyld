@@ -1003,11 +1003,6 @@ TEST_TYPES = {
             'specVersion': ['json-ld-1.0'],
             # YAML-LD suite: only currently failing cases (passing cases stay active)
             'idRegex': [
-                '.*yaml-ld/tests/manifest#cir-mapping-key-1-negative$',
-                '.*yaml-ld/tests/manifest#cir-mapping-key-2-negative$',
-                '.*yaml-ld/tests/manifest#cir-mapping-key-3-negative$',
-                '.*yaml-ld/tests/manifest#cir-mapping-key-4-negative$',
-                '.*yaml-ld/tests/manifest#cir-mapping-key-5-negative$',
                 '.*yaml-ld/tests/manifest#cir-scalar-i18n-1-positive$',
                 '.*yaml-ld/tests/manifest#cir-scalar-other-1-positive$',
                 '.*yaml-ld/tests/manifest#cr-utf8-2-negative$',
