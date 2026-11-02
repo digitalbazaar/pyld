@@ -3,12 +3,28 @@
 from math import isfinite
 
 
+class YamlLdError(ValueError):
+    """YAML-LD syntax error with a processing error code."""
+
+    code = 'mapping-key-error'
+
+
 def parse_yaml(document):
     """Construct a mapping, sequence, or null from one YAML 1.2 document."""
     from ruamel.yaml import YAML
     from ruamel.yaml.constructor import SafeConstructor
+    from ruamel.yaml.nodes import ScalarNode
 
     class YamlLdConstructor(SafeConstructor):
+        def construct_mapping(self, node, deep=False):
+            for key_node, _ in node.value:
+                if (
+                    not isinstance(key_node, ScalarNode)
+                    or key_node.tag != 'tag:yaml.org,2002:str'
+                ):
+                    raise YamlLdError('YAML-LD mapping keys must be strings.')
+            return super().construct_mapping(node, deep=deep)
+
         def construct_yaml_float(self, node):
             value = super().construct_yaml_float(node)
             if not isfinite(value):
