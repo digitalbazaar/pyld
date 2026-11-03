@@ -67,6 +67,7 @@ from pyld.util import (
     has_cycles,
     to_legacy_dataset,
 )
+from pyld.yaml_ld import YamlLdError
 
 __all__ = [
     '__copyright__',
@@ -6710,6 +6711,8 @@ def load_document(url, options, base=None, profile=None, request_profile=None):
                 remote_doc = parse_document(remote_doc)
         except JsonLdError as cause:
             raise cause
+        except YamlLdError as cause:
+            raise JsonLdError(str(cause), 'yamlld.SyntaxError', code=cause.code) from cause
         except Exception as cause:
             raise JsonLdError(
                 'Could not retrieve a JSON-LD document from the URL.',
