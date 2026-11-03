@@ -4,6 +4,27 @@ from rdflib.plugins.parsers.nquads import NQuadsParser
 from rdflib.plugins.parsers.ntriples import r_literal, unquote, uriquote
 
 
+def is_container(value) -> bool:
+    """Check whether a value is a dict or list."""
+    return isinstance(value, (dict, list))
+
+
+def has_cycles(document) -> bool:
+    """Detect a container appearing twice on the same reference path."""
+    if not is_container(document):
+        return False
+    stack = [(document, frozenset())]
+    while stack:
+        value, ancestors = stack.pop()
+        identity = id(value)
+        if identity in ancestors:
+            return True
+        path = ancestors | {identity}
+        children = value.values() if isinstance(value, dict) else value
+        stack.extend((child, path) for child in children if is_container(child))
+    return False
+
+
 # Helpers for converting between rdflib.Dataset and legacy dict structure used in pyld
 def to_legacy_dataset(dataset: Dataset) -> dict:
     """
