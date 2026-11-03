@@ -47,6 +47,7 @@ from pyld.canon import (
     UnknownFormatError,
 )
 from pyld.context_resolver import ContextResolver
+from pyld.document_parsing import parse_document
 from pyld.identifier_issuer import IdentifierIssuer
 from pyld.iri_resolver import resolve, unresolve
 from pyld.options import (
@@ -6706,8 +6707,7 @@ def load_document(url, options, base=None, profile=None, request_profile=None):
                     # also overrides any API base
                     options['base'] = html_options['base']
             else:
-                # parse JSON
-                remote_doc['document'] = json.loads(remote_doc['document'])
+                remote_doc = parse_document(remote_doc)
         except JsonLdError as cause:
             raise cause
         except Exception as cause:
