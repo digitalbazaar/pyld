@@ -1,6 +1,8 @@
 """Format detection and parsing for document text."""
 
 import json
+from email.message import Message
+from email.utils import collapse_rfc2231_value
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +18,18 @@ CONTENT_TYPES = {
     '.htm': 'text/html',
     '.xhtml': 'application/xhtml+xml',
 }
+SCRIPT_CONTENT_TYPES = ('application/ld+json', 'application/ld+yaml')
+
+
+def parse_content_type(content_type: str) -> tuple[str, str | None]:
+    """Return a media type's normalized essence and decoded profile parameter."""
+    media_type = Message()
+    media_type['content-type'] = content_type
+    profile = media_type.get_param('profile', header='content-type')
+    return (
+        media_type.get_content_type(),
+        collapse_rfc2231_value(profile) if profile is not None else None,
+    )
 
 
 def content_type_from_path(path: Path) -> str | None:
@@ -35,7 +49,7 @@ def parse_document(remote_document: RemoteDocument) -> RemoteDocument:
 
 def parse_document_text(document: str, content_type: str) -> Any:
     """Parse structured document text, defaulting to JSON for other media types."""
-    if content_type == 'application/ld+yaml':
+    if parse_content_type(content_type)[0] == 'application/ld+yaml':
         return parse_yaml(document)
     else:
         return json.loads(document)
