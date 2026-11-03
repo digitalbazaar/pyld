@@ -47,7 +47,12 @@ from pyld.canon import (
     UnknownFormatError,
 )
 from pyld.context_resolver import ContextResolver
-from pyld.document_parsing import parse_document, parse_document_text
+from pyld.document_parsing import (
+    SCRIPT_CONTENT_TYPES,
+    parse_content_type,
+    parse_document,
+    parse_document_text,
+)
 from pyld.identifier_issuer import IdentifierIssuer
 from pyld.iri_resolver import resolve, unresolve
 from pyld.options import (
@@ -6743,13 +6748,13 @@ def load_html(input, url, profile, options):
     :return: the extracted JSON.
     """
 
-    def parse_script(element):
+    def parse_script(element, content_type):
         content = element.text
-        if element.get('type', '').startswith('application/ld+yaml'):
-            return parse_document_text(content or '', 'application/ld+yaml')
         try:
-            return json.loads(content)
+            return parse_document_text(content or '', content_type)
         except Exception as cause:
+            if content_type != 'application/ld+json':
+                raise
             raise JsonLdError(
                 'Invalid JSON syntax.',
                 'jsonld.SyntaxError',
@@ -6758,6 +6763,11 @@ def load_html(input, url, profile, options):
             ) from cause
 
     document = lxml.html.fromstring(input)
+    scripts = []
+    for element in document.xpath('//script'):
+        content_type, script_profile = parse_content_type(element.get('type', ''))
+        if content_type in SCRIPT_CONTENT_TYPES:
+            scripts.append((element, content_type, script_profile))
     # potentially update options[:base]
     html_base = document.xpath('/html/head/base/@href')
     if html_base:
@@ -6779,40 +6789,34 @@ def load_html(input, url, profile, options):
                 {'id': id},
                 code='loading document failed',
             )
-        types = element[0].xpath('@type')
-        if not types or not types[0].startswith(
-            ('application/ld+json', 'application/ld+yaml')
-        ):
+        selected = next((script for script in scripts if script[0] is element[0]), None)
+        if selected is None:
             raise JsonLdError(
                 'Wrong type for script tag.',
                 'jsonld.LoadDocumentError',
-                {'type': types},
+                {'type': element[0].xpath('@type')},
                 code='loading document failed',
             )
-        return parse_script(element[0])
+        return parse_script(*selected[:2])
 
     elements = []
     if profile:
-        elements = document.xpath(
-            f'//script[starts-with(@type, "application/ld+json;profile={profile}")'
-            f' or starts-with(@type, "application/ld+yaml;profile={profile}")]'
-        )
+        elements = [
+            script for script in scripts if script[2] and profile in script[2].split()
+        ]
     if not elements:
-        elements = document.xpath(
-            '//script[starts-with(@type, "application/ld+json")'
-            ' or starts-with(@type, "application/ld+yaml")]'
-        )
+        elements = scripts
     if options.get('extractAllScripts'):
         result = []
-        for element in elements:
-            js = parse_script(element)
+        for element, content_type, _ in elements:
+            js = parse_script(element, content_type)
             if _is_array(js):
                 result.extend(js)
             else:
                 result.append(js)
         return result
     elif elements:
-        return parse_script(elements[0])
+        return parse_script(*elements[0][:2])
     else:
         raise JsonLdError(
             'No script tag found.',
