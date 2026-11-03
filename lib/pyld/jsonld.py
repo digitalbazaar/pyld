@@ -611,20 +611,6 @@ class JsonLdProcessor:
             remote_doc = {'contextUrl': None, 'documentUrl': None, 'document': input_}
 
         try:
-            if remote_doc['document'] is None:
-                raise JsonLdError(
-                    'No remote document found at the given URL.',
-                    'jsonld.NullRemoteDocument',
-                )
-        except Exception as cause:
-            raise JsonLdError(
-                'Could not retrieve a JSON-LD document from the URL.',
-                'jsonld.LoadDocumentError',
-                {'remoteDoc': remote_doc},
-                code='loading document failed',
-            ) from cause
-
-        try:
             return self._expand_document(remote_doc, options)
         except RecursionError as cause:
             if has_cycles(remote_doc['document']):
