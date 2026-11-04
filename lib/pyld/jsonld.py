@@ -6464,8 +6464,9 @@ def _to_double(value) -> float:
     """
     Converts a number to a double.
 
-    An integer beyond the range of a double becomes infinite, as it does when
-    JavaScript parses JSON.
+    An integer beyond the range of a double becomes infinite, as the XSD
+    lexical mapping of `xsd:double` rounds it (XML Schema 1.1 Part 2,
+    floatingPointRound), and as JavaScript reads it from JSON.
 
     :param value: the number to convert.
 
@@ -6478,11 +6479,21 @@ def _to_double(value) -> float:
 
 
 def _canonicalize_double(value: float | int) -> str:
-    """Convert a float value to canonical lexical form of `xsd:double`."""
+    """
+    Converts a number to the canonical lexical form of `xsd:double`.
+
+    The special values are written 'INF', '-INF' and 'NaN' (XML Schema 1.1
+    Part 2, specialRepCanonicalMap).
+
+    :param value: the number to convert.
+
+    :return: the canonical lexical form.
+    """
     value = _to_double(value)
     if math.isnan(value):
-        # Python formats NaN as 'NAN'; the XSD canonical form is 'NaN'.
         return 'NaN'
+    if math.isinf(value):
+        return 'INF' if value > 0 else '-INF'
     return re.sub(r'(\d)0*E\+?(-)?0*(\d)', r'\1E\2\3', (f'{value:1.15E}'))
 
 
