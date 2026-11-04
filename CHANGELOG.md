@@ -31,7 +31,7 @@
 - IRI validation now detects multiple # fragments so these IRI's are skipped during toRDF. Fixes [toRdf#te111](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#te111) and [toRdf#te112](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#te112).
 - In `_create_node_map()`, ignored `@id: None` subjects are now dropped before they enter the node map to prevent `_graph_to_rdf()` from crashing when sorting mixed `None` and string keys. Fixes [toRdf#te122](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#te122).
 - Use a helper for generalized N-Quads normalization in the test runner, since rdflib cannot parse blank-node predicates. Fixes [toRdf#te075](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#te075).
-- `jsonld.to_rdf()` converts an integer too large for a double to an infinite `xsd:double` (`INF`), as a JavaScript processor reads it, instead of raising `OverflowError`.
+- `jsonld.expand()`, `jsonld.to_rdf()` and the other operations no longer raise `OverflowError` for an integer too large for a double. `jsonld.to_rdf()` writes it as the infinite `xsd:double` `INF` (in `json-ld-1.0` mode, still as an exact `xsd:integer`). `@json` literals still reject such numbers, as RFC 8785 does.
 
 ### Changed
 - **BREAKING**: Developer install, command execution, documentation, and release artifact
