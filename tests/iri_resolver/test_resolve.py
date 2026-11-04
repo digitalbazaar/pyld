@@ -80,6 +80,22 @@ def test_base_without_path_dot_segments():
     assert resolve('abc/./', 'http://base.org') == 'http://base.org/abc/'
 
 
+def test_base_without_path_absolute_path():
+    assert resolve('/abc', 'http://base.org') == 'http://base.org/abc'
+
+
+def test_base_without_path_absolute_path_with_dot_segments():
+    assert resolve('/abc/../def', 'http://base.org') == 'http://base.org/def'
+
+
+def test_base_without_path_parent_segment():
+    assert resolve('../abc', 'http://base.org') == 'http://base.org/abc'
+
+
+def test_base_without_path_query():
+    assert resolve('abc?x=1', 'http://base.org') == 'http://base.org/abc?x=1'
+
+
 def test_base_only_scheme_slash_slash():
     assert resolve('abc', 'http://') == 'http:abc'
 
