@@ -114,9 +114,18 @@ def remove_dot_segments_of_path(iri: str, colon_position: int) -> str:
     else:
         search_offset = 2 if len(iri) > 1 and iri[0] == '/' and iri[1] == '/' else 0
 
-    # Find the start of the path
+    # Find the start of the path: the first '/', unless a query or fragment
+    # starts before it
     path_separator = iri.find('/', search_offset)
-    if path_separator < 0:
+    query_or_fragment = min(
+        (
+            pos
+            for pos in (iri.find('?', search_offset), iri.find('#', search_offset))
+            if pos >= 0
+        ),
+        default=-1,
+    )
+    if path_separator < 0 or 0 <= query_or_fragment < path_separator:
         return iri
 
     base = iri[:path_separator]
@@ -170,10 +179,15 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
             )
         return remove_dot_segments_of_path(relative_iri, relative_colon_pos)
 
-    # Ignore baseIRI if the value is absolute
+    # Ignore baseIRI if the value is absolute.
+    # Per RFC 3986, a URI scheme cannot contain a '/', '?' or '#', so if one of
+    # them appears before the first ':', the IRI is relative (not absolute).
     value_colon_pos = relative_iri.find(":")
     if value_colon_pos >= 0:
-        return remove_dot_segments_of_path(relative_iri, value_colon_pos)
+        if not any(ch in relative_iri[:value_colon_pos] for ch in "/?#"):
+            return remove_dot_segments_of_path(relative_iri, value_colon_pos)
+        # The ':' is part of the relative IRI, not the end of a scheme.
+        value_colon_pos = -1
 
     # baseIRI must be absolute
     base_colon_pos = base_iri.find(":")

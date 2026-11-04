@@ -378,3 +378,43 @@ def test_relative_with_triple_dot_segment_and_2x_double_dot_and_base():
 
 def test_questionmark_prefix_relative_with_complex_base_with_dot():
     assert resolve('?y', 'http://a/bb/ccc/./d;p?q') == 'http://a/bb/ccc/./d;p?y'
+
+
+def test_relative_with_slash_before_colon_and_base_with_trailing_slash():
+    assert resolve('x/y:z', 'http://base.org/path/') == 'http://base.org/path/x/y:z'
+
+
+def test_relative_with_slash_before_colon_and_base_without_trailing_slash():
+    assert resolve('x/y:z', 'http://base.org/path') == 'http://base.org/x/y:z'
+
+
+def test_relative_with_multiple_colons_after_slash():
+    assert resolve('x/y:z:w', 'http://base.org/path/') == 'http://base.org/path/x/y:z:w'
+
+
+def test_absolute_path_with_colon_and_base():
+    assert resolve('/a:b', 'http://base.org/path/') == 'http://base.org/a:b'
+
+
+def test_relative_with_question_mark_before_colon():
+    assert resolve('a?b:c', 'http://base.org/path/x') == 'http://base.org/path/a?b:c'
+
+
+def test_relative_with_hash_before_colon():
+    assert resolve('a#b:c', 'http://base.org/path/x') == 'http://base.org/path/a#b:c'
+
+
+def test_network_path_with_dot_segment_before_colon():
+    assert resolve('//h/./a:b', 'http://base.org/path/') == 'http://h/a:b'
+
+
+def test_relative_with_dot_segments_and_colon_in_query():
+    assert resolve('doc?next=/a/../b:c', 'urn:x:y') == 'urn:doc?next=/a/../b:c'
+
+
+def test_relative_with_dot_segments_and_colon_in_fragment():
+    assert resolve('doc#/a/../b:c', 'tag:example') == 'tag:doc#/a/../b:c'
+
+
+def test_absolute_iri_with_dot_segments_in_query():
+    assert resolve('urn:x?a/../b') == 'urn:x?a/../b'
