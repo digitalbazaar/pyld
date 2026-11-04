@@ -480,3 +480,19 @@ def test_relative_with_triple_dot_segment_and_2x_double_dot_and_base():
 
 def test_questionmark_prefix_relative_with_complex_base_with_dot():
     assert resolve('?y', 'http://a/bb/ccc/./d;p?q') == 'http://a/bb/ccc/./d;p?y'
+
+
+def test_relative_with_slash_before_colon_and_base_with_trailing_slash():
+    assert resolve('x/y:z', 'http://base.org/path/') == 'http://base.org/path/x/y:z'
+
+
+def test_relative_with_slash_before_colon_and_base_without_trailing_slash():
+    assert resolve('x/y:z', 'http://base.org/path') == 'http://base.org/x/y:z'
+
+
+def test_relative_with_multiple_colons_after_slash():
+    assert resolve('x/y:z:w', 'http://base.org/path/') == 'http://base.org/path/x/y:z:w'
+
+
+def test_absolute_path_with_colon_and_base():
+    assert resolve('/a:b', 'http://base.org/path/') == 'http://base.org/a:b'
