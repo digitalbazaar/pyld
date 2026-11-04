@@ -124,6 +124,7 @@ def test_large_integer_to_rdf_double_conversion_processing_mode():
 """
     assert nquads == expected
 
+
 def test_integer_beyond_double_range_to_rdf_is_infinite():
     """
     An integer too large for a double is an infinite xsd:double, as JavaScript
@@ -141,6 +142,9 @@ def test_integer_beyond_double_range_to_rdf_is_infinite():
 
 
 def test_integer_beyond_double_range_typed_as_double_to_rdf_is_infinite():
+    """
+    An integer too large for a double, typed as xsd:double, is infinite too.
+    """
     input = {
         '@id': 'http://example.com/s',
         'http://example.com/p': {
@@ -151,7 +155,27 @@ def test_integer_beyond_double_range_typed_as_double_to_rdf_is_infinite():
 
     nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
 
-    assert '"INF"^^<http://www.w3.org/2001/XMLSchema#double>' in nquads
+    assert nquads == (
+        '<http://example.com/s> <http://example.com/p> "INF"'
+        '^^<http://www.w3.org/2001/XMLSchema#double>  .\n\n'
+    )
+
+
+def test_integer_beyond_double_range_in_json_ld_1_0_stays_an_integer():
+    """
+    In json-ld-1.0 processing mode, such an integer is kept as xsd:integer.
+    """
+    input = {'@id': 'http://example.com/s', 'http://example.com/p': 10**309}
+
+    nquads = jsonld.to_rdf(
+        input,
+        options={'format': 'application/n-quads', 'processingMode': 'json-ld-1.0'},
+    )
+
+    assert nquads == (
+        f'<http://example.com/s> <http://example.com/p> "{10**309}"'
+        '^^<http://www.w3.org/2001/XMLSchema#integer>  .\n\n'
+    )
 
 
 def test_to_rdf_uses_identifier_issuer_option():
