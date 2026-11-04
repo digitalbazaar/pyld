@@ -178,6 +178,30 @@ def test_integer_beyond_double_range_in_json_ld_1_0_stays_an_integer():
     )
 
 
+def test_double_special_values_to_rdf_use_xsd_canonical_forms():
+    """
+    The special xsd:double values are written as INF, -INF and NaN, the XSD
+    canonical forms, whether they come as numbers or as typed strings.
+    """
+    double = 'http://www.w3.org/2001/XMLSchema#double'
+    for value, lexical in (
+        (float('nan'), 'NaN'),
+        (float('inf'), 'INF'),
+        (float('-inf'), '-INF'),
+        ({'@value': 'NaN', '@type': double}, 'NaN'),
+        ({'@value': 'INF', '@type': double}, 'INF'),
+        ({'@value': '-INF', '@type': double}, '-INF'),
+    ):
+        input = {'@id': 'http://example.com/s', 'http://example.com/p': value}
+
+        nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
+
+        assert nquads == (
+            f'<http://example.com/s> <http://example.com/p> "{lexical}"'
+            f'^^<{double}>  .\n\n'
+        )
+
+
 def test_to_rdf_uses_identifier_issuer_option():
     input = {'http://example.org/p': [{'@list': ['a', 'b']}]}
     issuer = IdentifierIssuer('_:custom')
