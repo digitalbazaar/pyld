@@ -496,3 +496,15 @@ def test_relative_with_multiple_colons_after_slash():
 
 def test_absolute_path_with_colon_and_base():
     assert resolve('/a:b', 'http://base.org/path/') == 'http://base.org/a:b'
+
+
+def test_relative_with_question_mark_before_colon():
+    assert resolve('a?b:c', 'http://base.org/path/x') == 'http://base.org/path/a?b:c'
+
+
+def test_relative_with_hash_before_colon():
+    assert resolve('a#b:c', 'http://base.org/path/x') == 'http://base.org/path/a#b:c'
+
+
+def test_network_path_with_dot_segment_before_colon():
+    assert resolve('//h/./a:b', 'http://base.org/path/') == 'http://h/a:b'
