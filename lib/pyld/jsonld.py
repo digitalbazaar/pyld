@@ -6477,7 +6477,7 @@ def _to_double(value) -> float:
         return math.inf if value > 0 else -math.inf
 
 
-def _canonicalize_double(value: float) -> str:
+def _canonicalize_double(value: float | int) -> str:
     """Convert a float value to canonical lexical form of `xsd:double`."""
     return re.sub(r'(\d)0*E\+?(-)?0*(\d)', r'\1E\2\3', (f'{_to_double(value):1.15E}'))
 
