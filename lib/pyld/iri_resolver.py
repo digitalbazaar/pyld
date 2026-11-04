@@ -196,8 +196,12 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
                 # The base has an authority and an empty path: a path-relative
                 # reference is merged with "/" (RFC 3986, section 5.2.3), an
                 # absolute path is used as it is, and dot segments are removed.
+                # A query of the base does not apply to a path reference.
                 if not relative_iri.startswith("/"):
                     relative_iri = "/" + relative_iri
+                base_query_pos = base_iri.find("?")
+                if base_query_pos > 0:
+                    base_iri = base_iri[:base_query_pos]
                 return base_iri + remove_dot_segments(relative_iri)
             else:
                 return base_scheme + remove_dot_segments_of_path(
