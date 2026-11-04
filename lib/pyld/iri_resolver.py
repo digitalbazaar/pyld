@@ -116,9 +116,18 @@ def remove_dot_segments_of_path(iri: str, colon_position: int) -> str:
     else:
         search_offset = 2 if len(iri) > 1 and iri[0] == '/' and iri[1] == '/' else 0
 
-    # Find the start of the path
+    # Find the start of the path: the first '/', unless a query or fragment
+    # starts before it
     path_separator = iri.find('/', search_offset)
-    if path_separator < 0:
+    query_or_fragment = min(
+        (
+            pos
+            for pos in (iri.find('?', search_offset), iri.find('#', search_offset))
+            if pos >= 0
+        ),
+        default=-1,
+    )
+    if path_separator < 0 or 0 <= query_or_fragment < path_separator:
         return iri
 
     base = iri[:path_separator]
