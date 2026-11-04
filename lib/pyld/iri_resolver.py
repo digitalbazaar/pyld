@@ -161,6 +161,12 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
     if relative_iri.startswith("#"):
         return base_iri + relative_iri
 
+    # The query of the base IRI only applies to an empty value or a fragment
+    # (RFC 3986, section 5.2.2)
+    base_iri_query_pos = base_iri.find("?")
+    if base_iri_query_pos > 0:
+        base_iri = base_iri[:base_iri_query_pos]
+
     # Ignore baseIRI if it is empty
     if not base_iri:
         relative_colon_pos = relative_iri.find(":")
@@ -196,12 +202,8 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
                 # The base has an authority and an empty path: a path-relative
                 # reference is merged with "/" (RFC 3986, section 5.2.3), an
                 # absolute path is used as it is, and dot segments are removed.
-                # A query of the base does not apply to a path reference.
                 if not relative_iri.startswith("/"):
                     relative_iri = "/" + relative_iri
-                base_query_pos = base_iri.find("?")
-                if base_query_pos > 0:
-                    base_iri = base_iri[:base_query_pos]
                 return base_iri + remove_dot_segments(relative_iri)
             else:
                 return base_scheme + remove_dot_segments_of_path(
