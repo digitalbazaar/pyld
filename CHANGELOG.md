@@ -35,6 +35,7 @@
 - `jsonld.to_rdf()` writes the `xsd:double` NaN as `NaN`, its XSD canonical form, instead of `NAN`, so `jsonld.normalize()` output changes for documents with such a value.
 - `iri_resolver.resolve()` fixes references without a scheme or host against a base IRI with a host and no path (`/x` against `http://example.org` gave `http://example.org//x`) or with a query, and keeps the dot of a first segment such as `.gh`.
 - `iri_resolver.remove_dot_segments()`, and with it `iri_resolver.resolve()`, no longer drops the `/` that a final `.` or `..` segment leaves before a query or fragment (`/a/.?x` gave `/a?x`).
+- `iri_resolver.resolve()` treats a reference with a `/` before its first `:`, such as `/a:b` or `x/y:z`, as a relative IRI, as RFC 3986 and relative-to-absolute-iri.js do. It was returned unresolved, so `jsonld.to_rdf()` dropped it.
 
 ### Changed
 - **BREAKING**: Developer install, command execution, documentation, and release artifact
