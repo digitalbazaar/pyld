@@ -181,7 +181,8 @@ def test_integer_beyond_double_range_in_json_ld_1_0_stays_an_integer():
 def test_double_special_values_to_rdf_use_xsd_canonical_forms():
     """
     The special xsd:double values are written as INF, -INF and NaN, the XSD
-    canonical forms, whether they come as numbers or as typed strings.
+    canonical forms. The typed strings are already canonical; PyLD rewrites
+    typed xsd:double strings, so they must stay so.
     """
     double = 'http://www.w3.org/2001/XMLSchema#double'
     for value, lexical in (
