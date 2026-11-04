@@ -31,6 +31,7 @@
 - IRI validation now detects multiple # fragments so these IRI's are skipped during toRDF. Fixes [toRdf#te111](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#te111) and [toRdf#te112](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#te112).
 - In `_create_node_map()`, ignored `@id: None` subjects are now dropped before they enter the node map to prevent `_graph_to_rdf()` from crashing when sorting mixed `None` and string keys. Fixes [toRdf#te122](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#te122).
 - Use a helper for generalized N-Quads normalization in the test runner, since rdflib cannot parse blank-node predicates. Fixes [toRdf#te075](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#te075).
+- `iri_resolver.resolve()` treats a reference with a `/` before its first `:`, such as `/a:b` or `x/y:z`, as a relative IRI, as RFC 3986 and relative-to-absolute-iri.js do. It was returned unresolved, so `jsonld.to_rdf()` dropped it.
 
 ### Changed
 - **BREAKING**: Developer install, command execution, documentation, and release artifact
