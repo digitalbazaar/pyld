@@ -124,6 +124,85 @@ def test_large_integer_to_rdf_double_conversion_processing_mode():
 """
     assert nquads == expected
 
+
+def test_integer_beyond_double_range_to_rdf_is_infinite():
+    """
+    An integer too large for a double is an infinite xsd:double, as JavaScript
+    reads it, instead of raising OverflowError.
+    """
+    for value, lexical in ((10**309, 'INF'), (-(10**309), '-INF')):
+        input = {'@id': 'http://example.com/s', 'http://example.com/p': value}
+
+        nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
+
+        assert nquads == (
+            f'<http://example.com/s> <http://example.com/p> "{lexical}"'
+            '^^<http://www.w3.org/2001/XMLSchema#double>  .\n\n'
+        )
+
+
+def test_integer_beyond_double_range_typed_as_double_to_rdf_is_infinite():
+    """
+    An integer too large for a double, typed as xsd:double, is infinite too.
+    """
+    input = {
+        '@id': 'http://example.com/s',
+        'http://example.com/p': {
+            '@value': 10**309,
+            '@type': 'http://www.w3.org/2001/XMLSchema#double',
+        },
+    }
+
+    nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
+
+    assert nquads == (
+        '<http://example.com/s> <http://example.com/p> "INF"'
+        '^^<http://www.w3.org/2001/XMLSchema#double>  .\n\n'
+    )
+
+
+def test_integer_beyond_double_range_in_json_ld_1_0_stays_an_integer():
+    """
+    In json-ld-1.0 processing mode, such an integer is kept as xsd:integer.
+    """
+    input = {'@id': 'http://example.com/s', 'http://example.com/p': 10**309}
+
+    nquads = jsonld.to_rdf(
+        input,
+        options={'format': 'application/n-quads', 'processingMode': 'json-ld-1.0'},
+    )
+
+    assert nquads == (
+        f'<http://example.com/s> <http://example.com/p> "{10**309}"'
+        '^^<http://www.w3.org/2001/XMLSchema#integer>  .\n\n'
+    )
+
+
+def test_double_special_values_to_rdf_use_xsd_canonical_forms():
+    """
+    The special xsd:double values are written as INF, -INF and NaN, the XSD
+    canonical forms. The typed strings are already canonical; PyLD rewrites
+    typed xsd:double strings, so they must stay so.
+    """
+    double = 'http://www.w3.org/2001/XMLSchema#double'
+    for value, lexical in (
+        (float('nan'), 'NaN'),
+        (float('inf'), 'INF'),
+        (float('-inf'), '-INF'),
+        ({'@value': 'NaN', '@type': double}, 'NaN'),
+        ({'@value': 'INF', '@type': double}, 'INF'),
+        ({'@value': '-INF', '@type': double}, '-INF'),
+    ):
+        input = {'@id': 'http://example.com/s', 'http://example.com/p': value}
+
+        nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
+
+        assert nquads == (
+            f'<http://example.com/s> <http://example.com/p> "{lexical}"'
+            f'^^<{double}>  .\n\n'
+        )
+
+
 def test_to_rdf_uses_identifier_issuer_option():
     input = {'http://example.org/p': [{'@list': ['a', 'b']}]}
     issuer = IdentifierIssuer('_:custom')

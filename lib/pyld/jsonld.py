@@ -4016,7 +4016,7 @@ class JsonLdProcessor:
             elif datatype == str(XSD.double):
                 # since the previous branch did not activate, we know that `value` is not a float number.
                 try:
-                    float_value = float(value)
+                    float_value = _to_double(value)
                 except (ValueError, TypeError):
                     # if `value` is not convertible to float, we will return it as-is.
                     return Literal(value, datatype=XSD.double, normalize=False)
@@ -6460,8 +6460,40 @@ def _is_double(v):
     return not isinstance(v, Integral) and isinstance(v, Real) and not float(v).is_integer()
 
 
-def _canonicalize_double(value: float) -> str:
-    """Convert a float value to canonical lexical form of `xsd:double`."""
+def _to_double(value) -> float:
+    """
+    Converts a number to a double.
+
+    An integer beyond the range of a double becomes infinite, as the XSD
+    lexical mapping of `xsd:double` rounds it (XML Schema 1.1 Part 2,
+    floatingPointRound), and as JavaScript reads it from JSON.
+
+    :param value: the number to convert.
+
+    :return: the double.
+    """
+    try:
+        return float(value)
+    except OverflowError:
+        return math.inf if value > 0 else -math.inf
+
+
+def _canonicalize_double(value: float | int) -> str:
+    """
+    Converts a number to the canonical lexical form of `xsd:double`.
+
+    The special values are written 'INF', '-INF' and 'NaN' (XML Schema 1.1
+    Part 2, specialRepCanonicalMap).
+
+    :param value: the number to convert.
+
+    :return: the canonical lexical form.
+    """
+    value = _to_double(value)
+    if math.isnan(value):
+        return 'NaN'
+    if math.isinf(value):
+        return 'INF' if value > 0 else '-INF'
     return re.sub(r'(\d)0*E\+?(-)?0*(\d)', r'\1E\2\3', (f'{value:1.15E}'))
 
 
@@ -6474,7 +6506,7 @@ def _is_numeric(v):
     :return: True if the value is numeric, False if not.
     """
     try:
-        float(v)
+        _to_double(v)
         return True
     except (TypeError, ValueError):
         return False
