@@ -170,10 +170,14 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
             )
         return remove_dot_segments_of_path(relative_iri, relative_colon_pos)
 
-    # Ignore baseIRI if the value is absolute
+    # Ignore baseIRI if the value is absolute.
+    # Per RFC 3986, a URI scheme cannot contain a '/', so if a '/' appears before
+    # the first ':', the IRI is a relative path (not an absolute IRI).
     value_colon_pos = relative_iri.find(":")
     if value_colon_pos >= 0:
-        return remove_dot_segments_of_path(relative_iri, value_colon_pos)
+        value_slash_pos = relative_iri.find("/")
+        if value_slash_pos < 0 or value_colon_pos < value_slash_pos:
+            return remove_dot_segments_of_path(relative_iri, value_colon_pos)
 
     # baseIRI must be absolute
     base_colon_pos = base_iri.find(":")
