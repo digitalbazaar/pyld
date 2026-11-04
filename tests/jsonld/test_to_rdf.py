@@ -124,6 +124,36 @@ def test_large_integer_to_rdf_double_conversion_processing_mode():
 """
     assert nquads == expected
 
+def test_integer_beyond_double_range_to_rdf_is_infinite():
+    """
+    An integer too large for a double is an infinite xsd:double, as JavaScript
+    reads it, instead of raising OverflowError.
+    """
+    for value, lexical in ((10**309, 'INF'), (-(10**309), '-INF')):
+        input = {'@id': 'http://example.com/s', 'http://example.com/p': value}
+
+        nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
+
+        assert nquads == (
+            f'<http://example.com/s> <http://example.com/p> "{lexical}"'
+            '^^<http://www.w3.org/2001/XMLSchema#double>  .\n\n'
+        )
+
+
+def test_integer_beyond_double_range_typed_as_double_to_rdf_is_infinite():
+    input = {
+        '@id': 'http://example.com/s',
+        'http://example.com/p': {
+            '@value': 10**309,
+            '@type': 'http://www.w3.org/2001/XMLSchema#double',
+        },
+    }
+
+    nquads = jsonld.to_rdf(input, options={'format': 'application/n-quads'})
+
+    assert '"INF"^^<http://www.w3.org/2001/XMLSchema#double>' in nquads
+
+
 def test_to_rdf_uses_identifier_issuer_option():
     input = {'http://example.org/p': [{'@list': ['a', 'b']}]}
     issuer = IdentifierIssuer('_:custom')
