@@ -692,3 +692,20 @@ def test_default_direction_null_reset_is_noop_when_unset():
     ]
 
     assert jsonld.expand(input) == expected
+
+
+def test_integer_beyond_double_range_is_kept():
+    """
+    An integer too large for a double is a number like any other, instead of
+    raising OverflowError.
+    """
+    input = {"@id": "http://example.com/s", "http://example.com/p": 10**309}
+
+    expected = [
+        {
+            "@id": "http://example.com/s",
+            "http://example.com/p": [{"@value": 10**309}],
+        },
+    ]
+
+    assert jsonld.expand(input) == expected
