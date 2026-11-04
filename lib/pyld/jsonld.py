@@ -6479,7 +6479,11 @@ def _to_double(value) -> float:
 
 def _canonicalize_double(value: float | int) -> str:
     """Convert a float value to canonical lexical form of `xsd:double`."""
-    return re.sub(r'(\d)0*E\+?(-)?0*(\d)', r'\1E\2\3', (f'{_to_double(value):1.15E}'))
+    value = _to_double(value)
+    if math.isnan(value):
+        # Python formats NaN as 'NAN'; the XSD canonical form is 'NaN'.
+        return 'NaN'
+    return re.sub(r'(\d)0*E\+?(-)?0*(\d)', r'\1E\2\3', (f'{value:1.15E}'))
 
 
 def _is_numeric(v):
