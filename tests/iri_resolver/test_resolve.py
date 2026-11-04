@@ -406,3 +406,15 @@ def test_relative_with_hash_before_colon():
 
 def test_network_path_with_dot_segment_before_colon():
     assert resolve('//h/./a:b', 'http://base.org/path/') == 'http://h/a:b'
+
+
+def test_relative_with_dot_segments_and_colon_in_query():
+    assert resolve('doc?next=/a/../b:c', 'urn:x:y') == 'urn:doc?next=/a/../b:c'
+
+
+def test_relative_with_dot_segments_and_colon_in_fragment():
+    assert resolve('doc#/a/../b:c', 'tag:example') == 'tag:doc#/a/../b:c'
+
+
+def test_absolute_iri_with_dot_segments_in_query():
+    assert resolve('urn:x?a/../b') == 'urn:x?a/../b'
