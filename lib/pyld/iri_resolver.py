@@ -193,11 +193,12 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
         base_slash_after_colon_pos = base_iri.find("/", base_colon_pos + 3)
         if base_slash_after_colon_pos < 0:
             if len(base_iri) > base_colon_pos + 3:
-                return (
-                    base_iri
-                    + "/"
-                    + remove_dot_segments_of_path(relative_iri, value_colon_pos)
-                )
+                # The base has an authority and an empty path: a path-relative
+                # reference is merged with "/" (RFC 3986, section 5.2.3), an
+                # absolute path is used as it is, and dot segments are removed.
+                if not relative_iri.startswith("/"):
+                    relative_iri = "/" + relative_iri
+                return base_iri + remove_dot_segments(relative_iri)
             else:
                 return base_scheme + remove_dot_segments_of_path(
                     relative_iri, value_colon_pos
