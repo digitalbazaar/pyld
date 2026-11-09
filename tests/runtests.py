@@ -733,7 +733,14 @@ def create_test_options(opts=None):
 
 @dataclass
 class TestDocumentLoader(DocumentLoader):
-    """Load manifest fixtures locally and delegate other URLs to a loader."""
+    """
+    Load manifest fixtures locally and delegate other URLs to a loader.
+    
+    TestDocumentLoader decides whether to load a URL from the local test-tree (mapping
+    `LOCAL_BASES` to local files) or delegate to the normal network
+    loader. This enables deterministic tests without requiring network
+    access for suite-hosted resources.
+    """
 
     __test__ = False
 
