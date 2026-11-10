@@ -235,13 +235,6 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
     # Ignore everything after last '/' in base path
     if last_slash >= 0 and last_slash < len(base_path) - 1:
         base_path = base_path[: last_slash + 1]
-        if (
-            relative_iri.startswith(".")
-            and not relative_iri.startswith("..")
-            and not relative_iri.startswith("./")
-            and len(relative_iri) > 2
-        ):
-            relative_iri = relative_iri[1:]
 
     relative_iri = base_path + relative_iri
     relative_iri = remove_dot_segments(relative_iri)
