@@ -92,7 +92,7 @@ def test_base_without_path_parent_segment():
     assert resolve('../abc', 'http://base.org') == 'http://base.org/abc'
 
 
-def test_base_without_path_query():
+def test_base_without_path_relative_with_query():
     assert resolve('abc?x=1', 'http://base.org') == 'http://base.org/abc?x=1'
 
 
@@ -116,7 +116,15 @@ def test_base_without_path_dot_slash_segment():
     assert resolve('./abc', 'http://base.org') == 'http://base.org/abc'
 
 
-def test_base_without_path_with_query():
+def test_base_without_path_dot_segment_before_query():
+    assert resolve('abc/.?x', 'http://base.org') == 'http://base.org/abc/?x'
+
+
+def test_base_without_path_double_dot_segment_before_fragment():
+    assert resolve('abc/def/..#x', 'http://base.org') == 'http://base.org/abc/#x'
+
+
+def test_base_without_path_ignores_base_query():
     assert resolve('abc', 'http://base.org?q') == 'http://base.org/abc'
 
 
@@ -130,6 +138,18 @@ def test_base_without_path_with_slash_in_query():
 
 def test_base_with_slash_in_query():
     assert resolve('jjj', 'http://abc/def?ghi/jkl') == 'http://abc/jjj'
+
+
+def test_base_dot_segment_before_query():
+    assert resolve('abc/.?x', 'http://base.org/') == 'http://base.org/abc/?x'
+
+
+def test_base_with_query_dot_before_query():
+    assert resolve('.?y', 'http://abc/def/?x') == 'http://abc/def/?y'
+
+
+def test_base_with_query_dot_before_fragment():
+    assert resolve('.#y', 'http://abc/def/?x') == 'http://abc/def/#y'
 
 
 def test_base_only_scheme_slash_slash():
