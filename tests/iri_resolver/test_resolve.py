@@ -104,6 +104,18 @@ def test_base_without_path_double_dot():
     assert resolve('..', 'http://base.org') == 'http://base.org/'
 
 
+def test_base_without_path_dot():
+    assert resolve('.', 'http://base.org') == 'http://base.org/'
+
+
+def test_base_without_path_dot_slash():
+    assert resolve('./', 'http://base.org') == 'http://base.org/'
+
+
+def test_base_without_path_dot_slash_segment():
+    assert resolve('./abc', 'http://base.org') == 'http://base.org/abc'
+
+
 def test_base_without_path_with_query():
     assert resolve('abc', 'http://base.org?q') == 'http://base.org/abc'
 
