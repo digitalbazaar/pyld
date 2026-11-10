@@ -4016,17 +4016,11 @@ class JsonLdProcessor:
             elif datatype == str(XSD.double):
                 # since the previous branch did not activate, we know that `value` is not a float number.
                 try:
-                    float_value = _to_double(value)
+                    lexical = _canonicalize_double(value)
                 except (ValueError, TypeError):
                     # if `value` is not convertible to float, we will return it as-is.
-                    return Literal(value, datatype=XSD.double, normalize=False)
-                else:
-                    # we have a float, and canonicalization may proceed.
-                    return Literal(
-                        _canonicalize_double(float_value),
-                        datatype=XSD.double,
-                        normalize=False,
-                    )
+                    lexical = value
+                return Literal(lexical, datatype=XSD.double, normalize=False)
             elif (
                 options['processingMode'] == 'json-ld-1.1'
                 and _is_integer(value)
@@ -6478,7 +6472,7 @@ def _to_double(value) -> float:
         return math.inf if value > 0 else -math.inf
 
 
-def _canonicalize_double(value: float | int) -> str:
+def _canonicalize_double(value: float | int | str) -> str:
     """
     Converts a number to the canonical lexical form of `xsd:double`.
 
