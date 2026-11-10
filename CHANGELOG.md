@@ -33,7 +33,7 @@
 - Use a helper for generalized N-Quads normalization in the test runner, since rdflib cannot parse blank-node predicates. Fixes [toRdf#te075](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#te075).
 - `jsonld.expand()`, `jsonld.to_rdf()` and the other operations no longer fail with an `OverflowError` for an integer too large for a double. `jsonld.to_rdf()` writes it as `INF` or `-INF`, the infinite `xsd:double` values, or, in `json-ld-1.0` mode and not typed as `xsd:double`, as an exact `xsd:integer`. Inside `@json` literals, `jsonld.to_rdf()` and `jsonld.normalize()` still raise `OverflowError` for such numbers, as RFC 8785 only allows numbers that fit in a double.
 - `jsonld.to_rdf()` writes the `xsd:double` NaN as `NaN`, its XSD canonical form, instead of `NAN`, so `jsonld.normalize()` output changes for documents with such a value.
-- `iri_resolver.resolve()` resolves a reference against a base with an authority and an empty path, such as `http://example.org`, as RFC 3986 does: `/x` became `http://example.org//x`, and dot segments were kept in a path and removed from a query. The query of the base IRI no longer stays in front of a path, or counts as part of the base path when it contains a `/`.
+- `iri_resolver.resolve()` now follows RFC 3986 §5.2 when the base IRI has an empty path or a query: `/x` against `http://example.org` gives `http://example.org/x` instead of `http://example.org//x`, dot segments are removed from the path and not the query, and the base query no longer carries over to a reference with a path.
 
 ### Changed
 - **BREAKING**: Developer install, command execution, documentation, and release artifact
