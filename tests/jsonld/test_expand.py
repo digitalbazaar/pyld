@@ -696,8 +696,8 @@ def test_default_direction_null_reset_is_noop_when_unset():
 
 def test_integer_beyond_double_range_is_kept():
     """
-    An integer too large for a double is a number like any other, instead of
-    raising OverflowError.
+    Integers too large for a double should be kept as numbers during expansion
+    instead of raising OverflowError.
     """
     input = {"@id": "http://example.com/s", "http://example.com/p": 10**309}
 
