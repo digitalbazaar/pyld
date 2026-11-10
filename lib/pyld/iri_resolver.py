@@ -7,6 +7,7 @@ Python implementation of an IRI resolver
 .. moduleauthor:: Miel Vander Sande <miel.vandersande@meemoo.be>
 """
 
+import re
 from urllib.parse import ParseResult, urlparse, urlunparse
 
 
@@ -194,31 +195,39 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
     if relative_iri.startswith("//"):
         return base_scheme + remove_dot_segments_of_path(relative_iri, value_colon_pos)
 
+    # Dot segments are only removed from the path of the value, which ends at
+    # the first '?' or '#' (RFC 3986, section 5.2.2)
+    path_end = re.search(r"[?#]|\Z", relative_iri).start()
+    query_and_fragment = relative_iri[path_end:]
+    relative_iri = relative_iri[:path_end]
+
     # Determine where the path of base starts
     if base_iri.find("//", base_colon_pos) == base_colon_pos + 1:
         base_slash_after_colon_pos = base_iri.find("/", base_colon_pos + 3)
         if base_slash_after_colon_pos < 0:
             if len(base_iri) > base_colon_pos + 3:
-                # The base has an authority and an empty path: a path-relative
-                # reference is merged with "/" (RFC 3986, section 5.2.3), an
-                # absolute path is used as it is, and dot segments are removed.
-                if not relative_iri.startswith("/"):
-                    relative_iri = "/" + relative_iri
-                return base_iri + remove_dot_segments(relative_iri)
+                # The base has an authority and an empty path, so its path is
+                # taken as '/' (RFC 3986, section 5.2.3)
+                base_iri += "/"
+                base_slash_after_colon_pos = len(base_iri) - 1
             else:
                 return base_scheme + remove_dot_segments_of_path(
-                    relative_iri, value_colon_pos
+                    relative_iri + query_and_fragment, value_colon_pos
                 )
     else:
         base_slash_after_colon_pos = base_iri.find("/", base_colon_pos + 1)
         if base_slash_after_colon_pos < 0:
             return base_scheme + remove_dot_segments_of_path(
-                relative_iri, value_colon_pos
+                relative_iri + query_and_fragment, value_colon_pos
             )
 
     # If relative starts with '/', append after base authority
     if relative_iri.startswith("/"):
-        return base_iri[:base_slash_after_colon_pos] + remove_dot_segments(relative_iri)
+        return (
+            base_iri[:base_slash_after_colon_pos]
+            + remove_dot_segments(relative_iri)
+            + query_and_fragment
+        )
 
     base_path = base_iri[base_slash_after_colon_pos:]
     last_slash = base_path.rfind("/")
@@ -237,7 +246,7 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
     relative_iri = base_path + relative_iri
     relative_iri = remove_dot_segments(relative_iri)
 
-    return base_iri[:base_slash_after_colon_pos] + relative_iri
+    return base_iri[:base_slash_after_colon_pos] + relative_iri + query_and_fragment
 
 
 def unresolve(absolute_iri: str, base_iri: str = ""):
