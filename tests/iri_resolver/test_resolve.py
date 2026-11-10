@@ -152,6 +152,10 @@ def test_base_with_query_dot_before_fragment():
     assert resolve('.#y', 'http://abc/def/?x') == 'http://abc/def/#y'
 
 
+def test_base_segment_starting_with_dot():
+    assert resolve('.gh', 'http://example.org/a') == 'http://example.org/.gh'
+
+
 def test_base_only_scheme_slash_slash():
     assert resolve('abc', 'http://') == 'http:abc'
 
