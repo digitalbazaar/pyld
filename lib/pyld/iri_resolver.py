@@ -192,12 +192,6 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
     if relative_iri.startswith("//"):
         return base_scheme + remove_dot_segments_of_path(relative_iri, value_colon_pos)
 
-    # Dot segments are only removed from the path of the value, which ends at
-    # the first '?' or '#' (RFC 3986, section 5.2.2)
-    path_end = re.search(r"[?#]|\Z", relative_iri).start()
-    query_and_fragment = relative_iri[path_end:]
-    relative_iri = relative_iri[:path_end]
-
     # Determine where the path of base starts
     if base_iri.find("//", base_colon_pos) == base_colon_pos + 1:
         base_slash_after_colon_pos = base_iri.find("/", base_colon_pos + 3)
@@ -209,14 +203,20 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
                 base_slash_after_colon_pos = len(base_iri) - 1
             else:
                 return base_scheme + remove_dot_segments_of_path(
-                    relative_iri + query_and_fragment, value_colon_pos
+                    relative_iri, value_colon_pos
                 )
     else:
         base_slash_after_colon_pos = base_iri.find("/", base_colon_pos + 1)
         if base_slash_after_colon_pos < 0:
             return base_scheme + remove_dot_segments_of_path(
-                relative_iri + query_and_fragment, value_colon_pos
+                relative_iri, value_colon_pos
             )
+
+    # Dot segments are only removed from the path of the value, which ends at
+    # the first '?' or '#' (RFC 3986, section 5.2.2)
+    path_end = re.search(r"[?#]|\Z", relative_iri).start()
+    query_and_fragment = relative_iri[path_end:]
+    relative_iri = relative_iri[:path_end]
 
     # If relative starts with '/', append after base authority
     if relative_iri.startswith("/"):
