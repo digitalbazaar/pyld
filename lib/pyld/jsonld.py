@@ -6458,11 +6458,13 @@ def _to_double(value) -> float:
     """
     Converts a number to a double.
 
-    An integer beyond the range of a double becomes positive or negative
-    infinity, as floatingPointRound in XML Schema 1.1 Part 2 rounds it:
-    https://www.w3.org/TR/xmlschema11-2/#f-floatPtRound
+    An integer that rounds beyond the largest double becomes positive or
+    negative infinity, as the lexical mapping of `xsd:double` in XML Schema
+    1.1 Part 2 rounds it with floatingPointRound:
+    https://www.w3.org/TR/xmlschema11-2/#f-doubleLexmap
 
-    :param value: the number to convert.
+    :param value: the number or numeric string to convert; anything else
+      raises ValueError or TypeError, as float() does.
 
     :return: the double.
     """
@@ -6483,7 +6485,8 @@ def _canonicalize_double(value: float | int | str) -> str:
     specialRepCanonicalMap in XML Schema 1.1 Part 2 maps them:
     https://www.w3.org/TR/xmlschema11-2/#f-specValCanMap
 
-    :param value: the number to convert.
+    :param value: the number or numeric string to convert, as for
+      _to_double().
 
     :return: the canonical lexical form.
     """
