@@ -6464,9 +6464,9 @@ def _to_double(value) -> float:
     """
     Converts a number to a double.
 
-    An integer beyond the range of a double becomes infinite, as the XSD
-    lexical mapping of `xsd:double` rounds it (XML Schema 1.1 Part 2,
-    floatingPointRound), and as JavaScript reads it from JSON.
+    An integer beyond the range of a double becomes positive or negative
+    infinity, as floatingPointRound in XML Schema 1.1 Part 2 rounds it:
+    https://www.w3.org/TR/xmlschema11-2/#f-floatPtRound
 
     :param value: the number to convert.
 
@@ -6482,8 +6482,12 @@ def _canonicalize_double(value: float | int) -> str:
     """
     Converts a number to the canonical lexical form of `xsd:double`.
 
-    The special values are written 'INF', '-INF' and 'NaN' (XML Schema 1.1
-    Part 2, specialRepCanonicalMap).
+    A finite number is written as JSON-LD 1.1 describes it:
+    https://www.w3.org/TR/json-ld11-api/#data-round-tripping
+
+    The special values are written 'INF', '-INF' and 'NaN', as
+    specialRepCanonicalMap in XML Schema 1.1 Part 2 maps them:
+    https://www.w3.org/TR/xmlschema11-2/#f-specValCanMap
 
     :param value: the number to convert.
 
