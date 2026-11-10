@@ -80,6 +80,10 @@ def test_base_without_path_dot_segments():
     assert resolve('abc/./', 'http://base.org') == 'http://base.org/abc/'
 
 
+def test_base_without_path_root_path():
+    assert resolve('/', 'http://base.org') == 'http://base.org/'
+
+
 def test_base_without_path_absolute_path():
     assert resolve('/abc', 'http://base.org') == 'http://base.org/abc'
 
@@ -154,6 +158,13 @@ def test_base_with_query_dot_before_fragment():
 
 def test_base_segment_starting_with_dot():
     assert resolve('.gh', 'http://example.org/a') == 'http://example.org/.gh'
+
+
+def test_base_first_segment_starting_with_dot():
+    assert (
+        resolve('.x/a', 'http://ex.org/x/yy/zzz/f.ttl')
+        == 'http://ex.org/x/yy/zzz/.x/a'
+    )
 
 
 def test_base_only_scheme_slash_slash():
