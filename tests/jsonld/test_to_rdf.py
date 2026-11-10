@@ -127,8 +127,8 @@ def test_large_integer_to_rdf_double_conversion_processing_mode():
 
 def test_integer_beyond_double_range_to_rdf_is_infinite():
     """
-    An integer too large for a double is an infinite xsd:double, as JavaScript
-    reads it, instead of raising OverflowError.
+    Integers too large for a double should be converted to INF and -INF
+    xsd:double values instead of raising OverflowError.
     """
     for value, lexical in ((10**309, 'INF'), (-(10**309), '-INF')):
         input = {'@id': 'http://example.com/s', 'http://example.com/p': value}
@@ -143,7 +143,7 @@ def test_integer_beyond_double_range_to_rdf_is_infinite():
 
 def test_integer_beyond_double_range_typed_as_double_to_rdf_is_infinite():
     """
-    An integer too large for a double, typed as xsd:double, is infinite too.
+    Integers too large for a double, typed as xsd:double, should be marked as infinite.
     """
     input = {
         '@id': 'http://example.com/s',
@@ -163,7 +163,8 @@ def test_integer_beyond_double_range_typed_as_double_to_rdf_is_infinite():
 
 def test_integer_beyond_double_range_in_json_ld_1_0_stays_an_integer():
     """
-    In json-ld-1.0 processing mode, such an integer is kept as xsd:integer.
+    In json-ld-1.0 processing mode, integers too large for a double should be
+    kept as exact xsd:integer values.
     """
     input = {'@id': 'http://example.com/s', 'http://example.com/p': 10**309}
 
@@ -180,9 +181,8 @@ def test_integer_beyond_double_range_in_json_ld_1_0_stays_an_integer():
 
 def test_double_special_values_to_rdf_use_xsd_canonical_forms():
     """
-    The special xsd:double values are written as INF, -INF and NaN, the XSD
-    canonical forms. The typed strings are already canonical; PyLD rewrites
-    typed xsd:double strings, so they must stay so.
+    The special xsd:double values should be written as NaN, INF and -INF, their
+    XSD canonical forms, whether given as floats or as xsd:double typed strings.
     """
     double = 'http://www.w3.org/2001/XMLSchema#double'
     for value, lexical in (
