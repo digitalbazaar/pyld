@@ -510,6 +510,14 @@ def test_network_path_with_dot_segment_before_colon():
     assert resolve('//h/./a:b', 'http://base.org/path/') == 'http://h/a:b'
 
 
+def test_network_path_with_colon_and_dot_segment_before_query():
+    assert resolve('//h/a:b/.?q', 'http://x/') == 'http://h/a:b/?q'
+
+
+def test_relative_with_colon_and_dot_segment_before_query_and_base_without_slash_slash():
+    assert resolve('z/a:b/.?', 'urn:x') == 'urn:z/a:b/?'
+
+
 def test_relative_with_dot_segments_and_colon_in_query():
     assert resolve('doc?next=/a/../b:c', 'urn:x:y') == 'urn:doc?next=/a/../b:c'
 
