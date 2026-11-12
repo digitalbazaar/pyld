@@ -33,7 +33,8 @@
 - Use a helper for generalized N-Quads normalization in the test runner, since rdflib cannot parse blank-node predicates. Fixes [toRdf#te075](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#te075).
 - `jsonld.expand()`, `jsonld.to_rdf()` and the other operations no longer fail with an `OverflowError` for an integer too large for a double. `jsonld.to_rdf()` writes it as `INF` or `-INF`, the infinite `xsd:double` values, or, in `json-ld-1.0` mode and not typed as `xsd:double`, as an exact `xsd:integer`. Inside `@json` literals, `jsonld.to_rdf()` and `jsonld.normalize()` still raise `OverflowError` for such numbers, as RFC 8785 only allows numbers that fit in a double.
 - `jsonld.to_rdf()` writes the `xsd:double` NaN as `NaN`, its XSD canonical form, instead of `NAN`, so `jsonld.normalize()` output changes for documents with such a value.
-- `iri_resolver.resolve()` fixes references without a scheme or host against a base IRI with a host and no path (`/x` against `http://example.org` gave `http://example.org//x`) or with a query. For those references, it also no longer drops the `/` that a final `.` or `..` segment leaves before a query or fragment (`a/.?x`), or the dot of a first segment such as `.gh`.
+- `iri_resolver.resolve()` fixes references without a scheme or host against a base IRI with a host and no path (`/x` against `http://example.org` gave `http://example.org//x`) or with a query, and keeps the dot of a first segment such as `.gh`.
+- `iri_resolver.remove_dot_segments()`, and with it `iri_resolver.resolve()`, no longer drops the `/` that a final `.` or `..` segment leaves before a query or fragment (`/a/.?x` gave `/a?x`).
 
 ### Changed
 - **BREAKING**: Developer install, command execution, documentation, and release artifact
