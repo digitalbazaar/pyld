@@ -47,8 +47,9 @@ def remove_dot_segments(path: str) -> str:
                     if segment_buffers:
                         segment_buffers.pop()
 
-                    # Add trailing slash segment if ends with '/..'
-                    if i + 3 >= length:
+                    # Add trailing slash segment if the path ends with '/..',
+                    # also before a query or fragment
+                    if next_ch != '/':
                         segment_buffers.append([])
 
                     i += 3
@@ -61,8 +62,9 @@ def remove_dot_segments(path: str) -> str:
                     i += 1
                     continue
 
-                # Add trailing slash if ends with '/.'
-                if i + 2 >= length:
+                # Add trailing slash if the path ends with '/.',
+                # also before a query or fragment
+                if next_ch != '/':
                     segment_buffers.append([])
 
                 # Stay in current directory — skip

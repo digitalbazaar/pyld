@@ -167,6 +167,14 @@ def test_base_first_segment_starting_with_dot():
     )
 
 
+def test_absolute_dot_segment_before_query():
+    assert resolve('http://abc/def/.?x') == 'http://abc/def/?x'
+
+
+def test_network_path_double_dot_segment_before_fragment():
+    assert resolve('//abc/def/ghi/..#x', 'http://base.org/') == 'http://abc/def/#x'
+
+
 def test_base_only_scheme_slash_slash():
     assert resolve('abc', 'http://') == 'http:abc'
 
