@@ -63,6 +63,13 @@ def test_non_absolute_base_error():
         resolve('abc', 'def')
 
 
+def test_base_without_scheme_colon_only_in_query_error():
+    with pytest.raises(
+        ValueError, match=r"Found invalid baseIRI 'def' for value 'abc'"
+    ):
+        resolve('abc', 'def?x:y')
+
+
 def test_non_absolute_base_empty_value_error():
     with pytest.raises(ValueError, match=r"Found invalid baseIRI 'def' for value ''"):
         resolve('', 'def')
