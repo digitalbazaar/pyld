@@ -100,7 +100,7 @@ def test_not_modify_parent_paths_in_queries():
 
 
 def test_mixed_current_and_parent_with_fragment():
-    assert remove_dot_segments('/abc/def/./ghi/../..#abc') == '/abc#abc'
+    assert remove_dot_segments('/abc/def/./ghi/../..#abc') == '/abc/#abc'
 
 
 def test_fragment_without_another_path():
@@ -149,6 +149,22 @@ def test_append_g_double_dot_after_slash():
 
 def test_end_with_slash_if_trailing_slash_dot():
     assert remove_dot_segments('/a/bb/ccc/./g/.') == '/a/bb/ccc/g/'
+
+
+def test_end_with_slash_if_slash_dot_before_query():
+    assert remove_dot_segments('/abc/def/.?a=b') == '/abc/def/?a=b'
+
+
+def test_end_with_slash_if_slash_dot_before_fragment():
+    assert remove_dot_segments('/abc/def/.#abc') == '/abc/def/#abc'
+
+
+def test_end_with_slash_if_slash_double_dot_before_query():
+    assert remove_dot_segments('/abc/def/..?a=b') == '/abc/?a=b'
+
+
+def test_end_with_slash_if_slash_double_dot_before_fragment():
+    assert remove_dot_segments('/abc/def/..#abc') == '/abc/#abc'
 
 
 def test_triple_dots_as_normal_segment():
