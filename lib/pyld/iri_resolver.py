@@ -46,8 +46,9 @@ def remove_dot_segments(path: str) -> str:
                     if segment_buffers:
                         segment_buffers.pop()
 
-                    # Add trailing slash segment if ends with '/..'
-                    if i + 3 >= length:
+                    # Add trailing slash segment if the path ends with '/..',
+                    # also before a query or fragment
+                    if next_ch != '/':
                         segment_buffers.append([])
 
                     i += 3
@@ -60,8 +61,9 @@ def remove_dot_segments(path: str) -> str:
                     i += 1
                     continue
 
-                # Add trailing slash if ends with '/.'
-                if i + 2 >= length:
+                # Add trailing slash if the path ends with '/.',
+                # also before a query or fragment
+                if next_ch != '/':
                     segment_buffers.append([])
 
                 # Stay in current directory — skip
@@ -150,15 +152,18 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
             )
         return base_iri
 
-    # If the value starts with a query character, concat directly (strip existing query)
-    if relative_iri.startswith("?"):
-        base_query_pos = base_iri.find("?")
-        if base_query_pos > 0:
-            base_iri = base_iri[:base_query_pos]
-        return base_iri + relative_iri
-
     # If the value starts with a fragment character, concat directly
     if relative_iri.startswith("#"):
+        return base_iri + relative_iri
+
+    # The query of the base IRI only applies to an empty value or a fragment
+    # (RFC 3986, section 5.2.2)
+    base_query_pos = base_iri.find("?")
+    if base_query_pos > 0:
+        base_iri = base_iri[:base_query_pos]
+
+    # If the value starts with a query character, concat directly
+    if relative_iri.startswith("?"):
         return base_iri + relative_iri
 
     # Ignore baseIRI if it is empty
@@ -193,11 +198,10 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
         base_slash_after_colon_pos = base_iri.find("/", base_colon_pos + 3)
         if base_slash_after_colon_pos < 0:
             if len(base_iri) > base_colon_pos + 3:
-                return (
-                    base_iri
-                    + "/"
-                    + remove_dot_segments_of_path(relative_iri, value_colon_pos)
-                )
+                # The base has an authority and an empty path, so its path is
+                # taken as '/' (RFC 3986, section 5.2.3)
+                base_iri += "/"
+                base_slash_after_colon_pos = len(base_iri) - 1
             else:
                 return base_scheme + remove_dot_segments_of_path(
                     relative_iri, value_colon_pos
@@ -219,13 +223,6 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
     # Ignore everything after last '/' in base path
     if last_slash >= 0 and last_slash < len(base_path) - 1:
         base_path = base_path[: last_slash + 1]
-        if (
-            relative_iri.startswith(".")
-            and not relative_iri.startswith("..")
-            and not relative_iri.startswith("./")
-            and len(relative_iri) > 2
-        ):
-            relative_iri = relative_iri[1:]
 
     relative_iri = base_path + relative_iri
     relative_iri = remove_dot_segments(relative_iri)
