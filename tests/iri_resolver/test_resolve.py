@@ -63,6 +63,13 @@ def test_non_absolute_base_error():
         resolve('abc', 'def')
 
 
+def test_base_without_scheme_colon_only_in_query_error():
+    with pytest.raises(
+        ValueError, match=r"Found invalid baseIRI 'def' for value 'abc'"
+    ):
+        resolve('abc', 'def?x:y')
+
+
 def test_non_absolute_base_empty_value_error():
     with pytest.raises(ValueError, match=r"Found invalid baseIRI 'def' for value ''"):
         resolve('', 'def')
@@ -78,6 +85,101 @@ def test_base_without_path_slash():
 
 def test_base_without_path_dot_segments():
     assert resolve('abc/./', 'http://base.org') == 'http://base.org/abc/'
+
+
+def test_base_without_path_root_path():
+    assert resolve('/', 'http://base.org') == 'http://base.org/'
+
+
+def test_base_without_path_absolute_path():
+    assert resolve('/abc', 'http://base.org') == 'http://base.org/abc'
+
+
+def test_base_without_path_absolute_path_with_dot_segments():
+    assert resolve('/abc/../def', 'http://base.org') == 'http://base.org/def'
+
+
+def test_base_without_path_parent_segment():
+    assert resolve('../abc', 'http://base.org') == 'http://base.org/abc'
+
+
+def test_base_without_path_relative_with_query():
+    assert resolve('abc?x=1', 'http://base.org') == 'http://base.org/abc?x=1'
+
+
+def test_base_without_path_dot_segments_in_query():
+    assert resolve('abc?x=/../y', 'http://base.org') == 'http://base.org/abc?x=/../y'
+
+
+def test_base_without_path_double_dot():
+    assert resolve('..', 'http://base.org') == 'http://base.org/'
+
+
+def test_base_without_path_dot():
+    assert resolve('.', 'http://base.org') == 'http://base.org/'
+
+
+def test_base_without_path_dot_slash():
+    assert resolve('./', 'http://base.org') == 'http://base.org/'
+
+
+def test_base_without_path_dot_slash_segment():
+    assert resolve('./abc', 'http://base.org') == 'http://base.org/abc'
+
+
+def test_base_without_path_dot_segment_before_query():
+    assert resolve('abc/.?x', 'http://base.org') == 'http://base.org/abc/?x'
+
+
+def test_base_without_path_double_dot_segment_before_fragment():
+    assert resolve('abc/def/..#x', 'http://base.org') == 'http://base.org/abc/#x'
+
+
+def test_base_without_path_ignores_base_query():
+    assert resolve('abc', 'http://base.org?q') == 'http://base.org/abc'
+
+
+def test_base_without_path_relative_with_dot_segments():
+    assert resolve('abc/../def', 'http://base.org') == 'http://base.org/def'
+
+
+def test_base_without_path_with_slash_in_query():
+    assert resolve('/', 'http://base.org?a/b') == 'http://base.org/'
+
+
+def test_base_with_slash_in_query():
+    assert resolve('jjj', 'http://abc/def?ghi/jkl') == 'http://abc/jjj'
+
+
+def test_base_dot_segment_before_query():
+    assert resolve('abc/.?x', 'http://base.org/') == 'http://base.org/abc/?x'
+
+
+def test_base_with_query_dot_before_query():
+    assert resolve('.?y', 'http://abc/def/?x') == 'http://abc/def/?y'
+
+
+def test_base_with_query_dot_before_fragment():
+    assert resolve('.#y', 'http://abc/def/?x') == 'http://abc/def/#y'
+
+
+def test_base_segment_starting_with_dot():
+    assert resolve('.gh', 'http://example.org/a') == 'http://example.org/.gh'
+
+
+def test_base_first_segment_starting_with_dot():
+    assert (
+        resolve('.x/a', 'http://ex.org/x/yy/zzz/f.ttl')
+        == 'http://ex.org/x/yy/zzz/.x/a'
+    )
+
+
+def test_absolute_dot_segment_before_query():
+    assert resolve('http://abc/def/.?x') == 'http://abc/def/?x'
+
+
+def test_network_path_double_dot_segment_before_fragment():
+    assert resolve('//abc/def/ghi/..#x', 'http://base.org/') == 'http://abc/def/#x'
 
 
 def test_base_only_scheme_slash_slash():
@@ -378,3 +480,59 @@ def test_relative_with_triple_dot_segment_and_2x_double_dot_and_base():
 
 def test_questionmark_prefix_relative_with_complex_base_with_dot():
     assert resolve('?y', 'http://a/bb/ccc/./d;p?q') == 'http://a/bb/ccc/./d;p?y'
+
+
+def test_relative_with_slash_before_colon_and_base_with_trailing_slash():
+    assert resolve('x/y:z', 'http://base.org/path/') == 'http://base.org/path/x/y:z'
+
+
+def test_relative_with_slash_before_colon_and_base_without_trailing_slash():
+    assert resolve('x/y:z', 'http://base.org/path') == 'http://base.org/x/y:z'
+
+
+def test_relative_with_multiple_colons_after_slash():
+    assert resolve('x/y:z:w', 'http://base.org/path/') == 'http://base.org/path/x/y:z:w'
+
+
+def test_absolute_path_with_colon_and_base():
+    assert resolve('/a:b', 'http://base.org/path/') == 'http://base.org/a:b'
+
+
+def test_absolute_path_with_colon_and_dot_segments_and_base_without_path():
+    assert resolve('/a:b/../c', 'http://base.org') == 'http://base.org/c'
+
+
+def test_relative_with_question_mark_before_colon():
+    assert resolve('a?b:c', 'http://base.org/path/x') == 'http://base.org/path/a?b:c'
+
+
+def test_relative_with_hash_before_colon():
+    assert resolve('a#b:c', 'http://base.org/path/x') == 'http://base.org/path/a#b:c'
+
+
+def test_network_path_with_dot_segment_before_colon():
+    assert resolve('//h/./a:b', 'http://base.org/path/') == 'http://h/a:b'
+
+
+def test_relative_with_dot_segment_before_colon_and_base_without_slash_slash():
+    assert resolve('x/./y:z', 'tag:example') == 'tag:x/y:z'
+
+
+def test_network_path_with_colon_and_dot_segment_before_query():
+    assert resolve('//h/a:b/.?q', 'http://x/') == 'http://h/a:b/?q'
+
+
+def test_relative_with_colon_and_dot_segment_before_query_and_base_without_slash_slash():
+    assert resolve('z/a:b/.?', 'urn:x') == 'urn:z/a:b/?'
+
+
+def test_relative_with_dot_segments_and_colon_in_query():
+    assert resolve('doc?next=/a/../b:c', 'urn:x:y') == 'urn:doc?next=/a/../b:c'
+
+
+def test_relative_with_dot_segments_and_colon_in_fragment():
+    assert resolve('doc#/a/../b:c', 'tag:example') == 'tag:doc#/a/../b:c'
+
+
+def test_absolute_iri_with_dot_segments_in_query():
+    assert resolve('urn:x?a/../b') == 'urn:x?a/../b'
