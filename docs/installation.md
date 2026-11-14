@@ -24,6 +24,12 @@ registers the [`pyld`](cli/index.md) console script.
 You can also depend on `requests` or `aiohttp` directly if your project already
 manages those dependencies.
 
+For YAML-LD parsing, install the optional extra:
+
+```bash
+pip install 'PyLD[yaml-ld]'
+```
+
 ## Development Install
 
 Install [:simple-uv: uv](https://docs.astral.sh/uv/), then sync the locked

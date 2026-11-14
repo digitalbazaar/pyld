@@ -28,6 +28,9 @@ The content type is chosen based on the file extension as follows:
 
 {{ file_content_types_table() }}
 
+To process `.yamlld` or `.yaml` files with PyLD, install the
+[`PyLD[yaml-ld]` extra](../../installation.md).
+
 Unsupported extensions raise `JsonLdError` with code `loading document failed`.
 
 ## Root Confinement
