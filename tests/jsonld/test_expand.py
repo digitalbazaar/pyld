@@ -4,6 +4,7 @@ import pytest
 
 import pyld.jsonld as jsonld
 from pyld.documentloader.base import DocumentLoader
+from pyld.documentloader.file import FileDocumentLoader
 
 
 def raise_this(value):
@@ -48,6 +49,36 @@ def test_missing_remote_document_raises_loading_document_failed():
         )
 
     assert caught.value.code == 'loading document failed'
+
+
+@pytest.mark.parametrize(
+    'key', ['1', '1.5', 'null', 'true', '[one, two]', '{one: two}', '!!str [one]']
+)
+@pytest.mark.parametrize('nested', [False, True])
+def test_yaml_nonstring_mapping_keys_raise_mapping_key_error(tmp_path, key, nested):
+    document = f'? {key}\n: value\n'
+    if nested:
+        document = 'https://example.org/nested:\n' + ''.join(
+            f'  {line}\n' for line in document.splitlines()
+        )
+    path = tmp_path / 'document.yamlld'
+    path.write_text(document)
+
+    with pytest.raises(jsonld.JsonLdError) as caught:
+        jsonld.expand(path.as_uri(), {'documentLoader': FileDocumentLoader()})
+
+    assert caught.value.type == 'yamlld.SyntaxError'
+    assert caught.value.code == 'mapping-key-error'
+
+
+@pytest.mark.parametrize('key', ['1', '1.5', 'null', 'true'])
+def test_yaml_quoted_mapping_keys_expand_as_strings(tmp_path, key):
+    path = tmp_path / 'document.yamlld'
+    path.write_text(f'"@context":\n  "@vocab": https://example.org/\n"{key}": value\n')
+
+    assert jsonld.expand(path.as_uri(), {'documentLoader': FileDocumentLoader()}) == [
+        {f'https://example.org/{key}': [{'@value': 'value'}]}
+    ]
 
 
 def test_preserves_recursion_error_for_acyclic_document(monkeypatch):
