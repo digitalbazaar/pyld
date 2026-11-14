@@ -3,10 +3,51 @@ import sys
 import pytest
 
 import pyld.jsonld as jsonld
+from pyld.documentloader.base import DocumentLoader
 
 
 def raise_this(value):
     raise ValueError(value)
+
+
+def test_null_document_expands_to_empty_array():
+    assert jsonld.expand(None) == []
+
+
+@pytest.mark.parametrize('content_type', ['application/ld+json', 'application/ld+yaml'])
+def test_remote_null_text_expands_to_empty_array(content_type):
+    class NullTextDocumentLoader(DocumentLoader):
+        def __call__(self, url, options):
+            return {
+                'contentType': content_type,
+                'contextUrl': None,
+                'documentUrl': url,
+                'document': 'null',
+            }
+
+    assert jsonld.expand(
+        'https://example.org/document',
+        {'documentLoader': NullTextDocumentLoader()},
+    ) == []
+
+
+def test_missing_remote_document_raises_loading_document_failed():
+    class MissingDocumentLoader(DocumentLoader):
+        def __call__(self, url, options):
+            return {
+                'contentType': 'application/ld+yaml',
+                'contextUrl': None,
+                'documentUrl': url,
+                'document': None,
+            }
+
+    with pytest.raises(jsonld.JsonLdError) as caught:
+        jsonld.expand(
+            'https://example.org/document',
+            {'documentLoader': MissingDocumentLoader()},
+        )
+
+    assert caught.value.code == 'loading document failed'
 
 
 def test_preserves_recursion_error_for_acyclic_document(monkeypatch):
