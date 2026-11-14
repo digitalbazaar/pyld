@@ -64,6 +64,7 @@ from pyld.util import (
     UnnormalizedNQuadsParser,
     from_legacy_dataset,
     from_legacy_triple,
+    has_cycles,
     to_legacy_dataset,
 )
 
@@ -623,6 +624,19 @@ class JsonLdProcessor:
                 code='loading document failed',
             ) from cause
 
+        try:
+            return self._expand_document(remote_doc, options)
+        except RecursionError as cause:
+            if has_cycles(remote_doc['document']):
+                raise JsonLdError(
+                    'Document contains a cycle.',
+                    'jsonld.LoadDocumentError',
+                    code='loading document failed',
+                ) from cause
+            raise
+
+    def _expand_document(self, remote_doc, options):
+        """Expand a loaded document using its metadata and processing options."""
         # set default base
         options.setdefault('base', remote_doc['documentUrl'] or '')
 

@@ -25,4 +25,5 @@ def parse_yaml(document):
     parsed_document = parser.load(document)
     if parsed_document is not None and not isinstance(parsed_document, (dict, list)):
         raise ValueError('YAML-LD document root must be a mapping, sequence, or null.')
+
     return parsed_document
