@@ -4660,7 +4660,7 @@ class JsonLdProcessor:
                                 {'propertyIsArray': True},
                             )
                             self._match_frame(
-                                {**state, 'embeded': True},
+                                {**state, 'embedded': True},
                                 [subject],
                                 subframe,
                                 output['@reverse'][reverse_prop],
