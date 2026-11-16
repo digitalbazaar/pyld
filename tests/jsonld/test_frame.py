@@ -73,6 +73,41 @@ def test_frame_uses_identifier_issuer_option():
         ]
     }
 
+def test_frame_reverse_embed_never_is_respected():
+    # Issue 378: a misspelled state key ignored @embed: @never in @reverse frames
+    ctx = {
+        "schema": "http://schema.org/",
+        "name": "schema:name",
+        "works_for": {"@id": "schema:worksFor", "@type": "@id"},
+        "employees": {"@reverse": "schema:worksFor"},
+    }
+    doc = {
+        "@context": ctx,
+        "@graph": [
+            {"@id": "ex:org1", "@type": "schema:Organization", "name": "Acme"},
+            {
+                "@id": "ex:p1",
+                "@type": "schema:Person",
+                "name": "Ada",
+                "works_for": "ex:org1",
+            },
+        ],
+    }
+    nquads = jsonld.to_rdf(doc, {"format": "application/n-quads"})
+    back = jsonld.from_rdf(nquads, {"format": "application/n-quads"})
+
+    result = jsonld.frame(
+        back,
+        {
+            "@context": ctx,
+            "@embed": "@once",
+            "@type": "schema:Organization",
+            "@reverse": {"schema:worksFor": {"@embed": "@never"}},
+        },
+    )
+
+    assert result["employees"] == {"@id": "ex:p1"}
+
 # PR: https://github.com/digitalbazaar/pyld/pull/31
 
 FRAME_0001_IN = {
