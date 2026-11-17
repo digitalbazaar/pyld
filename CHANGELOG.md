@@ -24,6 +24,7 @@
 
 - Preserved RDF literal lexical forms when converting through RDFLib, including canonical double output, large numeric values, and compound literal handling.
 - Fixed the active context clone dropping the default base direction: `@direction` now survives context layers like `@language`. Fixes [issue #337](https://github.com/digitalbazaar/pyld/issues/337).
+- Fixed `@embed: @never` being ignored for reverse-framed properties because of a misspelled `embedded` framing state key. Fixes [issue #378](https://github.com/digitalbazaar/pyld/issues/378).
 - Fixed `KeyError` when a context sets `@direction: null` and no default base direction is in effect.
 - Fixed `iri_resolver.unresolve()` query/fragment reconstruction while cleaning up the resolver docstring.
 - Invalid IRI base values within lists are now skipped when serializing to RDF. Fixes [toRdf#tli12](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#tli12) and [toRdf#tli14](https://w3c.github.io/json-ld-api/tests/toRdf-manifest#tli14).
