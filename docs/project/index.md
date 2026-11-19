@@ -13,7 +13,22 @@ Architecture Decision Records (ADRs) document the technical choices taken during
 
 <div id="adr-index" markdown>
 
-!!! success inline "[Use `requests-cache` for persistent HTTP caching in synchronous Python code](decisions/use-requests-cache-for-sync-http-caching-in-document-loaders/)"
+!!! success inline "[Implement YAML-LD support in PyLD](decisions/choose-where-to-host-yaml-ld-support/index.md)"
+    :material-calendar-clock: 1 November 2026
+
+    Implement YAML-LD in PyLD; retain `yaml-ld` as an installation proxy.
+
+!!! success inline "[Parse YAML-LD with `ruamel.yaml`](decisions/parse-yaml-ld-with.md)"
+    :material-calendar-clock: 1 November 2026
+
+    Use `ruamel.yaml` to construct Python values for YAML-LD processing.
+
+!!! success inline "[Use `pyld.jsonld.expand()` for YAML-LD expansion](decisions/use-pyld-jsonld-expand-for-yaml-ld.md)"
+    :material-calendar-clock: 1 September 2026
+
+    Use PyLD's existing expansion API for YAML-LD documents.
+
+!!! success inline "[Use `requests-cache` for persistent HTTP caching in synchronous Python code](decisions/use-requests-cache-for-sync-http-caching-in-document-loaders.md)"
     :material-calendar-clock: 29 June 2026
 
     Choose `requests-cache` for persistent, HTTP-aware synchronous
