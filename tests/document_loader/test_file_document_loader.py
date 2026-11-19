@@ -35,6 +35,23 @@ def test_loads_jsonld_file(tmp_path):
     assert json.loads(result['document']) == _PERSON
 
 
+@pytest.mark.parametrize('extension', ['yamlld', 'YAMLLD', 'yaml', 'YAML'])
+def test_expands_yamlld_file(tmp_path, extension):
+    path = tmp_path / f'item.{extension}'
+    document = '"@id": https://example.org/item\nhttps://example.org/value: item\n'
+    path.write_text(document, encoding='utf-8')
+    loader = FileDocumentLoader()
+
+    assert loader(path)['contentType'] == 'application/ld+yaml'
+    assert loader(path)['document'] == document
+    assert jsonld.expand(path.as_uri(), {'documentLoader': loader}) == [
+        {
+            '@id': 'https://example.org/item',
+            'https://example.org/value': [{'@value': 'item'}],
+        }
+    ]
+
+
 def test_loads_json_file(tmp_path):
     """A .json file is returned with the application/json content type."""
     path = tmp_path / 'person.json'

@@ -316,7 +316,7 @@ def define_env(env):
 
     @env.macro
     def file_content_types_table():
-        from pyld.documentloader.file import CONTENT_TYPES
+        from pyld.document_parsing import CONTENT_TYPES
 
         by_type: dict[str, list[str]] = {}
         for extension, content_type in CONTENT_TYPES.items():
