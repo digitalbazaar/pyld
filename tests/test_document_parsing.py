@@ -7,6 +7,7 @@ import pytest
 
 from pyld.document_parsing import (
     content_type_from_path,
+    parse_content_type,
     parse_document,
     parse_document_text,
 )
@@ -60,6 +61,21 @@ def test_unknown_media_type_keeps_json_fallback():
     assert parse_document_text('{"value": "item"}', 'application/octet-stream') == {
         'value': 'item'
     }
+
+
+def test_content_type_normalizes_essence_and_decodes_profile():
+    assert parse_content_type(
+        'Application/LD+YAML ; PROFILE="https://example.org/one https://example.org/two"'
+    ) == (
+        'application/ld+yaml',
+        'https://example.org/one https://example.org/two',
+    )
+    assert parse_document_text(
+        'value: item\n', 'Application/LD+YAML ; CHARSET="UTF-8"'
+    ) == {'value': 'item'}
+    assert parse_content_type(
+        "application/ld+json; profile*=utf-8''https%3A%2F%2Fexample.org%2Fprofile"
+    ) == ('application/ld+json', 'https://example.org/profile')
 
 
 def test_unknown_extension_has_no_registered_format():
