@@ -99,7 +99,8 @@ def remove_dot_segments_of_path(iri: str, colon_position: int) -> str:
     Remove dot segments from the path portion of an IRI (RFC 3986 §5.2.4).
 
     :param iri: an IRI (or part of IRI).
-    :param colonPosition: the position of the first ':' in the IRI.
+    :param colon_position: the position of the ':' that ends the scheme of the
+        IRI, or -1 if it has no scheme.
 
     :return: the IRI where dot segments were removed.
     """
@@ -116,9 +117,12 @@ def remove_dot_segments_of_path(iri: str, colon_position: int) -> str:
     else:
         search_offset = 2 if len(iri) > 1 and iri[0] == '/' and iri[1] == '/' else 0
 
-    # Find the start of the path
+    # Find the start of the path: the first '/', unless a query or fragment
+    # starts before it
     path_separator = iri.find('/', search_offset)
-    if path_separator < 0:
+    if path_separator < 0 or any(
+        ch in iri[search_offset:path_separator] for ch in '?#'
+    ):
         return iri
 
     base = iri[:path_separator]
@@ -175,10 +179,15 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
             )
         return remove_dot_segments_of_path(relative_iri, relative_colon_pos)
 
-    # Ignore baseIRI if the value is absolute
+    # Ignore baseIRI if the value is absolute.
+    # Per RFC 3986, a URI scheme cannot contain a '/', '?' or '#', so if one of
+    # them appears before the first ':', the IRI is relative (not absolute).
     value_colon_pos = relative_iri.find(":")
-    if value_colon_pos >= 0:
+    if value_colon_pos >= 0 and not any(
+        ch in relative_iri[:value_colon_pos] for ch in "/?#"
+    ):
         return remove_dot_segments_of_path(relative_iri, value_colon_pos)
+    # From here on, the value has no scheme: a ':' in it does not end a scheme.
 
     # baseIRI must be absolute
     base_colon_pos = base_iri.find(":")
@@ -191,7 +200,7 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
 
     # Inherit base scheme if relative starts with '//'
     if relative_iri.startswith("//"):
-        return base_scheme + remove_dot_segments_of_path(relative_iri, value_colon_pos)
+        return base_scheme + remove_dot_segments_of_path(relative_iri, -1)
 
     # Determine where the path of base starts
     if base_iri.find("//", base_colon_pos) == base_colon_pos + 1:
@@ -203,15 +212,11 @@ def resolve(relative_iri: str, base_iri: str = None) -> str:
                 base_iri += "/"
                 base_slash_after_colon_pos = len(base_iri) - 1
             else:
-                return base_scheme + remove_dot_segments_of_path(
-                    relative_iri, value_colon_pos
-                )
+                return base_scheme + remove_dot_segments_of_path(relative_iri, -1)
     else:
         base_slash_after_colon_pos = base_iri.find("/", base_colon_pos + 1)
         if base_slash_after_colon_pos < 0:
-            return base_scheme + remove_dot_segments_of_path(
-                relative_iri, value_colon_pos
-            )
+            return base_scheme + remove_dot_segments_of_path(relative_iri, -1)
 
     # If relative starts with '/', append after base authority
     if relative_iri.startswith("/"):
