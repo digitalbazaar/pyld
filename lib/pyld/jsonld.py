@@ -5802,9 +5802,12 @@ class JsonLdProcessor:
                         )
 
                 mapping['@id'] = id_
+                # only a simple term without ':' or '/' may be a prefix
+                # (Create Term Definition, step 14.2.5)
                 mapping['_prefix'] = (
                     _simple_term
-                    and not mapping['_term_has_colon']
+                    and ':' not in term
+                    and '/' not in term
                     and (
                         id_.startswith('_:')
                         or bool(re.match(r'.*[:/\?#\[\]@]$', id_))
