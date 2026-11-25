@@ -255,6 +255,51 @@ def test_base_does_not_expand_property_terms():
         }
     ]
 
+def test_term_with_slash_is_not_a_prefix():
+    """
+    A term whose name contains a '/' is not a prefix, so '/a/:b' is no
+    compact IRI: as an @id it is resolved against @base, and as a property
+    it is relative to @vocab.
+
+    See: https://www.w3.org/TR/json-ld11-api/#create-term-definition
+    (step 14.2.5)
+    """
+    doc = {
+        '@context': {
+            '@base': 'http://example.org/ns/doc',
+            '@vocab': 'http://other.org',
+            '/a/': 'http://other.org/a/',
+        },
+        '@id': '/a/:b',
+        '/a/:b': {'@id': '/a/:b'},
+    }
+    assert jsonld.expand(doc) == [
+        {
+            '@id': 'http://example.org/a/:b',
+            'http://other.org/a/:b': [{'@id': 'http://example.org/a/:b'}],
+        }
+    ]
+
+def test_term_name_with_slash_takes_iri_of_its_prefix_term():
+    """
+    A term such as '/a/:b' without an @id takes the IRI of the term before
+    its first ':', whether or not that term may be a prefix.
+
+    See: https://www.w3.org/TR/json-ld11-api/#create-term-definition
+    (step 15)
+    """
+    doc = {
+        '@context': {
+            '@vocab': 'http://other.org',
+            '/a/': 'http://other.org/a/',
+            '/a/:b': {'@type': '@id'},
+        },
+        '/a/:b': 'http://example.org/o',
+    }
+    assert jsonld.expand(doc) == [
+        {'http://other.org/a/b': [{'@id': 'http://example.org/o'}]}
+    ]
+
 # Issue 143
 def test_expand_with_base_from_context():
     """Expand with set or not should rely upon @base inside its @context."""
