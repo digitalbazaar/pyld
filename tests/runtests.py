@@ -1044,14 +1044,8 @@ TEST_TYPES = {
                 '.*yaml-ld/tests/manifest#core-yaml11-yes-upper$',
                 '.*yaml-ld/tests/manifest#html-unselected-stream$',
                 '.*yaml-ld/tests/manifest#html-selected-stream$',
-                # Deferred cycle and non-finite-number validation.
+                # Deferred cycle validation.
                 '.*yaml-ld/tests/manifest#aa-cycles-2-negative$',
-                '.*yaml-ld/tests/manifest#core-float-inf-negative$',
-                '.*yaml-ld/tests/manifest#core-float-neg-inf-negative$',
-                '.*yaml-ld/tests/manifest#core-float-plus-inf-negative$',
-                '.*yaml-ld/tests/manifest#core-float-nan-negative$',
-                '.*yaml-ld/tests/manifest#core-float-nan-mixed-negative$',
-                '.*yaml-ld/tests/manifest#core-float-nan-upper-negative$',
             ],
         },
         'fn': 'expand',
