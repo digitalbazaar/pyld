@@ -319,3 +319,22 @@ def test_with_vocab_with_id():
     compacted = jsonld.compact(input, ctx)
 
     assert compacted == expected
+
+def test_term_with_slash_is_not_used_as_a_prefix():
+    """
+    Compaction must not write a compact IRI with a term whose name contains
+    a '/': a reader resolves '/a/:b' as a relative IRI.
+
+    See: https://www.w3.org/TR/json-ld11-api/#create-term-definition
+    (step 14.2.5)
+    """
+    ctx = {'@vocab': 'http://example.org', '/a/': 'http://example.org/a/'}
+    input = {
+        '@id': 'http://example.org/s',
+        'http://example.org/p': {'@id': 'http://example.org/a/b'},
+    }
+
+    compacted = jsonld.compact(input, ctx)
+
+    assert compacted['/p'] == {'@id': 'http://example.org/a/b'}
+
