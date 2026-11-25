@@ -5398,14 +5398,13 @@ class JsonLdProcessor:
             ):
                 continue
 
-            # a CURIE is usable if:
+            # a CURIE is usable if the term is a prefix and:
             # 1. it has no mapping, OR
             # 2. value is None, which means we're not compacting an @value, AND
             #  the mapping matches the IRI
             curie = term + ':' + iri[len(definition['@id']) :]
-            is_usable_curie = (
-                active_ctx['mappings'][term]['_prefix']
-                and curie not in active_ctx['mappings']
+            is_usable_curie = active_ctx['mappings'][term]['_prefix'] and (
+                curie not in active_ctx['mappings']
                 or (
                     value is None
                     and active_ctx['mappings'].get(curie, {}).get('@id') == iri
