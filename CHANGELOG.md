@@ -38,6 +38,7 @@
   - fix references without a scheme or host against a base IRI with a host and no path (`/x` against `http://example.org` gave `http://example.org//x`) or with a query, and keeps the dot of a first segment such as `.gh`.
   - treat a reference with a `/`, `?` or `#` before its first `:`, such as `/a:b`, `x/y:z` or `a?b:c`, as a relative IRI and resolves it against the base IRI, as RFC 3986 does. It was returned unresolved, so `jsonld.to_rdf()` dropped it.
 - `iri_resolver.remove_dot_segments()`, and with it `iri_resolver.resolve()`, no longer drops the `/` that a final `.` or `..` segment leaves before a query or fragment (`/a/.?x` gave `/a?x`).
+- A term whose name contains a `:` or a `/`, such as `/a/`, is no longer a prefix, as [Create Term Definition](https://www.w3.org/TR/json-ld11-api/#create-term-definition) step 14.2.5 requires. `jsonld.expand()` read `/a/:b` as a compact IRI with that term instead of as a relative IRI, and `jsonld.compact()` wrote such compact IRIs.
 
 ### Changed
 - **BREAKING**: Developer install, command execution, documentation, and release artifact
