@@ -338,3 +338,35 @@ def test_term_with_slash_is_not_used_as_a_prefix():
 
     assert compacted['/p'] == {'@id': 'http://example.org/a/b'}
 
+@pytest.mark.parametrize(
+    ('ctx', 'iri'),
+    [
+        # '/a/:b' is a term for the IRI, but '/a/' is not a prefix
+        (
+            {
+                '@vocab': 'http://other.org',
+                '/a/': 'http://other.org/a/',
+                '/a/:b': {'@type': '@id'},
+            },
+            'http://other.org/a/b',
+        ),
+        # 'ex:foo' is a term for the IRI, but 'ex' is not a prefix
+        (
+            {'ex': 'http://example.org/ns', 'ex:foo': {'@type': '@id'}},
+            'http://example.org/nsfoo',
+        ),
+    ],
+)
+def test_compact_iri_from_a_term_that_is_not_a_prefix_is_not_used(ctx, iri):
+    """
+    A compact IRI is only built from a term with the prefix flag, also when
+    the compact IRI is itself a term for the IRI: otherwise it doesn't
+    expand back to the IRI.
+
+    See: https://www.w3.org/TR/json-ld11-api/#iri-compaction (step 7.1)
+    """
+    input = {'@id': iri, 'http://example.org/p': {'@id': iri}}
+
+    compacted = jsonld.compact(input, ctx)
+
+    assert jsonld.expand(compacted) == jsonld.expand(input)
