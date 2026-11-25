@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 
 import pyld.jsonld as jsonld
@@ -5,6 +7,43 @@ import pyld.jsonld as jsonld
 
 def raise_this(value):
     raise ValueError(value)
+
+
+def test_preserves_recursion_error_for_acyclic_document(monkeypatch):
+    error = RecursionError('expansion depth exceeded')
+
+    def fail_expansion(*args, **kwargs):
+        raise error
+
+    monkeypatch.setattr(jsonld.JsonLdProcessor, '_expand', fail_expansion)
+
+    with pytest.raises(RecursionError) as caught:
+        jsonld.expand({'https://example.org/value': 'item'})
+
+    assert caught.value is error
+
+
+def test_deep_acyclic_document_retains_recursion_error():
+    document = {}
+    current = document
+    for _ in range(sys.getrecursionlimit() + 50):
+        child = {}
+        current['https://example.org/child'] = child
+        current = child
+
+    with pytest.raises(RecursionError):
+        jsonld.expand(document)
+
+
+def test_successful_expansion_does_not_check_for_cycles(monkeypatch):
+    def unexpected_cycle_check(document):
+        pytest.fail('Cycle checking ran after successful expansion')
+
+    monkeypatch.setattr(jsonld, 'has_cycles', unexpected_cycle_check)
+
+    assert jsonld.expand({'https://example.org/value': 'item'}) == [
+        {'https://example.org/value': [{'@value': 'item'}]}
+    ]
 
 
 # Issue 50 - PR: https://github.com/digitalbazaar/pyld/pull/51
