@@ -1,6 +1,7 @@
 import pytest
 
 import pyld.jsonld as jsonld
+from pyld import ContextResolver, FrozenDocumentLoader
 
 
 def raise_this(value):
@@ -709,3 +710,135 @@ def test_integer_beyond_double_range_is_kept():
     ]
 
     assert jsonld.expand(input) == expected
+
+
+_REMOTE_BASE_URL = "https://example.org/context.jsonld"
+_REMOTE_BASE_CONTEXT = {
+    "@base": "https://remote.example/",
+    "name": "https://schema.org/name",
+}
+
+
+def _expand_relative_id_with_context(context, loader):
+    return jsonld.expand(
+        {"@context": context, "@id": "thing", "name": "x"},
+        {"documentLoader": loader, "base": "https://doc.example/"},
+    )
+
+
+def test_base_in_remote_context_is_ignored():
+    """
+    @base in a context loaded by URL must be ignored (JSON-LD 1.1 API,
+    Context Processing, step 5.7), so a relative @id resolves against the
+    base option.
+    """
+    loader = FrozenDocumentLoader(
+        documents={_REMOTE_BASE_URL: {"@context": _REMOTE_BASE_CONTEXT}}
+    )
+
+    got = _expand_relative_id_with_context(_REMOTE_BASE_URL, loader)
+
+    assert got == [
+        {
+            "@id": "https://doc.example/thing",
+            "https://schema.org/name": [{"@value": "x"}],
+        }
+    ]
+
+
+def test_base_in_inline_context_is_applied():
+    """
+    @base in an inline context still applies, even when an identical context
+    was also loaded by URL.
+    """
+    loader = FrozenDocumentLoader(
+        documents={_REMOTE_BASE_URL: {"@context": _REMOTE_BASE_CONTEXT}}
+    )
+
+    inline = _expand_relative_id_with_context(_REMOTE_BASE_CONTEXT, loader)
+    remote = _expand_relative_id_with_context(_REMOTE_BASE_URL, loader)
+
+    assert inline[0]["@id"] == "https://remote.example/thing"
+    assert remote[0]["@id"] == "https://doc.example/thing"
+
+
+def test_base_in_inline_context_is_applied_after_remote_context():
+    """
+    The order does not matter: a remote context processed first must not
+    make an identical inline context ignore @base.
+    """
+    loader = FrozenDocumentLoader(
+        documents={_REMOTE_BASE_URL: {"@context": _REMOTE_BASE_CONTEXT}}
+    )
+
+    remote = _expand_relative_id_with_context(_REMOTE_BASE_URL, loader)
+    inline = _expand_relative_id_with_context(_REMOTE_BASE_CONTEXT, loader)
+
+    assert remote[0]["@id"] == "https://doc.example/thing"
+    assert inline[0]["@id"] == "https://remote.example/thing"
+
+
+@pytest.mark.parametrize(
+    "documents",
+    [
+        # a remote context referenced by URL from another remote context
+        {
+            "https://example.org/outer.jsonld": {
+                "@context": "https://example.org/inner.jsonld"
+            },
+            "https://example.org/inner.jsonld": {"@context": _REMOTE_BASE_CONTEXT},
+        },
+        # every entry of an array in a remote document
+        {
+            "https://example.org/outer.jsonld": {
+                "@context": [
+                    {"name": "https://schema.org/name"},
+                    {"@base": "https://remote.example/"},
+                ]
+            },
+        },
+    ],
+    ids=["url-in-remote-context", "array-in-remote-context"],
+)
+def test_base_is_ignored_in_nested_remote_contexts(documents):
+    loader = FrozenDocumentLoader(documents=documents)
+
+    got = _expand_relative_id_with_context("https://example.org/outer.jsonld", loader)
+
+    assert got[0]["@id"] == "https://doc.example/thing"
+
+
+def test_invalid_base_in_remote_context_is_ignored():
+    loader = FrozenDocumentLoader(
+        documents={
+            _REMOTE_BASE_URL: {
+                "@context": {"@base": 5, "name": "https://schema.org/name"}
+            }
+        }
+    )
+
+    got = _expand_relative_id_with_context(_REMOTE_BASE_URL, loader)
+
+    assert got[0]["@id"] == "https://doc.example/thing"
+
+
+def test_remote_context_is_shared_between_operations():
+    """
+    Processed contexts are cached on the resolved context, so the remote
+    context must be the same object in each operation that shares the cache.
+    """
+    loader = FrozenDocumentLoader(
+        documents={_REMOTE_BASE_URL: {"@context": _REMOTE_BASE_CONTEXT}}
+    )
+    shared_cache = {}
+    active_ctx = {"_uuid": "test", "mappings": {}}
+
+    first = ContextResolver(shared_cache, loader).resolve(
+        active_ctx, _REMOTE_BASE_URL, "https://doc.example/"
+    )
+    second = ContextResolver(shared_cache, loader).resolve(
+        active_ctx, _REMOTE_BASE_URL, "https://doc.example/"
+    )
+
+    assert first[0].remote
+    assert second[0] is first[0]
