@@ -3456,7 +3456,11 @@ class JsonLdProcessor:
                 defined['@import'] = True
 
             # handle @base
-            if '@base' in ctx:
+            if '@base' in ctx and resolved_context.remote:
+                # @base is ignored in a remote context (Context Processing,
+                # step 5.7), but it is a keyword, not a term
+                defined['@base'] = True
+            elif '@base' in ctx:
                 base = ctx['@base']
                 if base is None:
                     base = None

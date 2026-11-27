@@ -38,6 +38,7 @@
   - fix references without a scheme or host against a base IRI with a host and no path (`/x` against `http://example.org` gave `http://example.org//x`) or with a query, and keeps the dot of a first segment such as `.gh`.
   - treat a reference with a `/`, `?` or `#` before its first `:`, such as `/a:b`, `x/y:z` or `a?b:c`, as a relative IRI and resolves it against the base IRI, as RFC 3986 does. It was returned unresolved, so `jsonld.to_rdf()` dropped it.
 - `iri_resolver.remove_dot_segments()`, and with it `iri_resolver.resolve()`, no longer drops the `/` that a final `.` or `..` segment leaves before a query or fragment (`/a/.?x` gave `/a?x`).
+- `@base` in a context loaded by URL is now ignored, as JSON-LD 1.1 requires, so a relative `@id` resolves against the `base` option instead of the remote context's `@base`. `jsonld.compact()` with such a context no longer makes IRIs relative to its `@base`, and an invalid `@base` in it no longer raises `invalid base IRI`. Fixes [issue #390](https://github.com/digitalbazaar/pyld/issues/390).
 
 ### Changed
 - **BREAKING**: Developer install, command execution, documentation, and release artifact

@@ -128,6 +128,10 @@ class ContextResolver:
 
         # resolve, cache, and return context
         resolved = self.resolve(active_ctx, context, base, cycles)
+
+        # mark as remote using separate objects: the ones from `resolve` may be
+        # shared with identical inline contexts
+        resolved = [r.as_remote() for r in resolved]
         self._cache_resolved_context(url, resolved, remote_doc.get('tag'))
         return resolved
 
